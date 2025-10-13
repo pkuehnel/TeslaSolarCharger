@@ -25,10 +25,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
 
         Register(x => x.SkipPowerChangesOnLastAdjustmentNewerThanSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Skip Power Changes On Last Adjustment Newer Than Seconds",
                 "Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Leistungsänderungen überspringen, wenn die letzte Anpassung neuer als Sekunden ist",
                 "Seien Sie vorsichtig bei Werten unter 25 Sekunden, da Fahrzeuge oder Ladestationen möglicherweise Zeit benötigen, um die Leistung anzupassen."));
 
         Register(x => x.PvValueUpdateIntervalSeconds,
@@ -65,34 +65,34 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
 
         Register(x => x.AllowPowerBufferChangeOnHome,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Allow Power Buffer Change On Home",
                 "If enabled, the configured power buffer is displayed on the home screen, including the option to directly change it."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Änderung des Leistungspuffers auf der Startseite erlauben",
                 "Wenn aktiviert, wird der konfigurierte Leistungspuffer auf der Startseite angezeigt und kann dort direkt angepasst werden."));
 
         Register(x => x.PredictSolarPowerGeneration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Predict Solar Power Generation",
                 "If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Solarenergieerzeugung vorhersagen",
                 "Wenn aktiviert, wird Ihr Home-Geofence an die Server von Solar4Car.com sowie an www.visualcrossing.com übertragen. Ihre Positionsdaten werden dabei nie mit anderen Daten verknüpft."));
 
         Register(x => x.UsePredictedSolarPowerGenerationForChargingSchedules,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Use Predicted Solar Power Generation For Charging Schedules",
                 "If enabled, when a target Soc is set not only grid prices but also estimated solar power generation is used to schedule charging."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Vorhergesagte Solarleistung für Ladepläne verwenden",
                 "Wenn aktiviert und ein Ziel-SoC gesetzt ist, werden für die Ladeplanung neben den Netzpreisen auch die prognostizierte Solarleistung berücksichtigt."));
 
         Register(x => x.ShowEnergyDataOnHome,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Show Energy Data On Home",
                 "This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspery Pi 3. This will be fixed in a future update."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Energiedaten auf der Startseite anzeigen",
                 "Diese Funktion befindet sich in einer frühen Beta-Phase und verhält sich eventuell nicht wie erwartet. Auf Geräten mit geringer Leistung (z. B. Raspberry Pi 3) kann das Laden länger als 30 Sekunden dauern oder fehlschlagen. Dies wird in einem zukünftigen Update behoben."));
 
         Register(x => x.TelegramBotKey,
@@ -113,10 +113,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
 
         Register(x => x.SendStackTraceToTelegram,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Send Stack Trace To Telegram",
                 "If enabled detailed error information are sent via Telegram so developers can find the root cause. This is not needed for normal usage."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Stacktrace an Telegram senden",
                 "Wenn aktiviert, werden detaillierte Fehlerinformationen per Telegram versendet, damit Entwickler die Ursache finden können. Für den normalen Betrieb ist das nicht erforderlich."));
 
         Register(x => x.TeslaMateDbServer,
@@ -193,34 +193,34 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
 
         Register(x => x.HomeBatteryMinDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Home Battery Min Dynamic Min Soc",
                 "Reserve that is always set as min SoC."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Minimaler dynamischer Mindest-SoC der Heimbatterie",
                 "Reserve, die immer als minimaler SoC gesetzt wird."));
 
         Register(x => x.HomeBatteryMaxDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Home Battery Max Dynamic Min Soc",
                 "Min SoC is never set higher than this value."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Maximaler dynamischer Mindest-SoC der Heimbatterie",
                 "Der minimale SoC wird nie höher als dieser Wert gesetzt."));
 
         Register(x => x.DynamicMinSocCalculationBuffer,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Dynamic Min Soc Calculation Buffer",
                 "Used to make sure your home battery does not run out of power even if weather predictions are not correct or your house uses more energy than anticipated."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Berechnungspuffer für dynamischen Mindest-SoC",
                 "Sorgt dafür, dass die Heimbatterie nicht leer wird, selbst wenn Wetterprognosen falsch liegen oder der Energiebedarf höher als erwartet ist."));
 
         Register(x => x.ForceFullHomeBatteryBySunset,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Force Full Home Battery By Sunset",
                 "If enabled, the system charges the home battery so it is full by sunset. If disabled, the system only ensures the battery does not run empty before the next sunrise."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Heimbatterie bis Sonnenuntergang vollständig laden erzwingen",
                 "Wenn aktiviert, wird die Heimbatterie bis zum Sonnenuntergang vollständig geladen. Wenn deaktiviert, wird lediglich sichergestellt, dass die Batterie vor dem nächsten Sonnenaufgang nicht leerläuft."));
 
         Register(x => x.HomeBatteryChargingPower,
@@ -249,18 +249,18 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
 
         Register(x => x.DischargeHomeBatteryToMinSocDuringDay,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Discharge Home Battery To Min Soc During Day",
                 "When enabled TSC discharges the home battery to its Min Soc after sunrise and before sunset. Note: Charging of cars is only started if minimum difference between actual home battery soc and min soc is at least 10%."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Heimbatterie tagsüber auf Mindest-SoC entladen",
                 "Wenn aktiviert, entlädt TSC die Heimbatterie zwischen Sonnenaufgang und Sonnenuntergang bis zum Mindest-SoC. Hinweis: Das Laden von Fahrzeugen startet erst, wenn die Differenz zwischen aktuellem und minimalem SoC mindestens 10 % beträgt."));
 
         Register(x => x.CarChargeLoss,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                null,
+                "Car Charge Loss",
                 "Energy lost when charging cars. Is used to calculate charging schedules based on battery capacity."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                null,
+                "Ladeverlust des Fahrzeugs",
                 "Energieverlust beim Laden der Fahrzeuge. Wird verwendet, um Ladepläne basierend auf der Batteriekapazität zu berechnen."));
 
         Register(x => x.MaxCombinedCurrent,
