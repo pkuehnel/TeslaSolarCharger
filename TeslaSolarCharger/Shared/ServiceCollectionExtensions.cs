@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, ChargingStationConnectorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CustomIconLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarDetailsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, GenericValueConfigurationComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BackendInformationDisplayComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeSummaryComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargingConnectorDetailsComponentLocalizationRegistry>()
@@ -58,6 +59,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, NotChargingAtExpectedPowerReasonsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, PowerBufferComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, InstallationInformationLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
         ;
 }
