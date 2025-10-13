@@ -52,6 +52,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoggedErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, NotChargingAtExpectedPowerReasonsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, PowerBufferComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
         ;
 }

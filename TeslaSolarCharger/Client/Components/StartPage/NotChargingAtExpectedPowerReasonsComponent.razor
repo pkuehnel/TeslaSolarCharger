@@ -1,11 +1,16 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using System.Globalization
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.SignalRClients
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @inject IHomeService HomeService
 @inject IDateTimeProvider DateTimeProvider
 @inject ILogger<NotChargingAtExpectedPowerReasonsComponent> Logger
 @inject ISignalRStateService SignalRStateService
+@inject ITextLocalizationService TextLocalizer
 
 @implements IDisposable
 
@@ -40,7 +45,7 @@ else
                         }
                         else
                         {
-                            <div>@($"{_elements.Count} reason(s) why loadpoint charges with different power than you might expect")</div>
+                            <div>@Format("{0} reason(s) why loadpoint charges with different power than you might expect", _elements.Count)</div>
                         }
                     }
                     @if (_elements.Count > 0)
@@ -74,7 +79,7 @@ else
                                             @(FormatTimeSpan(remainingTime.Value))
                                         </MudChip>
                                     </span>
-                                    <span>remaining)</span>
+                                    <span>@T("remaining)")</span>
                                 }
                                 else
                                 {
@@ -178,6 +183,13 @@ else
     {
         return timeSpan.ToString(@"mm\:ss");
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<NotChargingAtExpectedPowerReasonsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
 
     public void Dispose()
     {
