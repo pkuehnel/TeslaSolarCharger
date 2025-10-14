@@ -1,9 +1,13 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject IChargingStationsService ChargingStationsService
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
 @if (_chargingStationConnectors == default)
 {
@@ -23,8 +27,8 @@ else
                         <MudAlert Severity="Severity.Warning"
                                   NoIcon="true"
                                   ContentAlignment="HorizontalAlignment.Left">
-                            <h5>Current below 6A not recommended</h5>
-                            The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result in unexpected behavior like the car not charging at all.
+                            <h5>@T("Current below 6A not recommended")</h5>
+                            @T("The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result in unexpected behavior like the car not charging at all.")
                         </MudAlert>
                     }
                     <GenericInput For="() => chargingStationConnector.Item.Name"></GenericInput>
@@ -101,7 +105,10 @@ else
 
     private void ShowSuccessMessage()
     {
-        Snackbar.Add("Saved.", Severity.Success);
+        Snackbar.Add(T("Saved."), Severity.Success);
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<ChargingStationConnectorsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

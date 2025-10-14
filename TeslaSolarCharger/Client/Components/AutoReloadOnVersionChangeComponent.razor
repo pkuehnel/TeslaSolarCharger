@@ -1,10 +1,14 @@
 ﻿@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 @inject IJavaScriptWrapper JavaScriptWrapper
 @inject IHttpClientHelper HttpClientHelper
 @inject ILogger<AutoReloadOnVersionChangeComponent> Logger
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
 @code {
     PeriodicTaskHelper? _periodicTaskHelper;
@@ -34,7 +38,7 @@
             {
                 if (!string.Equals(lastVersion, serverVersion))
                 {
-                    Snackbar.Add("A new version of the application is available. The application will now reload to update to the latest version.", Severity.Info);
+                    Snackbar.Add(T("A new version of the application is available. The application will now reload to update to the latest version."), Severity.Info);
                     await Task.Delay(3000);
                     await JavaScriptWrapper.SaveToLocalStorage(serverVersionKey, serverVersion);
                     await JavaScriptWrapper.ReloadPage();
@@ -46,4 +50,8 @@
             Logger.LogWarning("Could not check for new version.");
         }
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<AutoReloadOnVersionChangeComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

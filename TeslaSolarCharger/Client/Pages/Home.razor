@@ -3,14 +3,18 @@
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @using TeslaSolarCharger.Shared.SignalRClients
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
 @inject ILogger<Home> Logger
 @inject ISignalRStateService SignalRStateService
+@inject ITextLocalizationService TextLocalizer
 
-<PageTitle>Solar 4 Car</PageTitle>
+<PageTitle>@T("Solar 4 Car")</PageTitle>
 
 <MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
 
@@ -38,20 +42,30 @@ else
     if (_loadPoints.Count < 1)
     {
         <MudAlert Severity="Severity.Info" Class="mb-3">
-            No cars and no charging stations should be managed. Check out <MudLink Href="CarSettings">Car Settings</MudLink> to add a car or <MudLink Href="ChargingStations">Charging Stations</MudLink> to add a charging station.
+            <MudText Typo="Typo.body2">
+                @T("No cars and no charging stations should be managed. Check out")
+                @(" ")
+                <MudLink Href="CarSettings">@T("Car Settings")</MudLink>
+                @(" ")
+                @T("to add a car or")
+                @(" ")
+                <MudLink Href="ChargingStations">@T("Charging Stations")</MudLink>
+                @(" ")
+                @T("to add a charging station.")
+            </MudText>
         </MudAlert>
     }
 }
 
 
 <div style="text-align:center">
-    Use my referral code for ordering any Tesla product or schedule a Demo Drive: <a href="https://ts.la/patrick63887" target="_blank">https://ts.la/patrick63887</a>
+    @T("Use my referral code for ordering any Tesla product or schedule a Demo Drive:") <a href="https://ts.la/patrick63887" target="_blank">https://ts.la/patrick63887</a>
 </div>
 
 <form action="https://www.paypal.com/donate" method="post" target="_blank">
     <div style="text-align:center">
         <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
-        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T("PayPal - The safer, easier way to pay online!")' alt='@T("Donate with PayPal button")' />
         <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
     </div>
 </form>
@@ -90,4 +104,8 @@ else
         _loadPoints = null;
         _loadPoints = await HomeService.GetLoadPointsToManage();
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

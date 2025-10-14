@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using TeslaSolarCharger.Shared.Attributes;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
@@ -18,7 +18,5 @@ public class DtoModbusValueResultConfiguration : ValueConfigurationBase
     [Range(ushort.MinValue, ushort.MaxValue)]
     public int Length { get; set; }
     public int? BitStartIndex { get; set; }
-
-    [HelperText("If you have an inverter that always displays positive values, you can use this to invert the value based on a bit. For now this is only known for the battery power of Sungrow inverters")]
     public int? InvertedByModbusResultConfigurationId { get; set; }
 }

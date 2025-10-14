@@ -6,6 +6,10 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using System.Globalization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
 
@@ -16,6 +20,7 @@
 @inject IApexChartHelper ApexChartHelper
 @inject IConstants Constants
 @inject IDateTimeProvider DateTimeProvider
+@inject ITextLocalizationService TextLocalizer
 
 @implements IDisposable
 
@@ -33,7 +38,7 @@
                             Disabled="IsPreviousDisabled" />
                     <GenericInput T="DateTime?"
                                   For="() => SelectedDate"
-                                  LabelName="Date"
+                                  LabelName='@T("Date")'
                                   OnValueChanged="newDate => SelectedDateChanged(newDate)" />
                     <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
                             Color="Color.Primary"
@@ -95,7 +100,7 @@
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryChargingData"
-                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("Battery Charging ({0} kWh)", BatteryChargingData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -104,7 +109,7 @@
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatterySoc"
-                                         Name="@("Home Battery SoC %")"
+                                         Name='@T("Home Battery SoC %")'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -112,7 +117,7 @@
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryDischargingData"
-                                         Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("Battery Discharge ({0} kWh)", BatteryDischargingData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -122,7 +127,7 @@
                         <!-- House Prediction Line -->
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HousePredictionData"
-                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("House Prediction ({0} kWh)", HousePredictionData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -131,7 +136,7 @@
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HouseActualData"
-                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("House Actual ({0} kWh)", HouseActualData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -143,7 +148,7 @@
                         {
                             <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                              Items="SolarPredictionData"
-                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                             Name='@Format("Solar Prediction ({0} kWh)", SolarPredictionData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
                                              YValue="@(e => e.Value)"
@@ -152,7 +157,7 @@
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="SolarActualData"
-                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("Solar Actual ({0} kWh)", SolarActualData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -161,7 +166,7 @@
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="PowerToGridData"
-                                         Name="@($"Grid Export ({(PowerToGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("Grid Export ({0} kWh)", PowerToGridData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -170,7 +175,7 @@
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="PowerFromGridData"
-                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         Name='@Format("Grid Import ({0} kWh)", PowerFromGridData.Sum(v => v.Value ?? 0).ToString("F1", CultureInfo.CurrentCulture))'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -236,18 +241,18 @@
             new YAxis
             {
                 Min = 0,
-                Title = new AxisTitle { Text = "kWh" },
+                Title = new AxisTitle { Text = T("kWh") },
             },
             new YAxis
             {
                 Opposite = true,
                 Min = 0,
                 Max = 100,
-                Title = new AxisTitle { Text = "%" },
+                Title = new AxisTitle { Text = T("%") },
                 DecimalsInFloat = 0,
                 SeriesName = new SeriesName()
                 {
-                    "Home Battery SoC %",
+                    T("Home Battery SoC %"),
                 },
             },
         };
@@ -332,7 +337,7 @@
         {
             items.Add(new LegendItemData
             {
-                TooltipText = "Solar Actual",
+                TooltipText = T("Solar Actual"),
                 Color = Constants.SolarPowerColor,
                 Icon = Constants.SolarPowerIcon,
                 Value = SolarActualData.Sum(v => v.Value ?? 0),
@@ -343,7 +348,7 @@
         {
             items.Add(new LegendItemData
             {
-                TooltipText = "House Prediction",
+                TooltipText = T("House Prediction"),
                 Color = Constants.HomeConsumptionPredictionColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HousePredictionData.Sum(v => v.Value ?? 0),
@@ -353,7 +358,7 @@
         {
             items.Add(new LegendItemData
             {
-                TooltipText = "House Actual",
+                TooltipText = T("House Actual"),
                 Color = Constants.HomeConsumptionChartColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HouseActualData.Sum(v => v.Value ?? 0),
@@ -367,7 +372,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                    TooltipText = "Battery Charged",
+                TooltipText = T("Battery Charged"),
                     Color = Constants.BatteryChargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = chargingValue,
@@ -381,7 +386,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                    TooltipText = "Battery Discharged",
+                TooltipText = T("Battery Discharged"),
                     Color = Constants.BatteryDischargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = dischargingValue,
@@ -396,7 +401,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                    TooltipText = "To Grid",
+                TooltipText = T("To Grid"),
                     Color = Constants.GridExportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = toGridValue,
@@ -411,7 +416,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                    TooltipText = "From Grid",
+                TooltipText = T("From Grid"),
                     Color = Constants.GridImportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = fromGridValue,
@@ -552,15 +557,10 @@
         return SolarPredictionData.Sum(v => v.Value ?? 0);
     }
 
-    private string GetRelevantSolarPredictionText()
-    {
-        var text = "Solar Prediction";
-        if (SelectedDate == TimeProvider.GetLocalNow().Date)
-        {
-            text += " from now";
-        }
-        return text;
-    }
+    private string GetRelevantSolarPredictionText() =>
+        SelectedDate == TimeProvider.GetLocalNow().Date
+            ? T("Solar Prediction from now")
+            : T("Solar Prediction");
 
     private void PreviousDay()
     {
@@ -597,7 +597,7 @@
         {
             var currentDate = TimeProvider.GetLocalNow().Date;
             var allowedDays = (MaxAllowedDate - currentDate).Days;
-            Snackbar.Add($"Cannot select a date more than {allowedDays} day{(allowedDays == 1 ? "" : "s")} in the future", Severity.Error);
+            Snackbar.Add(Format("Cannot select a date more than {0} day(s) in the future", allowedDays), Severity.Error);
             return;
         }
         SelectedDate = newDate;
@@ -642,4 +642,11 @@
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
         _consumptionChart?.Dispose();
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<EnergyPredictionComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
 }

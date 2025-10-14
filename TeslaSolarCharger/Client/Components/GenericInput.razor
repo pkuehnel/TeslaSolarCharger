@@ -6,9 +6,11 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Localization.Contracts
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject IPropertyLocalizationService PropertyLocalizationService
 
 @typeparam T
 
@@ -844,8 +846,21 @@
             throw new ArgumentException($"Expression '{For}' refers to a field, not a property.");
         }
 
-        //Only set label name based on property  name / display name attribute if not already set via parameter
-        LabelName ??= propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+        var localization = propertyInfo.DeclaringType != null
+            ? PropertyLocalizationService.Get(propertyInfo.DeclaringType, propertyInfo.Name)
+            : null;
+        if (localization == null
+            && propertyInfo.ReflectedType != null
+            && propertyInfo.ReflectedType != propertyInfo.DeclaringType)
+        {
+            localization = PropertyLocalizationService.Get(propertyInfo.ReflectedType, propertyInfo.Name);
+        }
+
+        var displayName = localization?.DisplayName
+                           ?? propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName;
+
+        //Only set label name based on property name if not already set via parameter
+        LabelName ??= displayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
 
         IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
         if (IsReadOnlyParameter == true)
@@ -858,10 +873,17 @@
             IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
         }
 
-        var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
-        if (helperText != default)
+        if (!string.IsNullOrEmpty(localization?.HelperText))
         {
-            HelperText = helperText;
+            HelperText = localization.HelperText;
+        }
+        else
+        {
+            var helperTextAttribute = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault();
+            if (!string.IsNullOrEmpty(helperTextAttribute?.HelperText))
+            {
+                HelperText = helperTextAttribute.HelperText;
+            }
         }
 
 

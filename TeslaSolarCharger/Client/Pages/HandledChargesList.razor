@@ -2,12 +2,18 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @inject HttpClient HttpClient
 @inject IStringHelper StringHelper
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavigationManager
+@inject ITextLocalizationService TextLocalizer
 
-<h1>Handled Charges</h1>
+<PageTitle>@T("Handled Charges")</PageTitle>
+
+<h1>@T("Handled Charges")</h1>
 
 @if (_handledCharges == null)
 {
@@ -171,4 +177,8 @@ else
             await JsRuntime.InvokeVoidAsync("window.registerViewportChangeCallback", DotNetObjectReference.Create(this));
         }
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HandledChargesListPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

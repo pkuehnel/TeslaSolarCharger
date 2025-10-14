@@ -1,6 +1,12 @@
-﻿@if (!string.IsNullOrWhiteSpace(TooltipText))
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+
+@if (!string.IsNullOrWhiteSpace(TooltipText))
 {
-    <MudTooltip Text="@(IsCrossedOut ? $"{IsCrossedOutTooltipPrefix}{TooltipText}" : TooltipText)"
+    <MudTooltip Text="@(IsCrossedOut ? $"{GetTooltipPrefix()}{TooltipText}" : TooltipText)"
                 Placement="Placement.Top"
                 Arrow="true">
         @if (IsCrossedOut)
@@ -44,5 +50,15 @@ else
     [Parameter]
     public string? TooltipText { get; set; }
 
-    [Parameter] public string IsCrossedOutTooltipPrefix { get; set; } = "Not ";
+    [Parameter]
+    public string? IsCrossedOutTooltipPrefix { get; set; }
+
+    private string GetTooltipPrefix() =>
+        string.IsNullOrWhiteSpace(IsCrossedOutTooltipPrefix)
+            ? T("Not ")
+            : IsCrossedOutTooltipPrefix!;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CustomIconLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

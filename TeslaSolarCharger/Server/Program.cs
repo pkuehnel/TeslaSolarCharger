@@ -86,7 +86,7 @@ builder.Services.AddKeyedSingleton(StaticConstants.InMemoryLogDependencyInjectio
 
 var fileLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Fatal);
 builder.Services.AddKeyedSingleton(StaticConstants.FileLogDependencyInjectionKey, fileLevelSwitch);
-
+builder.Services.AddLocalization();
 
 var app = builder.Build();
 
@@ -117,7 +117,7 @@ Log.Logger = new LoggerConfiguration()
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
-DoStartupStuff(app, logger, configurationWrapper);
+_ = DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -143,6 +143,16 @@ app.UseAntiforgery();
 app.UseMiddleware<StartupCheckMiddleware>();
 
 app.MapStaticAssets();
+
+var supportedCultures = new[] { "en", "de" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)      // cultures for data (numbers/dates)
+    .AddSupportedUICultures(supportedCultures);   // cultures for UI strings
+localizationOptions.FallBackToParentCultures = true;
+localizationOptions.FallBackToParentUICultures = true;
+app.UseRequestLocalization(localizationOptions);
+
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TeslaSolarCharger.Client._Imports).Assembly);

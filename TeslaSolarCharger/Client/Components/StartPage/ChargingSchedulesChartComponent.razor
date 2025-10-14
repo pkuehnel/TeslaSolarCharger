@@ -6,6 +6,9 @@
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IApexChartHelper ApexChartHelper
@@ -14,11 +17,12 @@
 @inject IConstants Constants
 @inject IHomeService HomeService
 @inject IValidFromToHelper ValidFromToHelper
+@inject ITextLocalizationService TextLocalizer
 
 @implements IDisposable
 
 <ApexChart TItem="DtoChartValue<string, decimal>"
-           Title="Scheduled power"
+           Title="@T("Scheduled power")"
            Options="_options"
            Width="@ChartWidthCalculator.ChartWidth"
            Height="@ChartHeight"
@@ -28,7 +32,7 @@
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_chargingValues"
-                     Name="@($"Scheduled Energy ({(_chargingValues.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                     Name="@string.Format(T("Scheduled Energy ({0} kWh)"), (_chargingValues.Sum(v => v.Value)).ToString("F1"))"
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
@@ -37,7 +41,7 @@
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_gridPriceValues"
-                     Name="@("Grid Price per kWh)")"
+                     Name="@T("Grid Price per kWh")"
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
@@ -65,7 +69,7 @@
             {
                 Title = new AxisTitle()
                 {
-                    Text = new MultiLineText("avg. kW"),
+                    Text = new MultiLineText(T("avg. kW")),
                     Style = new AxisTitleStyle()
                     {
                         Color = Constants.PrimaryColor,
@@ -84,7 +88,7 @@
                 Opposite = true,
                 Title = new AxisTitle()
                 {
-                    Text = new MultiLineText("Gridprice / kWh"),
+                    Text = new MultiLineText(T("Gridprice / kWh")),
                     Style = new AxisTitleStyle()
                     {
                         Color = Constants.SecondaryColor,
@@ -198,5 +202,11 @@
     {
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
         _chart?.Dispose();
+    }
+
+    private string T(string key)
+    {
+        return TextLocalizer.Get<ChargingSchedulesChartComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+               ?? key;
     }
 }

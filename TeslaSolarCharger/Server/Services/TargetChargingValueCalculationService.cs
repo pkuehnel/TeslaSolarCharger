@@ -64,7 +64,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             _settings.IsHomeBatteryDischargingActive = true;
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
-            _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
+            _logger.LogTrace("Added additional home battery discharge power of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
         }
         else
         {
@@ -85,7 +85,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 cancellationToken).ConfigureAwait(false);
             if (constraintValues.IsCarFullyCharged == true)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
+                    new NotChargingWithExpectedPowerReasonTemplate("Car is fully charged"));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
             var chargingSchedulePower = chargingSchedule.TargetGridPower.HasValue && (chargingSchedule.ChargingPower < (powerToControl + (chargingSchedule.TargetGridPower ?? 0)))
@@ -114,7 +115,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 cancellationToken).ConfigureAwait(false);
             if (constraintValues.IsCarFullyCharged == true)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
+                    new NotChargingWithExpectedPowerReasonTemplate("Car is fully charged"));
             }
 
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
@@ -229,7 +231,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         if (constraintValues.MaxCurrent < constraintValues.MinCurrent)
         {
             _logger.LogWarning("Max current {maxCurrent} is lower than min current {minCurrent} for loadpoint {@loadpoint}. Very likely due to low configured \"Max combined charging current\" in Base Configuration.", constraintValues.MaxCurrent, constraintValues.MinCurrent, loadpoint);
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging stopped because of not enough max combined current."));
+            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                new NotChargingWithExpectedPowerReasonTemplate("Charging stopped because of not enough max combined current."));
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
         if (constraintValues.ChargeMode == ChargeModeV2.Manual)
@@ -240,7 +243,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         if ((constraintValues.ChargeMode == ChargeModeV2.Off)
             || (constraintValues.Soc > constraintValues.MaxSoc && !ignoreTimers))
         {
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charge mode is off or max SoC is reached."));
+            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                new NotChargingWithExpectedPowerReasonTemplate("Charge mode is off or max SoC is reached."));
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
         if (constraintValues.IsCarFullyCharged == true)
@@ -267,13 +271,15 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 : null;
             if (constraintValues.MinPhases == default || constraintValues.MaxPhases == default)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Min Phases or Max Phases is unkown. Check the logs for further details."));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                    new NotChargingWithExpectedPowerReasonTemplate("Min Phases or Max Phases is unknown. Check the logs for further details."));
                 _logger.LogWarning("Can not handle loadpoint {@loadpoint} as minphases or maxphases is not known", loadpoint);
                 return null;
             }
             if (loadpoint.EstimatedVoltageWhileCharging == default)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Estimated voltage while charging is unkown. Check the logs for further details."));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                    new NotChargingWithExpectedPowerReasonTemplate("Estimated voltage while charging is unknown. Check the logs for further details."));
                 _logger.LogWarning("Can not handle loadpoint {@loadpoint} as estimated voltage while charging is not known", loadpoint);
                 return null;
             }
@@ -291,7 +297,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 {
                     _logger.LogTrace("Stopping charging to allow phase reduction for loadpoint {@loadpoint}", loadpoint);
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Waiting phase switch cooldown time before starting to charge", currentDate + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                        new NotChargingWithExpectedPowerReasonTemplate("Waiting phase switch cooldown time before starting to charge")
+                        {
+                            ReasonEndTime = currentDate + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                        });
                     return new() { StopCharging = true, };
                 }
                 phasesToUse = 1;
@@ -306,7 +315,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should reduce phases but is not allowed to do so.", loadpoint);
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                    new("Waiting for phase reduction", constraintValues.PhaseReductionAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                    new NotChargingWithExpectedPowerReasonTemplate("Waiting for phase reduction")
+                    {
+                        ReasonEndTime = constraintValues.PhaseReductionAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                    });
             }
             // should increase phases and is allowed
             else if ((currentToSet > constraintValues.MaxCurrent)
@@ -319,7 +331,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 {
                     _logger.LogTrace("Stopping charging to allow phase increase for loadpoint {@loadpoint}", loadpoint);
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Waiting phase switch cooldown time before starting to charge", currentDate + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                        new NotChargingWithExpectedPowerReasonTemplate("Waiting phase switch cooldown time before starting to charge")
+                        {
+                            ReasonEndTime = currentDate + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                        });
                     return new() { StopCharging = true, };
                 }
                 phasesToUse = 3;
@@ -332,7 +347,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should increase phases but is not allowed to do so.", loadpoint);
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                    new("Waiting for phase increase", constraintValues.PhaseIncreaseAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                    new NotChargingWithExpectedPowerReasonTemplate("Waiting for phase increase")
+                    {
+                        ReasonEndTime = constraintValues.PhaseIncreaseAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                    });
             }
             //recalculate current to set based on phases to use
             currentToSet = powerToSet * (1m / (loadpoint.EstimatedVoltageWhileCharging.Value * phasesToUse));
@@ -352,7 +370,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 && (constraintValues.IsCharging == true))
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                    new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                    new NotChargingWithExpectedPowerReasonTemplate("Waiting for charge stop")
+                    {
+                        ReasonEndTime = constraintValues.ChargeStopAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                    });
             }
 
             if (constraintValues.IsCharging != true)
@@ -361,19 +382,20 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.Soc >= constraintValues.MaxSoc && !ignoreTimers)
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Configured max Soc is reached"));
+                        new NotChargingWithExpectedPowerReasonTemplate("Configured max Soc is reached"));
                     return null;
                 }
                 if (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new($"Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {_constants.MinimumSocDifference}% higher than the actual SOC."));
+                        new NotChargingWithExpectedPowerReasonTemplate("Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {0}% higher than the actual SOC.", _constants.MinimumSocDifference));
                     return null;
                 }
                 if (constraintValues.IsCarFullyCharged == true
                     && !loadpoint.ManageChargingPowerByCar)
                 {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new NotChargingWithExpectedPowerReasonTemplate("Charging stopped by car, e.g. it is full or its charge limit is reached."));
                     return null;
                 }
                 if ((constraintValues.ChargeStartAllowed != true) && (!ignoreTimers))
@@ -381,7 +403,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     if (constraintValues.ChargeStartAllowedAt != default)
                     {
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                            new("Waiting for charge start", constraintValues.ChargeStartAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                            new NotChargingWithExpectedPowerReasonTemplate("Waiting for charge start")
+                            {
+                                ReasonEndTime = constraintValues.ChargeStartAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                            });
                     }
                     return null;
                 }
@@ -389,8 +414,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     && (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime)))
                 {
                     _logger.LogTrace("Waitingcool down time of {coolDownTime} before starting to charge", loadpoint);
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Waiting phase switch cooldown time before starting to charge", constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                            new NotChargingWithExpectedPowerReasonTemplate("Waiting phase switch cooldown time before starting to charge")
+                            {
+                                ReasonEndTime = constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall(),
+                            });
                     return null;
                 }
 

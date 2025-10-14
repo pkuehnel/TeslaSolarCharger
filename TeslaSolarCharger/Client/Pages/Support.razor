@@ -1,36 +1,40 @@
-﻿@page "/support"
+@page "/support"
+@using System.Globalization
 @using PkSoftwareService.Custom.Backend
+@using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.Support
-@using TeslaSolarCharger.Client.Components.StartPage
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject IInMemorySink InMemorySink
 @inject IJavaScriptWrapper JavaScriptWrapper
+@inject ITextLocalizationService TextLocalizer
 
-<h1>Support</h1>
+<h1>@T("Support")</h1>
 
-
-<h3>Logging</h3>
+<h3>@T("Logging")</h3>
 
 <MudAlert Severity="Severity.Warning"
           NoIcon="true"
           ContentAlignment="HorizontalAlignment.Left">
-    <h5>Never share logs publicly</h5>
-    Logs might contain sensitive information like your vehicle's location. Do not share logs publicly.
+    <h5>@T("Never share logs publicly")</h5>
+    @T("Logs might contain sensitive information like your vehicle's location. Do not share logs publicly.")
 </MudAlert>
 
-<RightAlignedButtonComponent ButtonText="Download Server Logs"
+<RightAlignedButtonComponent ButtonText='@T("Download Server Logs")'
                              StartIcon="@Icons.Material.Filled.Download"
                              OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadInMemoryLogs", true))"></RightAlignedButtonComponent>
 
 <MudAlert Severity="Severity.Warning"
           NoIcon="true"
           ContentAlignment="HorizontalAlignment.Left">
-    Do not change the configuration as this might lead to extremly high memory usage. All Settings will be reset after a restart.
+    @T("Do not change the configuration as this might lead to extremely high memory usage. All Settings will be reset after a restart.")
 </MudAlert>
 
 <div class="row">
@@ -42,7 +46,7 @@
     {
         <div class="col">
             <GenericInput For="() => _inMemoryLogLevel.Value"
-                          LabelName="In Memory Log Level"
+                          LabelName='@T("In Memory Log Level")'
                           ShouldBeInErrorState="@(_inMemoryLogLevelSetErrorMessage != default)"
                           ErrorMessage="@_inMemoryLogLevelSetErrorMessage"
                           OnButtonClicked="@(UpdateInMemoryLogLevel)"
@@ -51,7 +55,7 @@
         </div>
         <div class="col">
             <GenericInput For="() => _inMemoryLogCapacity.Value"
-                          LabelName="In Memory Log Capacity"
+                          LabelName='@T("In Memory Log Capacity")'
                           ShouldBeInErrorState="@(_inMemoryLogCapacitySetErrorMessage != default)"
                           ErrorMessage="@_inMemoryLogCapacitySetErrorMessage"
                           OnButtonClicked="@(UpdateInMemoryLogCapacity)"
@@ -68,7 +72,7 @@
     {
         <div class="col">
             <GenericInput For="() => _fileLogLevel.Value"
-                          LabelName="File Log Level"
+                          LabelName='@T("File Log Level")'
                           ShouldBeInErrorState="@(_fileLogLevelSetErrorMessage != default)"
                           ErrorMessage="@_fileLogLevelSetErrorMessage"
                           OnButtonClicked="@(UpdateFileLogLevel)"
@@ -76,7 +80,7 @@
                           PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
         </div>
         <div class="col">
-            <RightAlignedButtonComponent ButtonText="Download Server File Logs"
+            <RightAlignedButtonComponent ButtonText='@T("Download Server File Logs")'
                                          StartIcon="@Icons.Material.Filled.Download"
                                          OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadFileLogs", true))"></RightAlignedButtonComponent>
         </div>
@@ -85,9 +89,9 @@
 <hr />
 
 <MudExpansionPanels>
-    <MudExpansionPanel Text="UI Logs" ExpandedChanged="UiLogExpansionChanged">
-        <div>Fetched @_uiLogMessages.Count logs</div>
-        <RightAlignedButtonComponent ButtonText="Copy logs to clipoard"
+    <MudExpansionPanel Text='@T("UI Logs")' ExpandedChanged="UiLogExpansionChanged">
+        <div>@Format("Fetched {0} logs", _uiLogMessages.Count)</div>
+        <RightAlignedButtonComponent ButtonText='@T("Copy logs to clipboard")'
                                      StartIcon="@Icons.Material.Filled.ContentCopy"
                                      OnButtonClicked="CopyLogsToClipboard"></RightAlignedButtonComponent>
         @foreach (var logMessage in _uiLogMessages)
@@ -97,7 +101,7 @@
     </MudExpansionPanel>
 </MudExpansionPanels>
 
-<h3>Car Debug Details</h3>
+<h3>@T("Car Debug Details")</h3>
 @if (_debugCars == default)
 {
     <PlaceholderComponent Count="3"></PlaceholderComponent>
@@ -108,52 +112,51 @@ else
         @foreach (var car in _debugCars)
         {
             <MudExpansionPanel Text="@car.Value.Name">
-                <div>ID: @car.Key</div>
-                <div>VIN: @car.Value.Vin</div>
-                <div>Name: @car.Value.Name</div>
-                <div>Is Available in Tesla account: @car.Value.IsAvailableInTeslaAccount</div>
-                <div>Should be managed: @car.Value.ShouldBeManaged</div>
-
+                <div>@Format("ID: {0}", car.Key)</div>
+                <div>@Format("VIN: {0}", car.Value.Vin)</div>
+                <div>@Format("Name: {0}", car.Value.Name)</div>
+                <div>@Format("Is Available in Tesla account: {0}", car.Value.IsAvailableInTeslaAccount)</div>
+                <div>@Format("Should be managed: {0}", car.Value.ShouldBeManaged)</div>
 
                 @if (car.Value.Vin != default && _fleetTelemetryGetConfigs.TryGetValue(car.Key, out var config))
                 {
-                    <h4>Result</h4>
+                    <h4>@T("Result")</h4>
                     <pre>@config</pre>
                 }
 
-                <RightAlignedButtonComponent ButtonText="Get Fleet Telemetry Config"
+                <RightAlignedButtonComponent ButtonText='@T("Get Fleet Telemetry Config")'
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
-                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T("Can not check config as car is not part of Tesla account"))"
                                              OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Key))"></RightAlignedButtonComponent>
-                <RightAlignedButtonComponent ButtonText="Get Car State"
+                <RightAlignedButtonComponent ButtonText='@T("Get Car State")'
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default)"
-                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as Vin is unknown")"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T("Can not check config as Vin is unknown"))"
                                              OnButtonClicked="@(() => GetDtoCar(car.Key))"></RightAlignedButtonComponent>
 
                 @if (car.Value.Vin != default && _fleetTelemetrySetResults.TryGetValue(car.Key, out var result))
                 {
-                    <h4>Fleet Telemetry SetResult</h4>
+                    <h4>@T("Fleet Telemetry SetResult")</h4>
                     <pre>@result</pre>
                 }
 
-                <RightAlignedButtonComponent ButtonText="Normal Fleet Configuration Set"
+                <RightAlignedButtonComponent ButtonText='@T("Normal Fleet Configuration Set")'
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
-                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not set config as car is not part of Tesla account")"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T("Can not set config as car is not part of Tesla account"))"
                                              OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Key, false))"></RightAlignedButtonComponent>
-                <RightAlignedButtonComponent ButtonText="Force Fleet Configuration Set"
+                <RightAlignedButtonComponent ButtonText='@T("Force Fleet Configuration Set")'
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
-                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not set config as car is not part of Tesla account")"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T("Can not set config as car is not part of Tesla account"))"
                                              OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Key, true))"></RightAlignedButtonComponent>
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
 }
 
-<h3>Charging station debug details</h3>
+<h3>@T("Charging station debug details")</h3>
 @if (_debugChargingConnectors == default)
 {
     <PlaceholderComponent Count="3"></PlaceholderComponent>
@@ -163,82 +166,81 @@ else
     <MudExpansionPanels MultiExpansion="true">
         @foreach (var connector in _debugChargingConnectors)
         {
-            <MudExpansionPanel Text="@($"{connector.Value.ChargePointId} Connector: {connector.Value.ConnectorId} ({connector.Value.Name})")">
-                <div>ID: @connector.Key</div>
+            <MudExpansionPanel Text='@Format("{0} Connector: {1} ({2})", connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Value.Name)'>
+                <div>@Format("ID: {0}", connector.Key)</div>
                 <div class="row">
                     <div class="col">
                         <GenericInput For="() => _chargingCurrentsToSet[connector.Key].Value"
-                                      LabelName="Charging Current to set"
-                                      HelperText="When starting a charge or changing the current, this value will be used"></GenericInput>
+                                      LabelName='@T("Charging Current to set")'
+                                      HelperText='@T("When starting a charge or changing the current, this value will be used")'></GenericInput>
                     </div>
                     <div class="col">
                         <GenericInput For="() => _chargingPhasesToSet[connector.Key].Value"
-                                      LabelName="Charging Phases to set"
-                                      HelperText="When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger."></GenericInput>
+                                      LabelName='@T("Charging Phases to set")'
+                                      HelperText='@T("When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger.")'></GenericInput>
                     </div>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    <RightAlignedButtonComponent ButtonText="Start Charging"
+                    <RightAlignedButtonComponent ButtonText='@T("Start Charging")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => StartCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Stop Charging"
+                    <RightAlignedButtonComponent ButtonText='@T("Stop Charging")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => StopCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Set Current and Phases"
+                    <RightAlignedButtonComponent ButtonText='@T("Set Current and Phases")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => SetCurrentAndPhases(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                 </div>
-                <hr/>
+                <hr />
                 <div class="row">
                     <div class="col">
                         <GenericInput For="() => _configurationKeysToGet[connector.Key].Value"
-                                      LabelName="Configuration Key to get"></GenericInput>
+                                      LabelName='@T("Configuration Key to get")'></GenericInput>
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <RightAlignedButtonComponent ButtonText="Get ConnectorState"
+                    <RightAlignedButtonComponent ButtonText='@T("Get ConnectorState")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => GetConnectorState(connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Get Configuration Key"
+                    <RightAlignedButtonComponent ButtonText='@T("Get Configuration Key")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => GetConfigurationKey(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Set Meter data configuration"
+                    <RightAlignedButtonComponent ButtonText='@T("Set Meter data configuration")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => SetMeterDataConfiguration(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Set Meter interval Configuration"
+                    <RightAlignedButtonComponent ButtonText='@T("Set Meter interval Configuration")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => SetMeterIntervalConfiguration(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Reboot Charger"
+                    <RightAlignedButtonComponent ButtonText='@T("Reboot Charger")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => RebootCharger(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Trigger Status Notification"
+                    <RightAlignedButtonComponent ButtonText='@T("Trigger Status Notification")'
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => TriggerStatusNotification(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
                 </div>
-                
 
                 @if (_commandResults.TryGetValue(connector.Key, out var result))
                 {
-                    <h4>Command Result: </h4>
+                    <h4>@T("Command Result:")</h4>
                     <pre>@result</pre>
                 }
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
 
-    <h3>MeterValues</h3>
+    <h3>@T("MeterValues")</h3>
 
     @if (_loadingMeterValues)
     {
         <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
             <MudAlert Severity="Severity.Info">
-                Depending on your database size and hardware this might take a few minutes, please wait...
+                @T("Depending on your database size and hardware this might take a few minutes, please wait...")
             </MudAlert>
         </MudPaper>
     }
 
-    <RightAlignedButtonComponent ButtonText="Get latest Meter values"
+    <RightAlignedButtonComponent ButtonText='@T("Get latest Meter values")'
                                  IsLoading="@_loadingMeterValues"
                                  OnButtonClicked="GetMeterValues"></RightAlignedButtonComponent>
     @if (_meterValueDetails != default)
@@ -246,7 +248,7 @@ else
         <pre>@_meterValueDetails</pre>
     }
 
-    <RightAlignedButtonComponent ButtonText="Reload page"
+    <RightAlignedButtonComponent ButtonText='@T("Reload page")'
                                  OnButtonClicked="JavaScriptWrapper.ReloadPage"></RightAlignedButtonComponent>
 
     <HiddenErrorsComponent></HiddenErrorsComponent>
@@ -269,7 +271,6 @@ else
     private readonly Dictionary<int, string> _commandResults = new();
     private List<string> _uiLogMessages = new();
 
-
     private DtoValue<string>? _inMemoryLogLevel;
     private string? _inMemoryLogLevelSetErrorMessage;
     private DtoValue<int>? _inMemoryLogCapacity;
@@ -280,15 +281,14 @@ else
     private bool _loadingMeterValues;
     private string? _meterValueDetails;
 
-
     private Dictionary<string, string> LogLevelOptions => new()
     {
-        { "Verbose", "Verbose" },
-        { "Debug", "Debug" },
-        { "Information", "Information" },
-        { "Warning", "Warning" },
-        { "Error", "Error" },
-        { "Fatal", "Fatal" },
+        { "Verbose", T("Verbose") },
+        { "Debug", T("Debug") },
+        { "Information", T("Information") },
+        { "Warning", T("Warning") },
+        { "Error", T("Error") },
+        { "Fatal", T("Fatal") },
     };
 
     protected override async Task OnInitializedAsync()
@@ -323,7 +323,6 @@ else
         }
     }
 
-
     private async Task GetFleetTelemetryConfig(int key)
     {
         if (_debugCars == default)
@@ -333,7 +332,7 @@ else
         var car = _debugCars[key];
         if (car.Vin == default)
         {
-            Snackbar.Add("VIN is unknown", Severity.Error);
+            Snackbar.Add(T("VIN is unknown"), Severity.Error);
             return;
         }
 
@@ -342,11 +341,11 @@ else
         string stringToDisplay;
         if (result.HasError)
         {
-            stringToDisplay = result.ErrorMessage ?? "No error message";
+            stringToDisplay = result.ErrorMessage ?? T("No error message");
         }
         else
         {
-            stringToDisplay = result.Data?.Value ?? "No data";
+            stringToDisplay = result.Data?.Value ?? T("No data");
         }
         _fleetTelemetryGetConfigs[key] = stringToDisplay;
         _isFleetTelemetryLoading = false;
@@ -359,11 +358,11 @@ else
         string stringToDisplay;
         if (result.HasError)
         {
-            stringToDisplay = result.ErrorMessage ?? "No error message";
+            stringToDisplay = result.ErrorMessage ?? T("No error message");
         }
         else
         {
-            stringToDisplay = result.Data?.Value ?? "No data";
+            stringToDisplay = result.Data?.Value ?? T("No data");
         }
         _fleetTelemetryGetConfigs[carKey] = stringToDisplay;
         _isFleetTelemetryLoading = false;
@@ -378,7 +377,7 @@ else
         var car = _debugCars[carKey];
         if (car.Vin == default)
         {
-            Snackbar.Add("VIN is unknown", Severity.Error);
+            Snackbar.Add(T("VIN is unknown"), Severity.Error);
             return;
         }
 
@@ -387,11 +386,11 @@ else
         string stringToDisplay;
         if (result.HasError)
         {
-            stringToDisplay = result.ErrorMessage ?? "No error message";
+            stringToDisplay = result.ErrorMessage ?? T("No error message");
         }
         else
         {
-            stringToDisplay = result.Data?.Value ?? "No data";
+            stringToDisplay = result.Data?.Value ?? T("No data");
         }
         _fleetTelemetrySetResults[carKey] = stringToDisplay;
         _isFleetTelemetryLoading = false;
@@ -414,7 +413,7 @@ else
             _inMemoryLogLevelSetErrorMessage = result.ErrorMessage;
             return;
         }
-        Snackbar.Add("Log level updated", Severity.Success);
+        Snackbar.Add(T("Log level updated"), Severity.Success);
     }
 
     private async Task UpdateFileLogLevel()
@@ -434,7 +433,7 @@ else
             _fileLogLevelSetErrorMessage = result.ErrorMessage;
             return;
         }
-        Snackbar.Add("File Log level updated", Severity.Success);
+        Snackbar.Add(T("File Log level updated"), Severity.Success);
     }
 
     private async Task UpdateInMemoryLogCapacity()
@@ -449,7 +448,7 @@ else
             _inMemoryLogCapacitySetErrorMessage = result.ErrorMessage;
             return;
         }
-        Snackbar.Add("Log capacity updated", Severity.Success);
+        Snackbar.Add(T("Log capacity updated"), Severity.Success);
     }
 
     private async Task StartCharging(string chargePointId, int connectorId, int connectorKey)
@@ -459,7 +458,7 @@ else
         var phasesToSet = _chargingPhasesToSet[connectorKey].Value;
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/StartCharging?chargepointId={chargePointId}&connectorId={connectorId}&currentToSet={currentToSet}&numberOfPhases={phasesToSet}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -468,7 +467,7 @@ else
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/StopCharging?chargepointId={chargePointId}&connectorId={connectorId}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -479,7 +478,7 @@ else
         var phasesToSet = _chargingPhasesToSet[connectorKey].Value;
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/SetCurrentAndPhases?chargepointId={chargePointId}&connectorId={connectorId}&currentToSet={currentToSet}&numberOfPhases={phasesToSet}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -489,7 +488,7 @@ else
         var configurationKey = _configurationKeysToGet[connectorKey].Value;
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>(
             $"api/Debug/GetChargePointConfigurationKey?chargepointId={chargePointId}&configurationKey={configurationKey}");
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -498,7 +497,7 @@ else
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/SetMeterValuesSampledDataConfiguration?chargepointId={chargePointId}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -507,7 +506,7 @@ else
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/SetMeterValuesSampleIntervalConfiguration?chargepointId={chargePointId}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -516,16 +515,16 @@ else
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/RebootCharger?chargepointId={chargePointId}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
-    
+
     private async Task TriggerStatusNotification(string chargePointId, int connectorKey)
     {
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/TriggerStatusNotification?chargepointId={chargePointId}", null);
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -534,7 +533,7 @@ else
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>(
             $"api/Debug/GetOcppConnectorState?connectorId={connectorKey}");
-        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _commandResults[connectorKey] = result.Data?.Value ?? T("No data");
         _loadingOcppCommands.Remove(connectorKey);
     }
 
@@ -558,13 +557,19 @@ else
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>("api/Debug/GetLastestMeterValues");
         if (result.HasError)
         {
-            _meterValueDetails = result.ErrorMessage ?? "No error message";
+            _meterValueDetails = result.ErrorMessage ?? T("No error message");
         }
         else
         {
-            _meterValueDetails = result.Data?.Value ?? "No data";
+            _meterValueDetails = result.Data?.Value ?? T("No data");
         }
         _loadingMeterValues = false;
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<SupportPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
 }

@@ -4,8 +4,8 @@ namespace TeslaSolarCharger.Server.Helper.Contracts;
 
 public interface INotChargingWithExpectedPowerReasonHelper
 {
-    void AddGenericReason(DtoNotChargingWithExpectedPowerReason reason);
-    void AddLoadPointSpecificReason(int? carId, int? connectorId, DtoNotChargingWithExpectedPowerReason reason);
+    void AddGenericReason(NotChargingWithExpectedPowerReasonTemplate reason);
+    void AddLoadPointSpecificReason(int? carId, int? connectorId, NotChargingWithExpectedPowerReasonTemplate reason);
 
     Task UpdateReasonsInSettings();
 
