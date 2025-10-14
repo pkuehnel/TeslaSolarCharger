@@ -40,12 +40,19 @@ else
                                         @(FormatTimeSpan(remainingTime.Value))
                                     </MudChip></span>
                                 </div>
-                                
+
                             }
                         }
                         else
                         {
-                            <div>@Format("{0} reason(s) why loadpoint charges with different power than you might expect", _elements.Count)</div>
+                            var reasonsKey = "{0} reason";
+                            if (_elements.Count != 1)
+                            {
+                                reasonsKey += "s";
+                            }
+                            reasonsKey += " why loadpoint charges with different power than you might expect";
+
+                            <div>@Format(reasonsKey, _elements.Count)</div>
                         }
                     }
                     @if (_elements.Count > 0)
