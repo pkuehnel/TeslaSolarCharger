@@ -43,7 +43,7 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
             new TextLocalizationTranslation(LanguageCodes.German, "Support"));
 
         Register("Backup and Restore",
-            new TextLocalizationTranslation(LanguageCodes.English, "Backup and Restore"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Backup und Wiederherstellung"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Backup"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sicherung"));
     }
 }
