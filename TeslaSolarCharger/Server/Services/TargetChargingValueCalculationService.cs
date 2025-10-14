@@ -272,14 +272,14 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if (constraintValues.MinPhases == default || constraintValues.MaxPhases == default)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                    new NotChargingWithExpectedPowerReasonTemplate("Min Phases or Max Phases is unkown. Check the logs for further details."));
+                    new NotChargingWithExpectedPowerReasonTemplate("Min Phases or Max Phases is unknown. Check the logs for further details."));
                 _logger.LogWarning("Can not handle loadpoint {@loadpoint} as minphases or maxphases is not known", loadpoint);
                 return null;
             }
             if (loadpoint.EstimatedVoltageWhileCharging == default)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                    new NotChargingWithExpectedPowerReasonTemplate("Estimated voltage while charging is unkown. Check the logs for further details."));
+                    new NotChargingWithExpectedPowerReasonTemplate("Estimated voltage while charging is unknown. Check the logs for further details."));
                 _logger.LogWarning("Can not handle loadpoint {@loadpoint} as estimated voltage while charging is not known", loadpoint);
                 return null;
             }

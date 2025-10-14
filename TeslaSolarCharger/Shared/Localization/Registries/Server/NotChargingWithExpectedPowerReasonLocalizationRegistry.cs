@@ -66,12 +66,12 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
             new TextLocalizationTranslation(LanguageCodes.English, "Charge mode is off or max SoC is reached."),
             new TextLocalizationTranslation(LanguageCodes.German, "Lademodus ist aus oder der maximale Ladestand ist erreicht."));
 
-        Register("Min Phases or Max Phases is unkown. Check the logs for further details.",
-            new TextLocalizationTranslation(LanguageCodes.English, "Min Phases or Max Phases is unkown. Check the logs for further details."),
+        Register("Min Phases or Max Phases is unknown. Check the logs for further details.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Min Phases or Max Phases is unknown. Check the logs for further details."),
             new TextLocalizationTranslation(LanguageCodes.German, "Minimale oder maximale Phasenanzahl ist unbekannt. Weitere Details stehen im Log."));
 
-        Register("Estimated voltage while charging is unkown. Check the logs for further details.",
-            new TextLocalizationTranslation(LanguageCodes.English, "Estimated voltage while charging is unkown. Check the logs for further details."),
+        Register("Estimated voltage while charging is unknown. Check the logs for further details.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Estimated voltage while charging is unknown. Check the logs for further details."),
             new TextLocalizationTranslation(LanguageCodes.German, "Geschätzte Spannung während des Ladens ist unbekannt. Weitere Details stehen im Log."));
 
         Register("Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)",
