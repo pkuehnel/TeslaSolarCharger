@@ -45,7 +45,7 @@ public class CarBasicConfigurationPropertyLocalization : PropertyLocalizationReg
                 "This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Nutzbare Energie",
-                "Dieser Wert wird genutzt, um im Spotpreis- oder PV-Only-Modus rechtzeitig einen gewünschten SoC zu erreichen."));
+                "Dieser Wert wird genutzt, um im Spotpreis- oder PV-Only-Modus rechtzeitig einen gewünschten Ladestand zu erreichen."));
 
         Register(x => x.ChargingPriority,
             new PropertyLocalizationTranslation(LanguageCodes.English,

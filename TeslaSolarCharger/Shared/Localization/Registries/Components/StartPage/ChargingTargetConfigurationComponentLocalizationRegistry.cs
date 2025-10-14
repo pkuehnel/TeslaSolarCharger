@@ -40,7 +40,7 @@ public class ChargingTargetConfigurationComponentLocalizationRegistry : TextLoca
 
         Register("Target SoC: {0}%",
             new TextLocalizationTranslation(LanguageCodes.English, "Target SoC: {0}%"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ziel-SoC: {0}%"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ziel-Ladestand: {0}%"));
 
         Register("Discharge home battery",
             new TextLocalizationTranslation(LanguageCodes.English, "Discharge home battery"),
@@ -72,7 +72,7 @@ public class ChargingTargetConfigurationComponentLocalizationRegistry : TextLoca
 
         Register("Discharge to min SoC",
             new TextLocalizationTranslation(LanguageCodes.English, "Discharge to min SoC"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Bis zum minimalen SoC entladen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Bis zum minimalen Ladestand entladen"));
 
         Register("Try to not use grid energy by reducing car's charging speed",
             new TextLocalizationTranslation(LanguageCodes.English, "Try to not use grid energy by reducing car's charging speed"),
