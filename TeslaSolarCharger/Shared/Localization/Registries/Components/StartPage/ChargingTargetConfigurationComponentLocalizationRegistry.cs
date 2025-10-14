@@ -42,6 +42,10 @@ public class ChargingTargetConfigurationComponentLocalizationRegistry : TextLoca
             new TextLocalizationTranslation(LanguageCodes.English, "Target SoC: {0}%"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ziel-Ladestand: {0}%"));
 
+        Register("Repeat on:",
+            new TextLocalizationTranslation(LanguageCodes.English, "Repeat on:"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wiederholen am:"));
+
         Register("Discharge home battery",
             new TextLocalizationTranslation(LanguageCodes.English, "Discharge home battery"),
             new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher entladen"));

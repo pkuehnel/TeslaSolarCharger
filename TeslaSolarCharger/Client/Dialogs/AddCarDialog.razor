@@ -1,9 +1,13 @@
-﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
 
 @inject HttpClient HttpClient
+@inject ITextLocalizationService TextLocalizer
 
-<h3>AddCarDialog</h3>
+<h3>@T("Add car")</h3>
 
 @if (_fleetApiTokenState == default)
 {
@@ -14,8 +18,8 @@ else if (_fleetApiTokenState != TokenState.UpToDate)
     <MudAlert Severity="Severity.Error"
               NoIcon="true"
               ContentAlignment="HorizontalAlignment.Left">
-        <h4>Tesla Fleet API Token is not valid.</h4>
-        Go to <MudLink Href="/cloudconnection">Cloud Connection</MudLink> and Generate a Tesla Fleet API Token.
+        <h4>@T("Tesla Fleet API Token is not valid.")</h4>
+        @T("Go to ")<MudLink Href="/cloudconnection">@T("Cloud Connection")</MudLink>@T(" and generate a Tesla Fleet API Token.")
     </MudAlert>
 }
 else
@@ -27,6 +31,10 @@ else
 
 
     private TokenState? _fleetApiTokenState;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 
     protected override async Task OnInitializedAsync()
     {
