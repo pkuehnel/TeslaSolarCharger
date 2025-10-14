@@ -38,6 +38,18 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Add car (non Tesla)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug hinzufügen (kein Tesla)"));
 
+        Register("Add car",
+            new TextLocalizationTranslation(LanguageCodes.English, "Add car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug hinzufügen"));
+
+        Register("Tesla Fleet API Token is not valid.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Fleet API Token is not valid."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Fleet API Token ist nicht gültig."));
+
+        Register(" and generate a Tesla Fleet API Token.",
+            new TextLocalizationTranslation(LanguageCodes.English, " and generate a Tesla Fleet API Token."),
+            new TextLocalizationTranslation(LanguageCodes.German, " und generiere ein Tesla Fleet API Token."));
+
         Register("Current below 6A not recommended",
             new TextLocalizationTranslation(LanguageCodes.English, "Current below 6A not recommended"),
             new TextLocalizationTranslation(LanguageCodes.German, "Stromstärke unter 6A nicht empfohlen"));
