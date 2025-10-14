@@ -26,8 +26,8 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Download Server Logs"),
             new TextLocalizationTranslation(LanguageCodes.German, "Server-Protokolle herunterladen"));
 
-        Register("Do not change the configuration as this might lead to extremly high memory usage. All Settings will be reset after a restart.",
-            new TextLocalizationTranslation(LanguageCodes.English, "Do not change the configuration as this might lead to extremly high memory usage. All Settings will be reset after a restart."),
+        Register("Do not change the configuration as this might lead to extremely high memory usage. All Settings will be reset after a restart.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Do not change the configuration as this might lead to extremely high memory usage. All Settings will be reset after a restart."),
             new TextLocalizationTranslation(LanguageCodes.German, "Ändere die Konfiguration nicht, da dies zu extrem hohem Speicherverbrauch führen kann. Alle Einstellungen werden nach einem Neustart zurückgesetzt."));
 
         Register("In Memory Log Level",
@@ -54,8 +54,8 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Fetched {0} logs"),
             new TextLocalizationTranslation(LanguageCodes.German, "Es wurden {0} Protokolle geladen"));
 
-        Register("Copy logs to clipoard",
-            new TextLocalizationTranslation(LanguageCodes.English, "Copy logs to clipoard"),
+        Register("Copy logs to clipboard",
+            new TextLocalizationTranslation(LanguageCodes.English, "Copy logs to clipboard"),
             new TextLocalizationTranslation(LanguageCodes.German, "Protokolle in die Zwischenablage kopieren"));
 
         Register("Car Debug Details",

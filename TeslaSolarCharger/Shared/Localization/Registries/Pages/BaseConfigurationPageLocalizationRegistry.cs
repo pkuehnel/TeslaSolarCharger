@@ -50,8 +50,8 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "Advanced settings. Please only change values here if you know what you are doing."),
             new TextLocalizationTranslation(LanguageCodes.German, "Erweiterte Einstellungen. Ändere Werte hier nur, wenn du weißt, was du tust."));
 
-        Register("Values blelow 25 seconds are not recommended and might cause performance issues.",
-            new TextLocalizationTranslation(LanguageCodes.English, "Values blelow 25 seconds are not recommended and might cause performance issues."),
+        Register("Values below 25 seconds are not recommended and might cause performance issues.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Values below 25 seconds are not recommended and might cause performance issues."),
             new TextLocalizationTranslation(LanguageCodes.German, "Werte unter 25 Sekunden werden nicht empfohlen und können zu Leistungsproblemen führen."));
 
         Register("Saved.",

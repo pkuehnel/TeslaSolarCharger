@@ -34,7 +34,7 @@
 <MudAlert Severity="Severity.Warning"
           NoIcon="true"
           ContentAlignment="HorizontalAlignment.Left">
-    @T("Do not change the configuration as this might lead to extremly high memory usage. All Settings will be reset after a restart.")
+    @T("Do not change the configuration as this might lead to extremely high memory usage. All Settings will be reset after a restart.")
 </MudAlert>
 
 <div class="row">
@@ -91,7 +91,7 @@
 <MudExpansionPanels>
     <MudExpansionPanel Text='@T("UI Logs")' ExpandedChanged="UiLogExpansionChanged">
         <div>@Format("Fetched {0} logs", _uiLogMessages.Count)</div>
-        <RightAlignedButtonComponent ButtonText='@T("Copy logs to clipoard")'
+        <RightAlignedButtonComponent ButtonText='@T("Copy logs to clipboard")'
                                      StartIcon="@Icons.Material.Filled.ContentCopy"
                                      OnButtonClicked="CopyLogsToClipboard"></RightAlignedButtonComponent>
         @foreach (var logMessage in _uiLogMessages)
