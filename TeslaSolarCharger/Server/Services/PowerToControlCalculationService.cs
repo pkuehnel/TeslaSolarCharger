@@ -196,7 +196,11 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
         if (actualHomeBatterySoc < homeBatteryMinSoc)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Reserved {homeBatteryMaxChargingPower}W for Home battery charging as its SOC ({actualHomeBatterySoc}%) is below minimum SOC ({homeBatteryMinSoc}%)"));
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(
+                new NotChargingWithExpectedPowerReasonTemplate("Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)",
+                    homeBatteryMaxChargingPower ?? 0,
+                    actualHomeBatterySoc,
+                    homeBatteryMinSoc));
             return homeBatteryMaxChargingPower ?? 0;
         }
 

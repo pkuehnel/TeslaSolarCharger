@@ -1,49 +1,53 @@
 ﻿@using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
 <div class="shadow p-3 mb-5 bg-white rounded auto-scroll">
     @if (_serverTimeZoneDisplayName != default)
     {
         <div>
-            <TooltipComponent Text="This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml">
-                Server Timezone: @_serverTimeZoneDisplayName
+            <TooltipComponent Text='@T("Server timezone tooltip")'>
+                <span>@T("Server Timezone")</span>: @_serverTimeZoneDisplayName
             </TooltipComponent>
         </div>
     }
     @if (_serverTime != default)
     {
         <div>
-            <TooltipComponent Text="This is needed to properly start charging sessions. If this time does not match your current time, check your server time.">
-                Current Server Time: @_serverTime?.ToString()
+            <TooltipComponent Text='@T("Server time tooltip")'>
+                <span>@T("Current Server Time")</span>: @_serverTime?.ToString(CultureInfo.CurrentCulture)
             </TooltipComponent>
         </div>
     }
     @if (string.IsNullOrWhiteSpace(_version))
     {
         <p>
-            <em>Could not load version</em>
+            <em>@T("Could not load version")</em>
         </p>
     }
     else
     {
         <p>
-            <em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em>
+            <em>@T("Version"): <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em>
         </p>
     }
     <div>
-        <b>Installation ID</b>:
+        <b>@T("Installation ID")</b>:
         <TextShortenComponent InputString="@_installationId"
                               MaxLength="18"
                               ShouldDisplayTruncatedCharCount="true"
-                              TooltipText="Do not share the complete ID with anyone"
+                              TooltipText='@T("Do not share the complete ID with anyone")'
                               OnCopyClicked="ShowInstallationIdWarning"></TextShortenComponent>
     </div>
     <div>
-        <b>Language settings</b>: @CultureInfo.CurrentCulture
+        <b>@T("Language settings")</b>: @CultureInfo.CurrentCulture
     </div>
 </div>
 
@@ -96,8 +100,12 @@
         _installationId = result.Data?.Value ?? string.Empty;
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<InstallationInformationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
     private void ShowInstallationIdWarning()
     {
-        Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
+        Snackbar.Add(T("Do not share the ID with anyone"), Severity.Warning);
     }
 }

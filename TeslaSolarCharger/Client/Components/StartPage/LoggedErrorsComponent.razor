@@ -2,12 +2,17 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.LoggedError
+@using System.Globalization
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 
 @implements IDisposable
 @inject ISnackbar Snackar
 @inject IHttpClientHelper HttpClientHelper
 @inject ILogger<LoggedErrorsComponent> Logger
+@inject ITextLocalizationService TextLocalizer
 
 
 @if (_errors == default)
@@ -25,14 +30,14 @@ else
                         <div class="d-flex">
                             <div class="flex-grow-0">
                                 <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
-                                    <MudText Class="mt-1">Errors</MudText>
+                                    <MudText Class="mt-1">@T("Errors")</MudText>
                                 </MudBadge>
-                            
+
                             </div>
                             <div class="mt-1 ml-2 flex-grow-1">
                             </div>
                             <div class="mt-1 ml-2 flex-grow-0">
-                                <small>The list is only updated once per minute</small>
+                                <small>@T("The list is only updated once per minute")</small>
                             </div>
                         </div>
                     </TitleContent>
@@ -45,7 +50,7 @@ else
                                           ContentAlignment="HorizontalAlignment.Left"
                                           ShowCloseIcon="true"
                                           CloseIconClicked="@(_ => DismissError(error.Id))">
-                                    <h4>@(error.Headline + $"{(error.HideOccurrenceCount ? string.Empty : $" occured {error.OccurrenceCount} time(s)")}")</h4>
+                                    <h4>@GetHeadlineText(error)</h4>
                                     <div style="word-break: break-word;">
                                         @((MarkupString)error.Message)
                                     </div>
@@ -111,4 +116,16 @@ else
             _ => Severity.Info,
         };
     }
+
+    private string GetHeadlineText(DtoLoggedError error) =>
+        error.HideOccurrenceCount
+            ? error.Headline
+            : Format("{0} occured {1} time(s)", error.Headline, error.OccurrenceCount);
+
+    private string T(string key) =>
+        TextLocalizer.Get<LoggedErrorsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
 }

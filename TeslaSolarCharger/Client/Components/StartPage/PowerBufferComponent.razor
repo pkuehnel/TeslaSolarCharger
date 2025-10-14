@@ -1,7 +1,11 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
 
 @if (_displayValue)
@@ -12,10 +16,14 @@
                       PostfixButtonStartIcon="@Icons.Material.Filled.Save"
                       OnButtonClicked="UpdatePowerBuffer"></GenericInput>
     </div>
+
 }
 
-
 @code {
+    private string T(string key) =>
+        TextLocalizer.Get<PowerBufferComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
     private int? PowerBuffer { get; set; }
     private int? _lastSavedPowerBuffer;
     private bool _displayValue;
@@ -45,12 +53,12 @@
         var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={PowerBuffer ?? 0}").ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add("Power Buffer updated", Severity.Success);
+            Snackbar.Add(T("Power Buffer updated"), Severity.Success);
             _lastSavedPowerBuffer = PowerBuffer;
         }
         else
         {
-            Snackbar.Add("Failed to update Power Buffer", Severity.Error);
+            Snackbar.Add(T("Failed to update Power Buffer"), Severity.Error);
         }
 
     }

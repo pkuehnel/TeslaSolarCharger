@@ -32,8 +32,8 @@ public class Settings : ISettings
     /// </summary>
     public ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; } = new();
 
-    public ConcurrentBag<DtoNotChargingWithExpectedPowerReason> GenericNotChargingWithExpectedPowerReasons { get; set; } = new();
-    public ConcurrentDictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> LoadPointSpecificNotChargingWithExpectedPowerReasons
+    public ConcurrentBag<NotChargingWithExpectedPowerReasonTemplate> GenericNotChargingWithExpectedPowerReasons { get; set; } = new();
+    public ConcurrentDictionary<(int? carId, int? connectorId), List<NotChargingWithExpectedPowerReasonTemplate>> LoadPointSpecificNotChargingWithExpectedPowerReasons
     { get; set; } = new();
 
     public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; } = new();

@@ -1,10 +1,15 @@
-﻿@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+﻿@using System.Globalization
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.SharedModel.Enums
 
 @inject IConstants Constants
+@inject ITextLocalizationService TextLocalizer
 
-<h2>@(SourceName) sources</h2>
+<h2>@TF("{0} sources", SourceName)</h2>
 <div class="d-flex flex-wrap justify-content-evenly">
     @if (ConfigurationOverviews == null)
     {
@@ -49,7 +54,7 @@
                                 </ChildContent>
                                 <TooltipContent>
                                     <div>
-                                        Refresh values
+                                        @T("Refresh values")
                                     </div>
                                 </TooltipContent>
                             </MudTooltip>
@@ -84,14 +89,14 @@
                                     }
                                 </div>
                                 <div class="flex-grow-1">
-                                    <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
+                                    <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T("Not available") : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
                                 </div>
                             </div>
                         }
                     </MudCardContent>
                     <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">Configure</MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">Delete</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">@T("Configure")</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">@T("Delete")</MudButton>
                     </MudCardActions>
                 </MudCard>
             </div>
@@ -101,7 +106,7 @@
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            Add new @(SourceName) source
+                            @TF("Add new {0} source", SourceName)
                         </MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
@@ -135,6 +140,13 @@
 
     [Parameter]
     public EventCallback<int> OnDeleteClicked { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<GenericValueConfigurationComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string TF(string key, params object[] args) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), args);
 
     public async Task RefreshClicked(int configurationOverviewId)
     {

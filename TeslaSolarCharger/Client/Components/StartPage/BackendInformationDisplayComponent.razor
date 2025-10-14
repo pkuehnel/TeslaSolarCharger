@@ -1,7 +1,11 @@
-﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 
 @inject HttpClient HttpClient
+@inject ITextLocalizationService TextLocalizer
 
 @foreach(var notification in _backendNotifications)
 {
@@ -11,8 +15,8 @@
                   ContentAlignment="HorizontalAlignment.Left"
                   ShowCloseIcon="true"
                   CloseIconClicked="@(_ => ConfirmNotifiaction(notification.Id))">
-            <h4>@notification.Headline</h4>
-            @((MarkupString)notification.DetailText)
+            <h4>@T(notification.Headline)</h4>
+            @((MarkupString)T(notification.DetailText))
         </MudAlert>
     </div>
 }
@@ -54,4 +58,14 @@
         await HttpClient.PostAsync($"api/BackendNotification/MarkBackendNotificationAsConfirmed?id={notificationId}", null);
     }
 
+    private string T(string? key)
+    {
+        if (string.IsNullOrEmpty(key))
+        {
+            return string.Empty;
+        }
+
+        return TextLocalizer.Get<BackendInformationDisplayComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+               ?? key;
+    }
 }

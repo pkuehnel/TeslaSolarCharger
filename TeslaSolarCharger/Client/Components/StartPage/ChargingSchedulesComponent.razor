@@ -2,10 +2,14 @@
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @inject IHomeService HomerService
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<ChargingSchedulesComponent> Logger
 @inject IStringHelper StringHelper
+@inject ITextLocalizationService TextLocalizer
 
 <MudExpansionPanels>
         <MudExpansionPanel ExpandedChanged="IsExpandedChanged">
@@ -16,7 +20,7 @@
                 }
                 else
                 {
-                    @(_elements.Count < 1 ? "Nothing planned" : $"Next planned charge starts at {_elements.First().ValidFrom.ToLocalTime().ToString("f")}")
+                    @(_elements.Count < 1 ? T("Nothing planned") : string.Format(T("Next planned charge starts at {0}"), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
                 }
             </TitleContent>
             <ChildContent>
@@ -25,19 +29,19 @@
                              Loading="@(_elements == null)">
                     <Columns>
                         <PropertyColumn Property="x => x.ValidFrom"
-                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom))">
+                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom)))">
                             <CellTemplate>
                                 @(context.Item.ValidFrom.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ValidTo"
-                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo))">
+                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo)))">
                             <CellTemplate>
                                 @(context.Item.ValidTo.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ChargingPower"
-                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower))">
+                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower)))">
                             <CellTemplate>
                                 @(context.Item.ChargingPower.ToString("N0"))W
                             </CellTemplate>
@@ -117,6 +121,12 @@
         {
             _showChart = obj;
         }
+    }
+
+    private string T(string key)
+    {
+        return TextLocalizer.Get<ChargingSchedulesComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+               ?? key;
     }
 
 }

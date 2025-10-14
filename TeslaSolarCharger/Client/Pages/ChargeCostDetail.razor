@@ -8,14 +8,18 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
 @inject ISnackbar Snackbar
 @inject IChargePriceService ChargePriceService
+@inject ITextLocalizationService TextLocalizer
 
-<button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
-<h1>ChargePriceDetail</h1>
+<button class="btn btn-primary" @onclick="NavigateToList">@T("All Charge costs")</button>
+<h1>@T("ChargePriceDetail")</h1>
 
 @if (ChargePrice == null)
 {
@@ -27,7 +31,7 @@ else
         <DataAnnotationsValidator />
         <ValidationSummary />
         <InputComponent ValueId="chargePriceId"
-                        LabelText="ID"
+                        LabelText='@T("ID")'
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -36,7 +40,7 @@ else
         </InputComponent>
 
         <InputComponent ValueId="date"
-                        LabelText="Valid Since"
+                        LabelText='@T("Valid Since")'
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -45,7 +49,7 @@ else
         </InputComponent>
 
         <InputComponent ValueId="solarPrice"
-                        LabelText="Solar Price"
+                        LabelText='@T("Solar Price")'
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -54,19 +58,19 @@ else
         </InputComponent>
         
         <InputComponent ValueId="energyProvider"
-                        LabelText="Energy Provider"
+                        LabelText='@T("Energy Provider")'
                         UnitText=""
                         HelpText="">
             <InputFragment>
                 <InputSelect id="energyProvider" Value="ChargePrice.EnergyProvider" ValueExpression="() => ChargePrice.EnergyProvider" ValueChanged="@((EnergyProvider e) => EnergyProviderChanged(e))" class="form-control">
-                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">Fixed Price or Spot price</option>
-                    <option value="@EnergyProvider.FixedPrice">Time based prices</option>
+                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">@T("Fixed Price or Spot price")</option>
+                    <option value="@EnergyProvider.FixedPrice">@T("Time based prices")</option>
                 </InputSelect>
             </InputFragment>
         </InputComponent>
 
         <InputComponent ValueId="gridPrice"
-                        LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
+                        LabelText='@(ChargePrice.AddSpotPriceToGridPrice ? T("Base Price (Spot price will be added to this price)") : T("Grid Price"))'
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -76,7 +80,7 @@ else
 
         @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && FixedPrices != null)
         {
-            <div>You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.</div>
+            <div>@T("You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.")</div>
             @foreach (var fixedPrice in FixedPrices)
             {
                 <div class="row mt-3">
@@ -88,7 +92,7 @@ else
                 <div class="row mt-3">
                     <div class="col-auto">
                         <InputComponent ValueId="price"
-                                        LabelText="Price"
+                                        LabelText='@T("Price")'
                                         UnitText=""
                                         HelpText="">
                             <InputFragment>
@@ -103,7 +107,7 @@ else
                 
                 <hr/>
             }
-            <button type="button" class="btn btn-primary m-2" @onclick="AddFixedPrice">Add time based price</button>
+            <button type="button" class="btn btn-primary m-2" @onclick="AddFixedPrice">@T("Add time based price")</button>
         }
         
         @if (ChargePrice.EnergyProvider == EnergyProvider.OldTeslaSolarChargerConfig)
@@ -111,18 +115,18 @@ else
             <div class="mb-3">
                 <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
                 <label class="form-check-label" for="useSpotPrice1">
-                    Use Spot Prices
+                    @T("Use Spot Prices")
                 </label>
                 <div>
-                    <small id="UseSpotPriceHelp" class="form-text text-muted">Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)</small>
+                    <small id="UseSpotPriceHelp" class="form-text text-muted">@T("Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)")</small>
                 </div>
             </div>
             @if (ChargePrice.AddSpotPriceToGridPrice)
             {
                 <InputComponent ValueId="chargePriceSurcharge"
-                                LabelText="Additional costs to spotprice"
+                                LabelText='@T("Additional costs to spotprice")'
                                 UnitText="%"
-                                HelpText="Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.">
+                                HelpText='@T("Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.")'>
                     <InputFragment>
                         <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
                     </InputFragment>
@@ -146,14 +150,14 @@ else
         {
             <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
                 <MudAlert Severity="Severity.Info">
-                    Updating charge prices can take a significant amount of time as the prices of all previous charges are updated
+                    @T("Updating charge prices can take a significant amount of time as the prices of all previous charges are updated")
                 </MudAlert>
             </MudPaper>
         }
-        
+
         <RightAlignedButtonComponent ButtonType="ButtonType.Submit"
                                      IsLoading="@(SubmitIsLoading || ChargePriceUpdateProgress != default)"
-                                     ButtonText="Save"/>
+                                     ButtonText='@T("Save")'/>
     </EditForm>
 }
 
@@ -169,6 +173,10 @@ else
     private List<FixedPrice>? FixedPrices { get; set; }
 
     private DtoProgress? ChargePriceUpdateProgress { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ChargeCostDetailPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 
     protected override async Task OnInitializedAsync()
     {

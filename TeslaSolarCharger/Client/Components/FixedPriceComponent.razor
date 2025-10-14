@@ -1,4 +1,9 @@
-﻿@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using System.Globalization
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+@inject ITextLocalizationService TextLocalizer
 
 @if (FixedPrice == null)
 {
@@ -11,14 +16,14 @@ else
         {
             <div class="col">
                 <input type="checkbox" checked="@(FixedPrice.ValidOnDays != null && FixedPrice.ValidOnDays.Contains(day))" @onchange="() => CheckboxChanged(day)" />
-                <label>@day.ToString()</label>
+                <label>@CultureInfo.CurrentCulture.DateTimeFormat.GetDayName(day)</label>
             </div>
         }
     </div>
     <div class="row align-items-center">
         <div class="col-auto">
             <InputComponent ValueId="fromHour"
-                            LabelText="From Hour"
+                            LabelText='@T("From Hour")'
                             UnitText=""
                             HelpText="">
                 <InputFragment>
@@ -31,7 +36,7 @@ else
         </div>
         <div class="col-auto">
             <InputComponent ValueId="fromMinute"
-                            LabelText="From Minute"
+                            LabelText='@T("From Minute")'
                             UnitText=""
                             HelpText="">
                 <InputFragment>
@@ -43,7 +48,7 @@ else
     <div class="row align-items-center">
         <div class="col-auto">
             <InputComponent ValueId="toHour"
-                            LabelText="To Hour"
+                            LabelText='@T("To Hour")'
                             UnitText=""
                             HelpText="">
                 <InputFragment>
@@ -56,7 +61,7 @@ else
         </div>
         <div class="col-auto">
             <InputComponent ValueId="toMinute"
-                            LabelText="To Minute"
+                            LabelText='@T("To Minute")'
                             UnitText=""
                             HelpText="">
                 <InputFragment>
@@ -65,20 +70,24 @@ else
             </InputComponent>
         </div>
     </div>
-    
+
 }
 
 @code {
     [Parameter]
     public FixedPrice? FixedPrice { get; set; }
 
+    private string T(string key) =>
+        TextLocalizer.Get<FixedPriceComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
     private void CheckboxChanged(DayOfWeek day)
     {
-        if(FixedPrice?.ValidOnDays == null)
+        if (FixedPrice?.ValidOnDays == null)
         {
             return;
         }
-        
+
         if (FixedPrice.ValidOnDays.Contains(day))
         {
             FixedPrice.ValidOnDays.Remove(day);
