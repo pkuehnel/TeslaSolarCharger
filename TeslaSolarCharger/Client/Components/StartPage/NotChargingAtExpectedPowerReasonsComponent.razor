@@ -45,7 +45,11 @@ else
                         }
                         else
                         {
-                            <div>@Format("{0} reason(s) why loadpoint charges with different power than you might expect", _elements.Count)</div>
+                            var reasonsKey = _elements.Count == 1
+                                ? "{0} reason why loadpoint charges with different power than you might expect"
+                                : "{0} reasons why loadpoint charges with different power than you might expect";
+
+                            <div>@Format(reasonsKey, _elements.Count)</div>
                         }
                     }
                     @if (_elements.Count > 0)
