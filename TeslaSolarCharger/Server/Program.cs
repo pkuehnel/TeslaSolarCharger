@@ -117,7 +117,7 @@ Log.Logger = new LoggerConfiguration()
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
-DoStartupStuff(app, logger, configurationWrapper);
+_ = DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

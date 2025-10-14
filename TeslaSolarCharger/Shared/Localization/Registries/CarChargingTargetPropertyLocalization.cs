@@ -7,6 +7,14 @@ public class CarChargingTargetPropertyLocalization : PropertyLocalizationRegistr
 {
     protected override void Configure()
     {
+        Register(x => x.TargetSoc,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                null,
+                null),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Ziel-Ladestand",
+                null));
+
         Register(x => x.DischargeHomeBatteryToMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Discharge Home Battery To Min Soc",
@@ -14,6 +22,22 @@ public class CarChargingTargetPropertyLocalization : PropertyLocalizationRegistr
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Heimbatterie auf Mindest-Ladestand entladen",
                 "Wenn kein Ziel-Ladestand gesetzt ist, versucht TSC, die Heimbatterie bis zur Zielzeit auf ihren minimalen Ladestand zu entladen. Ist ein Ziel-Ladestand definiert, plant TSC das Laden so, dass der Netzbezug reduziert wird und nur die von der Heimbatterie unterstützte Ladeleistung genutzt wird."));
+
+        Register(x => x.TargetDate,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                null,
+                null),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Ziel-Datum",
+                null));
+
+        Register(x => x.TargetTime,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                null,
+                null),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Ziel-Zeit",
+                null));
 
         Register(x => x.RepeatOnMondays,
             new PropertyLocalizationTranslation(LanguageCodes.English,
