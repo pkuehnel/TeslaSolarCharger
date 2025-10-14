@@ -32,7 +32,7 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
 
         Register("As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used.",
             new TextLocalizationTranslation(LanguageCodes.English, "As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Da dieses Auto nicht über eine API verbunden ist, musst du den aktuellen Ladezustand manuell setzen. Hinweis: Jedes Mal, wenn du das Auto einsteckst, wird der SoC zurückgesetzt, da der TSC nicht weiß, wie viel Energie das Auto verbraucht hat."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Da dieses Auto nicht über eine API verbunden ist, musst du den aktuellen Ladezustand manuell setzen. Hinweis: Jedes Mal, wenn du das Auto einsteckst, wird der Ladestand zurückgesetzt, da der TSC nicht weiß, wie viel Energie das Auto verbraucht hat."));
 
         Register("State of Charge",
             new TextLocalizationTranslation(LanguageCodes.English, "State of Charge"),
@@ -60,27 +60,27 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
 
         Register("SoC: ",
             new TextLocalizationTranslation(LanguageCodes.English, "SoC: "),
-            new TextLocalizationTranslation(LanguageCodes.German, "SoC: "));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestand: "));
 
         Register("Car Limit: ",
             new TextLocalizationTranslation(LanguageCodes.English, "Car Limit: "),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuggrenze: "));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladelimit: "));
 
         Register("Failed to update Min SOC: {0}",
             new TextLocalizationTranslation(LanguageCodes.English, "Failed to update Min SOC: {0}"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Min-SoC konnte nicht aktualisiert werden: {0}"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Minimaler Ladestand konnte nicht aktualisiert werden: {0}"));
 
         Register("Min SOC updated successfully.",
             new TextLocalizationTranslation(LanguageCodes.English, "Min SOC updated successfully."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Min-SoC erfolgreich aktualisiert."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Minimaler Ladestand erfolgreich aktualisiert."));
 
         Register("Failed to update Max SOC: {0}",
             new TextLocalizationTranslation(LanguageCodes.English, "Failed to update Max SOC: {0}"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Max-SoC konnte nicht aktualisiert werden: {0}"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Maximaler Ladestand konnte nicht aktualisiert werden: {0}"));
 
         Register("Max SOC updated successfully.",
             new TextLocalizationTranslation(LanguageCodes.English, "Max SOC updated successfully."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Max-SoC erfolgreich aktualisiert."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Maximaler Ladestand erfolgreich aktualisiert."));
 
         Register("Failed to update Charge Mode: {0}",
             new TextLocalizationTranslation(LanguageCodes.English, "Failed to update Charge Mode: {0}"),

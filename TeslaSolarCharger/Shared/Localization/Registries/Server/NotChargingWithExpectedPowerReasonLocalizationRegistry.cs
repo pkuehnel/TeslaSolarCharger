@@ -44,11 +44,11 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
 
         Register("Configured max Soc is reached",
             new TextLocalizationTranslation(LanguageCodes.English, "Configured max Soc is reached"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfigurierte maximale SoC ist erreicht"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfigurierter maximaler Ladestand ist erreicht"));
 
         Register("Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {0}% higher than the actual SOC.",
             new TextLocalizationTranslation(LanguageCodes.English, "Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {0}% higher than the actual SOC."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugseitiges SoC-Limit ist erreicht. Um mit dem Laden zu beginnen, muss das Fahrzeuglimit mindestens {0}% höher als der aktuelle SoC sein."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugseitiges Ladelimit ist erreicht. Um mit dem Laden zu beginnen, muss das Fahrzeuglimit mindestens {0}% höher als der aktuelle Ladestand sein."));
 
         Register("Charging stopped by car, e.g. it is full or its charge limit is reached.",
             new TextLocalizationTranslation(LanguageCodes.English, "Charging stopped by car, e.g. it is full or its charge limit is reached."),
@@ -64,7 +64,7 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
 
         Register("Charge mode is off or max SoC is reached.",
             new TextLocalizationTranslation(LanguageCodes.English, "Charge mode is off or max SoC is reached."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Lademodus ist aus oder die maximale SoC ist erreicht."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Lademodus ist aus oder der maximale Ladestand ist erreicht."));
 
         Register("Min Phases or Max Phases is unkown. Check the logs for further details.",
             new TextLocalizationTranslation(LanguageCodes.English, "Min Phases or Max Phases is unkown. Check the logs for further details."),
@@ -76,6 +76,6 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
 
         Register("Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)",
             new TextLocalizationTranslation(LanguageCodes.English, "Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Reserviere {0}W zum Laden der Hausbatterie, da ihr SoC ({1}%) unter dem Mindest-SoC ({2}%) liegt."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Reserviere {0}W zum Laden der Hausbatterie, da ihr Ladestand ({1}%) unter dem Mindest-Ladestand ({2}%) liegt."));
     }
 }

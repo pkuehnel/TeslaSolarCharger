@@ -16,7 +16,7 @@ public class EnergyPredictionComponentLocalizationRegistry : TextLocalizationReg
 
         Register("Home Battery SoC %",
             new TextLocalizationTranslation(LanguageCodes.English, "Home Battery SoC %"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher-SoC %"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher-Ladestand %"));
 
         Register("Battery Discharge ({0} kWh)",
             new TextLocalizationTranslation(LanguageCodes.English, "Battery Discharge ({0} kWh)"),

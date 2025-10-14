@@ -12,15 +12,15 @@ public class CarOverviewSettingsPropertyLocalization : PropertyLocalizationRegis
                 "Min Soc",
                 "Always charge at full speed until this soc even if there is not enough solar power"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Min-SoC",
-                "Bis zu diesem SoC immer mit voller Leistung laden, auch wenn nicht genügend Solarstrom vorhanden ist."));
+                "Min-Ladestand",
+                "Bis zu diesem Ladestand immer mit voller Leistung laden, auch wenn nicht genügend Solarstrom vorhanden ist."));
 
         Register(x => x.MaxSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Max Soc",
                 "Stop charging at this soc even if there is enough solar power"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Max-SoC",
-                "Bei diesem SoC den Ladevorgang stoppen, auch wenn genügend Solarstrom vorhanden ist."));
+                "Max-Ladestand",
+                "Bei diesem Ladestand den Ladevorgang stoppen, auch wenn genügend Solarstrom vorhanden ist."));
     }
 }

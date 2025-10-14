@@ -85,7 +85,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "If enabled, when a target Soc is set not only grid prices but also estimated solar power generation is used to schedule charging."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Vorhergesagte Solarleistung für Ladepläne verwenden",
-                "Wenn aktiviert und ein Ziel-SoC gesetzt ist, werden für die Ladeplanung neben den Netzpreisen auch die prognostizierte Solarleistung berücksichtigt."));
+                "Wenn aktiviert und ein Ziel-Ladestand gesetzt ist, werden für die Ladeplanung neben den Netzpreisen auch die prognostizierte Solarleistung berücksichtigt."));
 
         Register(x => x.ShowEnergyDataOnHome,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -180,39 +180,39 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Dynamic Home Battery Min Soc",
                 "If enabled the Home Battery Min Soc is automatically set based on solar predictions to make sure the home battery is fully charged at the end of the day. This setting is only recommended after having solar predictions enabled for at least two weeks."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Dynamischer Mindest-SoC der Heimbatterie",
-                "Wenn aktiviert, wird der minimale SoC der Heimbatterie automatisch anhand der Solarprognosen festgelegt, damit sie zum Tagesende voll ist. Diese Einstellung wird erst empfohlen, wenn die Solarprognosen mindestens zwei Wochen aktiv waren."));
+                "Dynamischer Mindest-Ladestand der Heimbatterie",
+                "Wenn aktiviert, wird der minimale Ladestand der Heimbatterie automatisch anhand der Solarprognosen festgelegt, damit sie zum Tagesende voll ist. Diese Einstellung wird erst empfohlen, wenn die Solarprognosen mindestens zwei Wochen aktiv waren."));
 
         Register(x => x.HomeBatteryMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Minimum SoC",
                 "Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Minimaler Heimbatterie-SoC",
-                "Legen Sie fest, bis zu welchem SoC die Heimbatterie geladen wird, bevor Fahrzeuge mit voller Leistung laden. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
+                "Minimaler Ladestand der Heimbatterie",
+                "Legen Sie fest, bis zu welchem Ladestand die Heimbatterie geladen wird, bevor Fahrzeuge mit voller Leistung laden. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
 
         Register(x => x.HomeBatteryMinDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Min Dynamic Min Soc",
                 "Reserve that is always set as min SoC."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Minimaler dynamischer Mindest-SoC der Heimbatterie",
-                "Reserve, die immer als minimaler SoC gesetzt wird."));
+                "Minimaler dynamischer Mindest-Ladestand der Heimbatterie",
+                "Reserve, die immer als minimaler Ladestand gesetzt wird."));
 
         Register(x => x.HomeBatteryMaxDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Max Dynamic Min Soc",
                 "Min SoC is never set higher than this value."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Maximaler dynamischer Mindest-SoC der Heimbatterie",
-                "Der minimale SoC wird nie höher als dieser Wert gesetzt."));
+                "Maximaler dynamischer Mindest-Ladestand der Heimbatterie",
+                "Der minimale Ladestand wird nie höher als dieser Wert gesetzt."));
 
         Register(x => x.DynamicMinSocCalculationBuffer,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Dynamic Min Soc Calculation Buffer",
                 "Used to make sure your home battery does not run out of power even if weather predictions are not correct or your house uses more energy than anticipated."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Berechnungspuffer für dynamischen Mindest-SoC",
+                "Berechnungspuffer für dynamischen Mindest-Ladestand",
                 "Sorgt dafür, dass die Heimbatterie nicht leer wird, selbst wenn Wetterprognosen falsch liegen oder der Energiebedarf höher als erwartet ist."));
 
         Register(x => x.ForceFullHomeBatteryBySunset,
@@ -229,7 +229,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Ziel-Ladeleistung der Heimbatterie",
-                "Legen Sie die Leistung fest, mit der die Heimbatterie geladen wird, solange der SoC unter dem Mindestwert liegt. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
+                "Legen Sie die Leistung fest, mit der die Heimbatterie geladen wird, solange der Ladestand unter dem Mindestwert liegt. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
 
         Register(x => x.HomeBatteryDischargingPower,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -252,8 +252,8 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Discharge Home Battery To Min Soc During Day",
                 "When enabled TSC discharges the home battery to its Min Soc after sunrise and before sunset. Note: Charging of cars is only started if minimum difference between actual home battery soc and min soc is at least 10%."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Heimbatterie tagsüber auf Mindest-SoC entladen",
-                "Wenn aktiviert, entlädt TSC die Heimbatterie zwischen Sonnenaufgang und Sonnenuntergang bis zum Mindest-SoC. Hinweis: Das Laden von Fahrzeugen startet erst, wenn die Differenz zwischen aktuellem und minimalem SoC mindestens 10 % beträgt."));
+                "Heimbatterie tagsüber auf Mindest-Ladestand entladen",
+                "Wenn aktiviert, entlädt TSC die Heimbatterie zwischen Sonnenaufgang und Sonnenuntergang bis zum Mindest-Ladestand. Hinweis: Das Laden von Fahrzeugen startet erst, wenn die Differenz zwischen aktuellem und minimalem Ladestand mindestens 10 % beträgt."));
 
         Register(x => x.CarChargeLoss,
             new PropertyLocalizationTranslation(LanguageCodes.English,
