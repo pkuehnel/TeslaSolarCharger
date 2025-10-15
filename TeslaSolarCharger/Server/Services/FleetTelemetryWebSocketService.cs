@@ -50,7 +50,7 @@ public class FleetTelemetryWebSocketService(
     public async Task ReconnectWebSocketsForEnabledCars()
     {
         logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
-        var scope = serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var backendApiService = scope.ServiceProvider.GetRequiredService<IBackendApiService>();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
@@ -124,7 +124,7 @@ public class FleetTelemetryWebSocketService(
     private async Task ConnectToFleetTelemetryApi(string vin)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
-        var scope = serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
@@ -196,7 +196,7 @@ public class FleetTelemetryWebSocketService(
         {
             try
             {
-                var scope = serviceProvider.CreateScope();
+                using var scope = serviceProvider.CreateScope();
                 var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
                 var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
                 logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
@@ -265,8 +265,8 @@ public class FleetTelemetryWebSocketService(
                     await context.SaveChangesAsync().ConfigureAwait(false);
                     if (configurationWrapper.GetVehicleDataFromTesla())
                     {
-                        var settings = scope.ServiceProvider.GetRequiredService<ISettings>();
-                        var settingsCar = settings.Cars.First(c => c.Vin == vin);
+                        var scopedSettings = scope.ServiceProvider.GetRequiredService<ISettings>();
+                        var settingsCar = scopedSettings.Cars.First(c => c.Vin == vin);
                         var shouldUpdateProperty = false;
                         HomeDetectionVia? homeDetectionVia = null;
                         if (message.Type == CarValueType.LocatedAtHome
@@ -354,9 +354,10 @@ public class FleetTelemetryWebSocketService(
                             var carPropertyUpdateHelper = scope.ServiceProvider.GetRequiredService<ICarPropertyUpdateHelper>();
                             carPropertyUpdateHelper.UpdateDtoCarProperty(settingsCar, carValueLog);
                         }
-                        var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
                         _ = Task.Run(async () =>
                         {
+                            using var innerScope = serviceProvider.CreateScope();
+                            var loadPointManagementService = innerScope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
                             try
                             {
                                 await loadPointManagementService.CarStateChanged(settingsCar.Id);
@@ -364,10 +365,6 @@ public class FleetTelemetryWebSocketService(
                             catch (Exception ex)
                             {
                                 logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
-                            }
-                            finally
-                            {
-                                scope.Dispose();
                             }
                         });
                     }
@@ -391,7 +388,7 @@ public class FleetTelemetryWebSocketService(
         }
         foreach (var vin in message.MissingKeyVins)
         {
-            var scope = serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
             var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
             if (car == default)
@@ -427,7 +424,7 @@ public class FleetTelemetryWebSocketService(
     private async Task SetCarToFleetTelemetryHardwareIncompatible(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(SetCarToFleetTelemetryHardwareIncompatible), vin);
-        var scope = serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
         if (car == default)
@@ -441,7 +438,7 @@ public class FleetTelemetryWebSocketService(
     private async Task DisableFleetTelemetryForCar(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(DisableFleetTelemetryForCar), vin);
-        var scope = serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
         if (car == default)
@@ -455,11 +452,11 @@ public class FleetTelemetryWebSocketService(
 
     internal DtoTscFleetTelemetryMessage? DeserializeFleetTelemetryMessage(string jsonMessage)
     {
-        var settings = new JsonSerializerSettings
+        var jsonSerializerSettings = new JsonSerializerSettings
         {
             Converters = new List<JsonConverter> { new EnumDefaultConverter<CarValueType>(CarValueType.Unknown), },
         };
-        var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage, settings);
+        var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage, jsonSerializerSettings);
         return message;
     }
 }
