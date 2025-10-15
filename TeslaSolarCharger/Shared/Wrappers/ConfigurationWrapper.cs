@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
@@ -363,6 +364,26 @@ public class ConfigurationWrapper(
             value = minimum;
         }
         return value;
+    }
+
+    public TimeSpan GetSolarDeviceRefreshInterval(SolarDeviceKey deviceKey, TimeSpan fallback)
+    {
+        var minimum = TimeSpan.FromSeconds(1);
+        var environmentVariableName = $"SolarDeviceRefreshIntervalSeconds__{deviceKey.ToConfigurationKey()}";
+        var configuredSeconds = configuration.GetValue<int?>(environmentVariableName);
+
+        if (!configuredSeconds.HasValue || configuredSeconds.Value <= 0)
+        {
+            return fallback < minimum ? minimum : fallback;
+        }
+
+        var configured = TimeSpan.FromSeconds(configuredSeconds.Value);
+        if (configured < minimum)
+        {
+            configured = minimum;
+        }
+
+        return configured;
     }
 
     public string MqqtClientId()

@@ -1,9 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
@@ -19,6 +24,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
@@ -46,6 +52,8 @@ public class PvValueService(
     IChangeTrackingService changeTrackingService)
     : IPvValueService
 {
+    private readonly ConcurrentDictionary<SolarDeviceKey, SolarDeviceSchedule> _deviceSchedules = new();
+
     public async Task ConvertToNewConfiguration()
     {
         var solarConfigurationsConverted =
@@ -153,6 +161,263 @@ public class PvValueService(
             Value = "true",
         });
         await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+
+    private async Task<List<SolarDeviceHandler>> BuildSolarDeviceHandlers(ISet<ValueUsage> valueUsages)
+    {
+        var handlers = new List<SolarDeviceHandler>();
+        var defaultInterval = configurationWrapper.PvValueJobUpdateIntervall();
+
+        var restConfigurations = await restValueConfigurationService
+            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
+            .ConfigureAwait(false);
+
+        foreach (var restConfiguration in restConfigurations)
+        {
+            var resultConfigurations = await restValueConfigurationService
+                .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
+                .ConfigureAwait(false);
+
+            var relevantResults = resultConfigurations.Where(r => valueUsages.Contains(r.UsedFor)).ToList();
+            if (relevantResults.Count == 0)
+            {
+                continue;
+            }
+
+            var handlerKey = SolarDeviceKey.ForRest(restConfiguration.Id);
+            var refreshInterval = configurationWrapper.GetSolarDeviceRefreshInterval(handlerKey, defaultInterval);
+            var configCopy = restConfiguration;
+            var resultsCopy = relevantResults;
+
+            handlers.Add(new SolarDeviceHandler(
+                handlerKey,
+                $"REST {configCopy.Url}",
+                refreshInterval,
+                async () =>
+                {
+                    var responseString = await restValueExecutionService.GetResult(configCopy).ConfigureAwait(false);
+                    var sums = new Dictionary<ValueUsage, decimal>();
+                    foreach (var resultConfiguration in resultsCopy)
+                    {
+                        var value = restValueExecutionService.GetValue(responseString, configCopy.NodePatternType, resultConfiguration);
+                        if (!sums.TryAdd(resultConfiguration.UsedFor, value))
+                        {
+                            sums[resultConfiguration.UsedFor] += value;
+                        }
+                    }
+
+                    var timestamp = dateTimeProvider.DateTimeOffSetUtcNow();
+                    return sums.Select(kvp => new SolarDeviceSample(kvp.Key, kvp.Value, timestamp)).ToArray();
+                }));
+        }
+
+        var modbusConfigurations = await modbusValueConfigurationService
+            .GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
+            .ConfigureAwait(false);
+
+        foreach (var modbusConfiguration in modbusConfigurations)
+        {
+            var modbusResultConfigurations = await modbusValueConfigurationService
+                .GetModbusResultConfigurationsByPredicate(r => r.ModbusConfigurationId == modbusConfiguration.Id)
+                .ConfigureAwait(false);
+
+            var relevantResults = modbusResultConfigurations.Where(r => valueUsages.Contains(r.UsedFor)).ToList();
+            if (relevantResults.Count == 0)
+            {
+                continue;
+            }
+
+            var handlerKey = SolarDeviceKey.ForModbus(modbusConfiguration.Id);
+            var refreshInterval = configurationWrapper.GetSolarDeviceRefreshInterval(handlerKey, defaultInterval);
+            var configCopy = modbusConfiguration;
+            var resultsCopy = relevantResults;
+
+            handlers.Add(new SolarDeviceHandler(
+                handlerKey,
+                $"Modbus {configCopy.Host}:{configCopy.Port}",
+                refreshInterval,
+                async () =>
+                {
+                    var sums = new Dictionary<ValueUsage, decimal>();
+                    foreach (var resultConfiguration in resultsCopy)
+                    {
+                        logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", configCopy.Host, configCopy.Port, resultConfiguration.Address);
+                        var byteArray = await modbusValueExecutionService.GetResult(configCopy, resultConfiguration, false).ConfigureAwait(false);
+                        logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", configCopy.Host, configCopy.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArray));
+                        var value = await modbusValueExecutionService.GetValue(byteArray, resultConfiguration).ConfigureAwait(false);
+                        if (!sums.TryAdd(resultConfiguration.UsedFor, value))
+                        {
+                            sums[resultConfiguration.UsedFor] += value;
+                        }
+                    }
+
+                    var timestamp = dateTimeProvider.DateTimeOffSetUtcNow();
+                    return sums.Select(kvp => new SolarDeviceSample(kvp.Key, kvp.Value, timestamp)).ToArray();
+                }));
+        }
+
+        var mqttConfigurations = await mqttConfigurationService
+            .GetMqttConfigurationsByPredicate(c => c.MqttResultConfigurations != null && c.MqttResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
+            .ConfigureAwait(false);
+
+        foreach (var mqttConfiguration in mqttConfigurations)
+        {
+            var resultConfigurations = await mqttConfigurationService
+                .GetResultConfigurationsByParentId(mqttConfiguration.Id)
+                .ConfigureAwait(false);
+
+            var relevantResults = resultConfigurations.Where(r => valueUsages.Contains(r.UsedFor)).ToList();
+            if (relevantResults.Count == 0)
+            {
+                continue;
+            }
+
+            var handlerKey = SolarDeviceKey.ForMqtt(mqttConfiguration.Id);
+            var refreshInterval = configurationWrapper.GetSolarDeviceRefreshInterval(handlerKey, defaultInterval);
+            var configCopy = mqttConfiguration;
+            var resultsCopy = relevantResults;
+
+            handlers.Add(new SolarDeviceHandler(
+                handlerKey,
+                $"MQTT {configCopy.Host}:{configCopy.Port}",
+                refreshInterval,
+                () =>
+                {
+                    var values = mqttClientHandlingService.GetMqttValueDictionary();
+                    var sums = new Dictionary<ValueUsage, (decimal sum, DateTimeOffset timestamp)>();
+
+                    foreach (var resultConfiguration in resultsCopy)
+                    {
+                        if (!values.TryGetValue(resultConfiguration.Id, out var mqttResult))
+                        {
+                            continue;
+                        }
+
+                        if (!sums.TryGetValue(resultConfiguration.UsedFor, out var aggregate))
+                        {
+                            sums[resultConfiguration.UsedFor] = (mqttResult.Value, mqttResult.TimeStamp);
+                        }
+                        else
+                        {
+                            var latest = mqttResult.TimeStamp > aggregate.timestamp ? mqttResult.TimeStamp : aggregate.timestamp;
+                            sums[resultConfiguration.UsedFor] = (aggregate.sum + mqttResult.Value, latest);
+                        }
+                    }
+
+                    var samples = sums.Select(kvp => new SolarDeviceSample(kvp.Key, kvp.Value.sum, kvp.Value.timestamp)).ToArray();
+                    return Task.FromResult<IReadOnlyCollection<SolarDeviceSample>>(samples);
+                }));
+        }
+
+        return handlers;
+    }
+
+    private void ApplySamplesToDevice(SolarDeviceKey key, string name, TimeSpan refreshInterval, IEnumerable<SolarDeviceSample> samples, DateTimeOffset fallbackTimestamp, ref DateTimeOffset latestTimestamp)
+    {
+        var state = settings.SolarDevices.GetOrAdd(key, _ => new SolarDeviceState(key, name, refreshInterval));
+        state.UpdateRefreshInterval(refreshInterval);
+        var requiredCapacity = ComputeHistoryCapacity(refreshInterval);
+
+        foreach (var sample in samples)
+        {
+            latestTimestamp = UpdateDeviceState(state, sample, requiredCapacity, fallbackTimestamp, latestTimestamp);
+        }
+    }
+
+    private DateTimeOffset UpdateDeviceState(SolarDeviceState state, SolarDeviceSample sample, int requiredCapacity, DateTimeOffset fallbackTimestamp, DateTimeOffset latestTimestamp)
+    {
+        var timestamp = sample.Timestamp == default ? fallbackTimestamp : sample.Timestamp;
+        int? value = null;
+
+        if (sample.Value.HasValue)
+        {
+            var safeValue = SafeToInt(sample.Value.Value);
+            if (sample.Usage == ValueUsage.InverterPower && safeValue < 0)
+            {
+                safeValue = 0;
+            }
+
+            value = safeValue;
+        }
+
+        state.UpdateHistory(sample.Usage, timestamp, value, requiredCapacity);
+
+        if (timestamp > latestTimestamp)
+        {
+            latestTimestamp = timestamp;
+        }
+
+        return latestTimestamp;
+    }
+
+    private int ComputeHistoryCapacity(TimeSpan refreshInterval)
+    {
+        if (refreshInterval <= TimeSpan.Zero)
+        {
+            refreshInterval = TimeSpan.FromSeconds(1);
+        }
+
+        var chargingInterval = configurationWrapper.ChargingValueJobUpdateIntervall();
+        if (chargingInterval <= TimeSpan.Zero)
+        {
+            return 2;
+        }
+
+        var ratio = chargingInterval.TotalSeconds / refreshInterval.TotalSeconds;
+        if (double.IsNaN(ratio) || double.IsInfinity(ratio))
+        {
+            return 2;
+        }
+
+        var capacity = (int)Math.Ceiling(ratio) + 2;
+        return Math.Max(capacity, 2);
+    }
+
+    private bool IsHandlerDue(SolarDeviceHandler handler, DateTimeOffset now)
+    {
+        var schedule = _deviceSchedules.GetOrAdd(handler.Key, _ => new SolarDeviceSchedule());
+        return schedule.IsDue(now, handler.RefreshInterval);
+    }
+
+    private void MarkHandlerRun(SolarDeviceHandler handler, DateTimeOffset timestamp)
+    {
+        var schedule = _deviceSchedules.GetOrAdd(handler.Key, _ => new SolarDeviceSchedule());
+        schedule.MarkRun(timestamp);
+    }
+
+    private sealed record SolarDeviceHandler(
+        SolarDeviceKey Key,
+        string Name,
+        TimeSpan RefreshInterval,
+        Func<Task<IReadOnlyCollection<SolarDeviceSample>>> FetchAsync);
+
+    private readonly record struct SolarDeviceSample(ValueUsage Usage, decimal? Value, DateTimeOffset Timestamp);
+
+    private sealed class SolarDeviceSchedule
+    {
+        private DateTimeOffset? _lastRun;
+
+        public bool IsDue(DateTimeOffset now, TimeSpan interval)
+        {
+            if (!_lastRun.HasValue)
+            {
+                return true;
+            }
+
+            var elapsed = now - _lastRun.Value;
+            if (elapsed < TimeSpan.Zero)
+            {
+                return true;
+            }
+
+            return elapsed >= interval;
+        }
+
+        public void MarkRun(DateTimeOffset timestamp)
+        {
+            _lastRun = timestamp;
+        }
     }
 
     private async Task ConvertMqttConfigurations()
@@ -715,259 +980,171 @@ public class PvValueService(
     {
         logger.LogTrace("{method}()", nameof(UpdatePvValues));
         var errorWhileUpdatingPvValues = false;
+        var latestTimestamp = DateTimeOffset.MinValue;
+
         if (configurationWrapper.ShouldUseFakeSolarValues())
         {
             logger.LogWarning("Fake solar values are used.");
-            if (true)
-            {
-                foreach (var car in settings.CarsToManage)
-                {
-                    car.ChargerActualCurrent.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
-                    car.ChargerVoltage.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
-                    car.ChargerPhases.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
-                }
-                if (((settings.LastPvDemoCase / 16) % 2) == 0)
-                {
-                    foreach (var dtoCar in settings.CarsToManage)
-                    {
-                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), true);
-                    }
-                }
-                else
-                {
-                    foreach (var dtoCar in settings.CarsToManage)
-                    {
-                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), false);
-                    }
-                }
-                switch ((settings.LastPvDemoCase++ % 16))
-                {
-                    case 0:
-                        settings.InverterPower = null;
-                        settings.Overage = null;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 1:
-                        settings.InverterPower = null;
-                        settings.Overage = 200;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 8:
-                        settings.InverterPower = null;
-                        settings.Overage = -200;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 9:
-                        settings.InverterPower = null;
-                        settings.Overage = 0;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 2:
-                        settings.InverterPower = 500;
-                        settings.Overage = null;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 5:
-                        settings.InverterPower = 0;
-                        settings.Overage = null;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 3:
-                        settings.InverterPower = 500;
-                        settings.Overage = 300;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 4:
-                        settings.InverterPower = 500;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 6:
-                        settings.InverterPower = 0;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 7:
-                        settings.InverterPower = 0;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = 0;
-                        settings.HomeBatterySoc = 0;
-                        break;
-                    case 10:
-                        settings.InverterPower = 0;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = -500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 11:
-                        settings.InverterPower = 0;
-                        settings.Overage = 300;
-                        settings.HomeBatteryPower = -500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 12:
-                        settings.InverterPower = 1000;
-                        settings.Overage = 300;
-                        settings.HomeBatteryPower = 500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 13:
-                        settings.InverterPower = 1000;
-                        settings.Overage = -20;
-                        settings.HomeBatteryPower = 500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 14:
-                        settings.InverterPower = 10;
-                        settings.Overage = -200;
-                        settings.HomeBatteryPower = 100;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 15:
-                        settings.InverterPower = 10;
-                        settings.Overage = -500;
-                        settings.HomeBatteryPower = 100;
-                        settings.HomeBatterySoc = 20;
-                        break;
 
+            foreach (var car in settings.CarsToManage)
+            {
+                var now = dateTimeProvider.DateTimeOffSetUtcNow();
+                car.ChargerActualCurrent.Update(now, 1);
+                car.ChargerVoltage.Update(now, 1);
+                car.ChargerPhases.Update(now, 1);
+            }
+
+            if (((settings.LastPvDemoCase / 16) % 2) == 0)
+            {
+                foreach (var dtoCar in settings.CarsToManage)
+                {
+                    dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), true);
                 }
             }
             else
             {
-                var random = new Random();
-                var fakeInverterPower = random.Next(0, 30000);
-                var fakeHousePower = random.Next(500, 25000);
-                var fakeOverage = fakeInverterPower - fakeHousePower;
-                var fakeHomeBatteryPower = 0;
-                if (Math.Abs(fakeOverage) < 7000)
+                foreach (var dtoCar in settings.CarsToManage)
                 {
-                    var deviation = random.Next(-150, 150);
-                    fakeHomeBatteryPower = fakeOverage - deviation;
-                    fakeOverage = -deviation;
+                    dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), false);
                 }
-                else
-                {
-                    if (fakeOverage > 0)
-                    {
-                        fakeHomeBatteryPower = 7000;
-                    }
-                    else
-                    {
-                        fakeHomeBatteryPower = -7000;
-                    }
-                    fakeOverage -= fakeHomeBatteryPower;
-                }
-                settings.InverterPower = fakeInverterPower;
-                settings.Overage = fakeOverage;
-                settings.HomeBatteryPower = fakeHomeBatteryPower;
-                settings.HomeBatterySoc = 82;
-                settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
             }
-            
-            
+
+            var values = new Dictionary<ValueUsage, decimal?>
+            {
+                [ValueUsage.InverterPower] = null,
+                [ValueUsage.GridPower] = null,
+                [ValueUsage.HomeBatteryPower] = null,
+                [ValueUsage.HomeBatterySoc] = null,
+            };
+
+            switch (settings.LastPvDemoCase++ % 16)
+            {
+                case 1:
+                    values[ValueUsage.GridPower] = 200;
+                    break;
+                case 2:
+                    values[ValueUsage.InverterPower] = 500;
+                    break;
+                case 3:
+                    values[ValueUsage.InverterPower] = 500;
+                    values[ValueUsage.GridPower] = 300;
+                    break;
+                case 4:
+                    values[ValueUsage.InverterPower] = 500;
+                    values[ValueUsage.GridPower] = -300;
+                    break;
+                case 5:
+                    values[ValueUsage.InverterPower] = 0;
+                    break;
+                case 6:
+                    values[ValueUsage.InverterPower] = 0;
+                    values[ValueUsage.GridPower] = -300;
+                    break;
+                case 7:
+                    values[ValueUsage.InverterPower] = 0;
+                    values[ValueUsage.GridPower] = -300;
+                    values[ValueUsage.HomeBatteryPower] = 0;
+                    values[ValueUsage.HomeBatterySoc] = 0;
+                    break;
+                case 8:
+                    values[ValueUsage.GridPower] = -200;
+                    break;
+                case 9:
+                    values[ValueUsage.GridPower] = 0;
+                    break;
+                case 10:
+                    values[ValueUsage.InverterPower] = 0;
+                    values[ValueUsage.GridPower] = -300;
+                    values[ValueUsage.HomeBatteryPower] = -500;
+                    values[ValueUsage.HomeBatterySoc] = 20;
+                    break;
+                case 11:
+                    values[ValueUsage.InverterPower] = 0;
+                    values[ValueUsage.GridPower] = 300;
+                    values[ValueUsage.HomeBatteryPower] = -500;
+                    values[ValueUsage.HomeBatterySoc] = 20;
+                    break;
+                case 12:
+                    values[ValueUsage.InverterPower] = 1000;
+                    values[ValueUsage.GridPower] = 300;
+                    values[ValueUsage.HomeBatteryPower] = 500;
+                    values[ValueUsage.HomeBatterySoc] = 20;
+                    break;
+                case 13:
+                    values[ValueUsage.InverterPower] = 1000;
+                    values[ValueUsage.GridPower] = -20;
+                    values[ValueUsage.HomeBatteryPower] = 500;
+                    values[ValueUsage.HomeBatterySoc] = 20;
+                    break;
+                case 14:
+                    values[ValueUsage.InverterPower] = 10;
+                    values[ValueUsage.GridPower] = -200;
+                    values[ValueUsage.HomeBatteryPower] = 100;
+                    values[ValueUsage.HomeBatterySoc] = 20;
+                    break;
+                case 15:
+                    values[ValueUsage.InverterPower] = 10;
+                    values[ValueUsage.GridPower] = -500;
+                    values[ValueUsage.HomeBatteryPower] = 100;
+                    values[ValueUsage.HomeBatterySoc] = 20;
+                    break;
+            }
+
+            var nowTimestamp = dateTimeProvider.DateTimeOffSetUtcNow();
+            var samples = values.Select(kvp => new SolarDeviceSample(kvp.Key, kvp.Value, nowTimestamp)).ToList();
+            var fakeDeviceKey = SolarDeviceKey.ForFake("demo");
+            var refreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
+            ApplySamplesToDevice(fakeDeviceKey, "Fake solar device", refreshInterval, samples, nowTimestamp, ref latestTimestamp);
+            settings.LastPvValueUpdate = nowTimestamp;
             return;
         }
 
-        var valueUsages = new HashSet<ValueUsage>
+        var monitoredUsages = new HashSet<ValueUsage>
         {
             ValueUsage.InverterPower,
             ValueUsage.GridPower,
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
-        var resultSums = new Dictionary<ValueUsage, decimal>();
-        //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
-        var restConfigurations = await restValueConfigurationService
-            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        foreach (var restConfiguration in restConfigurations)
+
+        var handlers = await BuildSolarDeviceHandlers(monitoredUsages).ConfigureAwait(false);
+        var currentTime = dateTimeProvider.DateTimeOffSetUtcNow();
+
+        foreach (var handler in handlers)
         {
+            if (!IsHandlerDue(handler, currentTime))
+            {
+                continue;
+            }
+
+            IReadOnlyCollection<SolarDeviceSample> samples;
             try
             {
-                var responseString = await restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
-                var resultConfigurations = await restValueConfigurationService.GetResultConfigurationsByConfigurationId(restConfiguration.Id).ConfigureAwait(false);
-                var results = new Dictionary<int, decimal>();
-                foreach (var resultConfiguration in resultConfigurations)
-                {
-                    results.Add(resultConfiguration.Id, restValueExecutionService.GetValue(responseString, restConfiguration.NodePatternType, resultConfiguration));
-                }
-                foreach (var result in results)
-                {
-                    var valueUsage = resultConfigurations.First(r => r.Id == result.Key).UsedFor;
-                    if (!resultSums.ContainsKey(valueUsage))
-                    {
-                        resultSums[valueUsage] = 0;
-                    }
-                    resultSums[valueUsage] += result.Value;
-                }
+                samples = await handler.FetchAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
+                logger.LogError(ex, "Error while getting values for solar device {device}", handler.Name);
                 errorWhileUpdatingPvValues = true;
+                MarkHandlerRun(handler, dateTimeProvider.DateTimeOffSetUtcNow());
+                continue;
             }
-        }
 
-        var modbusConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        foreach (var modbusConfiguration in modbusConfigurations)
-        {
-            logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
-                modbusConfiguration.Port);
-            var modbusResultConfigurations =
-                await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
-                    r.ModbusConfigurationId == modbusConfiguration.Id);
-            foreach (var resultConfiguration in modbusResultConfigurations)
+            var observedAt = dateTimeProvider.DateTimeOffSetUtcNow();
+
+            if (samples.Count > 0)
             {
-                logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
-                    modbusConfiguration.Port, resultConfiguration.Address);
-                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration, false);
-                logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
-                                       modbusConfiguration.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArry));
-                var value = await modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
-                var valueUsage = resultConfiguration.UsedFor;
-                if (!resultSums.ContainsKey(valueUsage))
-                {
-                    resultSums[valueUsage] = 0;
-                }
-                resultSums[valueUsage] += value;
+                ApplySamplesToDevice(handler.Key, handler.Name, handler.RefreshInterval, samples, observedAt, ref latestTimestamp);
             }
+
+            MarkHandlerRun(handler, observedAt);
         }
 
-        var mqttValues = mqttClientHandlingService.GetMqttValues();
-        foreach (var mqttValue in mqttValues)
+        if (!errorWhileUpdatingPvValues && latestTimestamp != DateTimeOffset.MinValue)
         {
-            if (valueUsages.Contains(mqttValue.UsedFor))
-            {
-                if (!resultSums.ContainsKey(mqttValue.UsedFor))
-                {
-                    resultSums[mqttValue.UsedFor] = 0;
-                }
-                resultSums[mqttValue.UsedFor] += mqttValue.Value;
-            }
+            settings.LastPvValueUpdate = latestTimestamp;
         }
 
-
-        int? inverterValue = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
-            SafeToInt(inverterPower) : null;
-        settings.InverterPower = inverterValue < 0 ? 0 : inverterValue;
-        settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
-            SafeToInt(gridPower) : null;
-        settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
-            SafeToInt(homeBatteryPower) : null;
-        settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
-            SafeToInt(homeBatterySoc) : null;
-        if (!errorWhileUpdatingPvValues)
-        {
-            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-        }
         int? powerBuffer = configurationWrapper.PowerBuffer();
         if (settings.InverterPower == null && settings.Overage == null)
         {
@@ -986,7 +1163,7 @@ public class PvValueService(
         };
         var changes = changeTrackingService.DetectChanges(
             DataTypeConstants.PvValues,
-            null, // No entity ID for singleton PV values
+            null,
             pvValues);
 
         if (changes != null)

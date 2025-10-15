@@ -18,6 +18,8 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Tests.Data;
@@ -85,6 +87,10 @@ public class TestBase : IDisposable
                 b.RegisterType<FakeDateTimeProvider>();
                 //b.Register((_, _) => _fake.Resolve<IDateTimeProvider>());
             });
+
+        var settingsMock = Mock.Mock<ISettings>();
+        settingsMock.SetupGet(s => s.SolarDevices)
+            .Returns(new ConcurrentDictionary<SolarDeviceKey, SolarDeviceState>());
 
         // In-memory database only exists while the connection is open
         var connection = new SqliteConnection("DataSource=:memory:");

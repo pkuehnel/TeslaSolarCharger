@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Contracts;
 
@@ -7,6 +8,7 @@ public interface IConfigurationWrapper
     string CarConfigFileFullName();
     TimeSpan ChargingValueJobUpdateIntervall();
     TimeSpan PvValueJobUpdateIntervall();
+    TimeSpan GetSolarDeviceRefreshInterval(SolarDeviceKey deviceKey, TimeSpan fallback);
     string MqqtClientId();
     string? MosquitoServer();
     string? CurrentPowerToGridUrl();

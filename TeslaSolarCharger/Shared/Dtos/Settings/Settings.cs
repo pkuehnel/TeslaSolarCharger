@@ -1,17 +1,55 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Linq;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
 public class Settings : ISettings
 {
-    public int? InverterPower { get; set; }
-    public int? Overage { get; set; }
+    public ConcurrentDictionary<SolarDeviceKey, SolarDeviceState> SolarDevices { get; } = new();
+
+    public double? GetAverageValue(ValueUsage usage, TimeSpan window, DateTimeOffset? now = null)
+    {
+        if (window <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(window));
+        }
+
+        var effectiveNow = now ?? DateTimeOffset.UtcNow;
+        double sum = 0;
+        var count = 0;
+
+        foreach (var device in SolarDevices.Values)
+        {
+            foreach (var sample in device.GetHistorySnapshot(usage, window, effectiveNow))
+            {
+                if (!sample.Value.HasValue)
+                {
+                    continue;
+                }
+
+                sum += sample.Value.Value;
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            return null;
+        }
+
+        return sum / count;
+    }
+
+    public int? InverterPower => SumLatest(ValueUsage.InverterPower, clampToZero: true);
+    public int? Overage => SumLatest(ValueUsage.GridPower);
     public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).OrderBy(c => c.ChargingPriority).ToList();
-    public int? HomeBatterySoc { get; set; }
+    public int? HomeBatterySoc => SumLatest(ValueUsage.HomeBatterySoc);
     public int? LastLoggedHomeBatterySoc { get; set; }
-    public int? HomeBatteryPower { get; set; }
+    public int? HomeBatteryPower => SumLatest(ValueUsage.HomeBatteryPower);
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
     public int? AverageHomeGridVoltage { get; set; }
@@ -54,6 +92,46 @@ public class Settings : ISettings
     public int LastPvDemoCase { get; set; }
 
     public bool IsPreRelease { get; set; }
+
+    private int? SumLatest(ValueUsage usage, bool clampToZero = false)
+    {
+        long sum = 0;
+        var hasValue = false;
+
+        foreach (var device in SolarDevices.Values)
+        {
+            var currentValue = device.GetCurrentValue(usage);
+            if (!currentValue.HasValue)
+            {
+                continue;
+            }
+
+            sum += currentValue.Value;
+            hasValue = true;
+        }
+
+        if (!hasValue)
+        {
+            return null;
+        }
+
+        if (clampToZero && sum < 0)
+        {
+            sum = 0;
+        }
+
+        if (sum > int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        if (sum < int.MinValue)
+        {
+            return int.MinValue;
+        }
+
+        return (int)sum;
+    }
 }
 
 public enum NextSunEvent

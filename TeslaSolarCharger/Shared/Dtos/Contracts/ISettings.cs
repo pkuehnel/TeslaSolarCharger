@@ -1,15 +1,21 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.Contracts;
 
 public interface ISettings
 {
-    int? InverterPower { get; set; }
-    int? Overage { get; set; }
-    int? HomeBatterySoc { get; set; }
-    int? HomeBatteryPower { get; set; }
+    ConcurrentDictionary<SolarDeviceKey, SolarDeviceState> SolarDevices { get; }
+
+    double? GetAverageValue(ValueUsage usage, TimeSpan window, DateTimeOffset? now = null);
+
+    int? InverterPower { get; }
+    int? Overage { get; }
+    int? HomeBatterySoc { get; }
+    int? HomeBatteryPower { get; }
     bool ControlledACarAtLastCycle { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }
     int? AverageHomeGridVoltage { get; set; }
