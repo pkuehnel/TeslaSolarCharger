@@ -14,10 +14,6 @@ public class HandledChargesListPageLocalizationRegistry : TextLocalizationRegist
             new TextLocalizationTranslation(LanguageCodes.English, "Hide charging processes with known cars"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladevorgänge mit bekannten Fahrzeugen ausblenden"));
 
-        Register("Hide charging processes where the car is known",
-            new TextLocalizationTranslation(LanguageCodes.English, "Hide charging processes where the car is known"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladevorgänge ausblenden, bei denen das Fahrzeug bekannt ist"));
-
         Register("Minimum consumed energy",
             new TextLocalizationTranslation(LanguageCodes.English, "Minimum consumed energy"),
             new TextLocalizationTranslation(LanguageCodes.German, "Minimal verbrauchte Energie"));
