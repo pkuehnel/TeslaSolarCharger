@@ -60,7 +60,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register("Car Debug Details",
             new TextLocalizationTranslation(LanguageCodes.English, "Car Debug Details"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto-Debugdetails"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug-Debugdetails"));
 
         Register("ID: {0}",
             new TextLocalizationTranslation(LanguageCodes.English, "ID: {0}"),
