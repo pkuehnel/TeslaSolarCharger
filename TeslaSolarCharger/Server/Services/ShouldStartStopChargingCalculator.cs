@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
@@ -27,7 +26,6 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
     {
         _logger.LogTrace("{method}({@dtoLoadPointOverview}, {targetPower}, {@carElements}, {@ocppElements}, {currentDate})"
             , nameof(SetStartStopChargingForLoadPoint), dtoLoadPointOverview, targetPower, carElements, ocppElements, currentDate);
-        _logger.LogTrace("Set Start/Stop Charging for loadpoint: {@dtoLoadPointOverview}", dtoLoadPointOverview);
         var carId = dtoLoadPointOverview.CarId;
         var ocppConnectorId = dtoLoadPointOverview.ChargingConnectorId;
         var carElement = carId == default ? null : carElements.FirstOrDefault(c => c.Id == carId.Value);
@@ -59,8 +57,12 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         if (carId != default)
         {
             var car = _settings.Cars.First(c => c.Id == carId.Value);
-            car.ShouldStartCharging.Update(currentDate, switchOnAtPower < targetPower);
-            car.ShouldStopCharging.Update(currentDate, switchOffAtPower > targetPower);
+            var shouldStartCharging = switchOnAtPower < targetPower;
+            _logger.LogTrace("Should start charging car {carID}: {shouldStartCharging}", carId, shouldStartCharging);
+            car.ShouldStartCharging.Update(currentDate, shouldStartCharging);
+            var shouldStopCharging = switchOffAtPower > targetPower;
+            _logger.LogTrace("Should stop charging car {carID}: {shouldStopCharging}", carId, shouldStopCharging);
+            car.ShouldStopCharging.Update(currentDate, shouldStopCharging);
         }
 
         if (ocppConnectorId != default
@@ -254,27 +256,13 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
 
     private int? GetSwitchOffCurrent(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement)
     {
-        var value = new[]
-            {
-                carElement?.SwitchOffAt.Current,
-                ocppElement?.SwitchOffAt.Current,
-            }
-            .Where(p => p.HasValue)
-            .DefaultIfEmpty()
-            .Max();
+        var value = carElement?.SwitchOffAt.Current ?? ocppElement?.SwitchOffAt.Current;
         return value;
     }
 
     private int? GetSwitchOnCurrent(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement)
     {
-        var value = new[]
-            {
-                carElement?.SwitchOnAt.Current,
-                ocppElement?.SwitchOnAt.Current,
-            }
-            .Where(p => p.HasValue)
-            .DefaultIfEmpty()
-            .Max();
+        var value = carElement?.SwitchOnAt.Current ?? ocppElement?.SwitchOnAt.Current;
         return value;
     }
 
