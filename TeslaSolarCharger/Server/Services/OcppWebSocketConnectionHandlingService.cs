@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -164,7 +163,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         try
         {
             logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
-            var doc = JsonDocument.Parse(jsonMessage);
+            using var doc = JsonDocument.Parse(jsonMessage);
             var root = doc.RootElement;
             string? responseString = null;
             // 1) Sanity checks -----------------------------------------------------
