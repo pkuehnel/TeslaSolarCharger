@@ -472,7 +472,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
         DateTimeOffset currentDate, decimal maxCombinedCurrent, CancellationToken cancellationToken)
     {
-        _logger.LogTrace("{method}({carId}, {connectorId})", nameof(GetConstraintValues), carId, connectorId);
+        _logger.LogTrace("{method}({carId}, {connectorId}, {useCarToManageChargingSpeed}, {currentDate}, {maxCombinedCurrent})",
+            nameof(GetConstraintValues), carId, connectorId, useCarToManageChargingSpeed, currentDate, maxCombinedCurrent);
         var timeSpanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
         var timeSpanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
         var constraintValues = new ConstraintValues();
