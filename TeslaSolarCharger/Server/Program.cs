@@ -79,7 +79,6 @@ const string outputTemplate = "[{Timestamp:dd-MMM-yyyy HH:mm:ss.fff} {Level:u3} 
 var inMemorySink = new InMemorySink(outputTemplate, capacity: configurationManager.GetValue<int>("InMemoryLogDefaultCapacity"));
 
 builder.Services.AddSingleton<IInMemorySink>(inMemorySink);
-builder.Services.AddSingleton(inMemorySink);
 
 var inMemoryLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
 builder.Services.AddKeyedSingleton(StaticConstants.InMemoryLogDependencyInjectionKey, inMemoryLevelSwitch);
