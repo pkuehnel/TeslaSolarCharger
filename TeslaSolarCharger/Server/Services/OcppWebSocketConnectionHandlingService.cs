@@ -163,7 +163,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         try
         {
             logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
-            using var doc = JsonDocument.Parse(jsonMessage);
+            var doc = JsonDocument.Parse(jsonMessage);
             var root = doc.RootElement;
             string? responseString = null;
             // 1) Sanity checks -----------------------------------------------------
