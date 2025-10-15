@@ -26,10 +26,14 @@ else
         {
             <GenericInput T="bool"
                           For="() => HideChargingProcessesWithKnownCars"
+                          LabelName='@T("Hide charging processes with known cars")'
+                          HelperText='@T("Hide charging processes where the car is known")'
                           OnValueChanged="RefreshList"/>
         }
         <GenericInput T="int"
                       For="() => MinConsumedEnergy"
+                      LabelName='@T("Minimum consumed energy")'
+                      HelperText='@T("Hide charging processes where less energy is consumed")'
                       OnValueChanged="RefreshList"/>
     </div>
 
@@ -95,10 +99,8 @@ else
     public int ViewportWidth { get; set; }
     public int ViewportHeight { get; set; }
 
-    [HelperText("Hide charging process where the car is known")]
     private bool HideChargingProcessesWithKnownCars { get; set; }
 
-    [HelperText("Hide charging processes where less energy is consumed")]
     [Postfix("Wh")]
     private int MinConsumedEnergy { get; set; } = 100;
 
