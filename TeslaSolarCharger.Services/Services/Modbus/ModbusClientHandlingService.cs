@@ -26,7 +26,7 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
 
     private class ModbusClientElement
     {
-        public IModbusTcpClient client;
+        public IModbusTcpClient? client;
         public RetryInfo? retryInfo;
         public SemaphoreSlim semaphoreSlim;
         public ModbusClientElement(IModbusTcpClient client, RetryInfo? retryInfo, SemaphoreSlim semaphoreSlim)
@@ -70,6 +70,13 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
             }
             ResetRetryCount(host, port);
         }
+        catch(NullReferenceException ex)
+        {
+            logger.LogError(ex, "NullReferenceException while getting byte array from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
+            IncrementRetryCount(host, port);
+            await SetClientToNull(host, port).ConfigureAwait(false);
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error while getting byte array from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
@@ -86,6 +93,31 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
         await RemoveClientByKey(key).ConfigureAwait(false);
     }
 
+    private async Task SetClientToNull(string host, int port)
+    {
+        logger.LogTrace("{method}({host}, {port})", nameof(SetClientToNull), host, port);
+        var key = CreateModbusTcpClientKey(host, port);
+        if (_modbusClients.TryGetValue(key, out var element))
+        {
+            await element.semaphoreSlim.WaitAsync();
+            try
+            {
+                element.client?.Dispose();
+            }
+            finally
+            {
+                try
+                {
+                    element.client = null;
+                }
+                finally
+                {
+                    element.semaphoreSlim.Release();
+                }
+            }
+        }
+    }
+
     private async Task RemoveClientByKey(string key)
     {
         logger.LogTrace("{method}({key})", nameof(RemoveClientByKey), key);
@@ -96,7 +128,7 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
             {
                 try
                 {
-                    element.client.Dispose();
+                    element.client?.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -204,10 +236,15 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
             await element.semaphoreSlim.WaitAsync();
             try
             {
-                if (!element.client.IsConnected)
+                if (element.client != null && !element.client.IsConnected)
                 {
-                    logger.LogTrace("Modbus client not connected, create new client.");
+                    logger.LogTrace("Disposing existing client");
                     element.client.Dispose();
+                    element.client = null;
+                }
+                if (element.client == null)
+                {
+                    logger.LogTrace("Modbus client is null, create new client.");
                     element.client = serviceProvider.GetRequiredService<IModbusTcpClient>();
                     await ConnectModbusClient(element.client, ipAddress, port, endianess, connectDelay, connectTimeout);
                 }
