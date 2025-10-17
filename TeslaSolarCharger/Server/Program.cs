@@ -269,7 +269,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             try
             {
-                var geofences = await teslaMateContext.Geofences.ToListAsync();
+                var unused = await teslaMateContext.Geofences.ToListAsync();
             }
             catch (Exception ex)
             {
@@ -282,7 +282,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             {
                 try
                 {
-                    var geofences = await teslaMateContext.Geofences.ToListAsync();
+                    var unused = await teslaMateContext.Geofences.ToListAsync();
                 }
                 catch (Exception ex)
                 {
