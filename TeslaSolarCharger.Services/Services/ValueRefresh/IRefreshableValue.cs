@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -70,11 +69,10 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         IsExecuting = true;
         using var scope = _serviceScopeFactory.CreateScope();
         RunningTask = DoRefreshAsync(scope, token);
-        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-        _lastError = null;
         try
         {
             await RunningTask.ConfigureAwait(false);
+            _lastError = null;
         }
         catch (Exception ex)
         {
@@ -84,6 +82,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         finally
         {
             RunningTask = null;
+            var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
             NextExecution = dateTimeProvider.DateTimeOffSetUtcNow() + RefreshInterval;
             IsExecuting = false;
             _runGate.Release();
@@ -110,17 +109,22 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         return now;
     }
 
-    public void Cancel() { try { _cts.Cancel(); }
+    public void Cancel()
+    {
+        try { _cts.Cancel(); }
         catch
         {
             // ignored
         }
     }
-    public ValueTask DisposeAsync() { try { _cts.Cancel(); }
+    public ValueTask DisposeAsync()
+    {
+        try { _cts.Cancel(); }
         catch
         {
             // ignored
         }
 
-        _cts.Dispose(); _runGate.Dispose(); return ValueTask.CompletedTask; }
+        _cts.Dispose(); _runGate.Dispose(); return ValueTask.CompletedTask;
+    }
 }
