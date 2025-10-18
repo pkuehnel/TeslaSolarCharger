@@ -13,7 +13,9 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 
     private const string RestPrefix = "rest__";
 
-    public RefreshableValueHandlingService(ILogger<RefreshableValueHandlingService> logger, IServiceProvider serviceProvider)
+    public RefreshableValueHandlingService(
+        ILogger<RefreshableValueHandlingService> logger,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -30,9 +32,10 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
-        foreach (var refreshable in _refreshables)
+
+        foreach (var refreshable in _refreshables.Values)
         {
-            foreach (var historicValue in refreshable.Value.HistoricValues)
+            foreach (var historicValue in refreshable.HistoricValues)
             {
                 if (!valueUsages.Contains(historicValue.Key))
                 {
@@ -43,6 +46,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                 result[historicValue.Key] += latestValue;
             }
         }
+
         return result;
     }
 
@@ -51,20 +55,66 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         _logger.LogTrace("{method}()", nameof(RefreshValues));
         var dateTimeProvider = _serviceProvider.GetRequiredService<IDateTimeProvider>();
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var refreshTasks = _refreshables.Values.Where(r => !r.IsExecuting
-                                                           && (r.NextExecution == default || r.NextExecution <= currentDate))
+
+        var refreshTasks = _refreshables.Values
+            .Where(r => !r.IsExecuting && (r.NextExecution == default || r.NextExecution <= currentDate))
             .Select(r => r.RefreshValueAsync(CancellationToken.None));
+
         await Task.WhenAll(refreshTasks).ConfigureAwait(false);
     }
 
     public async Task RecreateRefreshables()
     {
         _logger.LogTrace("{method}()", nameof(RecreateRefreshables));
+
+        // 1) Request cancellation for any in-flight refresh
         foreach (var refreshable in _refreshables.Values)
         {
-            await refreshable.DisposeAsync().ConfigureAwait(false);
+            if (refreshable.IsExecuting)
+            {
+                refreshable.Cancel();
+            }
         }
+
+        // 2) Await completion of any running tasks (best effort)
+        var running = _refreshables.Values
+            .Select(r => r.RunningTask)
+            .Where(t => t is not null)
+            .Cast<Task>()
+            .ToArray();
+
+        if (running.Length > 0)
+        {
+            try
+            {
+                await Task.WhenAll(running).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when cancelling; swallow
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "One or more refresh tasks failed while cancelling during {method}.", nameof(RecreateRefreshables));
+            }
+        }
+
+        // 3) Dispose old refreshables
+        foreach (var refreshable in _refreshables.Values)
+        {
+            try
+            {
+                await refreshable.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error disposing refreshable during {method}.", nameof(RecreateRefreshables));
+            }
+        }
+
         _refreshables.Clear();
+
+        // 4) Recreate refreshables as before
         var valueUsages = new HashSet<ValueUsage>
         {
             ValueUsage.InverterPower,
@@ -72,15 +122,22 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
+
         var setupScope = _serviceProvider.CreateAsyncScope();
         await using var scope = setupScope.ConfigureAwait(false);
+
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var solarValueRefreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
+
         var restValueConfigurationService = setupScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
         var restConfigurations = await restValueConfigurationService
-            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
+            .GetFullRestValueConfigurationsByPredicate(
+                c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
+            .ConfigureAwait(false);
+
         var dateTimeProvider = setupScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var restValueExecutionService = setupScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
+
         foreach (var restConfiguration in restConfigurations)
         {
             try
@@ -91,20 +148,19 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     dateTimeProvider,
                     async ct =>
                     {
-                        // Fetch raw response for this configuration
                         var responseString = await restValueExecutionService
                             .GetResult(restConfiguration)
                             .ConfigureAwait(false);
 
-                        // Get result mappings for this configuration
                         var resultConfigurations = await restValueConfigurationService
                             .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
                             .ConfigureAwait(false);
 
-                        // Sum values per ValueUsage for this configuration
                         var values = new Dictionary<ValueUsage, decimal>();
                         foreach (var resultConfig in resultConfigurations)
                         {
+                            ct.ThrowIfCancellationRequested();
+
                             var val = restValueExecutionService.GetValue(
                                 responseString,
                                 restConfiguration.NodePatternType,
@@ -136,6 +192,5 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     restConfiguration.Url);
             }
         }
-
     }
 }
