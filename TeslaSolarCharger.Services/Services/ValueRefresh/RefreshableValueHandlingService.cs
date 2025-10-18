@@ -11,17 +11,17 @@ namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ConcurrentDictionary<string, IRefreshableValue<decimal>> _refreshables = new();
 
     private const string RestPrefix = "rest__";
 
     public RefreshableValueHandlingService(
         ILogger<RefreshableValueHandlingService> logger,
-        IServiceProvider serviceProvider)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public IReadOnlyDictionary<ValueUsage, decimal> GetSolarValues()
@@ -56,7 +56,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
     public async Task RefreshValues()
     {
         _logger.LogTrace("{method}()", nameof(RefreshValues));
-        var dateTimeProvider = _serviceProvider.GetRequiredService<IDateTimeProvider>();
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var now = dateTimeProvider.DateTimeOffSetUtcNow();
 
         // snapshot to avoid modification during enumeration
@@ -129,33 +130,33 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             ValueUsage.HomeBatterySoc,
         };
 
-        using var setupScope = _serviceProvider.CreateScope();
+        using var setupScope = _serviceScopeFactory.CreateScope();
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var solarValueRefreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
 
-        var restValueConfigurationService = setupScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
-        var restConfigurations = await restValueConfigurationService
+        var setupRestValueConfigurationService = setupScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
+        var restConfigurations = await setupRestValueConfigurationService
             .GetFullRestValueConfigurationsByPredicate(
                 c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
             .ConfigureAwait(false);
 
         foreach (var restConfiguration in restConfigurations)
         {
-            using var executionScope = _serviceProvider.CreateScope();
-            var dateTimeProvider = executionScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-            var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
             try
             {
                 var key = $"{RestPrefix}{restConfiguration.Id}";
 
                 var refreshable = new DelegateRefreshableValue<decimal>(
-                    dateTimeProvider,
+                    _serviceScopeFactory,
                     async ct =>
                     {
+                        using var executionScope = _serviceScopeFactory.CreateScope();
+                        var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
                         var responseString = await restValueExecutionService
                             .GetResult(restConfiguration)
                             .ConfigureAwait(false);
 
+                        var restValueConfigurationService = executionScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
                         var resultConfigurations = await restValueConfigurationService
                             .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
                             .ConfigureAwait(false);
