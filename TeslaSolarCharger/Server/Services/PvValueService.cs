@@ -888,7 +888,11 @@ public class PvValueService(
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
         //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
-        var refreshableResults = refreshableValueHandlingService.GetSolarValues();
+        var refreshableResults = refreshableValueHandlingService.GetSolarValues(out var refreshableErrors);
+        if (refreshableErrors)
+        {
+            errorWhileUpdatingPvValues = true;
+        }
         foreach (var refreshableResult in refreshableResults)
         {
             resultSums.TryAdd(refreshableResult.Key, 0);
