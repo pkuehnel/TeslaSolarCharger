@@ -1,17 +1,18 @@
-﻿using AutoMapper.QueryableExtensions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 
 namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueConfigurationService(
     ILogger<RestValueConfigurationService> logger,
-    ITeslaSolarChargerContext context) : IRestValueConfigurationService
+    ITeslaSolarChargerContext context,
+    IRefreshableValueHandlingService refreshableValueHandlingService) : IRestValueConfigurationService
 {
     public async Task<List<DtoRestValueConfiguration>> GetAllRestValueConfigurations()
     {
@@ -113,6 +114,7 @@ public class RestValueConfigurationService(
             }
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -149,6 +151,7 @@ public class RestValueConfigurationService(
             context.RestValueConfigurationHeaders.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -157,6 +160,7 @@ public class RestValueConfigurationService(
         logger.LogTrace("{method}({id})", nameof(DeleteHeader), id);
         context.RestValueConfigurationHeaders.Remove(new RestValueConfigurationHeader { Id = id });
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task<List<DtoJsonXmlResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId)
@@ -202,6 +206,7 @@ public class RestValueConfigurationService(
             context.RestValueResultConfigurations.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -210,6 +215,7 @@ public class RestValueConfigurationService(
         logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
         context.RestValueResultConfigurations.Remove(new RestValueResultConfiguration { Id = id });
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task DeleteRestValueConfiguration(int id)
@@ -221,5 +227,6 @@ public class RestValueConfigurationService(
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.RestValueConfigurations.Remove(restValueConfiguration);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 }

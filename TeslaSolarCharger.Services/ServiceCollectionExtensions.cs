@@ -7,6 +7,8 @@ using TeslaSolarCharger.Services.Services.Mqtt;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 
 namespace TeslaSolarCharger.Services;
 
@@ -25,5 +27,7 @@ public static class ServiceCollectionExtensions
                 .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
                 .AddTransient<IMqttExecutionService, MqttExecutionService>()
                 .AddTransient<IMqttClientReconnectionService, MqttClientReconnectionService>()
+                .AddSingleton<IRefreshableValueHandlingService, RefreshableValueHandlingService>()
+
             ;
 }

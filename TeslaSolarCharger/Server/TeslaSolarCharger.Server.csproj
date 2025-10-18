@@ -89,6 +89,7 @@
 
 	<ItemGroup>
 	  <Folder Include="Exceptions\" />
+	  <Folder Include="Services\ValueRefresh\Contracts\" />
 	</ItemGroup>
 
 
