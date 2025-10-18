@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Contracts;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -7,7 +8,7 @@ namespace TeslaSolarCharger.Server.Services.ValueRefresh;
 public interface IRefreshableValue<T> : IAsyncDisposable
 {
     IReadOnlyDictionary<ValueUsage, DtoHistoricValue<T>> HistoricValues { get; }
-    bool IsExecuting { get; set; }
+    bool IsExecuting { get; }
     DateTimeOffset? NextExecution { get; }
     Task RefreshValueAsync(CancellationToken ct);
 
@@ -20,9 +21,9 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly Func<CancellationToken, Task<IReadOnlyDictionary<ValueUsage, T>>> _refresh;
     private readonly int _historicValueCapacity;
-    private readonly Dictionary<ValueUsage, DtoHistoricValue<T>> _historicValues = new();
-
+    private readonly ConcurrentDictionary<ValueUsage, DtoHistoricValue<T>> _historicValues = new();
     private readonly CancellationTokenSource _cts = new();
+    private readonly SemaphoreSlim _runGate = new(1, 1);
 
     public DelegateRefreshableValue(
         IDateTimeProvider dateTimeProvider,
@@ -34,34 +35,33 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         _refresh = refresh;
         _historicValueCapacity = historicValueCapacity;
 
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         RefreshInterval = refreshInterval;
-        NextExecution = currentDate;
+        NextExecution = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 
     public IReadOnlyDictionary<ValueUsage, DtoHistoricValue<T>> HistoricValues
-        => _historicValues.ToDictionary().AsReadOnly();
+    {
+        get
+        {
+            return _historicValues.ToDictionary(kv => kv.Key, kv => kv.Value).AsReadOnly();
+        }
+    }
 
-    public bool IsExecuting { get; set; }
-
+    public bool IsExecuting { get; private set; }
     public Task? RunningTask { get; private set; }
-
-    public DateTimeOffset? NextExecution { get; }
-
+    public DateTimeOffset? NextExecution { get; private set; }
     public TimeSpan RefreshInterval { get; set; }
 
     public async Task RefreshValueAsync(CancellationToken ct)
     {
-        if (IsExecuting)
-        {
+        // try enter without waiting — ensures no reentrancy
+        if (!await _runGate.WaitAsync(0, ct).ConfigureAwait(false))
             return;
-        }
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
         var token = linkedCts.Token;
 
         IsExecuting = true;
-
         RunningTask = DoRefreshAsync(token);
 
         try
@@ -72,42 +72,40 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         {
             IsExecuting = false;
             RunningTask = null;
+            NextExecution = _dateTimeProvider.DateTimeOffSetUtcNow() + RefreshInterval;
+            _runGate.Release();
         }
     }
 
     private async Task DoRefreshAsync(CancellationToken ct)
     {
         var results = await _refresh(ct).ConfigureAwait(false);
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        var now = _dateTimeProvider.DateTimeOffSetUtcNow();
+
         foreach (var result in results)
         {
             if (_historicValues.TryGetValue(result.Key, out var value))
             {
-                value.Update(currentDate, result.Value);
+                value.Update(now, result.Value);
             }
             else
             {
-                _historicValues.Add(result.Key, new(currentDate, result.Value, _historicValueCapacity));
+                _historicValues.TryAdd(result.Key, new(now, result.Value, _historicValueCapacity));
             }
         }
     }
 
-    public void Cancel()
-    {
-        try
+    public void Cancel() { try { _cts.Cancel(); }
+        catch
         {
-            _cts.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // already disposed; ignore
+            // ignored
         }
     }
+    public ValueTask DisposeAsync() { try { _cts.Cancel(); }
+        catch
+        {
+            // ignored
+        }
 
-    public ValueTask DisposeAsync()
-    {
-        try { _cts.Cancel(); } catch { /* ignore */ }
-        _cts.Dispose();
-        return ValueTask.CompletedTask;
-    }
+        _cts.Dispose(); _runGate.Dispose(); return ValueTask.CompletedTask; }
 }
