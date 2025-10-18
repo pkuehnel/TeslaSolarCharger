@@ -1,10 +1,12 @@
-﻿using System.Collections.Concurrent;
-using TeslaSolarCharger.Server.Services.ValueRefresh.Contracts;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Server.Services.ValueRefresh;
+namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 
 public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 {
@@ -137,11 +139,11 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                 c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
             .ConfigureAwait(false);
 
-        var dateTimeProvider = setupScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-        var restValueExecutionService = setupScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
-
         foreach (var restConfiguration in restConfigurations)
         {
+            using var executionScope = _serviceProvider.CreateScope();
+            var dateTimeProvider = executionScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+            var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
             try
             {
                 var key = $"{RestPrefix}{restConfiguration.Id}";

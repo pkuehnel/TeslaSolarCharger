@@ -14,6 +14,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -43,7 +44,8 @@ public class PvValueService(
     IConstants constants,
     ILoadPointManagementService loadPointManagementService,
     IAppStateNotifier appStateNotifier,
-    IChangeTrackingService changeTrackingService)
+    IChangeTrackingService changeTrackingService,
+    IRefreshableValueHandlingService refreshableValueHandlingService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -886,34 +888,11 @@ public class PvValueService(
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
         //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
-        var restConfigurations = await restValueConfigurationService
-            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        foreach (var restConfiguration in restConfigurations)
+        var refreshableResults = refreshableValueHandlingService.GetSolarValues();
+        foreach (var refreshableResult in refreshableResults)
         {
-            try
-            {
-                var responseString = await restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
-                var resultConfigurations = await restValueConfigurationService.GetResultConfigurationsByConfigurationId(restConfiguration.Id).ConfigureAwait(false);
-                var results = new Dictionary<int, decimal>();
-                foreach (var resultConfiguration in resultConfigurations)
-                {
-                    results.Add(resultConfiguration.Id, restValueExecutionService.GetValue(responseString, restConfiguration.NodePatternType, resultConfiguration));
-                }
-                foreach (var result in results)
-                {
-                    var valueUsage = resultConfigurations.First(r => r.Id == result.Key).UsedFor;
-                    if (!resultSums.ContainsKey(valueUsage))
-                    {
-                        resultSums[valueUsage] = 0;
-                    }
-                    resultSums[valueUsage] += result.Value;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
-                errorWhileUpdatingPvValues = true;
-            }
+            resultSums.TryAdd(refreshableResult.Key, 0);
+            resultSums[refreshableResult.Key] += refreshableResult.Value;
         }
 
         var modbusConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
