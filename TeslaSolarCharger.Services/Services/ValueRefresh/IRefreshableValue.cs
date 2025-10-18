@@ -111,7 +111,10 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 
     public void Cancel()
     {
-        try { _cts.Cancel(); }
+        try
+        {
+            _cts.Cancel();
+        }
         catch
         {
             // ignored
@@ -119,12 +122,17 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     }
     public ValueTask DisposeAsync()
     {
-        try { _cts.Cancel(); }
+        try
+        {
+            _cts.Cancel();
+        }
         catch
         {
             // ignored
         }
 
-        _cts.Dispose(); _runGate.Dispose(); return ValueTask.CompletedTask;
+        _cts.Dispose();
+        _runGate.Dispose();
+        return ValueTask.CompletedTask;
     }
 }
