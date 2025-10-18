@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Server.Services.ValueRefresh.Contracts;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Server.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
@@ -9,7 +10,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly Dictionary<string, IRefreshableValue<decimal>> _refreshables = new();
+    private readonly ConcurrentDictionary<string, IRefreshableValue<decimal>> _refreshables = new();
 
     private const string RestPrefix = "rest__";
 
@@ -54,13 +55,16 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
     {
         _logger.LogTrace("{method}()", nameof(RefreshValues));
         var dateTimeProvider = _serviceProvider.GetRequiredService<IDateTimeProvider>();
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var now = dateTimeProvider.DateTimeOffSetUtcNow();
 
-        var refreshTasks = _refreshables.Values
-            .Where(r => !r.IsExecuting && (r.NextExecution == default || r.NextExecution <= currentDate))
+        // snapshot to avoid modification during enumeration
+        var refreshables = _refreshables.Values.ToArray();
+
+        var tasks = refreshables
+            .Where(r => !r.IsExecuting && (r.NextExecution == null || r.NextExecution <= now))
             .Select(r => r.RefreshValueAsync(CancellationToken.None));
 
-        await Task.WhenAll(refreshTasks).ConfigureAwait(false);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     public async Task RecreateRefreshables()
@@ -123,9 +127,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             ValueUsage.HomeBatterySoc,
         };
 
-        var setupScope = _serviceProvider.CreateAsyncScope();
-        await using var scope = setupScope.ConfigureAwait(false);
-
+        using var setupScope = _serviceProvider.CreateScope();
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var solarValueRefreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
 
