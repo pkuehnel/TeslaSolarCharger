@@ -1,6 +1,6 @@
 ﻿using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Server.Services.ValueRefresh.Contracts;
+namespace TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 
 public interface IRefreshableValueHandlingService
 {

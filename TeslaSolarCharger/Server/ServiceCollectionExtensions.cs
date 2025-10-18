@@ -23,10 +23,10 @@ using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
-using TeslaSolarCharger.Server.Services.ValueRefresh;
-using TeslaSolarCharger.Server.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -68,6 +68,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
+            .AddTransient<RefreshableValuesRefreshJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -159,7 +160,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IChangeTrackingService, ChangeTrackingService>()
             .AddScoped<IStateSnapshotService, StateSnapshotService>()
             .AddSingleton<IAppStateNotifier, AppStateNotifier>()
-            .AddSingleton<IRefreshableValueHandlingService, RefreshableValueHandlingService>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<DatabaseValueBufferFlushService>()
             .AddSharedBackendDependencies();

@@ -3,7 +3,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Server.Services.ValueRefresh;
+namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 
 public interface IRefreshableValue<T> : IAsyncDisposable
 {
@@ -50,7 +50,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     public bool IsExecuting { get; private set; }
     public Task? RunningTask { get; private set; }
     public DateTimeOffset? NextExecution { get; private set; }
-    public TimeSpan RefreshInterval { get; set; }
+    private TimeSpan RefreshInterval { get; }
 
     public async Task RefreshValueAsync(CancellationToken ct)
     {

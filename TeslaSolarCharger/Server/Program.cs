@@ -25,6 +25,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Services;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -387,6 +388,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
+
+        var refreshableValuesService = startupScope.ServiceProvider.GetRequiredService<IRefreshableValueHandlingService>();
+        await refreshableValuesService.RecreateRefreshables().ConfigureAwait(false);
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
