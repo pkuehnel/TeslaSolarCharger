@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -11,6 +11,7 @@ public interface IRefreshableValue<T> : IAsyncDisposable
     IReadOnlyDictionary<ValueUsage, DtoHistoricValue<T>> HistoricValues { get; }
     bool IsExecuting { get; }
     DateTimeOffset? NextExecution { get; }
+    bool HasError { get; }
     Task RefreshValueAsync(CancellationToken ct);
 
     Task? RunningTask { get; }
@@ -25,6 +26,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     private readonly ConcurrentDictionary<ValueUsage, DtoHistoricValue<T>> _historicValues = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _runGate = new(1, 1);
+    private Exception? _lastError;
 
     public DelegateRefreshableValue(
         IServiceScopeFactory serviceScopeFactory,
@@ -53,6 +55,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     public Task? RunningTask { get; private set; }
     public DateTimeOffset? NextExecution { get; private set; }
     private TimeSpan RefreshInterval { get; }
+    public bool HasError => _lastError is not null;
 
     public async Task RefreshValueAsync(CancellationToken ct)
     {
@@ -66,14 +69,20 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         IsExecuting = true;
         using var scope = _serviceScopeFactory.CreateScope();
         RunningTask = DoRefreshAsync(scope, token);
-        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         try
         {
             await RunningTask.ConfigureAwait(false);
+            _lastError = null;
+        }
+        catch (Exception ex)
+        {
+            _lastError = ex;
+            throw;
         }
         finally
         {
             RunningTask = null;
+            var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
             NextExecution = dateTimeProvider.DateTimeOffSetUtcNow() + RefreshInterval;
             IsExecuting = false;
             _runGate.Release();
@@ -100,17 +109,22 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         return now;
     }
 
-    public void Cancel() { try { _cts.Cancel(); }
+    public void Cancel()
+    {
+        try { _cts.Cancel(); }
         catch
         {
             // ignored
         }
     }
-    public ValueTask DisposeAsync() { try { _cts.Cancel(); }
+    public ValueTask DisposeAsync()
+    {
+        try { _cts.Cancel(); }
         catch
         {
             // ignored
         }
 
-        _cts.Dispose(); _runGate.Dispose(); return ValueTask.CompletedTask; }
+        _cts.Dispose(); _runGate.Dispose(); return ValueTask.CompletedTask;
+    }
 }

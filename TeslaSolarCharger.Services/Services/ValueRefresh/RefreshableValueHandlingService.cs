@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
@@ -24,7 +24,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         _serviceScopeFactory = serviceScopeFactory;
     }
 
-    public IReadOnlyDictionary<ValueUsage, decimal> GetSolarValues()
+    public IReadOnlyDictionary<ValueUsage, decimal> GetSolarValues(out bool hasErrors)
     {
         _logger.LogTrace("{method}()", nameof(GetSolarValues));
         var result = new Dictionary<ValueUsage, decimal>();
@@ -35,9 +35,15 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
+        var encounteredError = false;
 
         foreach (var refreshable in _refreshables.Values)
         {
+            if (refreshable.HasError)
+            {
+                encounteredError = true;
+            }
+
             foreach (var historicValue in refreshable.HistoricValues)
             {
                 if (!valueUsages.Contains(historicValue.Key))
@@ -50,6 +56,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             }
         }
 
+        hasErrors = encounteredError;
         return result;
     }
 
