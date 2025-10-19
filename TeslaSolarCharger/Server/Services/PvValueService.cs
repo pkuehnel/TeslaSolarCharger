@@ -38,7 +38,6 @@ public class PvValueService(
     IRestValueExecutionService restValueExecutionService,
     IRestValueConfigurationService restValueConfigurationService,
     IModbusValueConfigurationService modbusValueConfigurationService,
-    IModbusValueExecutionService modbusValueExecutionService,
     IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
     IConstants constants,
@@ -887,7 +886,6 @@ public class PvValueService(
             ValueUsage.HomeBatterySoc,
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
-        //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
         var refreshableResults = refreshableValueHandlingService.GetSolarValues(out var refreshableErrors);
         if (refreshableErrors)
         {
@@ -897,31 +895,6 @@ public class PvValueService(
         {
             resultSums.TryAdd(refreshableResult.Key, 0);
             resultSums[refreshableResult.Key] += refreshableResult.Value;
-        }
-
-        var modbusConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        foreach (var modbusConfiguration in modbusConfigurations)
-        {
-            logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
-                modbusConfiguration.Port);
-            var modbusResultConfigurations =
-                await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
-                    r.ModbusConfigurationId == modbusConfiguration.Id);
-            foreach (var resultConfiguration in modbusResultConfigurations)
-            {
-                logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
-                    modbusConfiguration.Port, resultConfiguration.Address);
-                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration, false);
-                logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
-                                       modbusConfiguration.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArry));
-                var value = await modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
-                var valueUsage = resultConfiguration.UsedFor;
-                if (!resultSums.ContainsKey(valueUsage))
-                {
-                    resultSums[valueUsage] = 0;
-                }
-                resultSums[valueUsage] += value;
-            }
         }
 
         var mqttValues = mqttClientHandlingService.GetMqttValues();
