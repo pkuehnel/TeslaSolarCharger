@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
@@ -12,7 +13,8 @@ namespace TeslaSolarCharger.Services.Services.Modbus;
 public class ModbusValueConfigurationService (
     ILogger<ModbusValueConfigurationService> logger,
     ITeslaSolarChargerContext context,
-    IModbusClientHandlingService modbusClientHandlingService) : IModbusValueConfigurationService
+    IModbusClientHandlingService modbusClientHandlingService,
+    IRefreshableValueHandlingService refreshableValueHandlingService) : IModbusValueConfigurationService
 {
     public async Task<List<DtoModbusConfiguration>> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate)
     {
@@ -106,6 +108,7 @@ public class ModbusValueConfigurationService (
             trackedData.CurrentValues.SetValues(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -117,6 +120,7 @@ public class ModbusValueConfigurationService (
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.ModbusConfigurations.Remove(modbusConfiguration);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task DeleteResultConfiguration(int id)
@@ -126,6 +130,7 @@ public class ModbusValueConfigurationService (
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.ModbusResultConfigurations.Remove(modbusResultConfiguration);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData)
@@ -159,6 +164,7 @@ public class ModbusValueConfigurationService (
             context.ModbusConfigurations.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 }
