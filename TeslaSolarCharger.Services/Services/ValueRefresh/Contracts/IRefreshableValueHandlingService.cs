@@ -1,10 +1,11 @@
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 
 public interface IRefreshableValueHandlingService
 {
-    IReadOnlyDictionary<ValueUsage, decimal> GetSolarValues(out bool hasErrors);
+    IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<decimal>>> GetSolarValues(out bool hasErrors);
     Task RecreateRefreshables();
     Task RefreshValues();
 }

@@ -6,6 +6,7 @@ using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
@@ -27,10 +28,10 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         _serviceScopeFactory = serviceScopeFactory;
     }
 
-    public IReadOnlyDictionary<ValueUsage, decimal> GetSolarValues(out bool hasErrors)
+    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<decimal>>> GetSolarValues(out bool hasErrors)
     {
         _logger.LogTrace("{method}()", nameof(GetSolarValues));
-        var result = new Dictionary<ValueUsage, decimal>();
+        var result = new Dictionary<ValueUsage, List<DtoHistoricValue<decimal>>>();
         var valueUsages = new HashSet<ValueUsage>
         {
             ValueUsage.InverterPower,
@@ -47,15 +48,15 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                 encounteredError = true;
             }
 
-            foreach (var historicValue in refreshable.HistoricValues)
+            foreach (var (key, latestValue) in refreshable.HistoricValues)
             {
-                if (!valueUsages.Contains(historicValue.Key))
+                if (!valueUsages.Contains(key))
                 {
                     continue;
                 }
-                var latestValue = historicValue.Value.Value;
-                result.TryAdd(historicValue.Key, 0m);
-                result[historicValue.Key] += latestValue;
+
+                result.TryAdd(key, new());
+                result[key].Add(latestValue);
             }
         }
 

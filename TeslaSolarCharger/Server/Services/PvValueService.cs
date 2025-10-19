@@ -894,7 +894,7 @@ public class PvValueService(
         foreach (var refreshableResult in refreshableResults)
         {
             resultSums.TryAdd(refreshableResult.Key, 0);
-            resultSums[refreshableResult.Key] += refreshableResult.Value;
+            resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
         }
 
         var mqttValues = mqttClientHandlingService.GetMqttValues();
