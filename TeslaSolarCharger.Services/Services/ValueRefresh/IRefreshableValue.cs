@@ -1,14 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 
-public interface IRefreshableValue<T> : IAsyncDisposable
+public interface IRefreshableValue<T> : IGenericValue<T>, IAsyncDisposable
 {
-    IReadOnlyDictionary<ValueUsage, DtoHistoricValue<T>> HistoricValues { get; }
     bool IsExecuting { get; }
     DateTimeOffset? NextExecution { get; }
     bool HasError { get; }
@@ -21,16 +20,16 @@ public interface IRefreshableValue<T> : IAsyncDisposable
 public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly Func<CancellationToken, Task<IReadOnlyDictionary<ValueUsage, T>>> _refresh;
+    private readonly Func<CancellationToken, Task<IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, T>>>> _refresh;
     private readonly int _historicValueCapacity;
-    private readonly ConcurrentDictionary<ValueUsage, DtoHistoricValue<T>> _historicValues = new();
+    private readonly ConcurrentDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> _historicValues = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _runGate = new(1, 1);
     private Exception? _lastError;
 
     public DelegateRefreshableValue(
         IServiceScopeFactory serviceScopeFactory,
-        Func<CancellationToken, Task<IReadOnlyDictionary<ValueUsage, T>>> refresh,
+        Func<CancellationToken, Task<IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, T>>>> refresh,
         TimeSpan refreshInterval,
         int historicValueCapacity = 1)
     {
@@ -43,11 +42,29 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         NextExecution = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 
-    public IReadOnlyDictionary<ValueUsage, DtoHistoricValue<T>> HistoricValues
+    public IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> HistoricValues
     {
         get
         {
-            return _historicValues.ToDictionary(kv => kv.Key, kv => kv.Value).AsReadOnly();
+            return _historicValues.AsReadOnly();
+        }
+    }
+
+    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int configId = 0)
+    {
+        if (!_historicValues.TryGetValue(valueKey, out var valueDictionary))
+        {
+            valueDictionary = new();
+            _historicValues.TryAdd(valueKey, valueDictionary);
+        }
+        if (valueDictionary.TryGetValue(configId, out var historicValue))
+        {
+            historicValue.Update(timestamp, value);
+        }
+        else
+        {
+            historicValue = new DtoHistoricValue<T>(timestamp, value, _historicValueCapacity);
+            valueDictionary.TryAdd(configId, historicValue);
         }
     }
 
@@ -98,13 +115,9 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 
         foreach (var result in results)
         {
-            if (_historicValues.TryGetValue(result.Key, out var value))
+            foreach (var resultValue in result.Value)
             {
-                value.Update(now, result.Value);
-            }
-            else
-            {
-                _historicValues.TryAdd(result.Key, new(now, result.Value, _historicValueCapacity));
+                UpdateValue(result.Key, now, resultValue.Value);
             }
         }
         return now;
