@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
@@ -15,7 +14,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ConcurrentDictionary<string, IRefreshableValue<decimal>> _refreshables = new();
+    private readonly ConcurrentDictionary<ValueUsage, ConcurrentDictionary<int, DtoHistoricValue<decimal>>> _refreshables = new();
 
     private const string RestPrefix = "rest__";
     private const string ModbusPrefix = "modbus__";
@@ -43,21 +42,25 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 
         foreach (var refreshable in _refreshables.Values)
         {
-            if (refreshable.HasError)
+            foreach (var refreshableValue in refreshable)
             {
-                encounteredError = true;
-            }
-
-            foreach (var (key, latestValue) in refreshable.HistoricValues)
-            {
-                if (!valueUsages.Contains(key))
+                if (refreshable.HasError)
                 {
-                    continue;
+                    encounteredError = true;
                 }
 
-                result.TryAdd(key, new());
-                result[key].Add(latestValue);
+                foreach (var (key, latestValue) in refreshable.HistoricValues)
+                {
+                    if (!valueUsages.Contains(key))
+                    {
+                        continue;
+                    }
+
+                    result.TryAdd(key, new());
+                    result[key].Add(latestValue);
+                }
             }
+            
         }
 
         hasErrors = encounteredError;
