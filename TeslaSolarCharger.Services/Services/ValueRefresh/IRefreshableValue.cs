@@ -68,6 +68,8 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 
         IsExecuting = true;
         using var scope = _serviceScopeFactory.CreateScope();
+        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         RunningTask = DoRefreshAsync(scope, token);
         try
         {
@@ -82,8 +84,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         finally
         {
             RunningTask = null;
-            var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-            NextExecution = dateTimeProvider.DateTimeOffSetUtcNow() + RefreshInterval;
+            NextExecution = currentDate + RefreshInterval;
             IsExecuting = false;
             _runGate.Release();
         }
