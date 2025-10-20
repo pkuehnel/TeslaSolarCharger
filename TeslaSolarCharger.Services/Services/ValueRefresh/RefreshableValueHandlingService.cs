@@ -14,10 +14,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ConcurrentDictionary<ValueUsage, ConcurrentDictionary<int, DtoHistoricValue<decimal>>> _refreshables = new();
+    private readonly HashSet<IRefreshableValue<decimal>> _refreshables = new();
 
-    private const string RestPrefix = "rest__";
-    private const string ModbusPrefix = "modbus__";
 
     public RefreshableValueHandlingService(
         ILogger<RefreshableValueHandlingService> logger,
@@ -40,27 +38,25 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         };
         var encounteredError = false;
 
-        foreach (var refreshable in _refreshables.Values)
+        foreach (var refreshable in _refreshables)
         {
-            foreach (var refreshableValue in refreshable)
+            if (refreshable.HasError)
             {
-                if (refreshable.HasError)
+                encounteredError = true;
+            }
+            foreach (var (key, latestValue) in refreshable.HistoricValues)
+            {
+                if (key.ValueUsage == default || !valueUsages.Contains(key.ValueUsage.Value))
                 {
-                    encounteredError = true;
+                    continue;
                 }
-
-                foreach (var (key, latestValue) in refreshable.HistoricValues)
+                result.TryAdd(key.ValueUsage.Value, new());
+                foreach (var historicValue in latestValue.Values)
                 {
-                    if (!valueUsages.Contains(key))
-                    {
-                        continue;
-                    }
-
-                    result.TryAdd(key, new());
-                    result[key].Add(latestValue);
+                    result[key.ValueUsage.Value].Add(historicValue);
                 }
             }
-            
+
         }
 
         hasErrors = encounteredError;
@@ -75,7 +71,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         var now = dateTimeProvider.DateTimeOffSetUtcNow();
 
         // snapshot to avoid modification during enumeration
-        var refreshables = _refreshables.Values.ToArray();
+        var refreshables = _refreshables.ToArray();
 
         var tasks = refreshables
             .Where(r => !r.IsExecuting && (r.NextExecution == null || r.NextExecution <= now))
@@ -89,7 +85,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         _logger.LogTrace("{method}()", nameof(RecreateRefreshables));
 
         // 1) Request cancellation for any in-flight refresh
-        foreach (var refreshable in _refreshables.Values)
+        foreach (var refreshable in _refreshables)
         {
             if (refreshable.IsExecuting)
             {
@@ -98,7 +94,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         }
 
         // 2) Await completion of any running tasks (best effort)
-        var running = _refreshables.Values
+        var running = _refreshables
             .Select(r => r.RunningTask)
             .Where(t => t is not null)
             .Cast<Task>()
@@ -121,7 +117,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         }
 
         // 3) Dispose old refreshables
-        foreach (var refreshable in _refreshables.Values)
+        foreach (var refreshable in _refreshables)
         {
             try
             {
@@ -158,8 +154,6 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         {
             try
             {
-                var key = $"{RestPrefix}{restConfiguration.Id}";
-
                 var refreshable = new DelegateRefreshableValue<decimal>(
                     _serviceScopeFactory,
                     async ct =>
@@ -175,32 +169,31 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                             .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
                             .ConfigureAwait(false);
 
-                        var values = new Dictionary<ValueUsage, decimal>();
+                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
                         foreach (var resultConfig in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
+                            var valueKey = new ValueKey(restConfiguration.Id, ConfigurationType.RestSolarValue, resultConfig.UsedFor, null);
 
                             var val = restValueExecutionService.GetValue(
                                 responseString,
                                 restConfiguration.NodePatternType,
                                 resultConfig);
 
-                            if (!values.TryGetValue(resultConfig.UsedFor, out var current))
+                            if (!values.TryGetValue(valueKey, out var current))
                             {
-                                values[resultConfig.UsedFor] = val;
+                                current = new();
+                                values[valueKey] = current;
                             }
-                            else
-                            {
-                                values[resultConfig.UsedFor] = current + val;
-                            }
+                            current.TryAdd(resultConfig.Id, val);
                         }
 
-                        return values.AsReadOnly();
+                        return values.ToDictionary().AsReadOnly();
                     },
                     solarValueRefreshInterval
                 );
 
-                _refreshables[key] = refreshable;
+                _refreshables.Add(refreshable);
             }
             catch (Exception ex)
             {
@@ -224,8 +217,6 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             try
             {
                 var configuration = modbusConfiguration;
-                var key = $"{ModbusPrefix}{configuration.Id}";
-
                 var refreshable = new DelegateRefreshableValue<decimal>(
                     _serviceScopeFactory,
                     async ct =>
@@ -240,11 +231,11 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                             .GetResultConfigurationsByValueConfigurationId(configuration.Id)
                             .ConfigureAwait(false);
 
-                        var values = new Dictionary<ValueUsage, decimal>();
+                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
                         foreach (var resultConfiguration in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
-
+                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.ModbusSolarValue, resultConfiguration.UsedFor, null);
                             try
                             {
                                 var byteArray = await modbusValueExecutionService
@@ -254,14 +245,13 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                                     .GetValue(byteArray, resultConfiguration)
                                     .ConfigureAwait(false);
 
-                                if (!values.TryGetValue(resultConfiguration.UsedFor, out var current))
+                                if (!values.TryGetValue(valueKey, out var current))
                                 {
-                                    values[resultConfiguration.UsedFor] = value;
+                                    current = new();
+                                    values[valueKey] = current;
                                 }
-                                else
-                                {
-                                    values[resultConfiguration.UsedFor] = current + value;
-                                }
+                                current.TryAdd(resultConfiguration.Id, value);
+
                             }
                             catch (OperationCanceledException)
                             {
@@ -283,7 +273,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     solarValueRefreshInterval
                 );
 
-                _refreshables[key] = refreshable;
+                _refreshables.Add(refreshable);
             }
             catch (Exception ex)
             {
