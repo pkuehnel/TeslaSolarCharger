@@ -50,21 +50,21 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         }
     }
 
-    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int configId = 0)
+    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int resultConfigId)
     {
         if (!_historicValues.TryGetValue(valueKey, out var valueDictionary))
         {
             valueDictionary = new();
             _historicValues.TryAdd(valueKey, valueDictionary);
         }
-        if (valueDictionary.TryGetValue(configId, out var historicValue))
+        if (valueDictionary.TryGetValue(resultConfigId, out var historicValue))
         {
             historicValue.Update(timestamp, value);
         }
         else
         {
             historicValue = new DtoHistoricValue<T>(timestamp, value, _historicValueCapacity);
-            valueDictionary.TryAdd(configId, historicValue);
+            valueDictionary.TryAdd(resultConfigId, historicValue);
         }
     }
 
@@ -117,7 +117,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         {
             foreach (var resultValue in result.Value)
             {
-                UpdateValue(result.Key, now, resultValue.Value);
+                UpdateValue(result.Key, now, resultValue.Value, resultValue.Key);
             }
         }
         return now;

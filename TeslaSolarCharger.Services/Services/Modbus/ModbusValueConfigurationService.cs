@@ -29,7 +29,7 @@ public class ModbusValueConfigurationService (
                 Port = c.Port,
                 Endianess = c.Endianess,
                 ConnectDelayMilliseconds = c.ConnectDelayMilliseconds,
-                ReadTimeoutMilliseconds = c.ReadTimeoutMilliseconds
+                ReadTimeoutMilliseconds = c.ReadTimeoutMilliseconds,
             })
             .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
