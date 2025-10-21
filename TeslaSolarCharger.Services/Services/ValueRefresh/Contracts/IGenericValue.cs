@@ -12,7 +12,7 @@ namespace TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 public interface IGenericValue <T>
 {
     IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> HistoricValues { get; }
-    void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int configId = 0);
+    void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int resultConfigId);
 }
 
 /// <summary>
