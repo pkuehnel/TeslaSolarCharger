@@ -4,11 +4,18 @@ using MQTTnet;
 using MQTTnet.Formatter;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
+using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt;
 
@@ -16,21 +23,46 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     IServiceProvider serviceProvider,
     IRestValueExecutionService restValueExecutionService,
     IDateTimeProvider dateTimeProvider,
-    MqttClientFactory mqttClientFactory)
+    MqttClientFactory mqttClientFactory,
+    IConstants constants)
     : IMqttClientHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
-    private readonly Dictionary<int, DtoMqttResult> _mqttResults = new();
+    private readonly ConcurrentDictionary<string, AutoRefreshingValue<decimal>> _values = new();
 
-    public List<DtoMqttResult> GetMqttValues()
+    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<decimal>>> GetSolarValues()
     {
-        logger.LogTrace("{method}()", nameof(GetMqttValues));
-        return _mqttResults.Values.ToList();
+        logger.LogTrace("{method}()", nameof(GetSolarValues));
+        var result = new Dictionary<ValueUsage, List<DtoHistoricValue<decimal>>>();
+        var valueUsages = new HashSet<ValueUsage>
+        {
+            ValueUsage.InverterPower,
+            ValueUsage.GridPower,
+            ValueUsage.HomeBatteryPower,
+            ValueUsage.HomeBatterySoc,
+        };
+        foreach (var mqttKeyValues in _values.Values)
+        {
+            foreach (var (valueKey, resultValues) in mqttKeyValues.HistoricValues)
+            {
+                if (valueKey.ValueUsage == default || !valueUsages.Contains(valueKey.ValueUsage.Value))
+                {
+                    continue;
+                }
+                if (!result.ContainsKey(valueKey.ValueUsage.Value))
+                {
+                    result[valueKey.ValueUsage.Value] = new();
+                }
+                result[valueKey.ValueUsage.Value].AddRange(resultValues.Values);
+            }
+        }
+        return result;
     }
 
-    public Dictionary<int, DtoMqttResult> GetMqttValueDictionary()
+    public ReadOnlyDictionary<string, AutoRefreshingValue<decimal>> GetRawValues()
     {
-        return _mqttResults.ToDictionary(x => x.Key, x => x.Value);
+        logger.LogTrace("{method}()", nameof(GetRawValues));
+        return new(_values);
     }
 
     public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations, bool forceReconnection)
@@ -84,14 +116,9 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             foreach (var resultConfiguration in topicResultConfigurations)
             {
                 var value = restValueExecutionService.GetValue(payloadString, resultConfiguration.NodePatternType, resultConfiguration);
-                var mqttResult = new DtoMqttResult
-                {
-                    Value = value,
-                    UsedFor = resultConfiguration.UsedFor,
-                    TimeStamp = dateTimeProvider.DateTimeOffSetUtcNow(),
-                    Key = key,
-                };
-                _mqttResults[resultConfiguration.Id] = mqttResult;
+                var mqttKeyValues = _values.GetOrAdd(key, new AutoRefreshingValue<decimal>(constants.SolarHistoricValueCapacity));
+                var valueKey = new ValueKey(mqttConfiguration.Id, ConfigurationType.MqttSolarValue, resultConfiguration.UsedFor, null);
+                mqttKeyValues.UpdateValue(valueKey, dateTimeProvider.DateTimeOffSetUtcNow(), value, resultConfiguration.Id);
             }
             return Task.CompletedTask;
         };
@@ -160,10 +187,6 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             _mqttClients.Remove(key);
         }
 
-        var resultIds = _mqttResults.Where(r => r.Value.Key == key).Select(r => r.Key);
-        foreach (var resultId in resultIds)
-        {
-            _mqttResults.Remove(resultId);
-        }
+        _values.TryRemove(key, out _);
     }
 }

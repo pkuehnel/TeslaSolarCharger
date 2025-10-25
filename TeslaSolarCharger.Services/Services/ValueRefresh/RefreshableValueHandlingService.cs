@@ -6,6 +6,7 @@ using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
@@ -150,6 +151,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                 c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
             .ConfigureAwait(false);
 
+        var constants = setupScope.ServiceProvider.GetRequiredService<IConstants>();
+
         foreach (var restConfiguration in restConfigurations)
         {
             try
@@ -190,7 +193,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 
                         return values.ToDictionary().AsReadOnly();
                     },
-                    solarValueRefreshInterval
+                    solarValueRefreshInterval,
+                    constants.SolarHistoricValueCapacity
                 );
 
                 _refreshables.Add(refreshable);
@@ -270,7 +274,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 
                         return values.AsReadOnly();
                     },
-                    solarValueRefreshInterval
+                    solarValueRefreshInterval,
+                    constants.SolarHistoricValueCapacity
                 );
 
                 _refreshables.Add(refreshable);

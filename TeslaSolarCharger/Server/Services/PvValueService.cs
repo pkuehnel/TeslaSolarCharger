@@ -35,8 +35,6 @@ public class PvValueService(
     ITelegramService telegramService,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext context,
-    IRestValueExecutionService restValueExecutionService,
-    IRestValueConfigurationService restValueConfigurationService,
     IModbusValueConfigurationService modbusValueConfigurationService,
     IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
@@ -897,16 +895,13 @@ public class PvValueService(
             resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
         }
 
-        var mqttValues = mqttClientHandlingService.GetMqttValues();
+        var mqttValues = mqttClientHandlingService.GetSolarValues();
         foreach (var mqttValue in mqttValues)
         {
-            if (valueUsages.Contains(mqttValue.UsedFor))
+            if (valueUsages.Contains(mqttValue.Key))
             {
-                if (!resultSums.ContainsKey(mqttValue.UsedFor))
-                {
-                    resultSums[mqttValue.UsedFor] = 0;
-                }
-                resultSums[mqttValue.UsedFor] += mqttValue.Value;
+                resultSums.TryAdd(mqttValue.Key, 0);
+                resultSums[mqttValue.Key] += mqttValue.Value.Sum(v => v.Value);
             }
         }
 

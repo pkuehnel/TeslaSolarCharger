@@ -31,7 +31,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
         IServiceScopeFactory serviceScopeFactory,
         Func<CancellationToken, Task<IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, T>>>> refresh,
         TimeSpan refreshInterval,
-        int historicValueCapacity = 1)
+        int historicValueCapacity)
     {
         _serviceScopeFactory = serviceScopeFactory;
         _refresh = refresh;
