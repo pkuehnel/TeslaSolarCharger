@@ -31,7 +31,7 @@ public class MqttExecutionService(ILogger<MqttExecutionService> logger,
                 {
                     foreach (var historicValue in result.HistoricValues)
                     {
-                        foreach (var dtoHistoricValue in historicValue.Value)
+                        foreach (var dtoHistoricValue in historicValue.Value.Where(hv => hv.Key == resultConfiguration.Id))
                         {
                             if (value == default)
                             {
