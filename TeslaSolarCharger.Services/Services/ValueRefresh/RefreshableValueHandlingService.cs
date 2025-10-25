@@ -278,7 +278,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                             }
                         }
 
-                        return values.AsReadOnly();
+                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
                     },
                     solarValueRefreshInterval,
                     constants.SolarHistoricValueCapacity
