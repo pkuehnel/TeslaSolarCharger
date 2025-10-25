@@ -16,6 +16,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly HashSet<IRefreshableValue<decimal>> _refreshables = new();
+    private readonly object _refreshablesLock = new();
 
 
     public RefreshableValueHandlingService(
@@ -39,7 +40,9 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         };
         var encounteredError = false;
 
-        foreach (var refreshable in _refreshables)
+        var refreshablesSnapshot = GetRefreshablesSnapshot();
+
+        foreach (var refreshable in refreshablesSnapshot)
         {
             if (refreshable.HasError)
             {
@@ -72,7 +75,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         var now = dateTimeProvider.DateTimeOffSetUtcNow();
 
         // snapshot to avoid modification during enumeration
-        var refreshables = _refreshables.ToArray();
+        var refreshables = GetRefreshablesSnapshot();
 
         var tasks = refreshables
             .Where(r => !r.IsExecuting && (r.NextExecution == null || r.NextExecution <= now))
@@ -86,7 +89,9 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         _logger.LogTrace("{method}()", nameof(RecreateRefreshables));
 
         // 1) Request cancellation for any in-flight refresh
-        foreach (var refreshable in _refreshables)
+        var refreshablesSnapshot = GetRefreshablesSnapshot();
+
+        foreach (var refreshable in refreshablesSnapshot)
         {
             if (refreshable.IsExecuting)
             {
@@ -95,7 +100,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         }
 
         // 2) Await completion of any running tasks (best effort)
-        var running = _refreshables
+        var running = refreshablesSnapshot
             .Select(r => r.RunningTask)
             .Where(t => t is not null)
             .Cast<Task>()
@@ -118,7 +123,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         }
 
         // 3) Dispose old refreshables
-        foreach (var refreshable in _refreshables)
+        foreach (var refreshable in refreshablesSnapshot)
         {
             try
             {
@@ -130,7 +135,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             }
         }
 
-        _refreshables.Clear();
+        ClearRefreshables();
 
         // 4) Recreate refreshables as before
         var valueUsages = new HashSet<ValueUsage>
@@ -197,7 +202,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     constants.SolarHistoricValueCapacity
                 );
 
-                _refreshables.Add(refreshable);
+                AddRefreshable(refreshable);
             }
             catch (Exception ex)
             {
@@ -278,7 +283,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     constants.SolarHistoricValueCapacity
                 );
 
-                _refreshables.Add(refreshable);
+                AddRefreshable(refreshable);
             }
             catch (Exception ex)
             {
@@ -289,6 +294,30 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     modbusConfiguration.Host,
                     modbusConfiguration.Port);
             }
+        }
+    }
+
+    private IRefreshableValue<decimal>[] GetRefreshablesSnapshot()
+    {
+        lock (_refreshablesLock)
+        {
+            return _refreshables.ToArray();
+        }
+    }
+
+    private void AddRefreshable(IRefreshableValue<decimal> refreshable)
+    {
+        lock (_refreshablesLock)
+        {
+            _refreshables.Add(refreshable);
+        }
+    }
+
+    private void ClearRefreshables()
+    {
+        lock (_refreshablesLock)
+        {
+            _refreshables.Clear();
         }
     }
 }
