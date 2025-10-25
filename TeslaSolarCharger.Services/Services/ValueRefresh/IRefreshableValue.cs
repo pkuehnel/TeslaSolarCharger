@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -46,7 +47,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     {
         get
         {
-            return _historicValues.AsReadOnly();
+            return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>>(_historicValues);
         }
     }
 
