@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
@@ -196,7 +197,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                             current.TryAdd(resultConfig.Id, val);
                         }
 
-                        return values.ToDictionary().AsReadOnly();
+                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
                     },
                     solarValueRefreshInterval,
                     constants.SolarHistoricValueCapacity
