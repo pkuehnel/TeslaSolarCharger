@@ -89,7 +89,12 @@ namespace TeslaSolarCharger.Client.Services
             if (resp == default) return new();
 
             // map UTC-hour → value
-            return resp.ToDictionary(x => x.Key.ToLocalTime().Hour, x => x.Value);
+            var resultDictionary = new Dictionary<int, int>();
+            foreach (var keyValuePair in resp)
+            {
+                resultDictionary[keyValuePair.Key.UtcDateTime.Hour] = keyValuePair.Value;
+            }
+            return resultDictionary;
         }
 
         // Generic helper for simple bool‐flag endpoints
