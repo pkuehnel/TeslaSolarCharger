@@ -12,7 +12,7 @@ public class MqttExecutionService(ILogger<MqttExecutionService> logger,
     {
         logger.LogTrace("{method}()", nameof(GetMqttValueOverviews));
         var overviews = new List<DtoValueConfigurationOverview>();
-        var mqttResults = mqttClientHandlingService.GetMqttValueDictionary();
+        var mqttResults = mqttClientHandlingService.GetRawValues();
         var mqttConfigurations = await mqttConfigurationService.GetMqttConfigurationsByPredicate(x => true);
         foreach (var mqttConfiguration in mqttConfigurations)
         {
@@ -26,10 +26,23 @@ public class MqttExecutionService(ILogger<MqttExecutionService> logger,
                 await mqttConfigurationService.GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == mqttConfiguration.Id);
             foreach (var resultConfiguration in resultConfigurations)
             {
-                decimal? value;
-                if (mqttResults.TryGetValue(resultConfiguration.Id, out var result))
+                decimal? value = null;
+                if (mqttResults.TryGetValue(clientKey, out var result))
                 {
-                    value = result.Value;
+                    foreach (var historicValue in result.HistoricValues)
+                    {
+                        foreach (var dtoHistoricValue in historicValue.Value)
+                        {
+                            if (value == default)
+                            {
+                                value = dtoHistoricValue.Value.Value;
+                            }
+                            else
+                            {
+                                value += dtoHistoricValue.Value.Value;
+                            }
+                        }
+                    }
                 }
                 else
                 {
