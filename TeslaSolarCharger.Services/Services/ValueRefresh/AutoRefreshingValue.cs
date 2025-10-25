@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -24,7 +25,7 @@ public class AutoRefreshingValue<T> : IAutoRefreshingValue<T>
     {
         get
         {
-            return _historicValues.AsReadOnly();
+            return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>>(_historicValues);
         }
     }
 
