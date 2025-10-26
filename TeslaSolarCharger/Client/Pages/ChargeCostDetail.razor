@@ -29,7 +29,8 @@ else
 {
     <EditFormComponent T="DtoChargePrice"
                        WrappedElement="ChargePrice"
-                       OnValidSubmit="SaveChargePrice">
+                       OnValidSubmit="SaveChargePrice"
+                       SubmittingParameter="SubmitIsLoading">
         <GenericInput For="() => ChargePrice.Item.ValidSince"></GenericInput>
         <GenericInput For="() => ChargePrice.Item.SolarPrice"></GenericInput>
         <GenericInput For="() => ChargePrice.Item.GridPrice"></GenericInput>
@@ -79,7 +80,29 @@ else
             </div>
             <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"></GenericInput>
         }
+        
+        @if(ChargePriceUpdateProgress != default && ChargePriceUpdateProgress.Value != null && ChargePriceUpdateProgress.MaxValue != null)
+        {
+            <div class="mb-3">
+                <MudProgressLinear Value="ChargePriceUpdateProgress.Value.Value"
+                                   Max="ChargePriceUpdateProgress.MaxValue.Value"
+                                   Size="Size.Large"
+                                   Striped="true"
+                                   Color="Color.Primary"/>
+            </div>
+            
+        }
+        else
+        {
+            <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+                <MudAlert Severity="Severity.Info">
+                    @T("Updating charge prices can take a significant amount of time as the prices of all previous charges are updated")
+                </MudAlert>
+            </MudPaper>
+        }
     </EditFormComponent>
+
+    
 }
 
 

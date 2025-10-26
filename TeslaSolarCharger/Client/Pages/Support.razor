@@ -248,10 +248,10 @@ else
         <pre>@_meterValueDetails</pre>
     }
 
-    <h3>@T("GridPrices")</h3>
-    <GenericInput For="() => GridPricesFrom"></GenericInput>
-    <GenericInput For="() => GridPricesTo"></GenericInput>
-    <RightAlignedButtonComponent ButtonText='@T("Get GridValues")'
+    <h3>@T("Charging Prices")</h3>
+    <GenericInput For="() => ChargingPricesFrom"></GenericInput>
+    <GenericInput For="() => ChargingPricesTo"></GenericInput>
+    <RightAlignedButtonComponent ButtonText='@T("Get Price Values")'
                                  IsLoading="@_loadingGridPrices"
                                  OnButtonClicked="GetGridValues"></RightAlignedButtonComponent>
     @if (_gridPricesDetails != default)
@@ -295,8 +295,8 @@ else
     private bool _loadingGridPrices;
     private string? _gridPricesDetails;
 
-    public DateTime? GridPricesFrom { get; set; }
-    public DateTime? GridPricesTo { get; set; }
+    public DateTime? ChargingPricesFrom { get; set; }
+    public DateTime? ChargingPricesTo { get; set; }
 
     private Dictionary<string, string> LogLevelOptions => new()
     {
@@ -592,14 +592,14 @@ else
 
     private async Task GetGridValues()
     {
-        if (GridPricesFrom == default || GridPricesTo == default)
+        if (ChargingPricesFrom == default || ChargingPricesTo == default)
         {
             return;
         }
 
         _loadingGridPrices = true;
-        var from = new DateTimeOffset(GridPricesFrom.Value, TimeSpan.Zero);
-        var to = new DateTimeOffset(GridPricesTo.Value, TimeSpan.Zero);
+        var from = new DateTimeOffset(ChargingPricesFrom.Value, TimeSpan.Zero);
+        var to = new DateTimeOffset(ChargingPricesTo.Value, TimeSpan.Zero);
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Debug/GetGridPrices?from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.AddDays(1).ToString("o"))}");
         if (result.HasError)
         {
