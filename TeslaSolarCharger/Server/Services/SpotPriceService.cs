@@ -92,10 +92,14 @@ public class SpotPriceService : ISpotPriceService
     {
         var newSpotPrices = GenerateSpotPricesFromEnergyChartPrices(earlieststartDate, energyChartPrices, chargePriceSpotPriceRegion);
 
-        using var scope = _serviceScopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-        context.SpotPrices.AddRange(newSpotPrices);
-        await context.SaveChangesAsync().ConfigureAwait(false);
+        //Create batches as otherwise old raspis might crash
+        foreach (var batch in newSpotPrices.Chunk(1000))
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+            context.SpotPrices.AddRange(batch);
+            await context.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     internal List<SpotPrice> GenerateSpotPricesFromEnergyChartPrices(DateTimeOffset earlieststartDate,
@@ -119,14 +123,17 @@ public class SpotPriceService : ISpotPriceService
         return newSpotPrices;
     }
 
-    private async Task<DateTimeOffset> LatestKnownSpotPriceStartTime()
+    private async Task<DateTimeOffset?> LatestKnownSpotPriceStartTime()
     {
-        var latestKnownSpotPriceTime = await _teslaSolarChargerContext.SpotPrices
+        var latestKnownSpotPrice = await _teslaSolarChargerContext.SpotPrices
             .Where(s => s.SpotPriceRegion != null)
             .OrderByDescending(s => s.StartDate)
-            .Select(s => s.StartDate)
+            .Select(s => new
+            {
+                s.StartDate,
+            })
             .LastOrDefaultAsync().ConfigureAwait(false);
-        return new DateTimeOffset(latestKnownSpotPriceTime, TimeSpan.Zero);
+        return latestKnownSpotPrice == default ? null : new DateTimeOffset(latestKnownSpotPrice.StartDate, TimeSpan.Zero);
     }
 
     internal string GenerateEnergyChartUrl(DateTimeOffset fromDate, DateTimeOffset toDate, string regionCode)

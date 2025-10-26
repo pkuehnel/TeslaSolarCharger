@@ -12,7 +12,8 @@ public class DebugController(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
-    IOcppChargePointConfigurationService ocppChargePointConfigurationService) : ApiBaseController
+    IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    IHomeService homeService) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
@@ -247,4 +248,11 @@ public class DebugController(
         return Ok(new DtoValue<string>(resultString));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetGridPrices(DateTimeOffset from, DateTimeOffset to)
+    {
+        var result = await homeService.GetGridPrices(from, to);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
 }
