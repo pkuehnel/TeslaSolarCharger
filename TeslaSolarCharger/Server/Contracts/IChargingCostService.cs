@@ -15,4 +15,5 @@ public interface IChargingCostService
     Task AddFirstChargePrice();
     Task FixConvertedChargingDetailSolarPower();
     Task UpdateChargingProcessesAfterChargingDetailsFix();
+    Task ConvertChargePricesToSpotPriceRegion();
 }
