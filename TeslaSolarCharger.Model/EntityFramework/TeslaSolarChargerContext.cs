@@ -172,10 +172,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(c => c.ChargeMode)
             .HasDefaultValue(ChargeModeV2.Auto);
 
-        modelBuilder.Entity<ChargePrice>()
-            .Property(c => c.EnergyProvider)
-            .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
-
         modelBuilder.Entity<TscConfiguration>()
             .HasIndex(c => c.Key)
             .IsUnique();

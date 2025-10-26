@@ -6,7 +6,6 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
-using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -297,33 +296,14 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .FirstAsync();
         var fromDateTimeOffset = new DateTimeOffset(from, TimeSpan.Zero);
         var toDateTimeOffset = new DateTimeOffset(to.AddMilliseconds(1), TimeSpan.Zero);
-        IPriceDataService priceDataService;
-        List<Price> prices;
-        switch (chargePrice.EnergyProvider)
+        IPriceDataService priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
+        var prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
+        prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
+        if (chargePrice.AddSpotPriceToGridPrice)
         {
-            case EnergyProvider.Octopus:
-                break;
-            case EnergyProvider.Tibber:
-                break;
-            case EnergyProvider.FixedPrice:
-                priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
-                prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
-                prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
-                return prices;
-            case EnergyProvider.Awattar:
-                break;
-            case EnergyProvider.Energinet:
-                break;
-            case EnergyProvider.HomeAssistant:
-                break;
-            case EnergyProvider.OldTeslaSolarChargerConfig:
-                priceDataService = serviceProvider.GetRequiredService<IOldTscConfigPriceService>();
-                prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.Id.ToString()).ConfigureAwait(false)).ToList();
-                return prices;
-            default:
-                throw new ArgumentOutOfRangeException();
+            //prices = AddSpotPrices(prices, fromDateTimeOffset, toDateTimeOffset);
         }
-        throw new NotImplementedException($"Energyprovider {chargePrice.EnergyProvider} is not implemented.");
+        return prices;
     }
 
     private List<Price> AddDefaultChargePrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, decimal defaultValue, decimal defaultSolarPrice)
