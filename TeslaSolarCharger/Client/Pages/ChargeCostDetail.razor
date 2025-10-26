@@ -60,6 +60,10 @@ else
 
             <hr />
         }
+        <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                                     ButtonText="@T("Add time based price")"
+                                     OnButtonClicked="AddFixedPrice"></RightAlignedButtonComponent>
+
         <GenericInput T="bool"
                       For="() => ChargePrice.Item.AddSpotPriceToGridPrice"
                       OnValueChanged="@StateHasChanged"></GenericInput>
