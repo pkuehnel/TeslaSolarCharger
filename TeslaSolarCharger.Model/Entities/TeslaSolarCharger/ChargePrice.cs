@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Enums;
+﻿using TeslaSolarCharger.Model.Enums;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
@@ -6,10 +7,10 @@ public class ChargePrice
 {
     public int Id { get; set; }
     public DateTime ValidSince { get; set; }
-    public EnergyProvider EnergyProvider { get; set; }
     public string? EnergyProviderConfiguration { get; set; }
     public decimal SolarPrice { get; set; }
     public decimal GridPrice { get; set; }
     public bool AddSpotPriceToGridPrice { get; set; }
+    public SpotPriceRegion? SpotPriceRegion { get; set; }
     public decimal SpotPriceCorrectionFactor { get; set; }
 }
