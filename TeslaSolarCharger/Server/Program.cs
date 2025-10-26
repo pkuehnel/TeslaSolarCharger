@@ -371,7 +371,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
 
         var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
-        await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
         if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })

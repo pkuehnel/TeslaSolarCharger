@@ -1,8 +1,6 @@
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -161,7 +159,7 @@ public class ChargingCostService(
         {
             GridPrice = 0.25m,
             SolarPrice = 0.25m,
-            ValidSince = DateTime.SpecifyKind(new DateTime(2020, 1, 1), DateTimeKind.Utc),
+            ValidSince = constants.FirstChargePriceTimeStamp.UtcDateTime,
             AddSpotPriceToGridPrice = false,
             SpotPriceSurcharge = 0.19m,
             EnergyProviderConfiguration = null,
@@ -169,9 +167,9 @@ public class ChargingCostService(
         await UpdateChargePrice(chargePrice).ConfigureAwait(false);
     }
 
-    private static bool IsFirstChargePriceSet(List<ChargePrice> chargePrices)
+    private bool IsFirstChargePriceSet(List<ChargePrice> chargePrices)
     {
-        return chargePrices.Any(c => c.ValidSince < new DateTime(2022, 2, 1));
+        return chargePrices.Any(c => c.ValidSince < constants.FirstChargePriceTimeStamp.AddDays(2).UtcDateTime);
     }
 
     public async Task FixConvertedChargingDetailSolarPower()
@@ -227,10 +225,10 @@ public class ChargingCostService(
 
     public async Task ConvertChargePricesToSpotPriceRegion()
     {
-        var spotPriceRegion = SpotPriceRegion.GermanyLuxembourg;
+        var spotPriceRegion = SpotPriceRegion.DE_LU;
         if (configurationWrapper.GetAwattarBaseUrl().Contains("awattar.at"))
         {
-            spotPriceRegion = SpotPriceRegion.Austria;
+            spotPriceRegion = SpotPriceRegion.AT;
         }
         var chargePrices = await teslaSolarChargerContext.ChargePrices
             .Where(c => c.AddSpotPriceToGridPrice)
