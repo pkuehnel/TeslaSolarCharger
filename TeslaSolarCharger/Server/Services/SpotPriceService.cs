@@ -132,7 +132,7 @@ public class SpotPriceService : ISpotPriceService
             {
                 s.StartDate,
             })
-            .LastOrDefaultAsync().ConfigureAwait(false);
+            .FirstOrDefaultAsync().ConfigureAwait(false);
         return latestKnownSpotPrice == default ? null : new DateTimeOffset(latestKnownSpotPrice.StartDate, TimeSpan.Zero);
     }
 
