@@ -19,7 +19,7 @@
     <div class="d-flex align-items-center">
         <div class="@($"p-{Padding} flex-grow-1")">
             <div>
-                @if (typeof(T) == typeof(DateTime?))
+                @if (typeof(T) == typeof(DateTime?) || typeof(T) == typeof(DateTime))
                 {
                     <MudDatePicker id="@InputId"
                                    @bind-Date="DateValue"
