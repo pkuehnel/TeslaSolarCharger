@@ -122,6 +122,7 @@ public class ChargingCostService(
             logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
+
         ChargePrice chargePrice;
         if (dtoChargePrice.Id == null)
         {
@@ -136,7 +137,6 @@ public class ChargingCostService(
         //Can not be null as declared as Required in DTO
         chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice!;
         chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
-        chargePrice.ValidSince = dtoChargePrice.ValidSince;
         chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
         chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
         chargePrice.SpotPriceRegion = dtoChargePrice.SpotPriceRegion;
