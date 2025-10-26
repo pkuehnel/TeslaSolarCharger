@@ -301,9 +301,95 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
         if (chargePrice.AddSpotPriceToGridPrice)
         {
-            //prices = AddSpotPrices(prices, fromDateTimeOffset, toDateTimeOffset);
+            prices = await AddSpotPrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice).ConfigureAwait(false);
         }
         return prices;
+    }
+
+    private async Task<List<Price>> AddSpotPrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, ChargePrice chargePrice)
+    {
+        var fromUtc = from.UtcDateTime;
+        var toUtc = to.UtcDateTime;
+        var spotPrices = await context.SpotPrices
+            .Where(p => p.EndDate > fromUtc && p.StartDate < toUtc)
+            .OrderBy(p => p.StartDate)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        if (!spotPrices.Any())
+        {
+            return prices;
+        }
+
+        var updatedPrices = new List<Price>();
+
+        foreach (var price in prices.OrderBy(p => p.ValidFrom))
+        {
+            var relevantSpotPrices = spotPrices
+                .Where(sp => sp.EndDate > price.ValidFrom.UtcDateTime && sp.StartDate < price.ValidTo.UtcDateTime)
+                .OrderBy(sp => sp.StartDate)
+                .ToList();
+
+            if (!relevantSpotPrices.Any())
+            {
+                updatedPrices.Add(price);
+                continue;
+            }
+
+            var cursor = price.ValidFrom;
+
+            foreach (var spotPrice in relevantSpotPrices)
+            {
+                if (cursor >= price.ValidTo)
+                {
+                    break;
+                }
+
+                var spotStart = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero);
+                var spotEnd = new DateTimeOffset(spotPrice.EndDate, TimeSpan.Zero);
+
+                var gapEnd = spotStart < price.ValidTo ? spotStart : price.ValidTo;
+                if (gapEnd > cursor)
+                {
+                    updatedPrices.Add(new Price
+                    {
+                        GridPrice = price.GridPrice,
+                        SolarPrice = price.SolarPrice,
+                        ValidFrom = cursor,
+                        ValidTo = gapEnd,
+                    });
+                    cursor = gapEnd;
+                }
+
+                var overlapStart = cursor > spotStart ? cursor : spotStart;
+                var overlapEnd = spotEnd < price.ValidTo ? spotEnd : price.ValidTo;
+                if (overlapEnd > overlapStart)
+                {
+                    var spotAddition = spotPrice.Price + (spotPrice.Price * chargePrice.SpotPriceCorrectionFactor);
+                    updatedPrices.Add(new Price
+                    {
+                        GridPrice = price.GridPrice + spotAddition,
+                        SolarPrice = price.SolarPrice,
+                        ValidFrom = overlapStart,
+                        ValidTo = overlapEnd,
+                    });
+                    cursor = overlapEnd;
+                }
+            }
+
+            if (cursor < price.ValidTo)
+            {
+                updatedPrices.Add(new Price
+                {
+                    GridPrice = price.GridPrice,
+                    SolarPrice = price.SolarPrice,
+                    ValidFrom = cursor,
+                    ValidTo = price.ValidTo,
+                });
+            }
+        }
+
+        return updatedPrices.OrderBy(p => p.ValidFrom).ToList();
     }
 
     private List<Price> AddDefaultChargePrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, decimal defaultValue, decimal defaultSolarPrice)
