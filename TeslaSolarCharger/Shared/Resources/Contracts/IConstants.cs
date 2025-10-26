@@ -81,4 +81,5 @@ public interface IConstants
     string TeslasAddedToAllowedCars { get; }
     int SolarHistoricValueCapacity { get; }
     DateTimeOffset FirstChargePriceTimeStamp { get; }
+    int SpotPriceRefreshIntervalHours { get; }
 }
