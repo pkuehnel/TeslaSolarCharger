@@ -310,27 +310,42 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     {
         var fromUtc = from.UtcDateTime;
         var toUtc = to.UtcDateTime;
+
         var spotPrices = await context.SpotPrices
-            .Where(p => p.EndDate > fromUtc && p.StartDate < toUtc)
+            .Where(p => p.StartDate >= fromUtc && p.StartDate < toUtc)
             .OrderBy(p => p.StartDate)
+            .Select(p => new { p.StartDate, p.Price }) // only what we need
             .ToListAsync()
             .ConfigureAwait(false);
 
-        if (!spotPrices.Any())
-        {
+        if (spotPrices.Count == 0)
             return prices;
+
+        // Build implicit (Start, End) slices where End = next.Start (last is capped to 'toUtc')
+        var slices = new List<(DateTimeOffset Start, DateTimeOffset End, decimal Price)>(spotPrices.Count);
+        for (var i = 0; i < spotPrices.Count; i++)
+        {
+            var start = new DateTimeOffset(spotPrices[i].StartDate, TimeSpan.Zero);
+            var end = new DateTimeOffset((i < spotPrices.Count - 1) ? spotPrices[i + 1].StartDate : toUtc, TimeSpan.Zero);
+
+            if (end > start) // guard against duplicates/out-of-order
+                slices.Add((start, end, spotPrices[i].Price));
         }
+
+        if (slices.Count == 0)
+            return prices;
 
         var updatedPrices = new List<Price>();
 
         foreach (var price in prices.OrderBy(p => p.ValidFrom))
         {
-            var relevantSpotPrices = spotPrices
-                .Where(sp => sp.EndDate > price.ValidFrom.UtcDateTime && sp.StartDate < price.ValidTo.UtcDateTime)
-                .OrderBy(sp => sp.StartDate)
+            // Only consider slices that overlap the price window
+            var relevant = slices
+                .Where(s => s.End > price.ValidFrom && s.Start < price.ValidTo)
+                .OrderBy(s => s.Start)
                 .ToList();
 
-            if (!relevantSpotPrices.Any())
+            if (relevant.Count == 0)
             {
                 updatedPrices.Add(price);
                 continue;
@@ -338,16 +353,11 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             var cursor = price.ValidFrom;
 
-            foreach (var spotPrice in relevantSpotPrices)
+            foreach (var (spotStart, spotEnd, price1) in relevant)
             {
-                if (cursor >= price.ValidTo)
-                {
-                    break;
-                }
+                if (cursor >= price.ValidTo) break;
 
-                var spotStart = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero);
-                var spotEnd = new DateTimeOffset(spotPrice.EndDate, TimeSpan.Zero);
-
+                // gap before spot starts
                 var gapEnd = spotStart < price.ValidTo ? spotStart : price.ValidTo;
                 if (gapEnd > cursor)
                 {
@@ -361,11 +371,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                     cursor = gapEnd;
                 }
 
+                // overlap with spot slice
                 var overlapStart = cursor > spotStart ? cursor : spotStart;
                 var overlapEnd = spotEnd < price.ValidTo ? spotEnd : price.ValidTo;
                 if (overlapEnd > overlapStart)
                 {
-                    var spotAddition = spotPrice.Price + (spotPrice.Price * chargePrice.SpotPriceCorrectionFactor);
+                    var spotAddition = price1 + (price1 * chargePrice.SpotPriceCorrectionFactor);
                     updatedPrices.Add(new Price
                     {
                         GridPrice = price.GridPrice + spotAddition,
@@ -377,6 +388,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 }
             }
 
+            // tail after last spot slice
             if (cursor < price.ValidTo)
             {
                 updatedPrices.Add(new Price

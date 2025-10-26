@@ -25,25 +25,21 @@ public class ChargingCostService : TestBase
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 17, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 18, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 18, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 19, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 19, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 20, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 20, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 21, 0, 0),
                     Price = new decimal(0.11),
                 },
             });
@@ -63,31 +59,26 @@ public class ChargingCostService : TestBase
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 17, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 18, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 18, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 19, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 19, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 20, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 20, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 21, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 21, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 22, 0, 0),
                     Price = new decimal(0.11),
                 },
             });
@@ -111,31 +102,26 @@ public class ChargingCostService : TestBase
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 17, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 18, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 18, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 19, 0, 0),
                     Price = new decimal(0.10),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 19, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 20, 0, 0),
                     Price = new decimal(0.30),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 20, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 21, 0, 0),
                     Price = new decimal(0.11),
                 },
                 new SpotPrice()
                 {
                     StartDate = new DateTime(2023, 1, 22, 21, 0, 0),
-                    EndDate = new DateTime(2023, 1, 22, 22, 0, 0),
                     Price = new decimal(0.11),
                 },
             });
