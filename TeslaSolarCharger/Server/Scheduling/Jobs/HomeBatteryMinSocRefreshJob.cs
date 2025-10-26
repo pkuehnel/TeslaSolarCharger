@@ -3,6 +3,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
+[DisallowConcurrentExecution]
 public class HomeBatteryMinSocRefreshJob : IJob
 {
     private readonly ILogger<HomeBatteryMinSocRefreshJob> _logger;

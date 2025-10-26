@@ -17,7 +17,7 @@ using TeslaSolarCharger.SharedModel.Enums;
 namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueExecutionService(
-    ILogger<RestValueConfigurationService> logger,
+    ILogger<RestValueExecutionService> logger,
     ISettings settings,
     IRestValueConfigurationService restValueConfigurationService,
     IConfigurationWrapper configurationWrapper,
@@ -40,11 +40,8 @@ public class RestValueExecutionService(
             httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
         }
         using var client = new HttpClient(httpClientHandler);
-        var timeout = configurationWrapper.PvValueJobUpdateIntervall();
-        if (timeout < TimeSpan.FromSeconds(1))
-        {
-            timeout = TimeSpan.FromSeconds(1);
-        }
+        //Timeout doesn't have to be lower than pv values interval, because no double requests can be made in parallel
+        var timeout = TimeSpan.FromSeconds(10);
         client.Timeout = timeout;
         var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod.ToString()), config.Url);
         foreach (var header in config.Headers)

@@ -14,6 +14,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -34,16 +35,14 @@ public class PvValueService(
     ITelegramService telegramService,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext context,
-    IRestValueExecutionService restValueExecutionService,
-    IRestValueConfigurationService restValueConfigurationService,
     IModbusValueConfigurationService modbusValueConfigurationService,
-    IModbusValueExecutionService modbusValueExecutionService,
     IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
     IConstants constants,
     ILoadPointManagementService loadPointManagementService,
     IAppStateNotifier appStateNotifier,
-    IChangeTrackingService changeTrackingService)
+    IChangeTrackingService changeTrackingService,
+    IRefreshableValueHandlingService refreshableValueHandlingService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -885,72 +884,24 @@ public class PvValueService(
             ValueUsage.HomeBatterySoc,
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
-        //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
-        var restConfigurations = await restValueConfigurationService
-            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        foreach (var restConfiguration in restConfigurations)
+        var refreshableResults = refreshableValueHandlingService.GetSolarValues(out var refreshableErrors);
+        if (refreshableErrors)
         {
-            try
-            {
-                var responseString = await restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
-                var resultConfigurations = await restValueConfigurationService.GetResultConfigurationsByConfigurationId(restConfiguration.Id).ConfigureAwait(false);
-                var results = new Dictionary<int, decimal>();
-                foreach (var resultConfiguration in resultConfigurations)
-                {
-                    results.Add(resultConfiguration.Id, restValueExecutionService.GetValue(responseString, restConfiguration.NodePatternType, resultConfiguration));
-                }
-                foreach (var result in results)
-                {
-                    var valueUsage = resultConfigurations.First(r => r.Id == result.Key).UsedFor;
-                    if (!resultSums.ContainsKey(valueUsage))
-                    {
-                        resultSums[valueUsage] = 0;
-                    }
-                    resultSums[valueUsage] += result.Value;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
-                errorWhileUpdatingPvValues = true;
-            }
+            errorWhileUpdatingPvValues = true;
+        }
+        foreach (var refreshableResult in refreshableResults)
+        {
+            resultSums.TryAdd(refreshableResult.Key, 0);
+            resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
         }
 
-        var modbusConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        foreach (var modbusConfiguration in modbusConfigurations)
-        {
-            logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
-                modbusConfiguration.Port);
-            var modbusResultConfigurations =
-                await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
-                    r.ModbusConfigurationId == modbusConfiguration.Id);
-            foreach (var resultConfiguration in modbusResultConfigurations)
-            {
-                logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
-                    modbusConfiguration.Port, resultConfiguration.Address);
-                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration, false);
-                logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
-                                       modbusConfiguration.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArry));
-                var value = await modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
-                var valueUsage = resultConfiguration.UsedFor;
-                if (!resultSums.ContainsKey(valueUsage))
-                {
-                    resultSums[valueUsage] = 0;
-                }
-                resultSums[valueUsage] += value;
-            }
-        }
-
-        var mqttValues = mqttClientHandlingService.GetMqttValues();
+        var mqttValues = mqttClientHandlingService.GetSolarValues();
         foreach (var mqttValue in mqttValues)
         {
-            if (valueUsages.Contains(mqttValue.UsedFor))
+            if (valueUsages.Contains(mqttValue.Key))
             {
-                if (!resultSums.ContainsKey(mqttValue.UsedFor))
-                {
-                    resultSums[mqttValue.UsedFor] = 0;
-                }
-                resultSums[mqttValue.UsedFor] += mqttValue.Value;
+                resultSums.TryAdd(mqttValue.Key, 0);
+                resultSums[mqttValue.Key] += mqttValue.Value.Sum(v => v.Value);
             }
         }
 
