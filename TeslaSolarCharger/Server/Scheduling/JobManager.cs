@@ -101,8 +101,10 @@ public class JobManager(
         var newVersionCheckTrigger = TriggerBuilder.Create().WithIdentity("newVersionCheckTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(47)).Build();
 
-        var spotPricePlanningTrigger = TriggerBuilder.Create().WithIdentity("spotPricePlanningTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(1)).Build();
+        var spotPriceRefreshTrigger = TriggerBuilder.Create().WithIdentity("spotPriceRefreshTrigger")
+            //Initial loading on startup to ensure no errors occur
+            .StartAt(dateTimeProvider.DateTimeOffSetUtcNow().AddHours(constants.SpotPriceRefreshIntervalHours))
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.SpotPriceRefreshIntervalHours)).Build();
 
         var backendTokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("backendTokenRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
@@ -183,7 +185,7 @@ public class JobManager(
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
-            {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
+            {spotPriceJob, new HashSet<ITrigger> {spotPriceRefreshTrigger}},
             {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
             {errorDetectionJob, new HashSet<ITrigger> {errorDetectionTrigger}},
             {bleApiVersionDetectionJob, new HashSet<ITrigger> {bleApiVersionDetectionTrigger}},

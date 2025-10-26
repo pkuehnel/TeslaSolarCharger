@@ -310,9 +310,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     {
         var fromUtc = from.UtcDateTime;
         var toUtc = to.UtcDateTime;
-
         var spotPrices = await context.SpotPrices
-            .Where(p => p.StartDate >= fromUtc && p.StartDate < toUtc)
+            .Where(p => p.StartDate >= fromUtc && p.StartDate < toUtc && p.SpotPriceRegion == chargePrice.SpotPriceRegion)
             .OrderBy(p => p.StartDate)
             .Select(p => new { p.StartDate, p.Price }) // only what we need
             .ToListAsync()

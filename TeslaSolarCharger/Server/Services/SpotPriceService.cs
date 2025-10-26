@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Globalization;
@@ -34,7 +34,13 @@ public class SpotPriceService : ISpotPriceService
     public async Task UpdateSpotPrices()
     {
         _logger.LogTrace("{method}()", nameof(UpdateSpotPrices));
-
+        var deletedRows = await _teslaSolarChargerContext.SpotPrices
+            .Where(s => s.SpotPriceRegion == null)
+            .ExecuteDeleteAsync();
+        if (deletedRows > 0)
+        {
+            _logger.LogInformation("Deleted {deletedRows} spot prices from database.", deletedRows);
+        }
         var latestKnownSpotPriceTime = await LatestKnownSpotPriceStartTime().ConfigureAwait(false);
         DateTimeOffset? getPricesFrom = null;
         if (latestKnownSpotPriceTime != default)
@@ -142,6 +148,7 @@ public class SpotPriceService : ISpotPriceService
     {
         var url = GenerateEnergyChartUrl(fromDate, toDate, regionCode);
         using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromHours(_constants.SpotPriceRefreshIntervalHours);
         var json = await httpClient.GetStringAsync(url)
             .ConfigureAwait(false);
         var prices = GetPrices(json);

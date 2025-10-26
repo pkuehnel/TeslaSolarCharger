@@ -86,4 +86,5 @@ public class Constants : IConstants
     public int SolarHistoricValueCapacity => 1;
 
     public DateTimeOffset FirstChargePriceTimeStamp => new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    public int SpotPriceRefreshIntervalHours => 2;
 }
