@@ -231,7 +231,7 @@ public class ChargingCostService(
             spotPriceRegion = SpotPriceRegion.AT;
         }
         var chargePrices = await teslaSolarChargerContext.ChargePrices
-            .Where(c => c.AddSpotPriceToGridPrice)
+            .Where(cp => cp.SpotPriceRegion == default)
             .ToListAsync().ConfigureAwait(false);
         foreach (var chargePrice in chargePrices)
         {
