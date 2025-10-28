@@ -141,6 +141,7 @@ public class ChargingCostService(
         chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
         chargePrice.SpotPriceRegion = dtoChargePrice.SpotPriceRegion;
         chargePrice.EnergyProviderConfiguration = dtoChargePrice.EnergyProviderConfiguration;
+        chargePrice.ValidSince = dtoChargePrice.ValidSince;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
         await tscOnlyChargingCostService.UpdateChargePricesOfAllChargingProcesses().ConfigureAwait(false);
