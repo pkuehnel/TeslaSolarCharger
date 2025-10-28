@@ -310,12 +310,28 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     {
         var fromUtc = from.UtcDateTime;
         var toUtc = to.UtcDateTime;
+
+        //required as if from is within a range the spot price before the range is also relevant
+        var previous = await context.SpotPrices
+            .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion && p.StartDate < fromUtc)
+            .OrderByDescending(p => p.StartDate)
+            .Select(p => new { p.StartDate, p.Price })
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+
         var spotPrices = await context.SpotPrices
-            .Where(p => p.StartDate >= fromUtc && p.StartDate < toUtc && p.SpotPriceRegion == chargePrice.SpotPriceRegion)
+            .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion &&
+                        p.StartDate >= fromUtc &&
+                        p.StartDate < toUtc)
             .OrderBy(p => p.StartDate)
-            .Select(p => new { p.StartDate, p.Price }) // only what we need
+            .Select(p => new { p.StartDate, p.Price })
             .ToListAsync()
             .ConfigureAwait(false);
+
+        if (previous != default)
+        {
+            spotPrices.Insert(0, previous);
+        }
 
         if (spotPrices.Count == 0)
             return prices;
