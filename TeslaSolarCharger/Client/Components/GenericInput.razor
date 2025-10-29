@@ -259,13 +259,7 @@
                 || typeof(T) == typeof(long)
                 || typeof(T) == typeof(long?)
                 || typeof(T) == typeof(ulong)
-                || typeof(T) == typeof(ulong?)
-                || typeof(T) == typeof(float)
-                || typeof(T) == typeof(float?)
-                || typeof(T) == typeof(double)
-                || typeof(T) == typeof(double?)
-                || typeof(T) == typeof(decimal)
-                || typeof(T) == typeof(decimal?))
+                || typeof(T) == typeof(ulong?))
                 {
                     <MudNumericField id="@InputId"
                                      @bind-Value="Value"
@@ -280,6 +274,29 @@
                                      Margin="InputMargin"
                                      Immediate="@ImmediateValueUpdate"
                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                     @attributes="@(NumericFieldAttributes())" />
+                }
+                else if (typeof(T) == typeof(float)
+                         || typeof(T) == typeof(float?)
+                         || typeof(T) == typeof(double)
+                         || typeof(T) == typeof(double?)
+                         || typeof(T) == typeof(decimal)
+                         || typeof(T) == typeof(decimal?))
+                {
+                    <MudNumericField id="@InputId"
+                                     @bind-Value="Value"
+                                     For="@(For)"
+                                     Required="@IsRequired"
+                                     Label="@LabelName"
+                                     Disabled="IsDisabled"
+                                     ReadOnly="IsReadOnly"
+                                     Variant="Variant.Outlined"
+                                     Adornment="@Adornment"
+                                     AdornmentText="@AdornmentText"
+                                     Margin="InputMargin"
+                                     Immediate="@ImmediateValueUpdate"
+                                     Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                     Format="0.##########"
                                      @attributes="@(NumericFieldAttributes())" />
                 }
                 else if (IsNormalText())
