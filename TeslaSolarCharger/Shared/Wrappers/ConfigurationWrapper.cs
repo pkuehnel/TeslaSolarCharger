@@ -706,6 +706,11 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().PowerBuffer;
     }
 
+    public decimal ChargingSwitchCosts()
+    {
+        return 0.20m;
+    }
+
     public string? TelegramBotKey()
     {
         return GetBaseConfiguration().TelegramBotKey;

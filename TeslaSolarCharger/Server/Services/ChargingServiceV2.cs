@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -694,26 +695,32 @@ public class ChargingServiceV2 : IChargingServiceV2
                     var relevantSplittedChargingSchedules = splittedChargingSchedules
                         .Where(cs => cs.CarId == loadpoint.CarId && cs.OcppChargingConnectorId == loadpoint.ChargingConnectorId)
                         .ToList();
-                    var gridPriceOrderedElectricityPrices = splittedGridPrices
-                        .OrderBy(p => p.GridPrice)
-                        .ThenByDescending(p => p.ValidFrom)
-                        .ToList();
-                    foreach (var gridPriceOrderedElectricityPrice in gridPriceOrderedElectricityPrices)
+
+                    var chargingSwitchCosts = _configurationWrapper.ChargingSwitchCosts();
+
+                    var isCurrentlyCharging = loadpoint.ChargingPower > 0;
+
+                    while (remainingEnergyToCoverFromGrid > 0)
                     {
-                        if (remainingEnergyToCoverFromGrid <= 0)
+                        var gridPriceOrderedElectricityPrices = GetOrderedElectricityPrices(currentDate, splittedGridPrices, isCurrentlyCharging, splittedChargingSchedules, chargingSwitchCosts, maxPower);
+                        //ToDo: Filter grid prices which are already fully used in charging schedules
+                        gridPriceOrderedElectricityPrices = gridPriceOrderedElectricityPrices.Where(p =>
+                            !chargingSchedules.Any(c =>
+                                c.ValidFrom == p.ValidFrom && c.ValidTo == p.ValidTo && c.TargetGridPower == maxPower)).ToList();
+                        var cheapestPrice = gridPriceOrderedElectricityPrices.FirstOrDefault();
+                        if (cheapestPrice == default)
                         {
                             break;
                         }
-
                         var correspondingChargingSchedule = relevantSplittedChargingSchedules
-                            .FirstOrDefault(cs => cs.ValidFrom == gridPriceOrderedElectricityPrice.ValidFrom
-                                                  && cs.ValidTo == gridPriceOrderedElectricityPrice.ValidTo);
+                            .FirstOrDefault(cs => cs.ValidFrom == cheapestPrice.ValidFrom
+                                                  && cs.ValidTo == cheapestPrice.ValidTo);
                         if (correspondingChargingSchedule == default)
                         {
                             correspondingChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
                             {
-                                ValidFrom = gridPriceOrderedElectricityPrice.ValidFrom,
-                                ValidTo = gridPriceOrderedElectricityPrice.ValidTo,
+                                ValidFrom = cheapestPrice.ValidFrom,
+                                ValidTo = cheapestPrice.ValidTo,
                             };
                             relevantSplittedChargingSchedules.Add(correspondingChargingSchedule);
                         }
@@ -721,7 +728,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         var maxPowerIncrease = maxPower - correspondingChargingSchedule.ChargingPower;
                         correspondingChargingSchedule.ChargingPower += maxPowerIncrease;
                         correspondingChargingSchedule.OnlyChargeOnAtLeastSolarPower = null;
-                        remainingEnergyToCoverFromGrid -= (int)(maxPowerIncrease * (gridPriceOrderedElectricityPrice.ValidTo - gridPriceOrderedElectricityPrice.ValidFrom).TotalHours);
+                        remainingEnergyToCoverFromGrid -= (int)(maxPowerIncrease * (cheapestPrice.ValidTo - cheapestPrice.ValidFrom).TotalHours);
                         if (remainingEnergyToCoverFromGrid < 0)
                         {
                             var hoursToReduce = (double)-remainingEnergyToCoverFromGrid / correspondingChargingSchedule.ChargingPower;
@@ -758,6 +765,54 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         return chargingSchedules;
+    }
+
+    private List<Price> GetOrderedElectricityPrices(DateTimeOffset currentDate, List<Price> splittedGridPrices, bool isCurrentlyCharging,
+        List<DtoChargingSchedule> splittedChargingSchedules, decimal chargingSwitchCosts, int maxPower)
+    {
+        var gridPricesIncludingCorrections = new List<Price>();
+        foreach (var gridPrice in splittedGridPrices)
+        {
+            var gridPriceCopy = GetCopy(gridPrice);
+            if (gridPrice.ValidFrom <= currentDate && gridPrice.ValidTo > currentDate)
+            {
+                if (isCurrentlyCharging)
+                {
+                    gridPricesIncludingCorrections.Add(gridPriceCopy);
+                    continue;
+                }
+            }
+            var forSureChargingChargingSchedules = splittedChargingSchedules
+                .Where(c => c.TargetGridPower > 0).ToList();
+            if (forSureChargingChargingSchedules.Any(c =>
+                    c.ValidFrom == gridPrice.ValidTo
+                    || c.ValidTo == gridPrice.ValidFrom
+                    || (c.ValidFrom == gridPrice.ValidFrom && c.ValidTo == gridPrice.ValidTo)))
+            {
+                gridPricesIncludingCorrections.Add(gridPriceCopy);
+                continue;
+            }
+            var switchCostsPerKwh = chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours);
+            gridPriceCopy.GridPrice += switchCostsPerKwh;
+            gridPricesIncludingCorrections.Add(gridPriceCopy);
+        }
+
+        var gridPriceOrderedElectricityPrices = gridPricesIncludingCorrections
+            .OrderBy(p => p.GridPrice)
+            .ThenByDescending(p => p.ValidFrom)
+            .ToList();
+        return gridPriceOrderedElectricityPrices;
+    }
+
+    private Price GetCopy(Price oldPrice)
+    {
+        return new Price()
+        {
+            GridPrice = oldPrice.GridPrice,
+            SolarPrice = oldPrice.SolarPrice,
+            ValidFrom = new DateTimeOffset(oldPrice.ValidFrom.UtcDateTime, TimeSpan.Zero),
+            ValidTo = new DateTimeOffset(oldPrice.ValidTo.UtcDateTime, TimeSpan.Zero),
+        };
     }
 
     private async Task CalculateGeofences(DateTimeOffset currentDate)
