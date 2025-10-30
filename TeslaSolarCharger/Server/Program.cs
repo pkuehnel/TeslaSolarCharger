@@ -339,7 +339,14 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.ConvertChargePricesToSpotPriceRegion().ConfigureAwait(false);
 
         var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
-        await spotPriceService.UpdateSpotPrices().ConfigureAwait(false);
+        try
+        {
+            await spotPriceService.UpdateSpotPrices().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger1.LogError(ex, "Error updating spot prices during startup");
+        }
 
         var tscOnlyChargingCostService = startupScope.ServiceProvider.GetRequiredService<ITscOnlyChargingCostService>();
         await tscOnlyChargingCostService.AddNonZeroMeterValuesCarsAndChargingStationsToSettings().ConfigureAwait(false);
