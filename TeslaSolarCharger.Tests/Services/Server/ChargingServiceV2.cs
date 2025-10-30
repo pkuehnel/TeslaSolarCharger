@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -17,10 +16,8 @@ using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit;
 using Xunit.Abstractions;
-using static MudBlazor.FilterOperator;
 using DateOnly = System.DateOnly;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
@@ -98,7 +95,7 @@ public class ChargingServiceV2 : TestBase
     public void CanGetNextTargetDateRepeating(DateTimeOffset currentDate, DateOnly? targetDate, DateTimeOffset expectedResult)
     {
         Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(currentDate);
-        var carValueLog = new Model.Entities.TeslaSolarCharger.CarChargingTarget()
+        var carValueLog = new CarChargingTarget()
         {
             Id = 1,
             CarId = 1,
@@ -172,7 +169,7 @@ public class ChargingServiceV2 : TestBase
 
         context.Should().NotBeNull();
         var expectedEnergy = (80 - 50) * 75 * 10;
-        context!.EnergyToCharge.Should().Be(expectedEnergy);
+        context.EnergyToCharge.Should().Be(expectedEnergy);
         context.MinimumEnergyToCharge.Should().Be(expectedEnergy);
         context.MaxPower.Should().Be(3 * 16 * 230);
         context.NextTarget.NextExecutionTime.Should().Be(new DateTimeOffset(2025, 1, 6, 9, 0, 0, TimeSpan.Zero));
@@ -268,7 +265,7 @@ public class ChargingServiceV2 : TestBase
         var schedule = service.CreateHomeBatteryDischargeSchedule(context, currentDate);
 
         schedule.Should().NotBeNull();
-        schedule!.ValidFrom.Should().Be(currentDate);
+        schedule.ValidFrom.Should().Be(currentDate);
         schedule.ValidTo.Should().Be(target.NextExecutionTime);
         schedule.TargetGridPower.Should().Be(4000);
     }
