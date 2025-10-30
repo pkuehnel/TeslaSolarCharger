@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.EnergyCharts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -156,8 +157,9 @@ public class SpotPriceService : ISpotPriceService
         var url = GenerateEnergyChartUrl(fromDate, toDate, regionCode);
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromHours(_constants.SpotPriceRefreshIntervalHours);
-        var json = await httpClient.GetStringAsync(url)
-            .ConfigureAwait(false);
+        var response = await httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
         var prices = GetPrices(json);
         return prices;
     }
