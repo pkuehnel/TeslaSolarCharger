@@ -708,7 +708,7 @@ public class ConfigurationWrapper(
 
     public decimal ChargingSwitchCosts()
     {
-        return 0.20m;
+        return GetBaseConfiguration().ChargingSwitchCosts;
     }
 
     public string? TelegramBotKey()

@@ -141,12 +141,13 @@ public class SpotPriceService : ISpotPriceService
     {
         const string baseUrl = "https://api.energy-charts.info/price";
         const string dateFormat = "yyyy-MM-dd'T'HH:mm'Z'"; // note the closing quote
-
+        var fromDateString = fromDate.ToUniversalTime().ToString(dateFormat, CultureInfo.InvariantCulture);
+        var toDateString = toDate.ToUniversalTime().ToString(dateFormat, CultureInfo.InvariantCulture);
         var query = new Dictionary<string, string?>
         {
             ["bzn"] = regionCode,
-            ["start"] = fromDate.ToUniversalTime().ToString(dateFormat, CultureInfo.InvariantCulture),
-            ["end"] = toDate.ToUniversalTime().ToString(dateFormat, CultureInfo.InvariantCulture),
+            ["start"] = fromDateString,
+            ["end"] = toDateString,
         };
 
         return QueryHelpers.AddQueryString(baseUrl, query);

@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Localization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -115,6 +117,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         OptimizeChargingSwitchTimes(chargingSchedules, loadPointsToManage, currentDate);
+        chargingSchedules = AutoMergeSchedules(chargingSchedules);
         _settings.ChargingSchedules = new ConcurrentBag<DtoChargingSchedule>(chargingSchedules);
         var chargingScheduleChange = new StateUpdateDto
         {
@@ -445,12 +448,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         var timespanToCombineCharges = TimeSpan.FromMinutes(20);
         foreach (var dtoLoadPointOverview in loadPointsToManage)
         {
-            if ((!(dtoLoadPointOverview.ChargingPower > 0))
-                || (dtoLoadPointOverview.ActualPhases == default)
-                || (dtoLoadPointOverview.MinCurrent == default))
-            {
-                continue;
-            }
             var correspondingChargingSchedules = chargingSchedules
                 .Where(c => c.CarId == dtoLoadPointOverview.CarId
                             && c.OcppChargingConnectorId == dtoLoadPointOverview.ChargingConnectorId)
@@ -460,7 +457,12 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 continue;
             }
-
+            if ((!(dtoLoadPointOverview.ChargingPower > 0))
+                || (dtoLoadPointOverview.ActualPhases == default)
+                || (dtoLoadPointOverview.MinCurrent == default))
+            {
+                continue;
+            }
             var nextChargingSchedule = correspondingChargingSchedules.First();
             if (nextChargingSchedule.ValidFrom <= currentDate)
             {
@@ -500,6 +502,99 @@ public class ChargingServiceV2 : IChargingServiceV2
 
 
     }
+
+    private List<DtoChargingSchedule> AutoMergeSchedules(IEnumerable<DtoChargingSchedule> schedules)
+    {
+        // Sort to ensure deterministic adjacency checks within each key group
+        var ordered = schedules
+            .OrderBy(s => s.CarId)
+            .ThenBy(s => s.OcppChargingConnectorId)
+            .ThenBy(s => s.ChargingPower)
+            .ThenBy(s => s.ValidFrom)
+            .ToList();
+
+        var merged = new List<DtoChargingSchedule>();
+
+        foreach (var group in ordered
+                     .GroupBy(s => (s.CarId, s.OcppChargingConnectorId, s.ChargingPower)))
+        {
+            DtoChargingSchedule? current = null;
+
+            // Track uniformity of optional fields across the merged block
+            int? solarUniform = null;
+            bool solarUniformOk = true;
+
+            int? targetUniform = null;
+            bool targetUniformOk = true;
+
+            foreach (var s in group)
+            {
+                if (current == null)
+                {
+                    current = Clone(s);
+                    solarUniform = s.OnlyChargeOnAtLeastSolarPower;
+                    targetUniform = s.TargetGridPower;
+                    continue;
+                }
+
+                bool isAdjacent =
+                    current.ValidTo == s.ValidFrom; // exact adjacency; adjust if you need tolerance
+
+                bool sameKey =
+                    current.CarId == s.CarId &&
+                    current.OcppChargingConnectorId == s.OcppChargingConnectorId &&
+                    current.ChargingPower == s.ChargingPower;
+
+                if (sameKey && isAdjacent)
+                {
+                    // Extend the window
+                    current.ValidTo = s.ValidTo;
+
+                    // Track optional-field uniformity
+                    if (solarUniformOk)
+                        solarUniformOk = solarUniform == s.OnlyChargeOnAtLeastSolarPower;
+                    if (targetUniformOk)
+                        targetUniformOk = targetUniform == s.TargetGridPower;
+                }
+                else
+                {
+                    // Finalize optional fields for the finished block
+                    if (!solarUniformOk) current.OnlyChargeOnAtLeastSolarPower = null;
+                    if (!targetUniformOk) current.TargetGridPower = null;
+
+                    merged.Add(current);
+
+                    // Start new block
+                    current = Clone(s);
+                    solarUniform = s.OnlyChargeOnAtLeastSolarPower;
+                    targetUniform = s.TargetGridPower;
+                    solarUniformOk = true;
+                    targetUniformOk = true;
+                }
+            }
+
+            if (current != null)
+            {
+                if (!solarUniformOk) current.OnlyChargeOnAtLeastSolarPower = null;
+                if (!targetUniformOk) current.TargetGridPower = null;
+                merged.Add(current);
+            }
+        }
+
+        // Keep overall chronological order
+        return merged.OrderBy(m => m.ValidFrom).ToList();
+    }
+
+    private static DtoChargingSchedule Clone(DtoChargingSchedule s) => new DtoChargingSchedule
+    {
+        CarId = s.CarId,
+        OcppChargingConnectorId = s.OcppChargingConnectorId,
+        ChargingPower = s.ChargingPower,
+        OnlyChargeOnAtLeastSolarPower = s.OnlyChargeOnAtLeastSolarPower,
+        TargetGridPower = s.TargetGridPower,
+        ValidFrom = s.ValidFrom,
+        ValidTo = s.ValidTo,
+    };
 
     private async Task SetCurrentOfNonChargingTeslasToMax()
     {
@@ -702,10 +797,9 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     while (remainingEnergyToCoverFromGrid > 0)
                     {
-                        var gridPriceOrderedElectricityPrices = GetOrderedElectricityPrices(currentDate, splittedGridPrices, isCurrentlyCharging, splittedChargingSchedules, chargingSwitchCosts, maxPower);
-                        //ToDo: Filter grid prices which are already fully used in charging schedules
+                        var gridPriceOrderedElectricityPrices = GetOrderedElectricityPrices(currentDate, splittedGridPrices, isCurrentlyCharging, relevantSplittedChargingSchedules, chargingSwitchCosts, maxPower);
                         gridPriceOrderedElectricityPrices = gridPriceOrderedElectricityPrices.Where(p =>
-                            !chargingSchedules.Any(c =>
+                            !relevantSplittedChargingSchedules.Any(c =>
                                 c.ValidFrom == p.ValidFrom && c.ValidTo == p.ValidTo && c.TargetGridPower == maxPower)).ToList();
                         var cheapestPrice = gridPriceOrderedElectricityPrices.FirstOrDefault();
                         if (cheapestPrice == default)
@@ -726,7 +820,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                         }
 
                         var maxPowerIncrease = maxPower - correspondingChargingSchedule.ChargingPower;
-                        correspondingChargingSchedule.ChargingPower += maxPowerIncrease;
+                        correspondingChargingSchedule.ChargingPower = maxPower;
+                        correspondingChargingSchedule.TargetGridPower = maxPower;
                         correspondingChargingSchedule.OnlyChargeOnAtLeastSolarPower = null;
                         remainingEnergyToCoverFromGrid -= (int)(maxPowerIncrease * (cheapestPrice.ValidTo - cheapestPrice.ValidFrom).TotalHours);
                         if (remainingEnergyToCoverFromGrid < 0)
@@ -792,7 +887,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                 gridPricesIncludingCorrections.Add(gridPriceCopy);
                 continue;
             }
-            var switchCostsPerKwh = chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours);
+            var switchCostsPerKwh = (chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours)) * 1000m;
             gridPriceCopy.GridPrice += switchCostsPerKwh;
             gridPricesIncludingCorrections.Add(gridPriceCopy);
         }
