@@ -22,9 +22,9 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
             new TextLocalizationTranslation(LanguageCodes.English, "Charging connector is not plugged in"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschluss ist nicht eingesteckt"));
 
-        Register("Car is fully charged",
-            new TextLocalizationTranslation(LanguageCodes.English, "Car is fully charged"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto ist vollständig geladen"));
+        Register("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Das Laden kann nicht gestartet werden, da das Auto es nicht zulässt. Mögliche Gründe sind, dass die Batterie bereits voll ist, das Laden im Auto oder in der App gestoppt wurde, das Auto im Standby- oder Ruhemodus ist oder eine Ladezeit geplant wurde."));
 
         Register("Waiting phase switch cooldown time before starting to charge",
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting phase switch cooldown time before starting to charge"),
