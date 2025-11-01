@@ -129,7 +129,7 @@ public class SpotPriceService : ISpotPriceService
     internal string GenerateEnergyChartUrl(DateTimeOffset fromDate, DateTimeOffset toDate, string regionCode)
     {
         const string baseUrl = "https://api.energy-charts.info/price";
-        const string dateFormat = "yyyy-MM-dd'T'HH:mm'Z'"; // note the closing quote
+        const string dateFormat = "yyyy-MM-dd'T'HH:mm'Z'";
         var fromDateString = fromDate.ToUniversalTime().ToString(dateFormat, CultureInfo.InvariantCulture);
         var toDateString = toDate.ToUniversalTime().ToString(dateFormat, CultureInfo.InvariantCulture);
         var query = new Dictionary<string, string?>
