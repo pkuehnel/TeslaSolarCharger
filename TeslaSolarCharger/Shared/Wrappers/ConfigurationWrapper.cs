@@ -1029,11 +1029,11 @@ public class ConfigurationWrapper(
         cache.Remove(_baseConfigurationMemoryCacheName, CacheEntryRemovedReason.ChangeMonitorChanged);
     }
 
-    //This method is used as before 2025-11-01 on each base config save a backup files was created. These need to be deleted.
+    //This method is used as before 2025-11-01 on each base config save a backup file was created. These need to be deleted.
     private void DeleteBaseConfigurationBackups(string configFileLocation)
     {
         logger.LogTrace("{method}({configFileLocation})", nameof(DeleteBaseConfigurationBackups), configFileLocation);
-        //As this is a very dangerous operation we only allow it until 2026-03-01 as everyone who had no issues with backupfiles until then will very likely never have. This method can savely be deleted after March 2026.
+        //As this is a very dangerous operation we only allow it until 2026-03-01 as everyone who had no issues with backupfiles until then will very likely never have. This method can safely be deleted after March 2026.
         if (dateTimeProvider.DateTimeOffSetUtcNow() < new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero))
         {
             var dir = Path.GetDirectoryName(configFileLocation) ?? "";
