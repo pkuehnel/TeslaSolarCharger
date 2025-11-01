@@ -163,7 +163,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         foreach (var timeStamp in solarProduction.Keys)
         {
             var production = solarProduction.GetValueOrDefault(timeStamp, 0);
+            logger.LogTrace("Production at {dateTime}: {production} Wh", timeStamp, production);
             var consumption = houseConsumption.GetValueOrDefault(timeStamp, 0);
+            logger.LogTrace("Consumption at {dateTime}: {consumption} Wh", timeStamp, consumption);
             surplusPerSlice[timeStamp] = production - consumption;
         }
         return surplusPerSlice;
