@@ -405,7 +405,7 @@
     public string InputId { get; set; } = Guid.NewGuid().ToString();
 
     [Parameter]
-    public bool Autogrow { get; set; } = true;
+    public bool Autogrow { get; set; } = false;
 
     private string MarginClass => Constants.DefaultMargin;
     private Margin InputMargin => Constants.InputMargin;
