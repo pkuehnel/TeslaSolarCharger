@@ -58,8 +58,18 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             logger.LogInformation("Added WebSocket connection for {chargePointId}", chargePointId);
 
-            // fire‑and‑forget the receive loop before everything else as is required to configure charge point
-            _ = Task.Run(() => ReceiveLoopAsync(dto));
+            // TCS that signals when the receive loop has reached the first ReceiveAsync
+            var receiveLoopReady =
+                new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Start the loop (no Task.Run needed)
+            _ = ReceiveLoopAsync(dto, receiveLoopReady);
+
+            // Wait until the loop is ready (i.e., it reached the ReceiveAsync await)
+            await receiveLoopReady.Task;
+            //Wait five seconds, to WebSocket definatley listens to messages
+            await Task.Delay(5000, cancellationToken);
+
 
             using var scope = serviceProvider.CreateScope();
             var chargingStationConfigurationService = scope.ServiceProvider
@@ -106,19 +116,26 @@ public sealed class OcppWebSocketConnectionHandlingService(
     }
 
 
-    private async Task ReceiveLoopAsync(DtoOcppWebSocket dto)
+    private async Task ReceiveLoopAsync(DtoOcppWebSocket dto, TaskCompletionSource<object?> readyTcs)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(ReceiveLoopAsync), dto.ChargePointId);
         var buffer = ArrayPool<byte>.Shared.Rent(4 * 1024);
 
         var watchdog = new CancellationTokenSource(_clientSideHeartbeatTimeout);
         var linked = CancellationTokenSource.CreateLinkedTokenSource(watchdog.Token);
-
+        var firstRun = true;
         try
         {
             while (dto.WebSocket.State == WebSocketState.Open && !linked.IsCancellationRequested)
             {
-                var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
+                var receiveMessageTask = dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
+                if (firstRun)
+                {
+                    readyTcs.TrySetResult(null);
+                    firstRun = false;
+                }
+
+                var result = await receiveMessageTask;
                 // reset heartbeat timer whenever something arrives
                 watchdog.CancelAfter(_clientSideHeartbeatTimeout);
                 if (result.MessageType == WebSocketMessageType.Close)
@@ -139,6 +156,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     }
                 }, linked.Token);
             }
+            if (firstRun)
+            {
+                readyTcs.TrySetResult(null);
+                firstRun = false;
+            }
         }
         catch (OperationCanceledException) when (watchdog.IsCancellationRequested)
         {
@@ -155,6 +177,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
             dto.LifetimeTsc.TrySetResult(null);
             watchdog.Dispose();
             linked.Dispose();
+            if (firstRun)
+            {
+                readyTcs.TrySetResult(null);
+                firstRun = false;
+            }
         }
     }
 
