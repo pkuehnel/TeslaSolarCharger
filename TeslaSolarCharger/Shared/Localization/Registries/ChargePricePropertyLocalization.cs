@@ -34,18 +34,18 @@ public class ChargePricePropertyLocalization : PropertyLocalizationRegistry<DtoC
         Register(x => x.GridPrice,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Grid Price",
-                "Base price per kWh that is used when charging from the grid or when no time based price is defined."),
+                "Base price per kWh that is used when charging from the grid and no time based price is defined."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Netzpreis",
-                "Grundpreis pro kWh, der beim Laden aus dem Netz oder ohne zeitabhängigen Preis verwendet wird."));
+                "Grundpreis pro kWh, der beim Laden aus dem Netz und kein zeitabhängigen Preis definiert ist."));
 
         Register(x => x.AddSpotPriceToGridPrice,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use Spot Prices",
-                "Enable this to add the market spot price of your region to the base grid price."),
+                "Enable this to add the market spot price of your region to the grid price."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Spotpreise verwenden",
-                "Aktiviere dies, um den Spotmarktpreis deiner Region zum Basis-Netzpreis hinzuzufügen."));
+                "Aktiviere dies, um den Spotmarktpreis deiner Region zum Netzpreis hinzuzufügen."));
 
         Register(x => x.SpotPriceRegion,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -58,10 +58,10 @@ public class ChargePricePropertyLocalization : PropertyLocalizationRegistry<DtoC
         Register(x => x.SpotPriceSurcharge,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Additional costs to spot price",
-                "Percentage that is added to the raw spot price (e.g. provider fee or taxes)."),
+                "Percentage that is added to the raw spot price (e.g. provider fee or taxes), e.g. 19% in Germany."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Zusätzliche Kosten zum Spotpreis",
-                "Prozentsatz, der zum Spotpreis hinzugerechnet wird (z. B. Anbietergebühr oder Steuern)."));
+                "Prozentsatz, der zum Spotpreis hinzugerechnet wird (z. B. Anbietergebühr oder Steuern), z.B. 19% in Deutschland."));
     }
 }
 
