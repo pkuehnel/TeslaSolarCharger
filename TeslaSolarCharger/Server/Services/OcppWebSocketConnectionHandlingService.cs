@@ -156,6 +156,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     }
                 }, linked.Token);
             }
+            if (firstRun)
+            {
+                readyTcs.TrySetResult(null);
+                firstRun = false;
+            }
         }
         catch (OperationCanceledException) when (watchdog.IsCancellationRequested)
         {
@@ -172,6 +177,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
             dto.LifetimeTsc.TrySetResult(null);
             watchdog.Dispose();
             linked.Dispose();
+            if (firstRun)
+            {
+                readyTcs.TrySetResult(null);
+                firstRun = false;
+            }
         }
     }
 
