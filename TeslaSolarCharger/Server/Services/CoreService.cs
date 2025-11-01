@@ -121,6 +121,52 @@ public class CoreService : ICoreService
             return;
         }
         await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNamePrefix, destinationPath, false).ConfigureAwait(false);
+        CleanupOldBackups(destinationPath, minToKeep: 3, monthsToKeep: 1);
+    }
+
+    private void CleanupOldBackups(string directory, int minToKeep, int monthsToKeep)
+    {
+        try
+        {
+            var dir = new DirectoryInfo(directory);
+            if (!dir.Exists)
+            {
+                return;
+            }
+
+            var files = dir.GetFiles("*", SearchOption.TopDirectoryOnly)
+                .OrderByDescending(f => f.LastWriteTimeUtc)
+                .ToList();
+
+            if (files.Count <= minToKeep)
+            {
+                return;
+            }
+
+            var cutoffUtc = DateTime.UtcNow.AddMonths(-monthsToKeep);
+
+            foreach (var file in files.Skip(minToKeep))
+            {
+                // Delete only if older than cutoff; otherwise keep
+                if (file.LastWriteTimeUtc < cutoffUtc)
+                {
+                    try
+                    {
+                        file.Delete();
+                        _logger.LogInformation("Deleted old backup: {file}", file.FullName);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Don't let one failure break the whole cleanup
+                        _logger.LogWarning(ex, "Failed to delete backup: {file}", file.FullName);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "CleanupOldBackups failed for directory {directory}", directory);
+        }
     }
 
     private string GenerateResultFileName(string databaseFileName, string currentVersion)
