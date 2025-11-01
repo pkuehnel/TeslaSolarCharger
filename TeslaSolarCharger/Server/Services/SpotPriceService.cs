@@ -6,7 +6,6 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.EnergyCharts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -42,50 +41,31 @@ public class SpotPriceService : ISpotPriceService
         {
             _logger.LogInformation("Deleted {deletedRows} spot prices from database.", deletedRows);
         }
-        var latestKnownSpotPriceTime = await LatestKnownSpotPriceStartTime().ConfigureAwait(false);
-        DateTimeOffset? getPricesFrom = null;
-        if (latestKnownSpotPriceTime != default)
+
+        var regions = await _teslaSolarChargerContext.ChargePrices
+            .Where(c => c.AddSpotPriceToGridPrice && c.SpotPriceRegion != null)
+            .Select(c => c.SpotPriceRegion)
+            .ToHashSetAsync();
+        var latestKnownSpotPriceTimes = await LatestKnownSpotPriceStartTime(regions).ConfigureAwait(false);
+        foreach (var latestKnownSpotPriceTime in latestKnownSpotPriceTimes)
         {
-            getPricesFrom = latestKnownSpotPriceTime;
-        }
-        getPricesFrom ??= _constants.FirstChargePriceTimeStamp;
-        var getPricesFromDateTime = getPricesFrom.Value.UtcDateTime;
-        var getPricesTo = _dateTimeProvider.DateTimeOffSetUtcNow().AddHours(48);
-        var getPricesToDateTime = getPricesTo.UtcDateTime;
-        var chargePricesAfterGetPricesFrom = await _teslaSolarChargerContext.ChargePrices
-            .Where(c => c.ValidSince > getPricesFromDateTime && c.ValidSince <= getPricesToDateTime)
-            .AsNoTracking()
-            .ToListAsync().ConfigureAwait(false);
-        var latestChargePriceBeforeInitialTimeStamp = await _teslaSolarChargerContext.ChargePrices
-            .OrderByDescending(c => c.ValidSince)
-            .FirstAsync(c => c.ValidSince <= getPricesFromDateTime).ConfigureAwait(false);
-        var chargePrices = new List<ChargePrice>() { latestChargePriceBeforeInitialTimeStamp, };
-        chargePrices.AddRange(chargePricesAfterGetPricesFrom);
-        chargePrices = chargePrices.OrderBy(c => c.ValidSince).ToList();
-        for (var i = 0; i < chargePrices.Count; i++)
-        {
-            var chargePrice = chargePrices[i];
-            if (chargePrice.SpotPriceRegion == default)
+            DateTimeOffset? getPricesFrom = null;
+            if (latestKnownSpotPriceTime.Value != default)
             {
-                _logger.LogInformation("Can not get spot prices for chargePrice {@chargePrice} as Spot price region is unknown", chargePrice);
-                continue;
+                getPricesFrom = latestKnownSpotPriceTime.Value;
             }
-            var validSinceDateTimeOffset = new DateTimeOffset(chargePrice.ValidSince, TimeSpan.Zero);
-            var startDate = getPricesFrom.Value > validSinceDateTimeOffset
-                ? getPricesFrom.Value
-                : validSinceDateTimeOffset;
-            var endDate = i == chargePrices.Count - 1
-                ? new DateTimeOffset(getPricesToDateTime, TimeSpan.Zero)
-                : new DateTimeOffset(chargePrices[i + 1].ValidSince, TimeSpan.Zero);
-            var receivedPrices = await GetEnergyChartPrices(startDate, endDate, chargePrice.SpotPriceRegion.Value.ToRegionCode()).ConfigureAwait(false);
+            getPricesFrom ??= _constants.FirstChargePriceTimeStamp;
+            var getPricesTo = _dateTimeProvider.DateTimeOffSetUtcNow().AddHours(48);
+            var receivedPrices = await GetEnergyChartPrices(getPricesFrom.Value, getPricesTo, latestKnownSpotPriceTime.Key.ToRegionCode()).ConfigureAwait(false);
             if (receivedPrices == null)
             {
                 _logger.LogWarning("Could not get energy chart prices for region {region} between {startDate} and {endDate}",
-                    chargePrice.SpotPriceRegion.Value, startDate, endDate);
+                    latestKnownSpotPriceTime.Key, getPricesFrom.Value, getPricesTo);
                 continue;
             }
-            await AddEnergyChartPricesToDatabase(startDate.AddTicks(1), receivedPrices, chargePrice.SpotPriceRegion.Value);
+            await AddEnergyChartPricesToDatabase(getPricesFrom.Value.AddTicks(1), receivedPrices, latestKnownSpotPriceTime.Key);
         }
+        
     }
 
     private async Task AddEnergyChartPricesToDatabase(DateTimeOffset earlieststartDate, DtoEnergyChartPrices energyChartPrices,
@@ -124,17 +104,26 @@ public class SpotPriceService : ISpotPriceService
         return newSpotPrices;
     }
 
-    private async Task<DateTimeOffset?> LatestKnownSpotPriceStartTime()
+    private async Task<Dictionary<SpotPriceRegion, DateTimeOffset?>> LatestKnownSpotPriceStartTime(HashSet<SpotPriceRegion?> regions)
     {
-        var latestKnownSpotPrice = await _teslaSolarChargerContext.SpotPrices
-            .Where(s => s.SpotPriceRegion != null)
-            .OrderByDescending(s => s.StartDate)
-            .Select(s => new
+        regions.Remove(null);
+        
+        var result = new Dictionary<SpotPriceRegion, DateTimeOffset?>();
+        foreach (var spotPriceRegion in regions)
+        {
+            if (spotPriceRegion == default)
             {
-                s.StartDate,
-            })
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        return latestKnownSpotPrice == default ? null : new DateTimeOffset(latestKnownSpotPrice.StartDate, TimeSpan.Zero);
+                continue;
+            }
+
+            var lateststartDate = await _teslaSolarChargerContext.SpotPrices
+                .Where(s => s.SpotPriceRegion == spotPriceRegion)
+                .OrderByDescending(s => s.StartDate)
+                .Select(s => new { s.StartDate })
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            result[spotPriceRegion.Value] = lateststartDate == default ? null : new DateTimeOffset(lateststartDate.StartDate, TimeSpan.Zero);
+        }
+        return result;
     }
 
     internal string GenerateEnergyChartUrl(DateTimeOffset fromDate, DateTimeOffset toDate, string regionCode)
