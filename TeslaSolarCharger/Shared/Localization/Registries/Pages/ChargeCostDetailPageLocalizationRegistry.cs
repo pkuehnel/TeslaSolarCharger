@@ -58,6 +58,10 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "Add time based price"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zeitabhängigen Preis hinzufügen"));
 
+        Register("Spot Price Region",
+            new TextLocalizationTranslation(LanguageCodes.English, "Spot Price Region"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Spotpreis-Region"));
+
         Register("Use Spot Prices",
             new TextLocalizationTranslation(LanguageCodes.English, "Use Spot Prices"),
             new TextLocalizationTranslation(LanguageCodes.German, "Spotpreise verwenden"));
@@ -77,5 +81,9 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
         Register("Updating charge prices can take a significant amount of time as the prices of all previous charges are updated",
             new TextLocalizationTranslation(LanguageCodes.English, "Updating charge prices can take a significant amount of time as the prices of all previous charges are updated"),
             new TextLocalizationTranslation(LanguageCodes.German, "Das Aktualisieren der Ladepreise kann einige Zeit dauern, da die Preise aller bisherigen Ladevorgänge angepasst werden."));
+
+        Register("Charge price is null and can not be saved. Try reloading the page.",
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge price is null and can not be saved. Try reloading the page."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladepreis ist leer und kann nicht gespeichert werden. Versuche, die Seite neu zu laden."));
     }
 }

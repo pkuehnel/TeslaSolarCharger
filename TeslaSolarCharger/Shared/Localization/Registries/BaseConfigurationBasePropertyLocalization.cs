@@ -263,6 +263,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Ladeverlust des Fahrzeugs",
                 "Energieverlust beim Laden der Fahrzeuge. Wird verwendet, um Ladepläne basierend auf der Batteriekapazität zu berechnen."));
 
+        Register(x => x.ChargingSwitchCosts,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Charging Switch Costs",
+                "Estimated costs that are incurred every time charging is started or stopped. The value is used in cost calculations when toggling charging."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Kosten für Ladeschaltungen",
+                "Geschätzte Kosten, die bei jedem Starten oder Stoppen des Ladevorgangs entstehen. Der Wert wird bei Kostenschätzungen für Ladeunterbrechungen verwendet."));
+
         Register(x => x.MaxCombinedCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Max combined current",
