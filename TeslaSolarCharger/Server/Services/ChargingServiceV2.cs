@@ -503,6 +503,13 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     }
 
+    private static bool SameOptionalConstraints(DtoChargingSchedule a, DtoChargingSchedule b)
+    {
+        // Nullable.Equals handles both-null as equal
+        return Nullable.Equals(a.OnlyChargeOnAtLeastSolarPower, b.OnlyChargeOnAtLeastSolarPower)
+            && Nullable.Equals(a.TargetGridPower, b.TargetGridPower);
+    }
+
     private List<DtoChargingSchedule> AutoMergeSchedules(IEnumerable<DtoChargingSchedule> schedules)
     {
         // Sort to ensure deterministic adjacency checks within each key group
@@ -515,68 +522,42 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var merged = new List<DtoChargingSchedule>();
 
-        foreach (var group in ordered
-                     .GroupBy(s => (s.CarId, s.OcppChargingConnectorId, s.ChargingPower)))
+        foreach (var group in ordered.GroupBy(s => (s.CarId, s.OcppChargingConnectorId, s.ChargingPower)))
         {
             DtoChargingSchedule? current = null;
-
-            // Track uniformity of optional fields across the merged block
-            int? solarUniform = null;
-            bool solarUniformOk = true;
-
-            int? targetUniform = null;
-            bool targetUniformOk = true;
 
             foreach (var s in group)
             {
                 if (current == null)
                 {
                     current = Clone(s);
-                    solarUniform = s.OnlyChargeOnAtLeastSolarPower;
-                    targetUniform = s.TargetGridPower;
                     continue;
                 }
 
-                bool isAdjacent =
-                    current.ValidTo == s.ValidFrom; // exact adjacency; adjust if you need tolerance
-
-                bool sameKey =
+                var isAdjacent = current.ValidTo == s.ValidFrom; // exact boundary adjacency
+                var sameKey =
                     current.CarId == s.CarId &&
                     current.OcppChargingConnectorId == s.OcppChargingConnectorId &&
                     current.ChargingPower == s.ChargingPower;
 
-                if (sameKey && isAdjacent)
-                {
-                    // Extend the window
-                    current.ValidTo = s.ValidTo;
+                var constraintsMatch = SameOptionalConstraints(current, s);
 
-                    // Track optional-field uniformity
-                    if (solarUniformOk)
-                        solarUniformOk = solarUniform == s.OnlyChargeOnAtLeastSolarPower;
-                    if (targetUniformOk)
-                        targetUniformOk = targetUniform == s.TargetGridPower;
+                if (sameKey && isAdjacent && constraintsMatch)
+                {
+                    // Extend uninterrupted window with identical constraints
+                    current.ValidTo = s.ValidTo;
                 }
                 else
                 {
-                    // Finalize optional fields for the finished block
-                    if (!solarUniformOk) current.OnlyChargeOnAtLeastSolarPower = null;
-                    if (!targetUniformOk) current.TargetGridPower = null;
-
+                    // Commit the current block as-is
                     merged.Add(current);
-
-                    // Start new block
+                    // Start a new block (keep the constraints exactly as they are)
                     current = Clone(s);
-                    solarUniform = s.OnlyChargeOnAtLeastSolarPower;
-                    targetUniform = s.TargetGridPower;
-                    solarUniformOk = true;
-                    targetUniformOk = true;
                 }
             }
 
             if (current != null)
             {
-                if (!solarUniformOk) current.OnlyChargeOnAtLeastSolarPower = null;
-                if (!targetUniformOk) current.TargetGridPower = null;
                 merged.Add(current);
             }
         }
