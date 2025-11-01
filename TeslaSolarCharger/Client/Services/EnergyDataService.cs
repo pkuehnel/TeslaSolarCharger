@@ -92,7 +92,7 @@ namespace TeslaSolarCharger.Client.Services
             var resultDictionary = new Dictionary<int, int>();
             foreach (var keyValuePair in resp)
             {
-                resultDictionary[keyValuePair.Key.UtcDateTime.Hour] = keyValuePair.Value;
+                resultDictionary[keyValuePair.Key.LocalDateTime.Hour] = keyValuePair.Value;
             }
             return resultDictionary;
         }
