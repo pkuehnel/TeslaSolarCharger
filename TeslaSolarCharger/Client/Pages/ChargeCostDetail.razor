@@ -75,7 +75,7 @@ else
                                    For="() => ChargePrice.Item.SpotPriceRegion"
                                    @bind-Value="ChargePrice.Item.SpotPriceRegion"
                                    Margin="Margin.Dense"
-                                   Label="Spot Price Region"
+                                   Label="@T("Spot Price Region")"
                                    Variant="Variant.Outlined">
                     <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@SpotPriceRegion.DE_LU.ToFriendlyName()" />
                     <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@SpotPriceRegion.AT.ToFriendlyName()" />
@@ -166,7 +166,7 @@ else
     {
         if (ChargePrice == null)
         {
-            Snackbar.Add("Charge price is null and can not be saved. Try reloading the page.", Severity.Error);
+            Snackbar.Add(T("Charge price is null and can not be saved. Try reloading the page."), Severity.Error);
             return;
         }
         SubmitIsLoading = true;
