@@ -266,10 +266,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.ChargingSwitchCosts,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Charging Switch Costs",
-                "Estimated costs that are incurred every time charging is started or stopped. The value is used in cost calculations when toggling charging."),
+                "This value is used to reduce the number of charging starts and stops by artificially increasing the cost of short charging sessions. This way, during charge planning, continuous but slightly more expensive charging periods are preferred over cheaper, non-continuous ones. Set this value to 0 to ensure charging always occurs at the lowest-cost times."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Kosten für Ladeschaltungen",
-                "Geschätzte Kosten, die bei jedem Starten oder Stoppen des Ladevorgangs entstehen. Der Wert wird bei Kostenschätzungen für Ladeunterbrechungen verwendet."));
+                "Dieser Wert wird verwendet, um die Anzahl der Lade­starts und -stopps zu reduzieren, indem kurze Ladezeiten durch zusätzliche Kosten künstlich verteuert werden. Dadurch werden bei der Ladeplanung zusammenhängende, etwas teurere Ladezeiten gegenüber günstigeren, aber nicht zusammenhängenden Ladezeiten bevorzugt. Setze diesen Wert auf 0, damit stets zu den günstigsten Zeiten geladen wird."));
 
         Register(x => x.MaxCombinedCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
