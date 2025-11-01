@@ -37,7 +37,7 @@ public class ChargePricePropertyLocalization : PropertyLocalizationRegistry<DtoC
                 "Base price per kWh that is used when charging from the grid and no time based price is defined."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Netzpreis",
-                "Grundpreis pro kWh, der beim Laden aus dem Netz und kein zeitabhängigen Preis definiert ist."));
+                "Grundpreis pro kWh aus dem Netz, wenn kein zeitabhängiger Preis definiert ist."));
 
         Register(x => x.AddSpotPriceToGridPrice,
             new PropertyLocalizationTranslation(LanguageCodes.English,
