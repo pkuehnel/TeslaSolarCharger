@@ -1,9 +1,10 @@
-using System.Reflection;
-using System.Runtime.Caching;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Reflection;
+using System.Runtime.Caching;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -1015,20 +1016,46 @@ public class ConfigurationWrapper(
 
     private async Task UpdateJsonFile(string configFileLocation, string jsonFileContent)
     {
-        if (File.Exists(configFileLocation))
+        try
         {
-            try
-            {
-                File.Copy(configFileLocation, configFileLocation + dateTimeProvider.DateTimeOffSetNow().ToUnixTimeSeconds(), true);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Could not backup baseConfig.json");
-            }
+            DeleteBaseConfigurationBackups(configFileLocation);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not complete backup cleanup for {Config}", configFileLocation);
         }
         await File.WriteAllTextAsync(configFileLocation, jsonFileContent).ConfigureAwait(false);
         var cache = MemoryCache.Default;
         cache.Remove(_baseConfigurationMemoryCacheName, CacheEntryRemovedReason.ChangeMonitorChanged);
+    }
+
+    //This method is used as before 2025-11-01 on each base config save a backup file was created. These need to be deleted.
+    private void DeleteBaseConfigurationBackups(string configFileLocation)
+    {
+        logger.LogTrace("{method}({configFileLocation})", nameof(DeleteBaseConfigurationBackups), configFileLocation);
+        //As this is a very dangerous operation we only allow it until 2026-03-01 as everyone who had no issues with backupfiles until then will very likely never have. This method can safely be deleted after March 2026.
+        if (dateTimeProvider.DateTimeOffSetUtcNow() < new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero))
+        {
+            var dir = Path.GetDirectoryName(configFileLocation) ?? "";
+            var baseName = Path.GetFileName(configFileLocation);
+            var exactBackupNameRegex = new Regex($"^{Regex.Escape(baseName)}\\d+$");
+
+            foreach (var path in Directory.EnumerateFiles(dir, baseName + "*", SearchOption.TopDirectoryOnly))
+            {
+                var name = Path.GetFileName(path);
+                if (exactBackupNameRegex.IsMatch(name))
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to delete old backup '{BackupPath}'", path);
+                    }
+                }
+            }
+        }
     }
 
     public async Task<bool> IsBaseConfigurationJsonRelevant()
