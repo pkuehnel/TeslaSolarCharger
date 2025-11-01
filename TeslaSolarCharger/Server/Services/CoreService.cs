@@ -121,10 +121,10 @@ public class CoreService : ICoreService
             return;
         }
         await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNamePrefix, destinationPath, false).ConfigureAwait(false);
-        CleanupOldBackups(destinationPath, minToKeep: 3, monthsToKeep: 1);
+        CleanupOldBackups(destinationPath,3, 1);
     }
 
-    private void CleanupOldBackups(string directory, int minToKeep, int monthsToKeep)
+    private void CleanupOldBackups(string directory, int minToKeep, int daysToKeep)
     {
         try
         {
@@ -143,7 +143,7 @@ public class CoreService : ICoreService
                 return;
             }
 
-            var cutoffUtc = DateTime.UtcNow.AddMonths(-monthsToKeep);
+            var cutoffUtc = DateTime.UtcNow.AddDays(-daysToKeep);
 
             foreach (var file in files.Skip(minToKeep))
             {
