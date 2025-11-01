@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
@@ -12,7 +13,8 @@ public class DebugController(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
-    IOcppChargePointConfigurationService ocppChargePointConfigurationService) : ApiBaseController
+    IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    ITscOnlyChargingCostService tscOnlyChargingCostService) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
@@ -247,4 +249,11 @@ public class DebugController(
         return Ok(new DtoValue<string>(resultString));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetGridPrices(DateTimeOffset from, DateTimeOffset to)
+    {
+        var result = await tscOnlyChargingCostService.GetPricesInTimeSpan(from, to);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
 }

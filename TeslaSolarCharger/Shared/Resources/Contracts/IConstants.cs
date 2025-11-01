@@ -80,4 +80,6 @@ public interface IConstants
     int CarCapabilityMaxCurrentAboveMeasuredCurrent { get; }
     string TeslasAddedToAllowedCars { get; }
     int SolarHistoricValueCapacity { get; }
+    DateTimeOffset FirstChargePriceTimeStamp { get; }
+    int SpotPriceRefreshIntervalHours { get; }
 }

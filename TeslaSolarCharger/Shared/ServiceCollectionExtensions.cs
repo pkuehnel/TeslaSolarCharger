@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPropertyLocalizationRegistry, CarOverviewSettingsPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, CarChargingTargetPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, ModbusValueResultConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, ChargePricePropertyLocalization>()
             .AddSingleton<ITextLocalizationService, TextLocalizationService>()
             .AddSingleton<ITextLocalizationRegistry, SharedComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BaseConfigurationPageLocalizationRegistry>()

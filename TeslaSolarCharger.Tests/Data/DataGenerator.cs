@@ -29,7 +29,6 @@ public static class DataGenerator
         context.SpotPrices.Add(new SpotPrice()
         {
             StartDate = new DateTime(2023, 1, 22, 17, 0, 0),
-            EndDate = new DateTime(2023, 1, 22, 18, 0, 0), Price = new decimal(0.11)
         });
         return context;
     }

@@ -336,6 +336,17 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
+        await chargingCostService.ConvertChargePricesToSpotPriceRegion().ConfigureAwait(false);
+
+        var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
+        try
+        {
+            await spotPriceService.UpdateSpotPrices().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger1.LogError(ex, "Error updating spot prices during startup");
+        }
 
         var tscOnlyChargingCostService = startupScope.ServiceProvider.GetRequiredService<ITscOnlyChargingCostService>();
         await tscOnlyChargingCostService.AddNonZeroMeterValuesCarsAndChargingStationsToSettings().ConfigureAwait(false);
@@ -368,9 +379,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
-
-        var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
-        await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
         if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })

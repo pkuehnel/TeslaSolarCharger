@@ -126,6 +126,7 @@ public class BaseConfigurationBase
     public double HomeGeofenceLatitude { get; set; } = 52.5185238; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
     [Postfix("m")]
     public int HomeGeofenceRadius { get; set; } = 50;
+    public decimal ChargingSwitchCosts { get; set; } = 0.20M;
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 

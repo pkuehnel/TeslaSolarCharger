@@ -1,9 +1,9 @@
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -17,7 +17,8 @@ public class ChargingCostService(
     IServiceProvider serviceProvider,
     IConstants constants,
     ITscOnlyChargingCostService tscOnlyChargingCostService,
-    ISettings settings)
+    ISettings settings,
+    IConfigurationWrapper configurationWrapper)
     : IChargingCostService
 {
     public async Task ConvertToNewChargingProcessStructure()
@@ -121,6 +122,7 @@ public class ChargingCostService(
             logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
+
         ChargePrice chargePrice;
         if (dtoChargePrice.Id == null)
         {
@@ -135,11 +137,11 @@ public class ChargingCostService(
         //Can not be null as declared as Required in DTO
         chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice!;
         chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
-        chargePrice.ValidSince = dtoChargePrice.ValidSince;
-        chargePrice.EnergyProvider = dtoChargePrice.EnergyProvider;
         chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
         chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
+        chargePrice.SpotPriceRegion = dtoChargePrice.SpotPriceRegion;
         chargePrice.EnergyProviderConfiguration = dtoChargePrice.EnergyProviderConfiguration;
+        chargePrice.ValidSince = dtoChargePrice.ValidSince;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
         await tscOnlyChargingCostService.UpdateChargePricesOfAllChargingProcesses().ConfigureAwait(false);
@@ -158,8 +160,7 @@ public class ChargingCostService(
         {
             GridPrice = 0.25m,
             SolarPrice = 0.25m,
-            ValidSince = DateTime.SpecifyKind(new DateTime(2020, 1, 1), DateTimeKind.Utc),
-            EnergyProvider = EnergyProvider.OldTeslaSolarChargerConfig,
+            ValidSince = constants.FirstChargePriceTimeStamp.UtcDateTime,
             AddSpotPriceToGridPrice = false,
             SpotPriceSurcharge = 0.19m,
             EnergyProviderConfiguration = null,
@@ -167,9 +168,9 @@ public class ChargingCostService(
         await UpdateChargePrice(chargePrice).ConfigureAwait(false);
     }
 
-    private static bool IsFirstChargePriceSet(List<ChargePrice> chargePrices)
+    private bool IsFirstChargePriceSet(List<ChargePrice> chargePrices)
     {
-        return chargePrices.Any(c => c.ValidSince < new DateTime(2022, 2, 1));
+        return chargePrices.Any(c => c.ValidSince < constants.FirstChargePriceTimeStamp.AddDays(2).UtcDateTime);
     }
 
     public async Task FixConvertedChargingDetailSolarPower()
@@ -223,6 +224,23 @@ public class ChargingCostService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    public async Task ConvertChargePricesToSpotPriceRegion()
+    {
+        var spotPriceRegion = SpotPriceRegion.DE_LU;
+        if (configurationWrapper.GetAwattarBaseUrl().Contains("awattar.at"))
+        {
+            spotPriceRegion = SpotPriceRegion.AT;
+        }
+        var chargePrices = await teslaSolarChargerContext.ChargePrices
+            .Where(cp => cp.SpotPriceRegion == default)
+            .ToListAsync().ConfigureAwait(false);
+        foreach (var chargePrice in chargePrices)
+        {
+            chargePrice.SpotPriceRegion = spotPriceRegion;
+        }
+        await teslaSolarChargerContext.SaveChangesAsync();
+    }
+
     public async Task DeleteChargePriceById(int id)
     {
         var chargePrice = await teslaSolarChargerContext.ChargePrices
@@ -241,7 +259,6 @@ public class ChargingCostService(
             {
                 Id = e.Id,
                 ValidSince = e.ValidSince,
-                EnergyProvider = e.EnergyProvider,
                 EnergyProviderConfiguration = e.EnergyProviderConfiguration,
                 SolarPrice = e.SolarPrice,
                 GridPrice = e.GridPrice,
@@ -297,35 +314,14 @@ public class ChargingCostService(
             {
                 Id = e.Id,
                 ValidSince = e.ValidSince,
-                EnergyProvider = e.EnergyProvider,
                 EnergyProviderConfiguration = e.EnergyProviderConfiguration,
                 SolarPrice = e.SolarPrice,
                 GridPrice = e.GridPrice,
                 AddSpotPriceToGridPrice = e.AddSpotPriceToGridPrice,
+                SpotPriceRegion = e.SpotPriceRegion,
                 SpotPriceSurcharge = e.SpotPriceCorrectionFactor * 100,
             })
             .FirstAsync().ConfigureAwait(false);
-        switch (chargePrices.EnergyProvider)
-        {
-            case EnergyProvider.Octopus:
-                break;
-            case EnergyProvider.Tibber:
-                break;
-            case EnergyProvider.FixedPrice:
-                break;
-            case EnergyProvider.Awattar:
-                break;
-            case EnergyProvider.Energinet:
-                break;
-            case EnergyProvider.HomeAssistant:
-                break;
-            case EnergyProvider.OldTeslaSolarChargerConfig:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-
         return chargePrices;
     }
 }
