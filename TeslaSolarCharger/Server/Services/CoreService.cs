@@ -126,6 +126,7 @@ public class CoreService : ICoreService
 
     private void CleanupOldBackups(string directory, int minToKeep, int daysToKeep)
     {
+        _logger.LogTrace("{method}({directory}, {minToKeep}, {daysToKeep})", nameof(CleanupOldBackups), directory, minToKeep, daysToKeep);
         try
         {
             var dir = new DirectoryInfo(directory);
@@ -137,16 +138,17 @@ public class CoreService : ICoreService
             var files = dir.GetFiles("*", SearchOption.TopDirectoryOnly)
                 .OrderByDescending(f => f.LastWriteTimeUtc)
                 .ToList();
-
+            _logger.LogTrace("Found {fileCount} backup files in directory {directory}", files.Count, directory);
             if (files.Count <= minToKeep)
             {
                 return;
             }
 
             var cutoffUtc = _dateTimeProvider.UtcNow().AddDays(-daysToKeep);
-
+            _logger.LogTrace("Deleting backups older than {cutoffUtc}", cutoffUtc);
             foreach (var file in files.Skip(minToKeep))
             {
+                _logger.LogTrace("Checking file {fileName} with age {age}", file.Name, file.LastAccessTimeUtc);
                 // Delete only if older than cutoff; otherwise keep
                 if (file.LastWriteTimeUtc < cutoffUtc)
                 {
