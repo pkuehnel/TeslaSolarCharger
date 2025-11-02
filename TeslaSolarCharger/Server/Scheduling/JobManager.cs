@@ -59,6 +59,7 @@ public class JobManager(
         var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
         var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
+        var manualCarsDataClearingJob = JobBuilder.Create<ManualCarsDataClearingJob>().WithIdentity(nameof(ManualCarsDataClearingJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -156,6 +157,9 @@ public class JobManager(
 
         var refreshableValuesRefreshTrigger = TriggerBuilder.Create().WithIdentity("refreshableValuesRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(1)).Build();
+        var manualCarsDataClearingTrigger = TriggerBuilder.Create().WithIdentity("manualCarsDataClearingTrigger")
+            .StartAt(currentDate.AddMinutes(constants.ManualCarMinutesUntilForgetSoc + 1))
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.ManualCarMinutesUntilForgetSoc)).Build();
 
         var random = new Random();
         var hour = random.Next(0, 5);
@@ -196,6 +200,7 @@ public class JobManager(
             {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
             {refreshableValuesRefreshJob, new HashSet<ITrigger> {refreshableValuesRefreshTrigger}},
+            {manualCarsDataClearingJob, new HashSet<ITrigger> {manualCarsDataClearingTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())

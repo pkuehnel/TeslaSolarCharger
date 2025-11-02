@@ -425,6 +425,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     {
         settings.IsStartupCompleted = true;
         var dateTimeProvider = startupScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-        settings.StartupTime = dateTimeProvider.UtcNow();
+        settings.StartupTime = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 }

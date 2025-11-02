@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -16,20 +17,47 @@ public class CarValueEstimationService : ICarValueEstimationService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettings _settings;
     private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IConstants _constants;
 
     public CarValueEstimationService(ILogger<CarValueEstimationService> logger,
         ITeslaSolarChargerContext context,
         IDateTimeProvider dateTimeProvider,
         ISettings settings,
-        ILoadPointManagementService loadPointManagementService)
+        ILoadPointManagementService loadPointManagementService,
+        IConstants constants)
     {
         _logger = logger;
         _context = context;
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
         _loadPointManagementService = loadPointManagementService;
+        _constants = constants;
     }
 
+    public async Task PlugoutCarsAndClearSocIfRequired(CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}()", nameof(PlugoutCarsAndClearSocIfRequired));
+        var manualCarIds = await _context.Cars
+            .Where(c => c.ShouldBeManaged == true && c.CarType == CarType.Manual)
+            .Select(c => c.Id)
+            .ToHashSetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        foreach (var manualCarId in manualCarIds)
+        {
+            var car = _settings.Cars.FirstOrDefault(c => c.Id == manualCarId);
+            if (car == default)
+            {
+                continue;
+            }
+            var lastConnectorMatch = car.LastMatchedToChargingConnector ?? _settings.StartupTime;
+            if (lastConnectorMatch < currentDate.AddMinutes(-_constants.ManualCarMinutesUntilForgetSoc))
+            {
+                car.PluggedIn.Update(currentDate, false);
+                car.SoC.Update(currentDate, null);
+                await _loadPointManagementService.CarStateChanged(car.Id);
+            }
+        }
+    }
 
     public async Task UpdateAllCarValueEstimations(CancellationToken cancellationToken)
     {

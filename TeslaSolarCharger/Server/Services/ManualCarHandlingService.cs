@@ -80,10 +80,6 @@ public class ManualCarHandlingService(
         {
             var newValue = connectorState.IsPluggedIn.Value;
             valueLogs.Add(CreateBooleanLog(carId, CarValueType.IsPluggedIn, pluggedTimestamp, newValue, CarValueSource.LinkedCharger));
-            if (pluggedInChanged)
-            {
-                cachedCar.SoC.Update(pluggedTimestamp, null);
-            }
         }
 
         var chargingTimestamp = connectorState.IsCharging.Timestamp;
@@ -122,10 +118,6 @@ public class ManualCarHandlingService(
         await context.SaveChangesAsync().ConfigureAwait(false);
 
         var stateChanged = cachedCar.PluggedIn.Update(timestamp, true, true);
-        if (stateChanged)
-        {
-            cachedCar.SoC.Update(timestamp, null);
-        }
         stateChanged = cachedCar.IsCharging.Update(timestamp, isCharging, true) || stateChanged;
         stateChanged = cachedCar.IsHomeGeofence.Update(timestamp, true, true) || stateChanged;
         
@@ -154,7 +146,6 @@ public class ManualCarHandlingService(
 
        var stateChanged = cachedCar.PluggedIn.Update(timestamp, false);
        stateChanged = cachedCar.IsCharging.Update(timestamp, false) || stateChanged;
-       stateChanged = cachedCar.SoC.Update(timestamp, null) || stateChanged;
 
         return new(true, stateChanged);
     }

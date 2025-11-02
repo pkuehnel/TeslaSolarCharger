@@ -82,4 +82,5 @@ public interface IConstants
     int SolarHistoricValueCapacity { get; }
     DateTimeOffset FirstChargePriceTimeStamp { get; }
     int SpotPriceRefreshIntervalHours { get; }
+    int ManualCarMinutesUntilForgetSoc { get; }
 }
