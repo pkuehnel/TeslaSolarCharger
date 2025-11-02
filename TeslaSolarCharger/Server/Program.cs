@@ -374,7 +374,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
 
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
-        await configJsonService.AddCarsToSettings(initializeManualCarValues: true).ConfigureAwait(false);
+        await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
@@ -110,9 +109,9 @@ public class ConfigJsonService(
         return settings;
     }
 
-    public async Task AddCarsToSettings(bool initializeManualCarValues = false, int? manualCarIdToInitialize = null)
+    public async Task AddCarsToSettings()
     {
-        settings.Cars = await GetCars(initializeManualCarValues, manualCarIdToInitialize).ConfigureAwait(false);
+        settings.Cars = await GetCars().ConfigureAwait(false);
         foreach (var dtoCar in settings.CarsToManage)
         {
             await loadPointManagementService.CarStateChanged(dtoCar.Id);
@@ -214,14 +213,14 @@ public class ConfigJsonService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var shouldInitializeManualCarValues = carId == default && databaseCar.CarType == CarType.Manual;
         var manualCarIdToInitialize = shouldInitializeManualCarValues ? databaseCar.Id : (int?)null;
-        await AddCarsToSettings(shouldInitializeManualCarValues, manualCarIdToInitialize).ConfigureAwait(false);
+        await AddCarsToSettings().ConfigureAwait(false);
         if (databaseCar.CarType == CarType.Tesla)
         {
             await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
         }
     }
 
-    private async Task<List<DtoCar>> GetCars(bool initializeManualCarValues, int? manualCarIdToInitialize)
+    private async Task<List<DtoCar>> GetCars()
     {
         logger.LogTrace("{method}()", nameof(GetCars));
         var carData = await teslaSolarChargerContext.Cars
@@ -255,26 +254,6 @@ public class ConfigJsonService(
             .ToListAsync().ConfigureAwait(false);
 
         var cars = carData.Select(c => c.Car).ToList();
-
-        HashSet<int> manualCarIdsToInitialize;
-        if (!initializeManualCarValues)
-        {
-            manualCarIdsToInitialize = new HashSet<int>();
-        }
-        else if (manualCarIdToInitialize.HasValue)
-        {
-            manualCarIdsToInitialize = carData
-                .Where(c => c.Car.Id == manualCarIdToInitialize.Value && c.CarType == CarType.Manual)
-                .Select(c => c.Car.Id)
-                .ToHashSet();
-        }
-        else
-        {
-            manualCarIdsToInitialize = carData
-                .Where(c => c.CarType == CarType.Manual)
-                .Select(c => c.Car.Id)
-                .ToHashSet();
-        }
 
         foreach (var carDataItem in carData)
         {
@@ -336,11 +315,6 @@ public class ConfigJsonService(
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
             }
-
-            if (manualCarIdsToInitialize.Contains(dtoCar.Id))
-            {
-                await InitializeManualCarValuesAsync(dtoCar).ConfigureAwait(false);
-            }
             //Do not trigger car state changed here as app will crash when finding cars in settings
         }
         var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
@@ -365,49 +339,6 @@ public class ConfigJsonService(
             }
         }
         return cars;
-    }
-
-    private async Task InitializeManualCarValuesAsync(DtoCar dtoCar)
-    {
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        dtoCar.IsHomeGeofence.Update(currentDate, true);
-
-        var carValueLogs = new List<CarValueLog>();
-
-        if (dtoCar.PluggedIn.Value == true)
-        {
-            dtoCar.PluggedIn.Update(currentDate, false);
-            carValueLogs.Add(new CarValueLog
-            {
-                CarId = dtoCar.Id,
-                Type = CarValueType.IsPluggedIn,
-                BooleanValue = false,
-                Timestamp = currentDate.UtcDateTime,
-                Source = CarValueSource.Estimation,
-            });
-        }
-
-        if (dtoCar.IsCharging.Value == true)
-        {
-            dtoCar.IsCharging.Update(currentDate, false);
-            carValueLogs.Add(new CarValueLog
-            {
-                CarId = dtoCar.Id,
-                Type = CarValueType.IsCharging,
-                BooleanValue = false,
-                Timestamp = currentDate.UtcDateTime,
-                Source = CarValueSource.Estimation,
-            });
-        }
-
-        dtoCar.SoC.Update(currentDate, null);
-        if (carValueLogs.Count == 0)
-        {
-            return;
-        }
-
-        teslaSolarChargerContext.CarValueLogs.AddRange(carValueLogs);
-        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private class FleetTelemetryConfiguration
