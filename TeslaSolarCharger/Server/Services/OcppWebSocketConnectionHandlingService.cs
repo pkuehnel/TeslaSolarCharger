@@ -78,7 +78,19 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var chargingConnectorIds = await GetChargingConnectorIds(chargePointId);
             foreach (var chargingConnectorId in chargingConnectorIds)
             {
-                settings.OcppConnectorStates.TryAdd(chargingConnectorId, new());
+                var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+                var latestPluggedInState = await context.OcppChargingStationConnectorValueLogs
+                    .Where(l => l.Type == OcppChargingStationConnectorValueType.IsPluggedIn
+                                && l.OcppChargingStationConnectorId == chargingConnectorId)
+                    .OrderByDescending(l => l.Timestamp)
+                    .Select(l => new { l.BooleanValue, l.Timestamp })
+                    .FirstOrDefaultAsync(cancellationToken);
+                var connectorState = latestPluggedInState ==  default ? new() : new DtoOcppConnectorState()
+                {
+                    IsPluggedIn = new(latestPluggedInState.Timestamp,
+                        latestPluggedInState.BooleanValue == true),
+                };
+                settings.OcppConnectorStates.TryAdd(chargingConnectorId, connectorState);
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
                 _ = Task.Run(async () =>
                 {
