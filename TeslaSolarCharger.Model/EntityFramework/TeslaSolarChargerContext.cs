@@ -294,6 +294,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(m => m.LastFulFilled)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
+        modelBuilder.Entity<OcppChargingStationConnectorValueLog>()
+            .Property(m => m.Timestamp)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)
             .HasConversion(timeListToStringValueConverter)
