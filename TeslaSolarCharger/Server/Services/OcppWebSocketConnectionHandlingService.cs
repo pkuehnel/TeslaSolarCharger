@@ -85,11 +85,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     .OrderByDescending(l => l.Timestamp)
                     .Select(l => new { l.BooleanValue, l.Timestamp })
                     .FirstOrDefaultAsync(cancellationToken);
-                var connectorState = latestPluggedInState ==  default ? new() : new DtoOcppConnectorState()
+                var connectorState = new DtoOcppConnectorState();
+                if (latestPluggedInState != default)
                 {
-                    IsPluggedIn = new(latestPluggedInState.Timestamp,
-                        latestPluggedInState.BooleanValue == true),
-                };
+                    //Do not directly set the boolean value on DtoOcppConnectorState creation as this would result in LastChanged not being set and this would result in never find any matching charging connector for a car
+                    connectorState.IsPluggedIn.Update(latestPluggedInState.Timestamp, latestPluggedInState.BooleanValue == true);
+                }
                 settings.OcppConnectorStates.TryAdd(chargingConnectorId, connectorState);
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
                 _ = Task.Run(async () =>
