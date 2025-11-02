@@ -112,6 +112,7 @@ public class CoreService : ICoreService
         {
             Directory.CreateDirectory(destinationPath);
         }
+        CleanupOldBackups(destinationPath, 3, 30);
         var backupFileNamePrefix = $"{currentVersion}_";
 
         var resultingFileName = Path.Combine(destinationPath, $"{backupFileNamePrefix + _constants.BackupZipBaseFileName}");
@@ -121,7 +122,6 @@ public class CoreService : ICoreService
             return;
         }
         await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNamePrefix, destinationPath, false).ConfigureAwait(false);
-        CleanupOldBackups(destinationPath, 3, 30);
     }
 
     private void CleanupOldBackups(string directory, int minToKeep, int daysToKeep)
