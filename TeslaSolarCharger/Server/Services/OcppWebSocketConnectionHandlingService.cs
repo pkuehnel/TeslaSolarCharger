@@ -78,19 +78,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var chargingConnectorIds = await GetChargingConnectorIds(chargePointId);
             foreach (var chargingConnectorId in chargingConnectorIds)
             {
-                var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-                var latestPluggedInState = await context.OcppChargingStationConnectorValueLogs
-                    .Where(l => l.Type == OcppChargingStationConnectorValueType.IsPluggedIn
-                                && l.OcppChargingStationConnectorId == chargingConnectorId)
-                    .OrderByDescending(l => l.Timestamp)
-                    .Select(l => new { l.BooleanValue, l.Timestamp })
-                    .FirstOrDefaultAsync(cancellationToken);
-                var connectorState = new DtoOcppConnectorState();
-                if (latestPluggedInState != default)
-                {
-                    //Do not directly set the boolean value on DtoOcppConnectorState creation as this would result in LastChanged not being set and this would result in never find any matching charging connector for a car
-                    connectorState.IsPluggedIn.Update(latestPluggedInState.Timestamp, latestPluggedInState.BooleanValue == true);
-                }
+                var connectorState = await GetDtoOcppConnectorStateWithCorrectPluggedInState(scope, chargingConnectorId, cancellationToken).ConfigureAwait(false);
                 settings.OcppConnectorStates.TryAdd(chargingConnectorId, connectorState);
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
                 _ = Task.Run(async () =>
@@ -114,6 +102,39 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             logger.LogWarning("Failed to add WebSocket connection for {chargePointId}", chargePointId);
         }
+    }
+
+    private async Task<DtoOcppConnectorState> GetDtoOcppConnectorStateWithCorrectPluggedInState(
+        IServiceScope scope, int chargingConnectorId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}(scope, {connectorId})", nameof(GetDtoOcppConnectorStateWithCorrectPluggedInState), chargingConnectorId);
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var latestPluggedInState = await context.OcppChargingStationConnectorValueLogs
+            .Where(l => l.Type == OcppChargingStationConnectorValueType.IsPluggedIn
+                        && l.OcppChargingStationConnectorId == chargingConnectorId)
+            .OrderByDescending(l => l.Timestamp)
+            .Select(l => new { l.BooleanValue, l.Timestamp })
+            .FirstOrDefaultAsync(cancellationToken);
+        var connectorState = new DtoOcppConnectorState();
+        if (latestPluggedInState != default)
+        {
+            var latestOtherPluggedInStateBeforeLatestPluggedInState = await context.OcppChargingStationConnectorValueLogs
+                .Where(l => l.Type == OcppChargingStationConnectorValueType.IsPluggedIn
+                            && l.OcppChargingStationConnectorId == chargingConnectorId
+                            && l.BooleanValue != latestPluggedInState.BooleanValue
+                            && l.Timestamp < latestPluggedInState.Timestamp)
+                .OrderByDescending(l => l.Timestamp)
+                .Select(l => new { l.BooleanValue, l.Timestamp })
+                .FirstOrDefaultAsync(cancellationToken);
+            //Do not directly set the boolean value on DtoOcppConnectorState creation as this would result in LastChanged not being set and this would result in never find any matching charging connector for a car
+            if (latestOtherPluggedInStateBeforeLatestPluggedInState != default)
+            {
+                connectorState.IsPluggedIn.Update(latestOtherPluggedInStateBeforeLatestPluggedInState.Timestamp, latestOtherPluggedInStateBeforeLatestPluggedInState.BooleanValue == true);
+            }
+            connectorState.IsPluggedIn.Update(latestPluggedInState.Timestamp, latestPluggedInState.BooleanValue == true);
+        }
+
+        return connectorState;
     }
 
     private async Task<HashSet<int>> GetChargingConnectorIds(string chargePointId)
