@@ -18,7 +18,7 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "Home Geofence"),
             new TextLocalizationTranslation(LanguageCodes.German, "Home-Geofence"));
 
-        Register("To update the location, click the save button on the bottom of the page",
+        Register(TranslationKeys.LocationUpdateInfoText,
             new TextLocalizationTranslation(LanguageCodes.English, "To update the location, click the save button on the bottom of the page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Um den Standort zu aktualisieren, klicke auf die Schaltfläche zum Speichern am unteren Rand der Seite"));
 
