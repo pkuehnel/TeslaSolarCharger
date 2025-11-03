@@ -115,6 +115,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             .OrderByDescending(l => l.Timestamp)
             .Select(l => new { l.BooleanValue, l.Timestamp })
             .FirstOrDefaultAsync(cancellationToken);
+        logger.LogTrace("Latest plugged in state: {@state}", latestPluggedInState);
         var connectorState = new DtoOcppConnectorState();
         if (latestPluggedInState != default)
         {
@@ -127,6 +128,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 .Select(l => new { l.BooleanValue, l.Timestamp })
                 .FirstOrDefaultAsync(cancellationToken);
             //Do not directly set the boolean value on DtoOcppConnectorState creation as this would result in LastChanged not being set and this would result in never find any matching charging connector for a car
+            logger.LogTrace("Latest other plugged in state before: {@state}", latestOtherPluggedInStateBeforeLatestPluggedInState);
             if (latestOtherPluggedInStateBeforeLatestPluggedInState != default)
             {
                 connectorState.IsPluggedIn.Update(latestOtherPluggedInStateBeforeLatestPluggedInState.Timestamp, latestOtherPluggedInStateBeforeLatestPluggedInState.BooleanValue == true);
