@@ -6,43 +6,43 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
 {
     protected override void Configure()
     {
-        Register("Tesla Solar Charger",
+        Register(TranslationKeys.TeslaSolarCharger,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla Solar Charger"),
             new TextLocalizationTranslation(LanguageCodes.German, "Tesla Solar Charger"));
 
-        Register("Navigation menu",
+        Register(TranslationKeys.NavigationMenu,
             new TextLocalizationTranslation(LanguageCodes.English, "Navigation menu"),
             new TextLocalizationTranslation(LanguageCodes.German, "Navigationsmenü"));
 
-        Register("Overview",
+        Register(TranslationKeys.Overview,
             new TextLocalizationTranslation(LanguageCodes.English, "Overview"),
             new TextLocalizationTranslation(LanguageCodes.German, "Übersicht"));
 
-        Register("Charging Stations",
+        Register(TranslationKeys.SharedChargingStationsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
 
-        Register("Car Settings",
+        Register(TranslationKeys.SharedCarSettingsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
 
-        Register("Charge Prices",
+        Register(TranslationKeys.ChargePrices,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladepreise"));
 
-        Register("Cloud Connection",
+        Register(TranslationKeys.SharedCloudConnectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Cloud Connection"),
             new TextLocalizationTranslation(LanguageCodes.German, "Cloud-Verbindung"));
 
-        Register("Base Configuration",
+        Register(TranslationKeys.SharedBaseConfigurationTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Base Configuration"),
             new TextLocalizationTranslation(LanguageCodes.German, "Basiskonfiguration"));
 
-        Register("Support",
+        Register(TranslationKeys.Support,
             new TextLocalizationTranslation(LanguageCodes.English, "Support"),
             new TextLocalizationTranslation(LanguageCodes.German, "Support"));
 
-        Register("Backup and Restore",
+        Register(TranslationKeys.BackupAndRestore,
             new TextLocalizationTranslation(LanguageCodes.English, "Backup"),
             new TextLocalizationTranslation(LanguageCodes.German, "Sicherung"));
     }

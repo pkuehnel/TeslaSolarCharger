@@ -6,31 +6,31 @@ public class HiddenErrorsComponentLocalizationRegistry : TextLocalizationRegistr
 {
     protected override void Configure()
     {
-        Register("Hidden errors",
+        Register(TranslationKeys.HiddenErrors,
             new TextLocalizationTranslation(LanguageCodes.English, "Hidden errors"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verborgene Fehler"));
 
-        Register("These errors are currently not resolved but hidden.",
+        Register(TranslationKeys.TheseErrorsAreCurrentlyNotResolved,
             new TextLocalizationTranslation(LanguageCodes.English, "These errors are currently not resolved but hidden."),
             new TextLocalizationTranslation(LanguageCodes.German, "Diese Fehler sind aktuell nicht behoben, sondern ausgeblendet."));
 
-        Register("The list is only updated once per minute",
+        Register(TranslationKeys.TheListIsOnlyUpdatedOnce,
             new TextLocalizationTranslation(LanguageCodes.English, "The list is only updated once per minute"),
             new TextLocalizationTranslation(LanguageCodes.German, "Die Liste wird nur einmal pro Minute aktualisiert"));
 
-        Register("{0} occured {1} time(s)",
+        Register(TranslationKeys.Key0Occured1TimeS,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} occured {1} time(s)"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1} Mal auf"));
 
-        Register("Hidden reason: {0}",
+        Register(TranslationKeys.HiddenReason0,
             new TextLocalizationTranslation(LanguageCodes.English, "Hidden reason: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ausblendungsgrund: {0}"));
 
-        Register("Not Enough occurrences",
+        Register(TranslationKeys.NotEnoughOccurrences,
             new TextLocalizationTranslation(LanguageCodes.English, "Not Enough occurrences"),
             new TextLocalizationTranslation(LanguageCodes.German, "Nicht genügend Vorkommnisse"));
 
-        Register("Dismissed",
+        Register(TranslationKeys.Dismissed,
             new TextLocalizationTranslation(LanguageCodes.English, "Dismissed"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ignoriert"));
     }

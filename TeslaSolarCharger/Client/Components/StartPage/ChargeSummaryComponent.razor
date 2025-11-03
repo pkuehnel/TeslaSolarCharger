@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Localization.Contracts
@@ -18,7 +19,7 @@ else
 {
     <div class="d-flex align-items-center mb-1">
         <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
-        <TooltipComponent Text="@T("Total charged solar energy")">
+        <TooltipComponent Text="@T(TranslationKeys.TotalChargedSolarEnergy)">
             @_chargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@_chargeSummary.SolarPortionPercent.ToString("0.0") %)
         </TooltipComponent>
     </div>
@@ -26,7 +27,7 @@ else
     {
         <div class="d-flex align-items-center mb-1">
             <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.BatteryFull"></MudIcon>
-            <TooltipComponent Text="@T("Total charged home battery energy")">
+            <TooltipComponent Text="@T(TranslationKeys.TotalChargedHomeBatteryEnergy)">
                 @_chargeSummary.ChargedHomeBatteryEnergy.ToString("0.00") kWh (@_chargeSummary.HomeBatteryPortionPercent.ToString("0.0") %)
             </TooltipComponent>
         </div>
@@ -34,7 +35,7 @@ else
 
     <div class="d-flex align-items-center mb-1">
         <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
-        <TooltipComponent Text="@T("Total charged grid energy")">
+        <TooltipComponent Text="@T(TranslationKeys.TotalChargedGridEnergy)">
             @_chargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - _chargeSummary.SolarPortionPercent - _chargeSummary.HomeBatteryPortionPercent).ToString("0.0")) %)
         </TooltipComponent>
     </div>
@@ -42,8 +43,8 @@ else
         <span class="material-symbols-outlined">
             attach_money
         </span>
-        <TooltipComponent Text="@T("Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed.")">
-            <a href="@($"HandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}")">@_chargeSummary.ChargeCost.ToString("0.00") (@string.Format(T("{0} per kWh"), _chargeSummary.AverageEnergyPrice.ToString("0.000")))</a>
+        <TooltipComponent Text="@T(TranslationKeys.TotalChargeCostNoteTheCharge)">
+            <a href="@($"HandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}")">@_chargeSummary.ChargeCost.ToString("0.00") (@string.Format(T(TranslationKeys.Key0PerKwh), _chargeSummary.AverageEnergyPrice.ToString("0.000")))</a>
         </TooltipComponent>
     </div>
 }

@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using TeslaSolarCharger.Client.Helper
 @using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
@@ -30,15 +31,15 @@ else
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-0">
                             <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
-                                <MudText Class="mt-1">@T("Hidden errors")</MudText>
+                                <MudText Class="mt-1">@T(TranslationKeys.HiddenErrors)</MudText>
                             </MudBadge>
 
                         </div>
                         <div class="mt-1 ml-2 flex-grow-1 text-center">
-                            @T("These errors are currently not resolved but hidden.")
+                            @T(TranslationKeys.TheseErrorsAreCurrentlyNotResolved)
                         </div>
                         <div class="mt-1 ml-2 flex-grow-0">
-                            <small>@T("The list is only updated once per minute")</small>
+                            <small>@T(TranslationKeys.TheListIsOnlyUpdatedOnce)</small>
                         </div>
                     </div>
                 </TitleContent>
@@ -116,8 +117,8 @@ else
     private string GetHideReasonText(LoggedErrorHideReason hideReason) =>
         hideReason switch
         {
-            LoggedErrorHideReason.NotEnoughOccurrences => T("Not Enough occurrences"),
-            LoggedErrorHideReason.Dismissed => T("Dismissed"),
+            LoggedErrorHideReason.NotEnoughOccurrences => T(TranslationKeys.NotEnoughOccurrences),
+            LoggedErrorHideReason.Dismissed => T(TranslationKeys.Dismissed),
             _ => hideReason.ToString(),
         };
 

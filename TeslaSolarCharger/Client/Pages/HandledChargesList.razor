@@ -1,4 +1,5 @@
 ﻿@page "/HandledCharges"
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
@@ -11,9 +12,9 @@
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
 
-<PageTitle>@T("Handled Charges")</PageTitle>
+<PageTitle>@T(TranslationKeys.HandledCharges)</PageTitle>
 
-<h1>@T("Handled Charges")</h1>
+<h1>@T(TranslationKeys.HandledCharges)</h1>
 
 @if (_handledCharges == null)
 {
@@ -26,13 +27,13 @@ else
         {
             <GenericInput T="bool"
                           For="() => HideChargingProcessesWithKnownCars"
-                          LabelName='@T("Hide charging processes with known cars")'
+                          LabelName='@T(TranslationKeys.HideChargingProcessesWithKnownCars)'
                           OnValueChanged="RefreshList"/>
         }
         <GenericInput T="int"
                       For="() => MinConsumedEnergy"
-                      LabelName='@T("Minimum consumed energy")'
-                      HelperText='@T("Hide charging processes where less energy is consumed")'
+                      LabelName='@T(TranslationKeys.MinimumConsumedEnergy)'
+                      HelperText='@T(TranslationKeys.HideChargingProcessesWhereLessEnergy)'
                       OnValueChanged="RefreshList"/>
     </div>
 

@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using System.Globalization
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
@@ -86,7 +87,7 @@ else
                                             @(FormatTimeSpan(remainingTime.Value))
                                         </MudChip>
                                     </span>
-                                    <span>@T("remaining)")</span>
+                                    <span>@T(TranslationKeys.Remaining)</span>
                                 }
                                 else
                                 {

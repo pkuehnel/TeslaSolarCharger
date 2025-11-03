@@ -1,4 +1,5 @@
 @page "/Prediction"
+@using TeslaSolarCharger.Shared.Localization
 
 @using TeslaSolarCharger.Client.Services.Contracts
 @using ApexCharts
@@ -38,7 +39,7 @@
                             Disabled="IsPreviousDisabled" />
                     <GenericInput T="DateTime?"
                                   For="() => SelectedDate"
-                                  LabelName='@T("Date")'
+                                  LabelName='@T(TranslationKeys.Date)'
                                   OnValueChanged="newDate => SelectedDateChanged(newDate)" />
                     <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
                             Color="Color.Primary"
@@ -109,7 +110,7 @@
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatterySoc"
-                                         Name='@T("Home Battery SoC %")'
+                                         Name='@T(TranslationKeys.HomeBatterySoc)'
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
@@ -241,18 +242,18 @@
             new YAxis
             {
                 Min = 0,
-                Title = new AxisTitle { Text = T("kWh") },
+                Title = new AxisTitle { Text = T(TranslationKeys.Kwh) },
             },
             new YAxis
             {
                 Opposite = true,
                 Min = 0,
                 Max = 100,
-                Title = new AxisTitle { Text = T("%") },
+                Title = new AxisTitle { Text = T(TranslationKeys.Key) },
                 DecimalsInFloat = 0,
                 SeriesName = new SeriesName()
                 {
-                    T("Home Battery SoC %"),
+                    T(TranslationKeys.HomeBatterySoc),
                 },
             },
         };
@@ -337,7 +338,7 @@
         {
             items.Add(new LegendItemData
             {
-                TooltipText = T("Solar Actual"),
+                TooltipText = T(TranslationKeys.SolarActual),
                 Color = Constants.SolarPowerColor,
                 Icon = Constants.SolarPowerIcon,
                 Value = SolarActualData.Sum(v => v.Value ?? 0),
@@ -348,7 +349,7 @@
         {
             items.Add(new LegendItemData
             {
-                TooltipText = T("House Prediction"),
+                TooltipText = T(TranslationKeys.HousePrediction),
                 Color = Constants.HomeConsumptionPredictionColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HousePredictionData.Sum(v => v.Value ?? 0),
@@ -358,7 +359,7 @@
         {
             items.Add(new LegendItemData
             {
-                TooltipText = T("House Actual"),
+                TooltipText = T(TranslationKeys.HouseActual),
                 Color = Constants.HomeConsumptionChartColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HouseActualData.Sum(v => v.Value ?? 0),
@@ -372,7 +373,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                TooltipText = T("Battery Charged"),
+                TooltipText = T(TranslationKeys.BatteryCharged),
                     Color = Constants.BatteryChargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = chargingValue,
@@ -386,7 +387,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                TooltipText = T("Battery Discharged"),
+                TooltipText = T(TranslationKeys.BatteryDischarged),
                     Color = Constants.BatteryDischargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = dischargingValue,
@@ -401,7 +402,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                TooltipText = T("To Grid"),
+                TooltipText = T(TranslationKeys.ToGrid),
                     Color = Constants.GridExportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = toGridValue,
@@ -416,7 +417,7 @@
             {
                 items.Add(new LegendItemData
                 {
-                TooltipText = T("From Grid"),
+                TooltipText = T(TranslationKeys.FromGrid),
                     Color = Constants.GridImportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = fromGridValue,
@@ -559,8 +560,8 @@
 
     private string GetRelevantSolarPredictionText() =>
         SelectedDate == TimeProvider.GetLocalNow().Date
-            ? T("Solar Prediction from now")
-            : T("Solar Prediction");
+            ? T(TranslationKeys.SolarPredictionFromNow)
+            : T(TranslationKeys.SolarPrediction);
 
     private void PreviousDay()
     {

@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
@@ -53,12 +54,12 @@
         var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={PowerBuffer ?? 0}").ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add(T("Power Buffer updated"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.PowerBufferUpdated), Severity.Success);
             _lastSavedPowerBuffer = PowerBuffer;
         }
         else
         {
-            Snackbar.Add(T("Failed to update Power Buffer"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.FailedToUpdatePowerBuffer), Severity.Error);
         }
 
     }

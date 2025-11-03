@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using ApexCharts
 @using Microsoft.AspNetCore.Http.Features
 @using TeslaSolarCharger.Client.Dtos
@@ -22,7 +23,7 @@
 @implements IDisposable
 
 <ApexChart TItem="DtoChartValue<string, decimal>"
-           Title="@T("Scheduled power")"
+           Title="@T(TranslationKeys.ScheduledPower)"
            Options="_options"
            Width="@ChartWidthCalculator.ChartWidth"
            Height="@ChartHeight"
@@ -32,7 +33,7 @@
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_chargingValues"
-                     Name="@string.Format(T("Scheduled Energy ({0} kWh)"), (_chargingValues.Sum(v => v.Value)).ToString("F1"))"
+                     Name="@string.Format(T(TranslationKeys.ScheduledEnergy0Kwh), (_chargingValues.Sum(v => v.Value)).ToString("F1"))"
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
@@ -41,7 +42,7 @@
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_gridPriceValues"
-                     Name="@T("Grid Price per kWh")"
+                     Name="@T(TranslationKeys.GridPricePerKwh2)"
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
@@ -69,7 +70,7 @@
             {
                 Title = new AxisTitle()
                 {
-                    Text = new MultiLineText(T("avg. kW")),
+                    Text = new MultiLineText(T(TranslationKeys.AvgKw)),
                     Style = new AxisTitleStyle()
                     {
                         Color = Constants.PrimaryColor,
@@ -88,7 +89,7 @@
                 Opposite = true,
                 Title = new AxisTitle()
                 {
-                    Text = new MultiLineText(T("Gridprice / kWh")),
+                    Text = new MultiLineText(T(TranslationKeys.GridpriceKwh)),
                     Style = new AxisTitleStyle()
                     {
                         Color = Constants.SecondaryColor,

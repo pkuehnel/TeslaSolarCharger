@@ -1,4 +1,5 @@
 ﻿@page "/ChargePrices"
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
@@ -6,9 +7,9 @@
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
-<h1>@T("Charge Prices")</h1>
+<h1>@T(TranslationKeys.ChargePrices)</h1>
 
-<button class="btn btn-primary" @onclick="NavigateToNew">@T("New")</button>
+<button class="btn btn-primary" @onclick="NavigateToNew">@T(TranslationKeys.New)</button>
 
 @if (_chargePrices == null)
 {
@@ -19,11 +20,11 @@ else
     <table class="table table-hover">
         <thead>
         <tr>
-            <th scope="col">@T("Id")</th>
-            <th scope="col">@T("Valid since")</th>
-            <th scope="col">@T("Solar price per kWh")</th>
-            <th scope="col">@T("Grid price per kWh")</th>
-            <th scope="col">@T("Delete")</th>
+            <th scope="col">@T(TranslationKeys.Id2)</th>
+            <th scope="col">@T(TranslationKeys.ValidSince2)</th>
+            <th scope="col">@T(TranslationKeys.SolarPricePerKwh)</th>
+            <th scope="col">@T(TranslationKeys.GridPricePerKwh)</th>
+            <th scope="col">@T(TranslationKeys.Delete)</th>
         </tr>
         </thead>
         <tbody>
@@ -39,7 +40,7 @@ else
                         @if (_deletingChargePriceIds.Any(i => i == chargePrice.Id))
                         {
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span class="sr-only">@T("Loading...")</span>
+                            <span class="sr-only">@T(TranslationKeys.SharedLoading)</span>
                         }
                         else
                         {

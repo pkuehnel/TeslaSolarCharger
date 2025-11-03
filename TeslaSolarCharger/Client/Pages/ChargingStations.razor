@@ -1,4 +1,5 @@
 ﻿@page "/ChargingStations"
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.ChargingStation
 @using TeslaSolarCharger.Shared.Localization.Contracts
@@ -9,16 +10,16 @@
 @inject IChargingStationsService ChargingStationsService
 @inject ITextLocalizationService TextLocalizer
 
-<h1>@T("Charging Stations")</h1>
+<h1>@T(TranslationKeys.SharedChargingStationsTitle)</h1>
 
 <MudAlert Severity="Severity.Info"
           NoIcon="true"
           ContentAlignment="HorizontalAlignment.Left">
-    <h5>@T("How to connect a new Charging station")</h5>
-    <div>@T("Charging stations are added automatically as soon as they connect via OCPP.")</div>
-    <div>@((MarkupString)T("To connect, set the OCPP URL to the following: <code>ws://YOUR-TSC-IP:7190/api/Ocpp/</code> followed by a charging point ID."))</div>
-    <div>@((MarkupString)T("Note: Many charging stations automatically add a charging point ID to the url, just make sure, that the resulting URL looks similar to the following example. Mind the single <code>/</code> after <code>Ocpp</code>"))</div>
-    <div>@((MarkupString)T("<code>ws://192.168.178.36:7190/api/Ocpp/C00485L</code>"))</div>
+    <h5>@T(TranslationKeys.HowToConnectANewCharging)</h5>
+    <div>@T(TranslationKeys.ChargingStationsAreAddedAutomaticallyAs)</div>
+    <div>@((MarkupString)T(TranslationKeys.ToConnectSetTheOcppUrl))</div>
+    <div>@((MarkupString)T(TranslationKeys.NoteManyChargingStationsAutomaticallyAdd))</div>
+    <div>@((MarkupString)T(TranslationKeys.CodeWs19216817836))</div>
 </MudAlert>
 
 @if (_chargingStations == default)
@@ -28,7 +29,7 @@
 }
 else if (_chargingStations.Count == 0)
 {
-    <h3>@T("No charging stations found")</h3>
+    <h3>@T(TranslationKeys.NoChargingStationsFound)</h3>
 }
 else
 {
@@ -39,11 +40,11 @@ else
                 @chargingStation.ChargepointId
                 @if (chargingStation.IsConnected)
                 {
-                    <MudChip T="string" Text='@T("Connected via OCPP")' Color="Color.Success" Size="Size.Small" Class="ml-2" />
+                    <MudChip T="string" Text='@T(TranslationKeys.ConnectedViaOcpp)' Color="Color.Success" Size="Size.Small" Class="ml-2" />
                 }
                 else
                 {
-                    <MudChip T="string" Text='@T("Not connected via OCPP")' Color="Color.Error" Size="Size.Small" Class="ml-2" />
+                    <MudChip T="string" Text='@T(TranslationKeys.NotConnectedViaOcpp)' Color="Color.Error" Size="Size.Small" Class="ml-2" />
                 }
             </MudText>
             <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"

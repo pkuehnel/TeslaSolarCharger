@@ -6,7 +6,7 @@ public class CustomIconLocalizationRegistry : TextLocalizationRegistry<CustomIco
 {
     protected override void Configure()
     {
-        Register("Not ",
+        Register(TranslationKeys.Not,
             new TextLocalizationTranslation(LanguageCodes.English, "Not "),
             new TextLocalizationTranslation(LanguageCodes.German, "Nicht "));
     }

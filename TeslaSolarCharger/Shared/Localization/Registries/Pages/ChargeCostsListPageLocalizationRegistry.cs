@@ -6,31 +6,31 @@ public class ChargeCostsListPageLocalizationRegistry : TextLocalizationRegistry<
 {
     protected override void Configure()
     {
-        Register("Charge Prices",
+        Register(TranslationKeys.ChargePrices,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladepreise"));
 
-        Register("New",
+        Register(TranslationKeys.New,
             new TextLocalizationTranslation(LanguageCodes.English, "New"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neu"));
 
-        Register("Id",
+        Register(TranslationKeys.Id2,
             new TextLocalizationTranslation(LanguageCodes.English, "Id"),
             new TextLocalizationTranslation(LanguageCodes.German, "ID"));
 
-        Register("Valid since",
+        Register(TranslationKeys.ValidSince2,
             new TextLocalizationTranslation(LanguageCodes.English, "Valid since"),
             new TextLocalizationTranslation(LanguageCodes.German, "Gültig seit"));
 
-        Register("Solar price per kWh",
+        Register(TranslationKeys.SolarPricePerKwh,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar price per kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Solarpreis pro kWh"));
 
-        Register("Grid price per kWh",
+        Register(TranslationKeys.GridPricePerKwh,
             new TextLocalizationTranslation(LanguageCodes.English, "Grid price per kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis pro kWh"));
 
-        Register("Delete",
+        Register(TranslationKeys.Delete,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete"),
             new TextLocalizationTranslation(LanguageCodes.German, "Löschen"));
     }

@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using System.Globalization
 @using TeslaSolarCharger.Shared.Attributes
@@ -11,18 +12,18 @@
 
 
 <GenericInput For="() => CurrentToSet"
-              LabelName='@T("Current to set")'></GenericInput>
+              LabelName='@T(TranslationKeys.CurrentToSet)'></GenericInput>
 <GenericInput For="() => Phases"
-              LabelName='@T("Phases")'
-              HelperText='@T("If your Charging station supports phase switching, you can set the number of phases here.")'></GenericInput>
+              LabelName='@T(TranslationKeys.Phases)'
+              HelperText='@T(TranslationKeys.IfYourChargingStationSupportsPhase)'></GenericInput>
 <div class="d-flex flex-wrap gap-2">
-    <RightAlignedButtonComponent ButtonText='@T("Start Charging")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.StartCharging)'
                                  IsLoading="@_isCommandLoading"
                                  OnButtonClicked="@(StartCharging)"></RightAlignedButtonComponent>
-    <RightAlignedButtonComponent ButtonText='@T("Stop Charging")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.StopCharging)'
                                  IsLoading="@_isCommandLoading"
                                  OnButtonClicked="@(StopCharging)"></RightAlignedButtonComponent>
-    <RightAlignedButtonComponent ButtonText='@T("Set Current and Phases")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SetCurrentAndPhases)'
                                  IsLoading="@_isCommandLoading"
                                  OnButtonClicked="@(SetCurrentAndPhases)"></RightAlignedButtonComponent>
 </div>
@@ -43,13 +44,13 @@
     {
         if (ChargingConnectorId == default)
         {
-            Snackbar.Add(T("ChargingConnectorId not set"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ChargingconnectoridNotSet), Severity.Error);
             return;
         }
 
         if (CurrentToSet == default)
         {
-            Snackbar.Add(T("Current required"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CurrentRequired), Severity.Error);
             return;
         }
 
@@ -61,7 +62,7 @@
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.CommandSuccessfullySent), Severity.Success);
         }
         _isCommandLoading = false;
     }
@@ -70,13 +71,13 @@
     {
         if (ChargingConnectorId == default)
         {
-            Snackbar.Add(T("ChargingConnectorId not set"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ChargingconnectoridNotSet), Severity.Error);
             return;
         }
 
         if (CurrentToSet == default)
         {
-            Snackbar.Add(T("Current required."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CurrentRequired2), Severity.Error);
             return;
         }
 
@@ -88,7 +89,7 @@
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.CommandSuccessfullySent), Severity.Success);
         }
         _isCommandLoading = false;
     }
@@ -97,7 +98,7 @@
     {
         if (ChargingConnectorId == default)
         {
-            Snackbar.Add(T("ChargingConnectorId not set"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ChargingconnectoridNotSet), Severity.Error);
             return;
         }
 
@@ -109,7 +110,7 @@
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.CommandSuccessfullySent), Severity.Success);
         }
         _isCommandLoading = false;
     }

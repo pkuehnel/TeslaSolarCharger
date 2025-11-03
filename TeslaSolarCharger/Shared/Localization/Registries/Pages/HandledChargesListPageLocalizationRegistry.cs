@@ -6,19 +6,19 @@ public class HandledChargesListPageLocalizationRegistry : TextLocalizationRegist
 {
     protected override void Configure()
     {
-        Register("Handled Charges",
+        Register(TranslationKeys.HandledCharges,
             new TextLocalizationTranslation(LanguageCodes.English, "Handled Charges"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verarbeitete Ladevorgänge"));
 
-        Register("Hide charging processes with known cars",
+        Register(TranslationKeys.HideChargingProcessesWithKnownCars,
             new TextLocalizationTranslation(LanguageCodes.English, "Hide charging processes with known cars"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladevorgänge mit bekannten Fahrzeugen ausblenden"));
 
-        Register("Minimum consumed energy",
+        Register(TranslationKeys.MinimumConsumedEnergy,
             new TextLocalizationTranslation(LanguageCodes.English, "Minimum consumed energy"),
             new TextLocalizationTranslation(LanguageCodes.German, "Minimal verbrauchte Energie"));
 
-        Register("Hide charging processes where less energy is consumed",
+        Register(TranslationKeys.HideChargingProcessesWhereLessEnergy,
             new TextLocalizationTranslation(LanguageCodes.English, "Hide charging processes where less energy is consumed"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladevorgänge ausblenden, bei denen weniger Energie verbraucht wurde"));
     }

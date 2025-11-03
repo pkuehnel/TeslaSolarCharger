@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using System.Globalization
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared.Localization.Contracts
@@ -54,7 +55,7 @@
                                 </ChildContent>
                                 <TooltipContent>
                                     <div>
-                                        @T("Refresh values")
+                                        @T(TranslationKeys.RefreshValues)
                                     </div>
                                 </TooltipContent>
                             </MudTooltip>
@@ -89,14 +90,14 @@
                                     }
                                 </div>
                                 <div class="flex-grow-1">
-                                    <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T("Not available") : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
+                                    <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T(TranslationKeys.NotAvailable) : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
                                 </div>
                             </div>
                         }
                     </MudCardContent>
                     <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">@T("Configure")</MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">@T("Delete")</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">@T(TranslationKeys.Configure)</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">@T(TranslationKeys.Delete)</MudButton>
                     </MudCardActions>
                 </MudCard>
             </div>

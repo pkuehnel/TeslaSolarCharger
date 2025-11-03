@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
@@ -20,7 +21,7 @@
                 }
                 else
                 {
-                    @(_elements.Count < 1 ? T("Nothing planned") : string.Format(T("Next planned charge starts at {0}"), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
+                    @(_elements.Count < 1 ? T(TranslationKeys.NothingPlanned) : string.Format(T(TranslationKeys.NextPlannedChargeStartsAt0), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
                 }
             </TitleContent>
             <ChildContent>

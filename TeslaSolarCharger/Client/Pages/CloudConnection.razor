@@ -1,4 +1,5 @@
 ﻿@page "/cloudconnection"
+@using TeslaSolarCharger.Shared.Localization
 @using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
@@ -14,9 +15,9 @@
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
 
-<h1>@T("Cloud Connection")</h1>
+<h1>@T(TranslationKeys.SharedCloudConnectionTitle)</h1>
 
-<h3>@T("Solar4Car Backend connection")</h3>
+<h3>@T(TranslationKeys.Solar4carBackendConnection)</h3>
 @if (BackendTokenState == default)
 {
     <PlaceholderComponent></PlaceholderComponent>
@@ -34,14 +35,14 @@ else
 {
     @if (LoggedInUserName == default)
     {
-        <div>@T("Logged in as unknown user")</div>
+        <div>@T(TranslationKeys.LoggedInAsUnknownUser)</div>
     }
     else
     {
-        <div>@T("Logged in as") @LoggedInUserName</div>
+        <div>@T(TranslationKeys.LoggedInAs) @LoggedInUserName</div>
     }
     <RightAlignedButtonComponent OnButtonClicked="FakeLogout"
-    ButtonText='@T("ChangeUser")' />
+    ButtonText='@T(TranslationKeys.Changeuser)' />
 }
 else if(BackendTokenState != default)
 {
@@ -51,20 +52,20 @@ else if(BackendTokenState != default)
     @if (LoginErrorMessage != default)
     {
         <div class="validation-message">
-            @T("Login failed:") @LoginErrorMessage
+            @T(TranslationKeys.LoginFailed) @LoginErrorMessage
         </div>
     }
     <RightAlignedButtonComponent OnButtonClicked="Submit"
-    ButtonText='@T("Login")'
+    ButtonText='@T(TranslationKeys.Login)'
     IsLoading="@_backendLoginIsLoading">
     </RightAlignedButtonComponent>
     <div class="d-flex">
-        <MudSpacer></MudSpacer><MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions" Target="_blank">@T("Register")</MudLink>
+        <MudSpacer></MudSpacer><MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions" Target="_blank">@T(TranslationKeys.Register)</MudLink>
     </div>
 
 }
 
-<h3>@T("Tesla Fleet API Connection")</h3>
+<h3>@T(TranslationKeys.TeslaFleetApiConnection)</h3>
 @if (FleetApiTokenState == default)
 {
     <PlaceholderComponent></PlaceholderComponent>
@@ -78,7 +79,7 @@ else
     </MudAlert>
     <div class="mt-2">
         <RightAlignedButtonComponent OnButtonClicked="GenerateFleetApiToken"
-        ButtonText='@T("Request Token")'
+        ButtonText='@T(TranslationKeys.RequestToken)'
         IsLoading="@_fleetApiLoginIsLoading"
         IsDisabled="@(BackendTokenState != TokenState.UpToDate)">
         </RightAlignedButtonComponent>
@@ -108,19 +109,19 @@ else
             switch (BackendTokenState)
             {
                 case TokenState.MissingPrecondition:
-                    return T("Could not check Token state. Is your TSC connected to the internet?");
+                    return T(TranslationKeys.CouldNotCheckTokenStateIs);
                 case TokenState.NotAvailable:
-                    return T("No Token found, login below to get a Backend Token");
+                    return T(TranslationKeys.NoTokenFoundLoginBelowTo);
                 case TokenState.Unauthorized:
-                    return T("Your Backend Token is unauthorized. Reasons could be a changed Solar4Car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while.");
+                    return T(TranslationKeys.YourBackendTokenIsUnauthorizedReasons);
                 case TokenState.MissingScopes:
-                    return T("Your Backend Token has missing scopes");
+                    return T(TranslationKeys.YourBackendTokenHasMissingScopes);
                 case TokenState.Expired:
-                    return T("Your Backend Token is expired, which means it could not be refreshed automatically. Reasons could be a changed Solar4Car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while.");
+                    return T(TranslationKeys.YourBackendTokenIsExpiredWhich);
                 case TokenState.UpToDate:
-                    return T("You are connected to the backend, everything is working as expected.");
+                    return T(TranslationKeys.YouAreConnectedToTheBackend);
                 case null:
-                    return T("Could not check Token state. Is your TSC connected to the internet?");
+                    return T(TranslationKeys.CouldNotCheckTokenStateIs);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -134,19 +135,19 @@ else
             switch (FleetApiTokenState)
             {
                 case TokenState.MissingPrecondition:
-                    return T("A login to solar4car.com is required before requesting a Tesla Fleet API Token.");
+                    return T(TranslationKeys.ALoginToSolar4carComIs);
                 case TokenState.NotAvailable:
-                    return T("You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car.");
+                    return T(TranslationKeys.YouDidNotRequestAFleet);
                 case TokenState.Unauthorized:
-                    return T("Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car.");
+                    return T(TranslationKeys.YourTokenIsUnauthorizedRequestA);
                 case TokenState.MissingScopes:
-                    return T("Your token has missing scopes. Request a new Token and allow all scopes (only required scopes are requested).");
+                    return T(TranslationKeys.YourTokenHasMissingScopesRequest);
                 case TokenState.Expired:
-                    return T("Your Fleet API token is expired. Request a new Token and allow all scopes (only required scopes are requested).");
+                    return T(TranslationKeys.YourFleetApiTokenIsExpired);
                 case TokenState.UpToDate:
-                    return T("Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:");
+                    return T(TranslationKeys.EverythingIsFineIfYouWant);
                 case null:
-                    return T("Could not check Token state. Is your TSC connected to the internet?");
+                    return T(TranslationKeys.CouldNotCheckTokenStateIs);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -174,12 +175,12 @@ else
         if (result.HasError)
         {
             LoginErrorMessage = result.ErrorMessage;
-            Snackbar.Add(T("Login did not succeed"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.LoginDidNotSucceed), Severity.Error);
         }
         else
         {
             LoginErrorMessage = default;
-            Snackbar.Add(T("Login succeeded"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.LoginSucceeded), Severity.Success);
         }
 
         await RefreshData();
@@ -200,7 +201,7 @@ else
         var locale = CultureInfo.CurrentCulture.ToString();
         if (BackendTokenState != TokenState.UpToDate)
         {
-            Snackbar.Add(T("You need to be logged in to Solar4Car.com to generate a Fleet API Token"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.YouNeedToBeLoggedIn), Severity.Error);
             _fleetApiLoginIsLoading = false;
             return;
         }
@@ -208,7 +209,7 @@ else
         var url = await CloudConnectionCheckService.GetTeslaLoginUrl(locale, baseUrl + "cloudconnection");
         if (string.IsNullOrEmpty(url))
         {
-            Snackbar.Add(T("Could not generate Tesla Login URL"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CouldNotGenerateTeslaLoginUrl), Severity.Error);
             _fleetApiLoginIsLoading = false;
             return;
         }

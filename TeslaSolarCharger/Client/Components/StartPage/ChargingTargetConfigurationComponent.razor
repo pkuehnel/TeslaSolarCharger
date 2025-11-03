@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+@using TeslaSolarCharger.Shared.Localization
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
@@ -18,9 +19,9 @@
 @inject ITextLocalizationService TextLocalizer
 
 <div class="d-flex flex-wrap gap-2">
-    <h3>@T("Charging Targets")</h3>
+    <h3>@T(TranslationKeys.ChargingTargets)</h3>
     <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
-                                 ButtonText='@T("Add Target")'
+                                 ButtonText='@T(TranslationKeys.AddTarget)'
                                  OnButtonClicked="AddTarget"></RightAlignedButtonComponent>
 </div>
 
@@ -30,7 +31,7 @@
 }
 else if (!_targets.Any())
 {
-    <div class="text-muted">@T("Nothing planned")</div>
+    <div class="text-muted">@T(TranslationKeys.NothingPlanned)</div>
 }
 else
 {
@@ -66,8 +67,8 @@ else
                               NoIcon="true"
                               Class="mt-2"
                               ContentAlignment="HorizontalAlignment.Left">
-                        <div class="fw-semibold">@T("Saved in different timezone")</div>
-                        <div class="small">@T("This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.")</div>
+                        <div class="fw-semibold">@T(TranslationKeys.SavedInDifferentTimezone)</div>
+                        <div class="small">@T(TranslationKeys.ThisElementWasSavedInA)</div>
                     </MudAlert>
                 }
             </div>
@@ -126,7 +127,7 @@ else
             }
         }
         _targets?.Remove(chargingTarget);
-        Snackbar.Add(T("Deleted."), Severity.Success);
+        Snackbar.Add(T(TranslationKeys.Deleted), Severity.Success);
     }
 
     private async Task OpenEditDialog(DtoCarChargingTarget? chargingTarget = default)
@@ -149,7 +150,7 @@ else
             MaxWidth = MaxWidth.Medium,
         };
 
-        var dialog = await DialogService.ShowAsync<ChargingTargetConfigurationDialog>(T("Charging target"), parameters, options);
+        var dialog = await DialogService.ShowAsync<ChargingTargetConfigurationDialog>(T(TranslationKeys.ChargingTarget), parameters, options);
         var result = await dialog.Result;
         if (result?.Canceled == false)
         {
@@ -186,14 +187,14 @@ else
     {
         return target.TargetSoc.HasValue
             ? Format("Target SoC: {0}%", target.TargetSoc.Value)
-            : T("Discharge home battery");
+            : T(TranslationKeys.DischargeHomeBattery);
     }
 
     private string GetTargetTimeDescription(DtoCarChargingTarget target)
     {
         return target.TargetTime.HasValue
             ? Format("Target time: {0}", target.TargetTime.Value.ToString("hh\\:mm", CultureInfo.CurrentCulture))
-            : T("No target time configured");
+            : T(TranslationKeys.NoTargetTimeConfigured);
     }
 
     private string GetScheduleDescription(DtoCarChargingTarget target)
@@ -209,7 +210,7 @@ else
             return Format("Runs on {0}", target.TargetDate.Value.ToString("d", CultureInfo.CurrentCulture));
         }
 
-        return T("No date configured");
+        return T(TranslationKeys.NoDateConfigured);
     }
 
     private static IEnumerable<string> GetRepeatDays(DtoCarChargingTarget target)
@@ -250,12 +251,12 @@ else
         {
             return string.Empty;
         }
-        var prefix = $"{T("Home battery")}: ";
+        var prefix = $"{T(TranslationKeys.HomeBattery)}: ";
         if (chargingTarget.TargetSoc == default)
         {
             if (chargingTarget.DischargeHomeBatteryToMinSoc)
             {
-                return prefix + T("Discharge to min SoC");
+                return prefix + T(TranslationKeys.DischargeToMinSoc);
             }
 
             return prefix;
@@ -264,11 +265,11 @@ else
         {
             if (chargingTarget.DischargeHomeBatteryToMinSoc)
             {
-                return prefix + T("Try to not use grid energy by reducing car's charging speed");
+                return prefix + T(TranslationKeys.TryToNotUseGridEnergy);
             }
             else
             {
-                return prefix + T("Don't reduce cars's charging speed, grid energy may be used even if home battery has enough energy");
+                return prefix + T(TranslationKeys.DonTReduceCarsSCharging);
             }
         }
     }

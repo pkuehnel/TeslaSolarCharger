@@ -1,6 +1,7 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
+@using TeslaSolarCharger.Shared.Localization
 
 @inject ITextLocalizationService TextLocalizer
 
@@ -55,7 +56,7 @@ else
 
     private string GetTooltipPrefix() =>
         string.IsNullOrWhiteSpace(IsCrossedOutTooltipPrefix)
-            ? T("Not ")
+            ? T(TranslationKeys.Not)
             : IsCrossedOutTooltipPrefix!;
 
     private string T(string key) =>
