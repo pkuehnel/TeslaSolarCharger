@@ -137,7 +137,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                                 && l.OcppChargingStationConnectorId == chargingConnectorId
                                 && l.BooleanValue != latestOtherPluggedInStateBeforeLatestPluggedInState.BooleanValue
                                 && l.Timestamp > latestOtherPluggedInStateBeforeLatestPluggedInState.Timestamp)
-                    .OrderByDescending(l => l.Timestamp)
+                    .OrderBy(l => l.Timestamp)
                     .Select(l => new { l.BooleanValue, l.Timestamp })
                     .FirstAsync(cancellationToken);
                 connectorState.IsPluggedIn.Update(firstPluggedInStateWithOtherThanLatestOtherPluggedInState.Timestamp, firstPluggedInStateWithOtherThanLatestOtherPluggedInState.BooleanValue == true);
