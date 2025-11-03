@@ -115,14 +115,6 @@ public class CarValueEstimationService : ICarValueEstimationService
             return;
         }
 
-        var firstPluggedInAfterPlugOutTimeStamp = new DateTimeOffset(firstPluggedInAfterPlugOutObject.Timestamp, TimeSpan.Zero);
-        _logger.LogTrace("{method} firstPluggedInAfterPlugOutTimeStamp: {firstPluggedInAfterPlugOutTimeStamp}", nameof(UpdateSocEstimation), firstPluggedInAfterPlugOutTimeStamp);
-        if (lastNonEstimatedSoc.Timestamp < firstPluggedInAfterPlugOutTimeStamp)
-        {
-            _logger.LogTrace("{method} exiting: lastNonEstimatedSoc before firstPluggedInAfterPlugOut", nameof(UpdateSocEstimation));
-            return;
-        }
-
         var chargedEnergyAtLastNonEstimatedSoc = await _context.MeterValues
             .Where(m => m.Timestamp >= lastNonEstimatedSoc.Timestamp
                         && m.CarId == car.Id
@@ -138,7 +130,7 @@ public class CarValueEstimationService : ICarValueEstimationService
         }
 
         var latestChargedEnergy = await _context.MeterValues
-            .Where(m => m.Timestamp >= firstPluggedInAfterPlugOutTimeStamp
+            .Where(m => m.Timestamp >= lastNonEstimatedSoc.Timestamp
                         && m.CarId == car.Id
                         && m.MeterValueKind == MeterValueKind.Car)
             .OrderByDescending(m => m.Timestamp)
