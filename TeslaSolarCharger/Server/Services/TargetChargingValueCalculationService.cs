@@ -367,7 +367,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             }
 
             if ((constraintValues.ChargeStopAllowedAt != default)
-                && (constraintValues.IsCharging == true))
+                && (constraintValues.IsCharging == true)
+                && (!ignoreTimers))
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                     new NotChargingWithExpectedPowerReasonTemplate("Waiting for charge stop")
