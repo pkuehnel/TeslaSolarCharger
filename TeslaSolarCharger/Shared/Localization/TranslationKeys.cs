@@ -2,5 +2,5 @@
 
 public static class TranslationKeys
 {
-    
+    public static string LocationUpdateInfoText => "LocationUpdateInfoText";
 }
