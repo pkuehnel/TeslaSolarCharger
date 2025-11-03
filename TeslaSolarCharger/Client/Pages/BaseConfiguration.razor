@@ -3,6 +3,7 @@
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
@@ -12,9 +13,9 @@
 @inject ITextLocalizationService TextLocalizer
 
 
-<PageTitle>@T("Base Configuration")</PageTitle>
+<PageTitle>@T(TranslationKeys.BaseConfigurationPageTitle)</PageTitle>
 
-<h1>@T("Base Configuration")</h1>
+<h1>@T(TranslationKeys.BaseConfigurationPageTitle)</h1>
 
 @if (_dtoBaseConfiguration == null)
 {
@@ -25,10 +26,10 @@ else
     <EditFormComponent T="DtoBaseConfiguration" WrappedElement="@(_dtoBaseConfiguration)"
                        OnAfterSuccessfullSubmit="ShowSuccessMessage"
                        SubmitUrl="@("api/BaseConfiguration/UpdateBaseConfiguration")">
-        <h3>@T("General:")</h3>
+        <h3>@T(TranslationKeys.BaseConfigurationGeneralSectionTitle)</h3>
         <GenericInput For="() => _dtoBaseConfiguration.Item.MaxCombinedCurrent" />
         <hr />
-        <h3>@T("TeslaMate:")</h3>
+        <h3>@T(TranslationKeys.BaseConfigurationTeslaMateSectionTitle)</h3>
         <GenericInput T="bool"
         For="() => _dtoBaseConfiguration.Item.UseTeslaMateIntegration"
         OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
@@ -46,15 +47,15 @@ else
         }
 
 
-        <h3>@T("Home Geofence")</h3>
+        <h3>@T(TranslationKeys.BaseConfigurationHomeGeofenceSectionTitle)</h3>
         <div class="mb-3">
             <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
             Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
             Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
             LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
-            LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude; Snackbar.Add(T("To update the location, click the save button on the bottom of the page"), Severity.Info); })"></MapComponent>
+            LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude; Snackbar.Add(T(TranslationKeys.LocationUpdateInfoText), Severity.Info); })"></MapComponent>
 
-            <small class="form-text text-muted">@T("Click on the map to select your home geofence. Within that area TSC will regulate the charging power.")</small>
+            <small class="form-text text-muted">@T(TranslationKeys.BaseConfigurationHomeGeofenceHint)</small>
         </div>
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
@@ -90,9 +91,9 @@ else
         <MqttValueConfigurationComponent />
 
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>@T("Telegram:")</h3>
-            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">@T("How to set up Telegram")</a>
-            <div>@T("Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,...")</div>
+            <h3>@T(TranslationKeys.BaseConfigurationTelegramSectionTitle)</h3>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">@T(TranslationKeys.BaseConfigurationHowToSetupTelegramLinkText)</a>
+            <div>@T(TranslationKeys.BaseConfigurationTelegramBotNote)</div>
             <GenericInput T="string?"
             For="() => _dtoBaseConfiguration.Item.TelegramBotKey"
             OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
@@ -100,20 +101,20 @@ else
             For="() => _dtoBaseConfiguration.Item.TelegramChannelId"
             OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
             <GenericInput For="() => _dtoBaseConfiguration.Item.SendStackTraceToTelegram"></GenericInput>
-            <RightAlignedButtonComponent ButtonText='@T("Send test message")'
-            IsDisabled="_telegramSettingsChanged"
-            DisabledToolTipText='@T("You need to save the configuration before testing it.")'
-            OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
+            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.BaseConfigurationSendTestMessageButton)'
+                                         IsDisabled="_telegramSettingsChanged"
+                                         DisabledToolTipText='@T(TranslationKeys.BaseConfigurationSaveBeforeTestingTooltip)'
+                                         OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
         </div>
 
         <MudExpansionPanels>
-            <MudExpansionPanel Text="@T("Advanced settings. Please only change values here if you know what you are doing.")">
+            <MudExpansionPanel Text="@T(TranslationKeys.BaseConfigurationAdvancedSettingsPanelText)">
                 <GenericInput For="() => _dtoBaseConfiguration.Item.UpdateIntervalSeconds" />
                 @if (_dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds < 25)
                 {
                     <MudAlert Severity="Severity.Warning"
                               ContentAlignment="HorizontalAlignment.Left">
-                        @T("Values below 25 seconds are not recommended and might cause performance issues.")
+                        @T(TranslationKeys.BaseConfigurationLowIntervalWarning)
                     </MudAlert>
                 }
                 <GenericInput T="int"
@@ -165,7 +166,7 @@ else
 
     private void ShowSuccessMessage()
     {
-        Snackbar.Add(T("Saved."), Severity.Success);
+        Snackbar.Add(T(TranslationKeys.BaseConfigurationSavedNotification), Severity.Success);
     }
 
     private async Task SendTelegramTestMessage()
@@ -173,7 +174,7 @@ else
         var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Hello/SendTestTelegramMessage");
         if (result == default)
         {
-            Snackbar.Add(T("Could not get result"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.BaseConfigurationCouldNotGetResult), Severity.Error);
             return;
         }
 
