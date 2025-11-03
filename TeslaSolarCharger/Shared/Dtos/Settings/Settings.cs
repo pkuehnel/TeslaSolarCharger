@@ -48,7 +48,7 @@ public class Settings : ISettings
 
     public bool IsStartupCompleted { get; set; }
 
-    public DateTime StartupTime { get; set; }
+    public DateTimeOffset? StartupTime { get; set; }
 
     public DtoProgress? ChargePricesUpdateProgress { get; set; }
     public int LastPvDemoCase { get; set; }

@@ -69,6 +69,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
             .AddTransient<RefreshableValuesRefreshJob>()
+            .AddTransient<ManualCarsDataClearingJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()

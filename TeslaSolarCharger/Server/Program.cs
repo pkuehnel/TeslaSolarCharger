@@ -374,7 +374,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
 
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
-        await configJsonService.AddCarsToSettings(initializeManualCarValues: true).ConfigureAwait(false);
+        await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();
@@ -425,6 +425,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     {
         settings.IsStartupCompleted = true;
         var dateTimeProvider = startupScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-        settings.StartupTime = dateTimeProvider.UtcNow();
+        settings.StartupTime = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 }
