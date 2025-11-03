@@ -6,7 +6,7 @@ public class EditFormComponentLocalizationRegistry : TextLocalizationRegistry<Ed
 {
     protected override void Configure()
     {
-        Register("Processing",
+        Register(TranslationKeys.EditFormComponentProcessingLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Processing"),
             new TextLocalizationTranslation(LanguageCodes.German, "Wird verarbeitet"));
     }

@@ -6,31 +6,31 @@ public class ChargeCostsListPageLocalizationRegistry : TextLocalizationRegistry<
 {
     protected override void Configure()
     {
-        Register("Charge Prices",
+        Register(TranslationKeys.ChargeCostsListPageTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladepreise"));
 
-        Register("New",
+        Register(TranslationKeys.ChargeCostsListPageNewButton,
             new TextLocalizationTranslation(LanguageCodes.English, "New"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neu"));
 
-        Register("Id",
+        Register(TranslationKeys.ChargeCostsListPageIdColumn,
             new TextLocalizationTranslation(LanguageCodes.English, "Id"),
             new TextLocalizationTranslation(LanguageCodes.German, "ID"));
 
-        Register("Valid since",
+        Register(TranslationKeys.ChargeCostsListPageValidSinceColumn,
             new TextLocalizationTranslation(LanguageCodes.English, "Valid since"),
             new TextLocalizationTranslation(LanguageCodes.German, "Gültig seit"));
 
-        Register("Solar price per kWh",
+        Register(TranslationKeys.ChargeCostsListPageSolarPricePerKwhColumn,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar price per kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Solarpreis pro kWh"));
 
-        Register("Grid price per kWh",
+        Register(TranslationKeys.ChargeCostsListPageGridPricePerKwhColumn,
             new TextLocalizationTranslation(LanguageCodes.English, "Grid price per kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis pro kWh"));
 
-        Register("Delete",
+        Register(TranslationKeys.ChargeCostsListPageDeleteButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete"),
             new TextLocalizationTranslation(LanguageCodes.German, "Löschen"));
     }

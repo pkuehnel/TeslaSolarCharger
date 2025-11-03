@@ -6,7 +6,7 @@ public class LoadpointComponentLocalizationRegistry : TextLocalizationRegistry<L
 {
     protected override void Configure()
     {
-        Register("Phase {0}: {1}/{2} A",
+        Register(TranslationKeys.LoadpointComponentPhaseCurrentFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "Phase {0}: {1}/{2} A"),
             new TextLocalizationTranslation(LanguageCodes.German, "Phase {0}: {1}/{2} A"));
     }
