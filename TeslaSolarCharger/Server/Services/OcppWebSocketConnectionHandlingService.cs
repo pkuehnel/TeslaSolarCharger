@@ -132,6 +132,15 @@ public sealed class OcppWebSocketConnectionHandlingService(
             if (latestOtherPluggedInStateBeforeLatestPluggedInState != default)
             {
                 connectorState.IsPluggedIn.Update(latestOtherPluggedInStateBeforeLatestPluggedInState.Timestamp, latestOtherPluggedInStateBeforeLatestPluggedInState.BooleanValue == true);
+                var firstPluggedInStateWithOtherThanLatestOtherPluggedInState = await context.OcppChargingStationConnectorValueLogs
+                    .Where(l => l.Type == OcppChargingStationConnectorValueType.IsPluggedIn
+                                && l.OcppChargingStationConnectorId == chargingConnectorId
+                                && l.BooleanValue != latestOtherPluggedInStateBeforeLatestPluggedInState.BooleanValue
+                                && l.Timestamp > latestOtherPluggedInStateBeforeLatestPluggedInState.Timestamp)
+                    .OrderByDescending(l => l.Timestamp)
+                    .Select(l => new { l.BooleanValue, l.Timestamp })
+                    .FirstAsync(cancellationToken);
+                connectorState.IsPluggedIn.Update(firstPluggedInStateWithOtherThanLatestOtherPluggedInState.Timestamp, firstPluggedInStateWithOtherThanLatestOtherPluggedInState.BooleanValue == true);
             }
             connectorState.IsPluggedIn.Update(latestPluggedInState.Timestamp, latestPluggedInState.BooleanValue == true);
         }
