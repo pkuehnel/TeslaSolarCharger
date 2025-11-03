@@ -299,7 +299,6 @@ public class ConfigJsonService(
                     .Where(c => c.CarId == dtoCar.Id
                                 && c.Type == latestValue.Type
                                 && c.Timestamp < latestValue.Timestamp
-                                && c.DoubleValue != null
                                 // ReSharper disable once CompareOfFloatsByEqualityOperator
                                 && (c.DoubleValue != latestValue.DoubleValue
                                     || c.IntValue != latestValue.IntValue
@@ -312,6 +311,20 @@ public class ConfigJsonService(
                 if (valueBeforeLatestValue != default)
                 {
                     UpdateCarPropertyValue(dtoCar, valueBeforeLatestValue, fleetTelemetryConfiguration);
+                    var valueAfterBeforeLatestValue = await teslaSolarChargerContext.CarValueLogs
+                        .Where(c => c.CarId == dtoCar.Id
+                                    && c.Type == latestValue.Type
+                                    && c.Timestamp > valueBeforeLatestValue.Timestamp
+                                    // ReSharper disable once CompareOfFloatsByEqualityOperator
+                                    && (c.DoubleValue != valueBeforeLatestValue.DoubleValue
+                                        || c.IntValue != valueBeforeLatestValue.IntValue
+                                        || c.StringValue != valueBeforeLatestValue.StringValue
+                                        || c.UnknownValue != valueBeforeLatestValue.UnknownValue
+                                        || c.BooleanValue != valueBeforeLatestValue.BooleanValue
+                                        || c.InvalidValue != valueBeforeLatestValue.InvalidValue))
+                        .OrderBy(c => c.Timestamp)
+                        .FirstAsync();
+                    UpdateCarPropertyValue(dtoCar, valueAfterBeforeLatestValue, fleetTelemetryConfiguration);
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
             }
