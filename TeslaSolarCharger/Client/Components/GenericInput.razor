@@ -19,7 +19,7 @@
     <div class="d-flex align-items-center">
         <div class="@($"p-{Padding} flex-grow-1")">
             <div>
-                @if (typeof(T) == typeof(DateTime?))
+                @if (typeof(T) == typeof(DateTime?) || typeof(T) == typeof(DateTime))
                 {
                     <MudDatePicker id="@InputId"
                                    @bind-Date="DateValue"
@@ -259,13 +259,7 @@
                 || typeof(T) == typeof(long)
                 || typeof(T) == typeof(long?)
                 || typeof(T) == typeof(ulong)
-                || typeof(T) == typeof(ulong?)
-                || typeof(T) == typeof(float)
-                || typeof(T) == typeof(float?)
-                || typeof(T) == typeof(double)
-                || typeof(T) == typeof(double?)
-                || typeof(T) == typeof(decimal)
-                || typeof(T) == typeof(decimal?))
+                || typeof(T) == typeof(ulong?))
                 {
                     <MudNumericField id="@InputId"
                                      @bind-Value="Value"
@@ -280,6 +274,29 @@
                                      Margin="InputMargin"
                                      Immediate="@ImmediateValueUpdate"
                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                     @attributes="@(NumericFieldAttributes())" />
+                }
+                else if (typeof(T) == typeof(float)
+                         || typeof(T) == typeof(float?)
+                         || typeof(T) == typeof(double)
+                         || typeof(T) == typeof(double?)
+                         || typeof(T) == typeof(decimal)
+                         || typeof(T) == typeof(decimal?))
+                {
+                    <MudNumericField id="@InputId"
+                                     @bind-Value="Value"
+                                     For="@(For)"
+                                     Required="@IsRequired"
+                                     Label="@LabelName"
+                                     Disabled="IsDisabled"
+                                     ReadOnly="IsReadOnly"
+                                     Variant="Variant.Outlined"
+                                     Adornment="@Adornment"
+                                     AdornmentText="@AdornmentText"
+                                     Margin="InputMargin"
+                                     Immediate="@ImmediateValueUpdate"
+                                     Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                     Format="0.0#########"
                                      @attributes="@(NumericFieldAttributes())" />
                 }
                 else if (IsNormalText())
@@ -388,7 +405,7 @@
     public string InputId { get; set; } = Guid.NewGuid().ToString();
 
     [Parameter]
-    public bool Autogrow { get; set; } = true;
+    public bool Autogrow { get; set; } = false;
 
     private string MarginClass => Constants.DefaultMargin;
     private Margin InputMargin => Constants.InputMargin;

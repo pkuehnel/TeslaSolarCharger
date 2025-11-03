@@ -86,7 +86,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if (constraintValues.IsCarFullyCharged == true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
-                    new NotChargingWithExpectedPowerReasonTemplate("Car is fully charged"));
+                    new("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
             var chargingSchedulePower = chargingSchedule.TargetGridPower.HasValue && (chargingSchedule.ChargingPower < (powerToControl + (chargingSchedule.TargetGridPower ?? 0)))
@@ -116,7 +116,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if (constraintValues.IsCarFullyCharged == true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
-                    new NotChargingWithExpectedPowerReasonTemplate("Car is fully charged"));
+                    new("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
             }
 
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
@@ -367,7 +367,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             }
 
             if ((constraintValues.ChargeStopAllowedAt != default)
-                && (constraintValues.IsCharging == true))
+                && (constraintValues.IsCharging == true)
+                && (!ignoreTimers))
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                     new NotChargingWithExpectedPowerReasonTemplate("Waiting for charge stop")
@@ -581,16 +582,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((ocppValues?.IsCarFullyCharged.Value == true) && (!useCarToManageChargingSpeed))
             {
                 _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged}", carId, connectorId, ocppValues.IsCarFullyCharged);
-                //Only set to max current if is fully charged is longer than 2 minutes ago as some cars switch this value on and off very quickly on charge start
-                if (ocppValues.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(-2))
-                {
-                    constraintValues.IsCarFullyCharged = true;
-                    _logger.LogTrace("Set {propertyName} to {propertyValue} on Loadpoint (CarId: {carId}, ConnectorId {connectorId}) as is fully charged for more than two minutes", nameof(constraintValues.IsCarFullyCharged), constraintValues.IsCarFullyCharged, carId, connectorId);
-                }
-                else
-                {
-                    _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged} but last changed is less than 2 minutes ago, so not setting RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet", carId, connectorId, ocppValues.IsCarFullyCharged);
-                }
+                constraintValues.IsCarFullyCharged = true;
             }
             if ((ocppValues != default) && (!useCarToManageChargingSpeed))
             {

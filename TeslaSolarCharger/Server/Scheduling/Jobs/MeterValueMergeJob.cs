@@ -11,10 +11,6 @@ public class MeterValueMergeJob(
     public async Task Execute(IJobExecutionContext context)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
-        
-        // Use the same constant as EnergyDataService for consistency
-        const int historicPredictionsSearchDaysBeforePredictionStart = 21;
-        
         await meterValueMergeService.MergeOldMeterValuesAsync(context.CancellationToken).ConfigureAwait(false);
     }
 }

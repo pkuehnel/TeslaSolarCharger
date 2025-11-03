@@ -49,6 +49,8 @@ public class DtoCar
     public DtoTimeStampedValue<double?> Longitude { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<int?> DistanceToHomeGeofence { get; set; } = new(DateTimeOffset.MinValue, null);
 
+    public DateTimeOffset? LastMatchedToChargingConnector { get; set; }
+
     public int? ChargingPowerAtHome
     {
         get

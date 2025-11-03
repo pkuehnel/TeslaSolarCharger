@@ -128,4 +128,5 @@ public interface IConfigurationWrapper
     int? HomeBatteryDischargingPower();
     int DynamicMinSocCalculationBufferInPercent();
     bool DischargeHomeBatteryToMinSocDuringDay();
+    decimal ChargingSwitchCosts();
 }

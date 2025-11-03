@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
-using TeslaSolarCharger.Server.Dtos.Awattar;
+﻿using System;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -15,26 +14,55 @@ public class SpotPriceService : TestBase
     }
 
     [Theory]
-    [InlineData(0.1631, 1674248400000, 1674252000000, "{\r\n      \"start_timestamp\": 1674248400000,\r\n      \"end_timestamp\": 1674252000000,\r\n      \"marketprice\": 163.1,\r\n      \"unit\": \"Eur/MWh\"\r\n    }")]
-    [InlineData(0.147, 1674248400000, 1674252000000, "{\r\n      \"start_timestamp\": 1674248400000,\r\n      \"end_timestamp\": 1674252000000,\r\n      \"marketprice\": 147,\r\n      \"unit\": \"Eur/MWh\"\r\n    }")]
-    [InlineData(-0.00517, 1674248400000, 1674252000000, "{\r\n      \"start_timestamp\": 1674248400000,\r\n      \"end_timestamp\": 1674252000000,\r\n      \"marketprice\": -5.17,\r\n      \"unit\": \"Eur/MWh\"\r\n    }")]
-    [InlineData(0, 1674248400000, 1674252000000, "{\r\n      \"start_timestamp\": 1674248400000,\r\n      \"end_timestamp\": 1674252000000,\r\n      \"marketprice\": 0,\r\n      \"unit\": \"Eur/MWh\"\r\n    }")]
-    public void Can_Generate_SpotPrice_From_AwattarPrice(decimal expectedPrice, long unixTimeStampStart, long unixTimeStampEnd, string valueJson)
+    [InlineData(4.01, 1761433200, 0,  "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(3.76, 1761434100, 1,  "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(2.89, 1761440400, 8,  "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    public void Can_Generate_PriceFromJson(decimal expectedPrice, long unixTimeStampStart, int index, string json)
     {
-        var awattarDatum = JsonConvert.DeserializeObject<Datum>(valueJson);
-        Assert.NotNull(awattarDatum);
         var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
-        var spotPrice = spotPriceService.GenerateSpotPriceFromAwattarPrice(awattarDatum);
+        var spotPrice = spotPriceService.GetPrices(json);
+        Assert.NotNull(spotPrice);
+        Assert.Equal(expectedPrice, spotPrice.price[index]);
+        Assert.Equal(unixTimeStampStart, spotPrice.unix_seconds[index]);
+    }
 
-        Assert.Equal(expectedPrice, spotPrice.Price);
-        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(unixTimeStampStart), spotPrice.StartDate);
-        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(unixTimeStampEnd), spotPrice.EndDate);
+    [Theory]
+    [InlineData(true, 0.00401, 1761433200, "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(false, 0.00401, 1761433200, "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(true, 0.00376, 1761434100, "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(false, 0.00376, 1761434100, "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(true, 0.00289, 1761440400, "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    [InlineData(false, 0.00289, 1761440400, "{\r\n  \"license_info\": \"asdf\",\r\n  \"unix_seconds\": [\r\n    1761433200,\r\n    1761434100,\r\n    1761435000,\r\n    1761435900,\r\n    1761436800,\r\n    1761437700,\r\n    1761438600,\r\n    1761439500,\r\n    1761440400\r\n  ],\r\n  \"price\": [\r\n    4.01,\r\n    3.76,\r\n    3.75,\r\n    3.27,\r\n    3.99,\r\n    3.33,\r\n    3.04,\r\n    2.4,\r\n    2.89\r\n  ],\r\n  \"unit\": \"EUR / MWh\",\r\n  \"deprecated\": false\r\n}")]
+    public void Can_Generate_SpotPrice_From_AwattarPrice(bool shouldAddTick, decimal expectedPrice, long unixTimeStampStart, string json)
+    {
+        var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
+        var energyChartPrices = spotPriceService.GetPrices(json);
+        Assert.NotNull(energyChartPrices);
+        var startDate = DateTimeOffset.FromUnixTimeSeconds(1761433200);
+        if (shouldAddTick)
+        {
+            startDate = startDate.AddTicks(1);
+        }
+        var region = SpotPriceRegion.BE;
+        var spotPrices = spotPriceService.GenerateSpotPricesFromEnergyChartPrices(startDate, energyChartPrices, region);
+        Assert.NotNull(spotPrices);
+        var counter = 0;
+        foreach (var spotPrice in spotPrices)
+        {
+            if (DateTimeOffset.FromUnixTimeSeconds(unixTimeStampStart) == new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero))
+            {
+                counter++;
+                Assert.Equal(expectedPrice, spotPrice.Price);
+            }
+        }
+
+        var shouldFindValue = ((!shouldAddTick) || (unixTimeStampStart > 1761433200));
+        Assert.Equal(shouldFindValue ? 1 : 0, counter);
     }
 
     [Fact]
     public void Generates_Awattar_Url_With_DateTimeOffset()
     {
-        var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(1674511200);
         var currentDate = new DateTimeOffset(2023, 3, 1, 10, 0, 0, TimeSpan.Zero);
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
@@ -43,21 +71,11 @@ public class SpotPriceService : TestBase
             .Setup(c => c.GetAwattarBaseUrl())
             .Returns("https://api.awattar.de/v1/marketdata");
 
-        var endFutureMilliseconds = currentDate.AddHours(48).ToUnixTimeMilliseconds();
+        var startDate = new DateTimeOffset(2025, 10, 25, 23, 0, 0, TimeSpan.Zero);
+        var endDate = new DateTimeOffset(2025, 10, 26, 1, 0, 0, TimeSpan.Zero);
 
         var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
-        var url = spotPriceService.GenerateAwattarUrl(dateTimeOffset, null);
-        Assert.Equal($"https://api.awattar.de/v1/marketdata?start=1674511200000&end={endFutureMilliseconds}", url);
-    }
-
-    [Fact]
-    public void Generates_Awattar_Url_WithOut_DateTimeOffset()
-    {
-        var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
-        Mock.Mock<IConfigurationWrapper>()
-            .Setup(c => c.GetAwattarBaseUrl())
-            .Returns("https://api.awattar.de/v1/marketdata");
-        var url = spotPriceService.GenerateAwattarUrl(null, null);
-        Assert.Equal("https://api.awattar.de/v1/marketdata", url);
+        var url = spotPriceService.GenerateEnergyChartUrl(startDate, endDate, SpotPriceRegion.DE_LU.ToRegionCode());
+        Assert.Equal("https://api.energy-charts.info/price?bzn=DE-LU&start=2025-10-25T23%3A00Z&end=2025-10-26T01%3A00Z", url);
     }
 }

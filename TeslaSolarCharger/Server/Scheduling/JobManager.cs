@@ -58,6 +58,8 @@ public class JobManager(
         var databaseBufferedValuesSaveJob = JobBuilder.Create<DatabaseBufferedValuesSaveJob>().WithIdentity(nameof(DatabaseBufferedValuesSaveJob)).Build();
         var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
+        var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
+        var manualCarsDataClearingJob = JobBuilder.Create<ManualCarsDataClearingJob>().WithIdentity(nameof(ManualCarsDataClearingJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -100,8 +102,10 @@ public class JobManager(
         var newVersionCheckTrigger = TriggerBuilder.Create().WithIdentity("newVersionCheckTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(47)).Build();
 
-        var spotPricePlanningTrigger = TriggerBuilder.Create().WithIdentity("spotPricePlanningTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(1)).Build();
+        var spotPriceRefreshTrigger = TriggerBuilder.Create().WithIdentity("spotPriceRefreshTrigger")
+            //Initial loading on startup to ensure no errors occur
+            .StartAt(dateTimeProvider.DateTimeOffSetUtcNow().AddHours(constants.SpotPriceRefreshIntervalHours))
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.SpotPriceRefreshIntervalHours)).Build();
 
         var backendTokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("backendTokenRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
@@ -151,6 +155,12 @@ public class JobManager(
             .StartAt(currentDate.Add(TimeSpan.FromMinutes(1)))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.HomeBatteryMinSocRefreshIntervalMinutes)).Build();
 
+        var refreshableValuesRefreshTrigger = TriggerBuilder.Create().WithIdentity("refreshableValuesRefreshTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(1)).Build();
+        var manualCarsDataClearingTrigger = TriggerBuilder.Create().WithIdentity("manualCarsDataClearingTrigger")
+            .StartAt(currentDate.AddMinutes(constants.ManualCarMinutesUntilForgetSoc + 1))
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.ManualCarMinutesUntilForgetSoc)).Build();
+
         var random = new Random();
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
@@ -179,7 +189,7 @@ public class JobManager(
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
-            {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
+            {spotPriceJob, new HashSet<ITrigger> {spotPriceRefreshTrigger}},
             {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
             {errorDetectionJob, new HashSet<ITrigger> {errorDetectionTrigger}},
             {bleApiVersionDetectionJob, new HashSet<ITrigger> {bleApiVersionDetectionTrigger}},
@@ -189,6 +199,8 @@ public class JobManager(
             {databaseBufferedValuesSaveJob, new HashSet<ITrigger> {databaseBufferedValuesSaveTrigger}},
             {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
+            {refreshableValuesRefreshJob, new HashSet<ITrigger> {refreshableValuesRefreshTrigger}},
+            {manualCarsDataClearingJob, new HashSet<ITrigger> {manualCarsDataClearingTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())

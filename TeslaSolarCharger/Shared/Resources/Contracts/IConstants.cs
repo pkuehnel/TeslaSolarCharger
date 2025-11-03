@@ -79,4 +79,8 @@ public interface IConstants
     string EvPowerIcon { get; }
     int CarCapabilityMaxCurrentAboveMeasuredCurrent { get; }
     string TeslasAddedToAllowedCars { get; }
+    int SolarHistoricValueCapacity { get; }
+    DateTimeOffset FirstChargePriceTimeStamp { get; }
+    int SpotPriceRefreshIntervalHours { get; }
+    int ManualCarMinutesUntilForgetSoc { get; }
 }

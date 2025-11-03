@@ -6,7 +6,6 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
-using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -297,33 +296,127 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .FirstAsync();
         var fromDateTimeOffset = new DateTimeOffset(from, TimeSpan.Zero);
         var toDateTimeOffset = new DateTimeOffset(to.AddMilliseconds(1), TimeSpan.Zero);
-        IPriceDataService priceDataService;
-        List<Price> prices;
-        switch (chargePrice.EnergyProvider)
+        IPriceDataService priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
+        var prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
+        prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
+        if (chargePrice.AddSpotPriceToGridPrice)
         {
-            case EnergyProvider.Octopus:
-                break;
-            case EnergyProvider.Tibber:
-                break;
-            case EnergyProvider.FixedPrice:
-                priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
-                prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
-                prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
-                return prices;
-            case EnergyProvider.Awattar:
-                break;
-            case EnergyProvider.Energinet:
-                break;
-            case EnergyProvider.HomeAssistant:
-                break;
-            case EnergyProvider.OldTeslaSolarChargerConfig:
-                priceDataService = serviceProvider.GetRequiredService<IOldTscConfigPriceService>();
-                prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.Id.ToString()).ConfigureAwait(false)).ToList();
-                return prices;
-            default:
-                throw new ArgumentOutOfRangeException();
+            prices = await AddSpotPrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice).ConfigureAwait(false);
         }
-        throw new NotImplementedException($"Energyprovider {chargePrice.EnergyProvider} is not implemented.");
+        return prices;
+    }
+
+    private async Task<List<Price>> AddSpotPrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, ChargePrice chargePrice)
+    {
+        var fromUtc = from.UtcDateTime;
+        var toUtc = to.UtcDateTime;
+
+        //required as if from is within a range the spot price before the range is also relevant
+        var previous = await context.SpotPrices
+            .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion && p.StartDate < fromUtc)
+            .OrderByDescending(p => p.StartDate)
+            .Select(p => new { p.StartDate, p.Price })
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+
+        var spotPrices = await context.SpotPrices
+            .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion &&
+                        p.StartDate >= fromUtc &&
+                        p.StartDate < toUtc)
+            .OrderBy(p => p.StartDate)
+            .Select(p => new { p.StartDate, p.Price })
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        if (previous != default)
+        {
+            spotPrices.Insert(0, previous);
+        }
+
+        if (spotPrices.Count == 0)
+            return prices;
+
+        // Build implicit (Start, End) slices where End = next.Start (last is capped to 'toUtc')
+        var slices = new List<(DateTimeOffset Start, DateTimeOffset End, decimal Price)>(spotPrices.Count);
+        for (var i = 0; i < spotPrices.Count; i++)
+        {
+            var start = new DateTimeOffset(spotPrices[i].StartDate, TimeSpan.Zero);
+            var end = new DateTimeOffset((i < spotPrices.Count - 1) ? spotPrices[i + 1].StartDate : toUtc, TimeSpan.Zero);
+
+            if (end > start) // guard against duplicates/out-of-order
+                slices.Add((start, end, spotPrices[i].Price));
+        }
+
+        if (slices.Count == 0)
+            return prices;
+
+        var updatedPrices = new List<Price>();
+
+        foreach (var price in prices.OrderBy(p => p.ValidFrom))
+        {
+            // Only consider slices that overlap the price window
+            var relevant = slices
+                .Where(s => s.End > price.ValidFrom && s.Start < price.ValidTo)
+                .OrderBy(s => s.Start)
+                .ToList();
+
+            if (relevant.Count == 0)
+            {
+                updatedPrices.Add(price);
+                continue;
+            }
+
+            var cursor = price.ValidFrom;
+
+            foreach (var (spotStart, spotEnd, price1) in relevant)
+            {
+                if (cursor >= price.ValidTo) break;
+
+                // gap before spot starts
+                var gapEnd = spotStart < price.ValidTo ? spotStart : price.ValidTo;
+                if (gapEnd > cursor)
+                {
+                    updatedPrices.Add(new Price
+                    {
+                        GridPrice = price.GridPrice,
+                        SolarPrice = price.SolarPrice,
+                        ValidFrom = cursor,
+                        ValidTo = gapEnd,
+                    });
+                    cursor = gapEnd;
+                }
+
+                // overlap with spot slice
+                var overlapStart = cursor > spotStart ? cursor : spotStart;
+                var overlapEnd = spotEnd < price.ValidTo ? spotEnd : price.ValidTo;
+                if (overlapEnd > overlapStart)
+                {
+                    var spotAddition = price1 + (price1 * chargePrice.SpotPriceCorrectionFactor);
+                    updatedPrices.Add(new Price
+                    {
+                        GridPrice = price.GridPrice + spotAddition,
+                        SolarPrice = price.SolarPrice,
+                        ValidFrom = overlapStart,
+                        ValidTo = overlapEnd,
+                    });
+                    cursor = overlapEnd;
+                }
+            }
+
+            // tail after last spot slice
+            if (cursor < price.ValidTo)
+            {
+                updatedPrices.Add(new Price
+                {
+                    GridPrice = price.GridPrice,
+                    SolarPrice = price.SolarPrice,
+                    ValidFrom = cursor,
+                    ValidTo = price.ValidTo,
+                });
+            }
+        }
+
+        return updatedPrices.OrderBy(p => p.ValidFrom).ToList();
     }
 
     private List<Price> AddDefaultChargePrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, decimal defaultValue, decimal defaultSolarPrice)

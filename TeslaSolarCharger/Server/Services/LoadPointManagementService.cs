@@ -564,6 +564,18 @@ public class LoadPointManagementService : ILoadPointManagementService
             };
             await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
         }
+
+        foreach (var match in matches)
+        {
+            if (match.CarId != default && match.ChargingConnectorId != default)
+            {
+                var car = _settings.Cars.FirstOrDefault(c => c.Id == match.CarId);
+                if (car != default)
+                {
+                    car.LastMatchedToChargingConnector = _dateTimeProvider.DateTimeOffSetUtcNow();
+                }
+            }
+        }
         return matches;
     }
 

@@ -21,8 +21,8 @@
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            ButtonType="ButtonType.Submit"
                            StartIcon="@Icons.Material.Filled.Save"
-                           Disabled="_isSubmitting">
-                    @if (_isSubmitting)
+                           Disabled="_isSubmitting || SubmittingParameter">
+                    @if (_isSubmitting || SubmittingParameter)
                     {
                         <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
                         <MudText Class="ms-2">@L("Processing")</MudText>
@@ -51,6 +51,9 @@
     public string? SubmitUrl { get; set; }
 
     [Parameter]
+    public bool SubmittingParameter { get; set; }
+
+    [Parameter]
     public EventCallback<T> OnValidSubmit { get; set; }
 
     [Parameter]
@@ -58,7 +61,7 @@
 
     public bool IsDirty => WrappedElement.EditContext.IsModified();
 
-    public bool IsSubmitting => _isSubmitting;
+    public bool IsSubmitting => _isSubmitting || SubmittingParameter;
 
     private bool _isSubmitting;
 

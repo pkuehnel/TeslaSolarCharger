@@ -23,7 +23,7 @@ public interface ISettings
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
     bool IsStartupCompleted { get; set; }
     DtoProgress? ChargePricesUpdateProgress { get; set; }
-    DateTime StartupTime { get; set; }
+    DateTimeOffset? StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
     bool IsPreRelease { get; set; }
 

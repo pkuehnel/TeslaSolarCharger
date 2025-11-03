@@ -21,12 +21,8 @@ public class FixedPriceService : IFixedPriceService
     public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
     {
         _logger.LogTrace("{method}({from}, {to})", nameof(GetPriceData), from, to);
-        if (string.IsNullOrWhiteSpace(configString))
-        {
-            throw new ArgumentNullException(nameof(configString));
-        }
 
-        var fixedPrices = ParseConfigString(configString);
+        var fixedPrices = configString == default ? new() : ParseConfigString(configString);
         var prices = GeneratePricesBasedOnFixedPrices(from, to, fixedPrices);
 
 

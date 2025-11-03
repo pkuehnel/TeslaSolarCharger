@@ -248,6 +248,17 @@ else
         <pre>@_meterValueDetails</pre>
     }
 
+    <h3>@T("Charging Prices")</h3>
+    <GenericInput For="() => ChargingPricesFrom"></GenericInput>
+    <GenericInput For="() => ChargingPricesTo"></GenericInput>
+    <RightAlignedButtonComponent ButtonText='@T("Get Price Values")'
+                                 IsLoading="@_loadingGridPrices"
+                                 OnButtonClicked="GetGridValues"></RightAlignedButtonComponent>
+    @if (_gridPricesDetails != default)
+    {
+        <pre>@_gridPricesDetails</pre>
+    }
+
     <RightAlignedButtonComponent ButtonText='@T("Reload page")'
                                  OnButtonClicked="JavaScriptWrapper.ReloadPage"></RightAlignedButtonComponent>
 
@@ -280,6 +291,12 @@ else
 
     private bool _loadingMeterValues;
     private string? _meterValueDetails;
+
+    private bool _loadingGridPrices;
+    private string? _gridPricesDetails;
+
+    public DateTime? ChargingPricesFrom { get; set; }
+    public DateTime? ChargingPricesTo { get; set; }
 
     private Dictionary<string, string> LogLevelOptions => new()
     {
@@ -572,4 +589,27 @@ else
 
     private string Format(string key, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    private async Task GetGridValues()
+    {
+        if (ChargingPricesFrom == default || ChargingPricesTo == default)
+        {
+            return;
+        }
+
+        _loadingGridPrices = true;
+        var from = new DateTimeOffset(ChargingPricesFrom.Value, TimeSpan.Zero);
+        var to = new DateTimeOffset(ChargingPricesTo.Value, TimeSpan.Zero);
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Debug/GetGridPrices?from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.AddDays(1).ToString("o"))}");
+        if (result.HasError)
+        {
+            _gridPricesDetails = result.ErrorMessage ?? T("No error message");
+        }
+        else
+        {
+            _gridPricesDetails = result.Data?.Value ?? T("No data");
+        }
+        _loadingGridPrices = false;
+    }
+
 }

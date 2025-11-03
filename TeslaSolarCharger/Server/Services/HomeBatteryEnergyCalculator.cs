@@ -161,25 +161,28 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var closestDistanceToMaxEnergy = batteryUsableCapacityInWh - energyInBattery;
         var batteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
 
-        // NEW: track energy at (or just before) targetTime
         var energyAtTargetTime = energyInBattery;
 
         foreach (var energyDifference in localDictionary)
         {
+            _logger.LogTrace("Adding {energy} Wh of {date}", energyDifference.Value, energyDifference.Key);
             if (energyDifference.Value > batteryMaxChargingPower)
             {
+                _logger.LogTrace("Use max charging power");
                 energyInBattery += batteryMaxChargingPower.Value;
             }
             else
             {
+                _logger.LogTrace("Use actual additional energy.");
                 energyInBattery += energyDifference.Value;
             }
-
+            _logger.LogTrace("Energy in battery at {date}: {energy} Wh", energyDifference.Key, energyInBattery);
             if (energyDifference.Key <= targetTime)
             {
                 energyAtTargetTime = energyInBattery;
                 //Only set closest distance to max energy until target time as otherwise values after sunrise are taken into account
                 closestDistanceToMaxEnergy = Math.Min(closestDistanceToMaxEnergy, batteryUsableCapacityInWh - energyInBattery);
+                _logger.LogTrace("Updated closest distance to max energy to: {closestDistanceToMaxEnergy} Wh", closestDistanceToMaxEnergy);
             }
             
             if (energyInBattery > batteryUsableCapacityInWh && energyDifference.Key < targetTime)
@@ -188,6 +191,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
                 return minimalStateOfChargePercent;
             }
             var missingEnergy = minimumEnergy - energyInBattery;
+            _logger.LogTrace("Missing energy: {missingEnergy} Wh", missingEnergy);
             if (missingEnergy > 0)
             {
                 _logger.LogDebug("Missing energy at {Time}: {MissingEnergy} Wh", energyDifference.Key, missingEnergy);

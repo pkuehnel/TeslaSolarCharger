@@ -1,17 +1,17 @@
 ﻿@page "/ChargePrice/detail/{chargeCostId:int}"
 @page "/ChargePrice/new"
+@using MudExtensions
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
-@using TeslaSolarCharger.Shared.Enums
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared
-@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
-@inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
 @inject ISnackbar Snackbar
@@ -27,114 +27,64 @@
 }
 else
 {
-    <EditForm Model="ChargePrice" OnValidSubmit="@SaveChargePrice">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <InputComponent ValueId="chargePriceId"
-                        LabelText='@T("ID")'
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="chargePriceId" @bind-Value="ChargePrice.Id" class="form-control" placeholder=" " readonly />
-            </InputFragment>
-        </InputComponent>
-
-        <InputComponent ValueId="date"
-                        LabelText='@T("Valid Since")'
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputDate id="date" @bind-Value="ChargePrice.ValidSince" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-
-        <InputComponent ValueId="solarPrice"
-                        LabelText='@T("Solar Price")'
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-        
-        <InputComponent ValueId="energyProvider"
-                        LabelText='@T("Energy Provider")'
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputSelect id="energyProvider" Value="ChargePrice.EnergyProvider" ValueExpression="() => ChargePrice.EnergyProvider" ValueChanged="@((EnergyProvider e) => EnergyProviderChanged(e))" class="form-control">
-                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">@T("Fixed Price or Spot price")</option>
-                    <option value="@EnergyProvider.FixedPrice">@T("Time based prices")</option>
-                </InputSelect>
-            </InputFragment>
-        </InputComponent>
-
-        <InputComponent ValueId="gridPrice"
-                        LabelText='@(ChargePrice.AddSpotPriceToGridPrice ? T("Base Price (Spot price will be added to this price)") : T("Grid Price"))'
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="gridPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-
-        @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && FixedPrices != null)
+    <EditFormComponent T="DtoChargePrice"
+                       WrappedElement="ChargePrice"
+                       OnValidSubmit="SaveChargePrice"
+                       SubmittingParameter="SubmitIsLoading">
+        <GenericInput For="() => ChargePrice.Item.ValidSince"></GenericInput>
+        <GenericInput For="() => ChargePrice.Item.SolarPrice"></GenericInput>
+        <GenericInput For="() => ChargePrice.Item.GridPrice"></GenericInput>
+        @foreach (var fixedPrice in FixedPrices)
         {
-            <div>@T("You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.")</div>
-            @foreach (var fixedPrice in FixedPrices)
-            {
-                <div class="row mt-3">
-                    <div class="col-auto">
-                        <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
-                    </div>
-                    
+            <div class="row mt-3">
+                <div class="col-auto">
+                    <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
                 </div>
-                <div class="row mt-3">
-                    <div class="col-auto">
-                        <InputComponent ValueId="price"
-                                        LabelText='@T("Price")'
-                                        UnitText=""
-                                        HelpText="">
-                            <InputFragment>
-                                <InputNumber id="price" @bind-Value="fixedPrice.Value" class="form-control" placeholder=" " />
-                            </InputFragment>
-                        </InputComponent>
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-danger m-2" @onclick="_ => DeleteFixedPrice(fixedPrice)"><span class="oi oi-trash" aria-hidden="true"></span></button>
-                    </div>
+
+            </div>
+            <div class="row mt-3">
+                <div class="col-auto">
+                    <InputComponent ValueId="price"
+                                    LabelText='@T("Price")'
+                                    UnitText=""
+                                    HelpText="">
+                        <InputFragment>
+                            <InputNumber id="price" @bind-Value="fixedPrice.Value" class="form-control" placeholder=" " />
+                        </InputFragment>
+                    </InputComponent>
                 </div>
-                
-                <hr/>
-            }
-            <button type="button" class="btn btn-primary m-2" @onclick="AddFixedPrice">@T("Add time based price")</button>
-        }
-        
-        @if (ChargePrice.EnergyProvider == EnergyProvider.OldTeslaSolarChargerConfig)
-        {
-            <div class="mb-3">
-                <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
-                <label class="form-check-label" for="useSpotPrice1">
-                    @T("Use Spot Prices")
-                </label>
-                <div>
-                    <small id="UseSpotPriceHelp" class="form-text text-muted">@T("Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)")</small>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-danger m-2" @onclick="_ => DeleteFixedPrice(fixedPrice)"><span class="oi oi-trash" aria-hidden="true"></span></button>
                 </div>
             </div>
-            @if (ChargePrice.AddSpotPriceToGridPrice)
-            {
-                <InputComponent ValueId="chargePriceSurcharge"
-                                LabelText='@T("Additional costs to spotprice")'
-                                UnitText="%"
-                                HelpText='@T("Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.")'>
-                    <InputFragment>
-                        <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
-                    </InputFragment>
-                </InputComponent>
-            }
+
+            <hr />
+        }
+        <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                                     ButtonText="@T("Add time based price")"
+                                     OnButtonClicked="AddFixedPrice"></RightAlignedButtonComponent>
+
+        <GenericInput T="bool"
+                      For="() => ChargePrice.Item.AddSpotPriceToGridPrice"
+                      OnValueChanged="@StateHasChanged"></GenericInput>
+
+        @if (ChargePrice.Item.AddSpotPriceToGridPrice)
+        {
+            <div class="p-2">
+                <MudSelectExtended T="SpotPriceRegion?"
+                                   For="() => ChargePrice.Item.SpotPriceRegion"
+                                   @bind-Value="ChargePrice.Item.SpotPriceRegion"
+                                   Margin="Margin.Dense"
+                                   Label="@T("Spot Price Region")"
+                                   Variant="Variant.Outlined">
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@SpotPriceRegion.DE_LU.ToFriendlyName()" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@SpotPriceRegion.AT.ToFriendlyName()" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@SpotPriceRegion.CH.ToFriendlyName()" />
+                </MudSelectExtended>
+            </div>
+            <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"></GenericInput>
         }
         
-        <br/>
         @if(ChargePriceUpdateProgress != default && ChargePriceUpdateProgress.Value != null && ChargePriceUpdateProgress.MaxValue != null)
         {
             <div class="mb-3">
@@ -154,11 +104,9 @@ else
                 </MudAlert>
             </MudPaper>
         }
+    </EditFormComponent>
 
-        <RightAlignedButtonComponent ButtonType="ButtonType.Submit"
-                                     IsLoading="@(SubmitIsLoading || ChargePriceUpdateProgress != default)"
-                                     ButtonText='@T("Save")'/>
-    </EditForm>
+    
 }
 
 
@@ -166,11 +114,11 @@ else
     [Parameter]
     public int? ChargeCostId { get; set; }
 
-    private DtoChargePrice? ChargePrice { get; set; }
+    private EditableItem<DtoChargePrice>? ChargePrice { get; set; }
 
     private bool SubmitIsLoading { get; set; }
 
-    private List<FixedPrice>? FixedPrices { get; set; }
+    private List<FixedPrice> FixedPrices { get; set; } = new();
 
     private DtoProgress? ChargePriceUpdateProgress { get; set; }
 
@@ -183,21 +131,23 @@ else
         await RefreshChargePriceProgress();
         if (ChargeCostId != null)
         {
-            ChargePrice = await ChargePriceService.GetDtoChargePrice(ChargeCostId.Value);
-            if(ChargePrice is { EnergyProviderConfiguration: not null, EnergyProvider: EnergyProvider.FixedPrice })
+            var chargePrice = await ChargePriceService.GetDtoChargePrice(ChargeCostId.Value);
+            if (chargePrice == default)
             {
-                FixedPrices = JsonConvert.DeserializeObject<List<FixedPrice>>(ChargePrice.EnergyProviderConfiguration);
+                ChargePrice = null;
+                return;
             }
+            ChargePrice = new(chargePrice);
+            FixedPrices = !string.IsNullOrEmpty(ChargePrice.Item.EnergyProviderConfiguration) ? JsonConvert.DeserializeObject<List<FixedPrice>>(ChargePrice.Item.EnergyProviderConfiguration) ?? new() : new();
         }
         else
         {
-            ChargePrice = new DtoChargePrice()
+            ChargePrice = new(new DtoChargePrice()
             {
                 ValidSince = DateTimeProvider.Now(),
                 GridPrice = new decimal(0.285),
                 SolarPrice = new decimal(0.12),
-                EnergyProvider = EnergyProvider.OldTeslaSolarChargerConfig,
-            };
+            });
         }
     }
 
@@ -214,9 +164,9 @@ else
 
     private async Task SaveChargePrice()
     {
-        if(ChargePrice == null)
+        if (ChargePrice == null)
         {
-            Snackbar.Add("Charge price is null and can not be saved. Try reloading the page.", Severity.Error);
+            Snackbar.Add(T("Charge price is null and can not be saved. Try reloading the page."), Severity.Error);
             return;
         }
         SubmitIsLoading = true;
@@ -225,16 +175,8 @@ else
         _ = RefreshChargePriceUpdateProgressForever(cancellationToken);
         try
         {
-            if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice)
-            {
-                ChargePrice.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
-            }
-            else
-            {
-                ChargePrice.EnergyProviderConfiguration = null;
-            }
-
-            await ChargePriceService.UpdateChargePrice(ChargePrice);
+            ChargePrice.Item.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
+            await ChargePriceService.UpdateChargePrice(ChargePrice.Item);
         }
         finally
         {
@@ -256,16 +198,6 @@ else
             await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
         }
         ChargePriceUpdateProgress = null;
-    }
-
-    private void EnergyProviderChanged(EnergyProvider energyProvider)
-    {
-        if(ChargePrice == null)
-        {
-            return;
-        }
-        ChargePrice.EnergyProvider = energyProvider;
-        FixedPrices = energyProvider == EnergyProvider.FixedPrice ? new List<FixedPrice>() : null;
     }
 
     private void AddFixedPrice()

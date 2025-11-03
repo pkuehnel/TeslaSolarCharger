@@ -25,6 +25,8 @@ using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -66,6 +68,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
+            .AddTransient<RefreshableValuesRefreshJob>()
+            .AddTransient<ManualCarsDataClearingJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -112,7 +116,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()
-            .AddTransient<IOldTscConfigPriceService, OldTscConfigPriceService>()
             .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddTransient<IBleService, TeslaBleService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()

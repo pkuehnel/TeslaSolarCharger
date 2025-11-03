@@ -25,6 +25,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Services;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -269,7 +270,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             try
             {
-                var geofences = await teslaMateContext.Geofences.ToListAsync();
+                var unused = await teslaMateContext.Geofences.ToListAsync();
             }
             catch (Exception ex)
             {
@@ -282,7 +283,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             {
                 try
                 {
-                    var geofences = await teslaMateContext.Geofences.ToListAsync();
+                    var unused = await teslaMateContext.Geofences.ToListAsync();
                 }
                 catch (Exception ex)
                 {
@@ -335,6 +336,17 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
+        await chargingCostService.ConvertChargePricesToSpotPriceRegion().ConfigureAwait(false);
+
+        var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
+        try
+        {
+            await spotPriceService.UpdateSpotPrices().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger1.LogError(ex, "Error updating spot prices during startup");
+        }
 
         var tscOnlyChargingCostService = startupScope.ServiceProvider.GetRequiredService<ITscOnlyChargingCostService>();
         await tscOnlyChargingCostService.AddNonZeroMeterValuesCarsAndChargingStationsToSettings().ConfigureAwait(false);
@@ -362,14 +374,11 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
 
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
-        await configJsonService.AddCarsToSettings(initializeManualCarValues: true).ConfigureAwait(false);
+        await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
-
-        var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
-        await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
         if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })
@@ -387,6 +396,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
+
+        var refreshableValuesService = startupScope.ServiceProvider.GetRequiredService<IRefreshableValueHandlingService>();
+        await refreshableValuesService.RecreateRefreshables().ConfigureAwait(false);
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
@@ -413,6 +425,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     {
         settings.IsStartupCompleted = true;
         var dateTimeProvider = startupScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-        settings.StartupTime = dateTimeProvider.UtcNow();
+        settings.StartupTime = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 }

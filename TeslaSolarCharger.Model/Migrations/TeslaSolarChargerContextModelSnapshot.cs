@@ -305,11 +305,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool>("AddSpotPriceToGridPrice")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("EnergyProvider")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(6);
-
                     b.Property<string>("EnergyProviderConfiguration")
                         .HasColumnType("TEXT");
 
@@ -321,6 +316,9 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.Property<decimal>("SpotPriceCorrectionFactor")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("SpotPriceRegion")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("ValidSince")
                         .HasColumnType("TEXT");
@@ -789,8 +787,8 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("OcppChargingStationConnectorId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("Timestamp")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("Timestamp")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
@@ -987,11 +985,11 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("SpotPriceRegion")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT");

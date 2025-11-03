@@ -172,10 +172,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(c => c.ChargeMode)
             .HasDefaultValue(ChargeModeV2.Auto);
 
-        modelBuilder.Entity<ChargePrice>()
-            .Property(c => c.EnergyProvider)
-            .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
-
         modelBuilder.Entity<TscConfiguration>()
             .HasIndex(c => c.Key)
             .IsUnique();
@@ -296,6 +292,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
         modelBuilder.Entity<CarChargingTarget>()
             .Property(m => m.LastFulFilled)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<OcppChargingStationConnectorValueLog>()
+            .Property(m => m.Timestamp)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
         modelBuilder.Entity<LoggedError>()
