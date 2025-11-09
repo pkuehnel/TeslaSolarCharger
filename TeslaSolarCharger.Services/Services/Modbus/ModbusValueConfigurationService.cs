@@ -10,25 +10,39 @@ using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
-public class ModbusValueConfigurationService (
-    ILogger<ModbusValueConfigurationService> logger,
-    ITeslaSolarChargerContext context,
-    IModbusClientHandlingService modbusClientHandlingService,
-    IRefreshableValueHandlingService refreshableValueHandlingService,
-    IServiceScopeFactory serviceScopeFactory,
-    IConstants constants) : IModbusValueConfigurationService, IRefreshableValueSetupService
+public class ModbusValueConfigurationService : IModbusValueConfigurationService, IRefreshableValueSetupService
 {
+    private readonly ILogger<ModbusValueConfigurationService> _logger;
+    private readonly ITeslaSolarChargerContext _context;
+    private readonly IModbusClientHandlingService _modbusClientHandlingService;
+    private readonly IRefreshableValueHandlingService _refreshableValueHandlingService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IConstants _constants;
+
+    public ModbusValueConfigurationService(ILogger<ModbusValueConfigurationService> logger,
+        ITeslaSolarChargerContext context,
+        IModbusClientHandlingService modbusClientHandlingService,
+        IRefreshableValueHandlingService refreshableValueHandlingService,
+        IServiceScopeFactory serviceScopeFactory,
+        IConstants constants)
+    {
+        _logger = logger;
+        _context = context;
+        _modbusClientHandlingService = modbusClientHandlingService;
+        _refreshableValueHandlingService = refreshableValueHandlingService;
+        _serviceScopeFactory = serviceScopeFactory;
+        _constants = constants;
+    }
+
     public async Task<List<DtoModbusConfiguration>> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate)
     {
-        logger.LogTrace("{method}({predicate})", nameof(GetModbusConfigurationByPredicate), predicate);
-        var resultConfigurations = await context.ModbusConfigurations
+        _logger.LogTrace("{method}({predicate})", nameof(GetModbusConfigurationByPredicate), predicate);
+        var resultConfigurations = await _context.ModbusConfigurations
             .Where(predicate)
             .Select(c => new DtoModbusConfiguration()
             {
@@ -46,7 +60,7 @@ public class ModbusValueConfigurationService (
 
     public async Task<DtoModbusConfiguration> GetValueConfigurationById(int id)
     {
-        logger.LogTrace("{method}({id})", nameof(GetValueConfigurationById), id);
+        _logger.LogTrace("{method}({id})", nameof(GetValueConfigurationById), id);
         var configurations = await GetModbusConfigurationByPredicate(x => x.Id == id);
         return configurations.Single();
     }
@@ -54,8 +68,8 @@ public class ModbusValueConfigurationService (
     public async Task<List<DtoModbusValueResultConfiguration>> GetModbusResultConfigurationsByPredicate(
         Expression<Func<ModbusResultConfiguration, bool>> predicate)
     {
-        logger.LogTrace("{method}({predicate})", nameof(GetModbusResultConfigurationsByPredicate), predicate);
-        var resultConfigurations = await context.ModbusResultConfigurations
+        _logger.LogTrace("{method}({predicate})", nameof(GetModbusResultConfigurationsByPredicate), predicate);
+        var resultConfigurations = await _context.ModbusResultConfigurations
             .Where(predicate)
             .Select(e => new DtoModbusValueResultConfiguration()
             {
@@ -76,14 +90,14 @@ public class ModbusValueConfigurationService (
 
     public async Task<List<DtoModbusValueResultConfiguration>> GetResultConfigurationsByValueConfigurationId(int valueId)
     {
-        logger.LogTrace("{method}({id})", nameof(GetResultConfigurationsByValueConfigurationId), valueId);
+        _logger.LogTrace("{method}({id})", nameof(GetResultConfigurationsByValueConfigurationId), valueId);
         var resultConfigurations = await GetModbusResultConfigurationsByPredicate(x => x.ModbusConfigurationId == valueId);
         return resultConfigurations;
     }
 
     public async Task<int> SaveModbusResultConfiguration(int parentId, DtoModbusValueResultConfiguration dtoData)
     {
-        logger.LogTrace("{method}({parentId}, {@dtoData})", nameof(SaveModbusResultConfiguration), parentId, dtoData);
+        _logger.LogTrace("{method}({parentId}, {@dtoData})", nameof(SaveModbusResultConfiguration), parentId, dtoData);
         var dbData = new ModbusResultConfiguration()
         {
             Id = dtoData.Id,
@@ -99,59 +113,59 @@ public class ModbusValueConfigurationService (
             InvertedByModbusResultConfigurationId = dtoData.InvertedByModbusResultConfigurationId,
         };
         dbData.ModbusConfigurationId = parentId;
-        var trackedData = context.ChangeTracker.Entries<ModbusResultConfiguration>()
+        var trackedData = _context.ChangeTracker.Entries<ModbusResultConfiguration>()
             .FirstOrDefault(e => e.Entity.Id == dbData.Id);
         if (trackedData == default)
         {
             if (dbData.Id == default)
             {
-                context.ModbusResultConfigurations.Add(dbData);
+                _context.ModbusResultConfigurations.Add(dbData);
             }
             else
             {
-                context.ModbusResultConfigurations.Update(dbData);
+                _context.ModbusResultConfigurations.Update(dbData);
             }
         }
         else
         {
             trackedData.CurrentValues.SetValues(dbData);
         }
-        await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
+        await _context.SaveChangesAsync().ConfigureAwait(false);
+        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
     public async Task DeleteModbusConfiguration(int id)
     {
-        logger.LogTrace("{method}({id})", nameof(DeleteModbusConfiguration), id);
-        var modbusConfiguration = await context.ModbusConfigurations
+        _logger.LogTrace("{method}({id})", nameof(DeleteModbusConfiguration), id);
+        var modbusConfiguration = await _context.ModbusConfigurations
             .Include(m => m.ModbusResultConfigurations)
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
-        context.ModbusConfigurations.Remove(modbusConfiguration);
-        await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
+        _context.ModbusConfigurations.Remove(modbusConfiguration);
+        await _context.SaveChangesAsync().ConfigureAwait(false);
+        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task DeleteResultConfiguration(int id)
     {
-        logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
-        var modbusResultConfiguration = await context.ModbusResultConfigurations
+        _logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
+        var modbusResultConfiguration = await _context.ModbusResultConfigurations
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
-        context.ModbusResultConfigurations.Remove(modbusResultConfiguration);
-        await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
+        _context.ModbusResultConfigurations.Remove(modbusResultConfiguration);
+        await _context.SaveChangesAsync().ConfigureAwait(false);
+        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData)
     {
-        logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusConfiguration), dtoData);
+        _logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusConfiguration), dtoData);
         if (dtoData.Id != default)
         {
-            await modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
-            var hostPortCombination = context.ModbusConfigurations.Where(x => x.Id == dtoData.Id)
+            await _modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
+            var hostPortCombination = _context.ModbusConfigurations.Where(x => x.Id == dtoData.Id)
                 .Select(x => new { x.Host, x.Port })
                 .Single();
-            await modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
+            await _modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
         }
 
         var dbData = new ModbusConfiguration()
@@ -166,20 +180,20 @@ public class ModbusValueConfigurationService (
         };
         if (dbData.Id == default)
         {
-            context.ModbusConfigurations.Add(dbData);
+            _context.ModbusConfigurations.Add(dbData);
         }
         else
         {
-            context.ModbusConfigurations.Update(dbData);
+            _context.ModbusConfigurations.Update(dbData);
         }
-        await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
+        await _context.SaveChangesAsync().ConfigureAwait(false);
+        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
     public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval)
     {
-        logger.LogTrace("{method}({defaultInterval})", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
+        _logger.LogTrace("{method}({defaultInterval})", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
         var modbusConfigurations = await GetModbusConfigurationByPredicate(
                 c => true).ConfigureAwait(false);
 
@@ -190,10 +204,10 @@ public class ModbusValueConfigurationService (
             {
                 var configuration = modbusConfiguration;
                 var refreshable = new DelegateRefreshableValue<decimal>(
-                    serviceScopeFactory,
+                    _serviceScopeFactory,
                     async ct =>
                     {
-                        using var executionScope = serviceScopeFactory.CreateScope();
+                        using var executionScope = _serviceScopeFactory.CreateScope();
                         var modbusValueConfigurationService = executionScope.ServiceProvider
                             .GetRequiredService<IModbusValueConfigurationService>();
                         var modbusValueExecutionService = executionScope.ServiceProvider
@@ -231,6 +245,7 @@ public class ModbusValueConfigurationService (
                             }
                             catch (Exception ex)
                             {
+                                var logger = executionScope.ServiceProvider.GetRequiredService<ILogger<ModbusValueConfigurationService>>();
                                 logger.LogError(
                                     ex,
                                     "Error while refreshing modbus value for configuration {configurationId} result {resultId}",
@@ -243,14 +258,14 @@ public class ModbusValueConfigurationService (
                         return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
                     },
                     defaultInterval,
-                    constants.SolarHistoricValueCapacity
+                    _constants.SolarHistoricValueCapacity
                 );
 
                 result.Add(refreshable);
             }
             catch (Exception ex)
             {
-                logger.LogError(
+                _logger.LogError(
                     ex,
                     "Error while creating refreshable for modbus configuration {configurationId} ({host}:{port})",
                     modbusConfiguration.Id,

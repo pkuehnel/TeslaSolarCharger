@@ -14,7 +14,11 @@ public class TemplateValueConfigurationFactory : ITemplateValueConfigurationFact
 
     private static readonly IReadOnlyDictionary<(TemplateValueGatherType GatherType, int Version), ITemplateValueConfigurationConverter> Converters;
 
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     static TemplateValueConfigurationFactory()
     {
@@ -28,15 +32,6 @@ public class TemplateValueConfigurationFactory : ITemplateValueConfigurationFact
                 Key(new DtoSmaHybridInverterTemplateValueConfiguration().GatherType, AnyVersion),
                 new TemplateValueConfigurationConverter<DtoSmaHybridInverterTemplateValueConfiguration, DtoSmaTemplateValueConfguration>()
             },
-        };
-    }
-
-    public TemplateValueConfigurationFactory()
-    {
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
     }
 
