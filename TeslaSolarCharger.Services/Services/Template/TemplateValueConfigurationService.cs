@@ -1,11 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Template.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 
 namespace TeslaSolarCharger.Services.Services.Template;
 
@@ -24,7 +25,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         _factory = factory;
     }
 
-    public async Task<TDto?> GetAsync<TDto>(int id) where TDto : class
+    public async Task<TDto?> GetAsync<TDto>(int id) where TDto : class, ITemplateValueConfigurationDto
     {
         _logger.LogTrace("{method}({id})", nameof(GetAsync), id);
         var entity = await _context.TemplateValueConfigurations
@@ -37,7 +38,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         return dto as TDto;
     }
 
-    public async Task<IEnumerable<object>> GetAllAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate)
+    public async Task<IEnumerable<ITemplateValueConfigurationDto>> GetAllAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate)
     {
         _logger.LogTrace("{method}({predicate})", nameof(GetAllAsync), predicate);
         var entities = await _context.TemplateValueConfigurations
@@ -47,7 +48,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         return entities.Select(e => _factory.CreateDto(e));
     }
 
-    public async Task<int> SaveAsync<TDto>(TDto dto) where TDto : class
+    public async Task<int> SaveAsync<TDto>(TDto dto) where TDto : class, ITemplateValueConfigurationDto
     {
         _logger.LogTrace("{method}({@dto})", nameof(SaveAsync), dto);
         var entity = _factory.CreateEntity(dto);

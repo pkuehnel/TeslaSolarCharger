@@ -3,7 +3,7 @@ using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 
-public abstract class DtoTemplateValueConfiguration<TConfig> where TConfig : class
+public abstract class DtoTemplateValueConfiguration<TConfig> : ITemplateValueConfigurationDto where TConfig : class
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

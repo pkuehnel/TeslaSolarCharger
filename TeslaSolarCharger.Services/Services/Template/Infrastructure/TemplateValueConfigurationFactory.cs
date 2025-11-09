@@ -1,17 +1,35 @@
-﻿using System.Text.Json;
-using TeslaSolarCharger.Model.Entities;
+﻿using System.Collections.Generic;
+using System.Text.Json;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Template.Infrastructure.Contracts;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
-using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Template.Infrastructure;
 
 public class TemplateValueConfigurationFactory : ITemplateValueConfigurationFactory
 {
+    private const int AnyVersion = -1;
+
+    private static readonly IReadOnlyDictionary<(TemplateValueGatherType GatherType, int Version), ITemplateValueConfigurationConverter> Converters;
+
     private readonly JsonSerializerOptions _jsonOptions;
+
+    static TemplateValueConfigurationFactory()
+    {
+        Converters = new Dictionary<(TemplateValueGatherType GatherType, int Version), ITemplateValueConfigurationConverter>
+        {
+            {
+                Key(new DtoSmaInverterTemplateValueConfiguration().GatherType, AnyVersion),
+                new TemplateValueConfigurationConverter<DtoSmaInverterTemplateValueConfiguration, DtoSmaTemplateValueConfguration>()
+            },
+            {
+                Key(new DtoSmaHybridInverterTemplateValueConfiguration().GatherType, AnyVersion),
+                new TemplateValueConfigurationConverter<DtoSmaHybridInverterTemplateValueConfiguration, DtoSmaTemplateValueConfguration>()
+            },
+        };
+    }
 
     public TemplateValueConfigurationFactory()
     {
@@ -22,73 +40,84 @@ public class TemplateValueConfigurationFactory : ITemplateValueConfigurationFact
         };
     }
 
-    public object CreateDto(TemplateValueConfiguration entity)
+    public ITemplateValueConfigurationDto CreateDto(TemplateValueConfiguration entity)
     {
-        var dtoType = GetDtoType(entity.GatherType, entity.ConfigurationVersion);
-        var dto = Activator.CreateInstance(dtoType)!;
-
-        // Map basic properties
-        var idProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.Id));
-        var nameProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.Name));
-        var versionProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.ConfigurationVersion));
-        var intervalProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.MinRefreshIntervalMilliseconds));
-        var configProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.Configuration));
-
-        idProp?.SetValue(dto, entity.Id);
-        nameProp?.SetValue(dto, entity.Name);
-        versionProp?.SetValue(dto, entity.ConfigurationVersion);
-        intervalProp?.SetValue(dto, entity.MinRefreshIntervalMilliseconds);
-
-        // Deserialize configuration
-        if (!string.IsNullOrEmpty(entity.ConfigurationJson) && configProp != null)
-        {
-            var configType = configProp.PropertyType;
-            var config = JsonSerializer.Deserialize(entity.ConfigurationJson, configType, _jsonOptions);
-            configProp.SetValue(dto, config);
-        }
-
-        return dto;
+        var converter = GetConverter(entity.GatherType, entity.ConfigurationVersion);
+        return converter.CreateDto(entity, _jsonOptions);
     }
 
-    public TemplateValueConfiguration CreateEntity(object dto)
+    public TemplateValueConfiguration CreateEntity(ITemplateValueConfigurationDto dto)
     {
-        var dtoType = dto.GetType();
-        var idProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.Id))!;
-        var nameProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.Name))!;
-        var versionProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.ConfigurationVersion))!;
-        var intervalProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.MinRefreshIntervalMilliseconds))!;
-        var gatherTypeProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.GatherType))!;
-        var configProp = dtoType.GetProperty(nameof(DtoTemplateValueConfiguration<object>.Configuration));
+        var converter = GetConverter(dto.GatherType, dto.ConfigurationVersion);
+        return converter.CreateEntity(dto, _jsonOptions);
+    }
 
-        var entity = new TemplateValueConfiguration((string)nameProp.GetValue(dto)!)
+    private static ITemplateValueConfigurationConverter GetConverter(TemplateValueGatherType gatherType, int version)
+    {
+        if (Converters.TryGetValue(Key(gatherType, version), out var converter))
         {
-            Id = (int)idProp.GetValue(dto)!,
-            ConfigurationVersion = (int)versionProp.GetValue(dto)!,
-            MinRefreshIntervalMilliseconds = (int?)intervalProp.GetValue(dto),
-            GatherType = (TemplateValueGatherType)gatherTypeProp.GetValue(dto)!,
-        };
+            return converter;
+        }
 
-        // Serialize configuration
-        if (configProp != null)
+        if (Converters.TryGetValue(Key(gatherType, AnyVersion), out converter))
         {
-            var config = configProp.GetValue(dto);
-            if (config != null)
+            return converter;
+        }
+
+        throw new NotSupportedException($"Gather type {gatherType} version {version} is not supported");
+    }
+
+    private static (TemplateValueGatherType GatherType, int Version) Key(TemplateValueGatherType gatherType, int version) => (gatherType, version);
+
+    private interface ITemplateValueConfigurationConverter
+    {
+        ITemplateValueConfigurationDto CreateDto(TemplateValueConfiguration entity, JsonSerializerOptions options);
+        TemplateValueConfiguration CreateEntity(ITemplateValueConfigurationDto dto, JsonSerializerOptions options);
+    }
+
+    private sealed class TemplateValueConfigurationConverter<TDto, TConfig> : ITemplateValueConfigurationConverter
+        where TDto : DtoTemplateValueConfiguration<TConfig>, new()
+        where TConfig : class
+    {
+        public ITemplateValueConfigurationDto CreateDto(TemplateValueConfiguration entity, JsonSerializerOptions options)
+        {
+            var dto = new TDto
             {
-                entity.ConfigurationJson = JsonSerializer.Serialize(config, _jsonOptions);
+                Id = entity.Id,
+                Name = entity.Name,
+                ConfigurationVersion = entity.ConfigurationVersion,
+                MinRefreshIntervalMilliseconds = entity.MinRefreshIntervalMilliseconds,
+            };
+
+            if (!string.IsNullOrWhiteSpace(entity.ConfigurationJson))
+            {
+                dto.Configuration = JsonSerializer.Deserialize<TConfig>(entity.ConfigurationJson, options);
             }
+
+            return dto;
         }
 
-        return entity;
-    }
-
-    private Type GetDtoType(TemplateValueGatherType gatherType, int version)
-    {
-        // This could be moved to a registry pattern for better extensibility
-        return (gatherType, version) switch
+        public TemplateValueConfiguration CreateEntity(ITemplateValueConfigurationDto dto, JsonSerializerOptions options)
         {
-            (TemplateValueGatherType.SmaInverterModbus, _) => typeof(DtoSmaInverterTemplateValueConfiguration),
-            (TemplateValueGatherType.SmaHybridInverterModbus, _) => typeof(DtoSmaHybridInverterTemplateValueConfiguration),
-            _ => throw new NotSupportedException($"Gather type {gatherType} version {version} is not supported"),
-        };
+            if (dto is not TDto typedDto)
+            {
+                throw new ArgumentException($"DTO must be of type {typeof(TDto).Name}", nameof(dto));
+            }
+
+            var entity = new TemplateValueConfiguration(dto.Name)
+            {
+                Id = dto.Id,
+                ConfigurationVersion = dto.ConfigurationVersion,
+                MinRefreshIntervalMilliseconds = dto.MinRefreshIntervalMilliseconds,
+                GatherType = dto.GatherType,
+            };
+
+            if (typedDto.Configuration is not null)
+            {
+                entity.ConfigurationJson = JsonSerializer.Serialize(typedDto.Configuration, options);
+            }
+
+            return entity;
+        }
     }
 }
