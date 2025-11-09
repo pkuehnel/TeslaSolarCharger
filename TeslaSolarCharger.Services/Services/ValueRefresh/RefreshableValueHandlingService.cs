@@ -146,7 +146,9 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         var newRefreshables = new List<DelegateRefreshableValue<decimal>>();
         foreach (var refreshableValueSetupService in refreshableValueSetupServices)
         {
+            _logger.LogTrace("Gather refreshables for type {type}", refreshableValueSetupService.GetType().Name);
             var refreshables = await refreshableValueSetupService.GetDecimalRefreshableValuesAsync(solarValueRefreshInterval);
+            _logger.LogTrace("Got {count} refreshables", refreshables.Count);
             newRefreshables.AddRange(refreshables);
         }
         AddRefreshables(newRefreshables);
