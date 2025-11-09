@@ -1,13 +1,14 @@
 ﻿using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Entities;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 
 namespace TeslaSolarCharger.Services.Services.Template.Contracts;
 
 public interface ITemplateValueConfigurationService
 {
-    Task<TDto?> GetAsync<TDto>(int id) where TDto : class;
-    Task<IEnumerable<object>> GetAllAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate);
-    Task<int> SaveAsync<TDto>(TDto dto) where TDto : class;
+    Task<TDto?> GetAsync<TDto>(int id) where TDto : class, ITemplateValueConfigurationDto;
+    Task<IEnumerable<ITemplateValueConfigurationDto>> GetAllAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate);
+    Task<int> SaveAsync<TDto>(TDto dto) where TDto : class, ITemplateValueConfigurationDto;
     Task DeleteAsync(int id);
 }
