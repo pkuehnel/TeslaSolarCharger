@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
@@ -79,7 +78,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             .Include(c => c.AllowedCars)
             .FirstAsync(c => c.Id == dtoChargingStation.Id);
         existingChargingStation.Name = dtoChargingStation.Name;
-        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged;
+        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged || settings.OcppConnectorStates.ContainsKey(dtoChargingStation.Id);
         existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
         existingChargingStation.SwitchOffAtCurrent = dtoChargingStation.SwitchOffAtCurrent;
         existingChargingStation.SwitchOnAtCurrent = dtoChargingStation.SwitchOnAtCurrent;
