@@ -177,6 +177,7 @@ public class ModbusValueConfigurationService (
 
     public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval)
     {
+        logger.LogTrace("{method}({defaultInterval})", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
         var modbusConfigurations = await GetModbusConfigurationByPredicate(
                 c => true).ConfigureAwait(false);
 
