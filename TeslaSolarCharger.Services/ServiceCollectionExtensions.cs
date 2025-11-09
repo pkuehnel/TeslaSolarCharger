@@ -7,6 +7,11 @@ using TeslaSolarCharger.Services.Services.Mqtt;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.Template;
+using TeslaSolarCharger.Services.Services.Template.Contracts;
+using TeslaSolarCharger.Services.Services.Template.Infrastructure;
+using TeslaSolarCharger.Services.Services.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Services.Services.Template.ValueSetupServices;
 using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 
@@ -27,9 +32,12 @@ public static class ServiceCollectionExtensions
                 .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
                 .AddTransient<IMqttExecutionService, MqttExecutionService>()
                 .AddTransient<IMqttClientReconnectionService, MqttClientReconnectionService>()
+                .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
+                .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
                 .AddSingleton<IRefreshableValueHandlingService, RefreshableValueHandlingService>()
                 .AddTransient<IRefreshableValueSetupService, RestValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
+                .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
 
             ;
 }
