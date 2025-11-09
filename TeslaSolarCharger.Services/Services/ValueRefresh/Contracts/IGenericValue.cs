@@ -37,4 +37,5 @@ public enum ConfigurationType
     MqttSolarValue,
     CarValue,
     OcppChargingConnectorValue,
+    TemplateValue = 1000,
 }

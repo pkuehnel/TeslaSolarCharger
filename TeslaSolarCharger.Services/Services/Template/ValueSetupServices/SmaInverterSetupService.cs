@@ -96,7 +96,7 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                         foreach (var resultConfiguration in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.ModbusSolarValue, resultConfiguration.UsedFor, null);
+                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.TemplateValue, resultConfiguration.UsedFor, null);
                             try
                             {
                                 var byteArray = await modbusValueExecutionService
