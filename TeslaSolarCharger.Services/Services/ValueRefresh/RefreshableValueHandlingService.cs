@@ -138,109 +138,18 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
 
         ClearRefreshables();
 
-        // 4) Recreate refreshables as before
-        var valueUsages = new HashSet<ValueUsage>
-        {
-            ValueUsage.InverterPower,
-            ValueUsage.GridPower,
-            ValueUsage.HomeBatteryPower,
-            ValueUsage.HomeBatterySoc,
-        };
-
         using var setupScope = _serviceScopeFactory.CreateScope();
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var solarValueRefreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
 
         var refreshableValueSetupServices = setupScope.ServiceProvider.GetServices<IRefreshableValueSetupService>();
-
+        var newRefreshables = new List<DelegateRefreshableValue<decimal>>();
         foreach (var refreshableValueSetupService in refreshableValueSetupServices)
         {
             var refreshables = await refreshableValueSetupService.GetDecimalRefreshableValuesAsync(solarValueRefreshInterval);
-            AddRefreshables(refreshables);
+            newRefreshables.AddRange(refreshables);
         }
-        var constants = setupScope.ServiceProvider.GetRequiredService<IConstants>();
-        
-        var setupModbusValueConfigurationService = setupScope.ServiceProvider
-            .GetRequiredService<IModbusValueConfigurationService>();
-        var modbusConfigurations = await setupModbusValueConfigurationService
-            .GetModbusConfigurationByPredicate(
-                c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
-            .ConfigureAwait(false);
-
-        foreach (var modbusConfiguration in modbusConfigurations)
-        {
-            try
-            {
-                var configuration = modbusConfiguration;
-                var refreshable = new DelegateRefreshableValue<decimal>(
-                    _serviceScopeFactory,
-                    async ct =>
-                    {
-                        using var executionScope = _serviceScopeFactory.CreateScope();
-                        var modbusValueConfigurationService = executionScope.ServiceProvider
-                            .GetRequiredService<IModbusValueConfigurationService>();
-                        var modbusValueExecutionService = executionScope.ServiceProvider
-                            .GetRequiredService<IModbusValueExecutionService>();
-
-                        var resultConfigurations = await modbusValueConfigurationService
-                            .GetResultConfigurationsByValueConfigurationId(configuration.Id)
-                            .ConfigureAwait(false);
-
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
-                        foreach (var resultConfiguration in resultConfigurations)
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.ModbusSolarValue, resultConfiguration.UsedFor, null);
-                            try
-                            {
-                                var byteArray = await modbusValueExecutionService
-                                    .GetResult(configuration, resultConfiguration, false)
-                                    .ConfigureAwait(false);
-                                var value = await modbusValueExecutionService
-                                    .GetValue(byteArray, resultConfiguration)
-                                    .ConfigureAwait(false);
-
-                                if (!values.TryGetValue(valueKey, out var current))
-                                {
-                                    current = new();
-                                    values[valueKey] = current;
-                                }
-                                current.TryAdd(resultConfiguration.Id, value);
-
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                throw;
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(
-                                    ex,
-                                    "Error while refreshing modbus value for configuration {configurationId} result {resultId}",
-                                    configuration.Id,
-                                    resultConfiguration.Id);
-                                throw;
-                            }
-                        }
-
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
-                    },
-                    solarValueRefreshInterval,
-                    constants.SolarHistoricValueCapacity
-                );
-
-                AddRefreshable(refreshable);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error while creating refreshable for modbus configuration {configurationId} ({host}:{port})",
-                    modbusConfiguration.Id,
-                    modbusConfiguration.Host,
-                    modbusConfiguration.Port);
-            }
-        }
+        AddRefreshables(newRefreshables);
     }
 
     private IRefreshableValue<decimal>[] GetRefreshablesSnapshot()
