@@ -151,70 +151,15 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var solarValueRefreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
 
-        var setupRestValueConfigurationService = setupScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
-        var restConfigurations = await setupRestValueConfigurationService
-            .GetFullRestValueConfigurationsByPredicate(
-                c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
-            .ConfigureAwait(false);
+        var refreshableValueSetupServices = setupScope.ServiceProvider.GetServices<IRefreshableValueSetupService>();
 
-        var constants = setupScope.ServiceProvider.GetRequiredService<IConstants>();
-
-        foreach (var restConfiguration in restConfigurations)
+        foreach (var refreshableValueSetupService in refreshableValueSetupServices)
         {
-            try
-            {
-                var refreshable = new DelegateRefreshableValue<decimal>(
-                    _serviceScopeFactory,
-                    async ct =>
-                    {
-                        using var executionScope = _serviceScopeFactory.CreateScope();
-                        var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
-                        var responseString = await restValueExecutionService
-                            .GetResult(restConfiguration)
-                            .ConfigureAwait(false);
-
-                        var restValueConfigurationService = executionScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
-                        var resultConfigurations = await restValueConfigurationService
-                            .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
-                            .ConfigureAwait(false);
-
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
-                        foreach (var resultConfig in resultConfigurations)
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(restConfiguration.Id, ConfigurationType.RestSolarValue, resultConfig.UsedFor, null);
-
-                            var val = restValueExecutionService.GetValue(
-                                responseString,
-                                restConfiguration.NodePatternType,
-                                resultConfig);
-
-                            if (!values.TryGetValue(valueKey, out var current))
-                            {
-                                current = new();
-                                values[valueKey] = current;
-                            }
-                            current.TryAdd(resultConfig.Id, val);
-                        }
-
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
-                    },
-                    solarValueRefreshInterval,
-                    constants.SolarHistoricValueCapacity
-                );
-
-                AddRefreshable(refreshable);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error while creating refreshable for {restConfigurationId} with URL {url}",
-                    restConfiguration.Id,
-                    restConfiguration.Url);
-            }
+            var refreshables = await refreshableValueSetupService.GetDecimalRefreshableValuesAsync(solarValueRefreshInterval);
+            AddRefreshables(refreshables);
         }
-
+        var constants = setupScope.ServiceProvider.GetRequiredService<IConstants>();
+        
         var setupModbusValueConfigurationService = setupScope.ServiceProvider
             .GetRequiredService<IModbusValueConfigurationService>();
         var modbusConfigurations = await setupModbusValueConfigurationService
@@ -303,6 +248,17 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         lock (_refreshablesLock)
         {
             return _refreshables.ToArray();
+        }
+    }
+
+    private void AddRefreshables(IEnumerable<IRefreshableValue<decimal>> refreshables)
+    {
+        lock (_refreshablesLock)
+        {
+            foreach (var refreshable in refreshables)
+            {
+                _refreshables.Add(refreshable);
+            }
         }
     }
 
