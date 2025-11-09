@@ -10,8 +10,10 @@ using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 

@@ -8,6 +8,7 @@ using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
