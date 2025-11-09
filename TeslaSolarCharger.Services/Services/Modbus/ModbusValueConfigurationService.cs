@@ -1,5 +1,4 @@
-﻿using AutoMapper.QueryableExtensions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
@@ -153,7 +152,7 @@ public class ModbusValueConfigurationService (
             Port = dtoData.Port,
             Endianess = dtoData.Endianess,
             ConnectDelayMilliseconds = dtoData.ConnectDelayMilliseconds,
-            ReadTimeoutMilliseconds = dtoData.ReadTimeoutMilliseconds
+            ReadTimeoutMilliseconds = dtoData.ReadTimeoutMilliseconds,
         };
         if (dbData.Id == default)
         {

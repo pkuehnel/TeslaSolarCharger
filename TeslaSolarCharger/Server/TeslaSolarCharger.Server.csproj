@@ -47,7 +47,6 @@
 	</Target>-->
 
 	<ItemGroup>
-		<PackageReference Include="AutoMapper" Version="15.1.0" />
 		<PackageReference Include="FluentValidation" Version="12.1.0" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
 		<PackageReference Include="GraphQL.Client" Version="6.1.0" />
