@@ -30,21 +30,23 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IModbusValueExecutionService, ModbusValueExecutionService>()
                 .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
                 .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
-                .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
                 .AddTransient<IMqttExecutionService, MqttExecutionService>()
                 .AddTransient<IMqttClientReconnectionService, MqttClientReconnectionService>()
                 .AddTransient<IGenericValueService, GenericValueService>()
+                .AddSingleton<RefreshableValueHandlingService>()
+                .AddSingleton<MqttClientHandlingService>()
 
                 .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
                 .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
-                .AddSingleton<IRefreshableValueHandlingService, RefreshableValueHandlingService>()
+                .AddSingleton<IRefreshableValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
+                .AddSingleton<IMqttClientHandlingService>(sp => sp.GetRequiredService<MqttClientHandlingService>())
 
                 .AddTransient<IRefreshableValueSetupService, RestValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
 
-                .AddTransient<IGenericValueHandlingService, MqttClientHandlingService>()
-                .AddTransient<IGenericValueHandlingService, RefreshableValueHandlingService>()
+                .AddTransient<IGenericValueHandlingService>(sp => sp.GetRequiredService<MqttClientHandlingService>())
+                .AddTransient<IGenericValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
 
             ;
 }
