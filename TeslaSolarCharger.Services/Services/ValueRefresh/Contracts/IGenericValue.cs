@@ -11,22 +11,30 @@ namespace TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 /// <typeparam name="T"></typeparam>
 public interface IGenericValue <T>
 {
-    IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> HistoricValues { get; }
-    void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int resultConfigId);
+    SourceValueKey SourceValueKey { get; }
+    IReadOnlyDictionary<ValueKey, DtoHistoricValue<T>> HistoricValues { get; }
+    void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value);
 }
 
 /// <summary>
 /// Key to identify a Generic value
 /// </summary>
-/// <param name="SourceId">This can either be a configuration ID like rest value configuration ID or a car ID</param>
-/// <param name="ConfigurationType"></param>
 /// <param name="ValueUsage"></param>
 /// <param name="CarValueType"></param>
 public sealed record ValueKey(
-    int SourceId,
-    ConfigurationType ConfigurationType,
     ValueUsage? ValueUsage,
-    CarValueType? CarValueType
+    CarValueType? CarValueType,
+    int ResultConfigurationId
+);
+
+/// <summary>
+/// Key to identify a Source
+/// </summary>
+/// <param name="SourceId">This can either be a configuration ID like rest value configuration ID or a car ID</param>
+/// <param name="ConfigurationType"></param>
+public sealed record SourceValueKey(
+    int SourceId,
+    ConfigurationType ConfigurationType
 );
 
 

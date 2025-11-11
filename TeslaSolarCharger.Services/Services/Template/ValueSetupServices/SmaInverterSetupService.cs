@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
@@ -92,11 +93,11 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                             },
                         };
 
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
+                        var values = new Dictionary<ValueKey, decimal>();
                         foreach (var resultConfiguration in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.TemplateValue, resultConfiguration.UsedFor, null);
+                            var valueKey = new ValueKey(resultConfiguration.UsedFor, null, resultConfiguration.Id);
                             try
                             {
                                 var byteArray = await modbusValueExecutionService
@@ -113,12 +114,8 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                                     value = 0;
                                 }
 
-                                if (!values.TryGetValue(valueKey, out var current))
-                                {
-                                    current = new();
-                                    values[valueKey] = current;
-                                }
-                                current.TryAdd(resultConfiguration.Id, value);
+                                values.TryAdd(valueKey, 0m);
+                                values[valueKey] = +value;
 
                             }
                             catch (OperationCanceledException)
@@ -137,10 +134,11 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                             }
                         }
 
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
+                        return new ConcurrentDictionary<ValueKey, decimal>(values);
                     },
                     defaultInterval,
-                    _constants.SolarHistoricValueCapacity
+                    _constants.SolarHistoricValueCapacity,
+                    new SourceValueKey(configuration.Id, ConfigurationType.TemplateValue)
                 );
 
                 result.Add(refreshable);

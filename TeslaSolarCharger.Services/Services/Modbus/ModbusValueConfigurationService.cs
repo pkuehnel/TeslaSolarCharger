@@ -217,11 +217,11 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
                             .GetResultConfigurationsByValueConfigurationId(configuration.Id)
                             .ConfigureAwait(false);
 
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
+                        var values = new Dictionary<ValueKey, decimal>();
                         foreach (var resultConfiguration in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.ModbusSolarValue, resultConfiguration.UsedFor, null);
+                            var valueKey = new ValueKey(resultConfiguration.UsedFor, null, resultConfiguration.Id);
                             try
                             {
                                 var byteArray = await modbusValueExecutionService
@@ -231,12 +231,8 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
                                     .GetValue(byteArray, resultConfiguration)
                                     .ConfigureAwait(false);
 
-                                if (!values.TryGetValue(valueKey, out var current))
-                                {
-                                    current = new();
-                                    values[valueKey] = current;
-                                }
-                                current.TryAdd(resultConfiguration.Id, value);
+                                values.TryAdd(valueKey, 0m);
+                                values[valueKey] = +value;
 
                             }
                             catch (OperationCanceledException)
@@ -255,10 +251,11 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
                             }
                         }
 
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
+                        return new ConcurrentDictionary<ValueKey, decimal>(values);
                     },
                     defaultInterval,
-                    _constants.SolarHistoricValueCapacity
+                    _constants.SolarHistoricValueCapacity,
+                    new SourceValueKey(configuration.Id, ConfigurationType.ModbusSolarValue)
                 );
 
                 result.Add(refreshable);

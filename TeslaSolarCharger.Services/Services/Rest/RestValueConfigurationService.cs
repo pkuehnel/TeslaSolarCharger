@@ -263,29 +263,25 @@ public class RestValueConfigurationService(
                             .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
                             .ConfigureAwait(false);
 
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
+                        var values = new Dictionary<ValueKey, decimal>();
                         foreach (var resultConfig in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(restConfiguration.Id, ConfigurationType.RestSolarValue, resultConfig.UsedFor, null);
+                            var valueKey = new ValueKey(resultConfig.UsedFor, null, restConfiguration.Id);
 
-                            var val = restValueExecutionService.GetValue(
+                            var value = restValueExecutionService.GetValue(
                                 responseString,
                                 restConfiguration.NodePatternType,
                                 resultConfig);
-
-                            if (!values.TryGetValue(valueKey, out var current))
-                            {
-                                current = new();
-                                values[valueKey] = current;
-                            }
-                            current.TryAdd(resultConfig.Id, val);
+                            values.TryAdd(valueKey, 0m);
+                            values[valueKey] =+ value;
                         }
 
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
+                        return new(values);
                     },
                     defaultInterval,
-                    constants.SolarHistoricValueCapacity
+                    constants.SolarHistoricValueCapacity,
+                    new(restConfiguration.Id, ConfigurationType.RestSolarValue)
                 );
 
                 result.Add(refreshable);

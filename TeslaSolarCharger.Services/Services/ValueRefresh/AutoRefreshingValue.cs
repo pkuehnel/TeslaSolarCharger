@@ -14,26 +14,28 @@ public class AutoRefreshingValue<T> : IAutoRefreshingValue<T>
 {
     private readonly int _historicValueCapacity;
 
-    private readonly ConcurrentDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> _historicValues = new();
+    private readonly ConcurrentDictionary<ValueKey, DtoHistoricValue<T>> _historicValues = new();
 
-    public AutoRefreshingValue(int historicValueCapacity)
+    public SourceValueKey SourceValueKey { get; }
+
+    public AutoRefreshingValue(SourceValueKey sourceValueKey, int historicValueCapacity)
     {
         _historicValueCapacity = historicValueCapacity;
+        SourceValueKey = sourceValueKey;
     }
 
-    public IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> HistoricValues
+    public IReadOnlyDictionary<ValueKey, DtoHistoricValue<T>> HistoricValues
     {
         get
         {
-            return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>>(_historicValues);
+            return new ReadOnlyDictionary<ValueKey, DtoHistoricValue<T>>(_historicValues);
         }
     }
 
 
-    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int resultConfigId)
+    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value)
     {
-        var historicValues = _historicValues.GetOrAdd(valueKey, new ConcurrentDictionary<int, DtoHistoricValue<T>>());
-        var exists = historicValues.TryGetValue(resultConfigId, out var historicValue);
+        var exists = _historicValues.TryGetValue(valueKey, out var historicValue);
         if (exists)
         {
             historicValue?.Update(timestamp, value);
@@ -41,8 +43,7 @@ public class AutoRefreshingValue<T> : IAutoRefreshingValue<T>
         else
         {
             historicValue = new(timestamp, value, _historicValueCapacity);
-            historicValues.TryAdd(resultConfigId, historicValue);
-
+            _historicValues.TryAdd(valueKey, historicValue);
         }
     }
 }

@@ -53,12 +53,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
                     continue;
                 }
                 result.TryAdd(key.ValueUsage.Value, new());
-                foreach (var historicValue in latestValue.Values)
-                {
-                    result[key.ValueUsage.Value].Add(historicValue);
-                }
+                result[key.ValueUsage.Value].Add(latestValue);
             }
-
         }
 
         hasErrors = encounteredError;

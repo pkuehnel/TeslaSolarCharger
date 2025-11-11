@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt;
 
@@ -31,15 +32,15 @@ public class MqttExecutionService(ILogger<MqttExecutionService> logger,
                 {
                     foreach (var historicValue in result.HistoricValues)
                     {
-                        foreach (var dtoHistoricValue in historicValue.Value.Where(hv => hv.Key == resultConfiguration.Id))
+                        if (historicValue.Key.ResultConfigurationId == resultConfiguration.Id)
                         {
                             if (value == default)
                             {
-                                value = dtoHistoricValue.Value.Value;
+                                value = historicValue.Value.Value;
                             }
                             else
                             {
-                                value += dtoHistoricValue.Value.Value;
+                                value += historicValue.Value.Value;
                             }
                         }
                     }
