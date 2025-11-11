@@ -110,10 +110,9 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
         var results = new List<DtoValueConfigurationOverview>();
         foreach (var modbusConfiguration in modbusConfigurations)
         {
-            var overviewElement = new DtoValueConfigurationOverview()
+            var overviewElement = new DtoValueConfigurationOverview($"{modbusConfiguration.Host}:{modbusConfiguration.Port}")
             {
                 Id = modbusConfiguration.Id,
-                Heading = $"{modbusConfiguration.Host}:{modbusConfiguration.Port}",
             };
             results.Add(overviewElement);
             var resultConfigurations = await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(x => x.ModbusConfigurationId == modbusConfiguration.Id).ConfigureAwait(false);
