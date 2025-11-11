@@ -88,9 +88,15 @@
                                             throw new ArgumentOutOfRangeException();
                                     }
                                 </div>
-                                <div class="flex-grow-1">
-                                    <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T("Not available") : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
-                                </div>
+                                <MudTooltip Text="@($"Last refreshed at {restValueResult.LastRefreshed.LocalDateTime.ToLongTimeString()}")"
+                                            RootClass="w-100"
+                                            Placement="Placement.Left"
+                                            Arrow="true">
+                                    <div class="flex-grow-1">
+                                        <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T("Not available") : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
+                                    </div>
+                                </MudTooltip>
+                                
                             </div>
                         }
                     </MudCardContent>
