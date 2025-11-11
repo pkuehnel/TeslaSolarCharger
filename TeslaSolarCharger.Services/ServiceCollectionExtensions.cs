@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
             services
                 .AddTransient<IRestValueConfigurationService, RestValueConfigurationService>()
                 .AddTransient<IRestValueExecutionService, RestValueExecutionService>()
+                .AddTransient<IRestValueOverviewService, RestValueOverviewService>()
                 .AddSingleton<IModbusClientHandlingService, ModbusClientHandlingService>()
                 .AddTransient<IModbusTcpClient, CustomModbusTcpClient>()
                 .AddTransient<IModbusValueConfigurationService, ModbusValueConfigurationService>()

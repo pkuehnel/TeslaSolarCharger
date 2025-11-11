@@ -8,8 +8,10 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class RestValueConfigurationController(IRestValueConfigurationService service,
-    IRestValueExecutionService executionService) : ApiBaseController
+public class RestValueConfigurationController(
+    IRestValueConfigurationService service,
+    IRestValueExecutionService executionService,
+    IRestValueOverviewService overviewService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()
@@ -20,7 +22,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
 
     [HttpGet]
     public Task<List<DtoValueConfigurationOverview>> GetRestValueConfigurations() =>
-        executionService.GetRestValueOverviews();
+        overviewService.GetRestValueOverviews();
 
     [HttpPost]
     public async Task<ActionResult<DtoValue<string>>> DebugRestValueConfiguration([FromBody] DtoFullRestValueConfiguration config)
