@@ -11,7 +11,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class RestValueConfigurationController(
     IRestValueConfigurationService service,
     IRestValueExecutionService executionService,
-    IRestValueOverviewService overviewService) : ApiBaseController
+    IValueOverviewService overviewService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()

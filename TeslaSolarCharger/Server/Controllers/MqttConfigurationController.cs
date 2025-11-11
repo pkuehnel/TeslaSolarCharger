@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
@@ -7,11 +8,11 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class MqttConfigurationController(IMqttConfigurationService configurationService, IMqttExecutionService mqttExecutionService) : ApiBaseController
+public class MqttConfigurationController(IMqttConfigurationService configurationService, IValueOverviewService valueOverviewService) : ApiBaseController
 {
     [HttpGet]
     public Task<List<DtoValueConfigurationOverview>> GetMqttValueOverviews() =>
-        mqttExecutionService.GetMqttValueOverviews();
+        valueOverviewService.GetMqttValueOverviews();
 
     [HttpGet]
     public Task<DtoMqttConfiguration> GetConfigurationById(int id) =>

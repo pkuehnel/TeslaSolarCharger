@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
@@ -8,11 +9,11 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 namespace TeslaSolarCharger.Server.Controllers;
 
 public class ModbusValueConfigurationController(IModbusValueConfigurationService configurationService,
-    IModbusValueExecutionService executionService) : ApiBaseController
+    IValueOverviewService valueOverviewService) : ApiBaseController
 {
     [HttpGet]
     public Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews() =>
-        executionService.GetModbusValueOverviews();
+        valueOverviewService.GetModbusValueOverviews();
 
     [HttpGet]
     public Task<DtoModbusConfiguration> GetValueConfigurationById(int id) =>
