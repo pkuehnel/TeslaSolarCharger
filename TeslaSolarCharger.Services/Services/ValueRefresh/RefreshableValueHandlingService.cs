@@ -1,19 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
-using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 
-public class RefreshableValueHandlingService : IRefreshableValueHandlingService
+public class RefreshableValueHandlingService : IRefreshableValueHandlingService, IGenericValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -155,11 +151,16 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         AddRefreshables(newRefreshables);
     }
 
-    private IRefreshableValue<decimal>[] GetRefreshablesSnapshot()
+    public List<IGenericValue<decimal>> GetSnapshot()
+    {
+        return new(GetRefreshablesSnapshot());
+    }
+
+    private List<IRefreshableValue<decimal>> GetRefreshablesSnapshot()
     {
         lock (_refreshablesLock)
         {
-            return _refreshables.ToArray();
+            return _refreshables.ToList();
         }
     }
 

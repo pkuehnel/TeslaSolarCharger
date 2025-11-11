@@ -32,12 +32,18 @@ public static class ServiceCollectionExtensions
                 .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
                 .AddTransient<IMqttExecutionService, MqttExecutionService>()
                 .AddTransient<IMqttClientReconnectionService, MqttClientReconnectionService>()
+                .AddTransient<IGenericValueService, GenericValueService>()
+
                 .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
                 .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
                 .AddSingleton<IRefreshableValueHandlingService, RefreshableValueHandlingService>()
+
                 .AddTransient<IRefreshableValueSetupService, RestValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
+
+                .AddTransient<IGenericValueHandlingService, MqttClientHandlingService>()
+                .AddTransient<IGenericValueHandlingService, RefreshableValueHandlingService>()
 
             ;
 }

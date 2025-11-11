@@ -7,6 +7,7 @@ using MQTTnet.Protocol;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh;
@@ -25,7 +26,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     IDateTimeProvider dateTimeProvider,
     MqttClientFactory mqttClientFactory,
     IConstants constants)
-    : IMqttClientHandlingService
+    : IMqttClientHandlingService, IGenericValueHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
     private readonly ConcurrentDictionary<string, AutoRefreshingValue<decimal>> _values = new();
@@ -173,6 +174,11 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             return client;
         }
         return default;
+    }
+
+    public List<IGenericValue<decimal>> GetSnapshot()
+    {
+        return new(_values.Values.ToList());
     }
 
     private void RemoveClientByKey(string key)
