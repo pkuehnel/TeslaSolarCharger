@@ -267,7 +267,7 @@ public class RestValueConfigurationService(
                         foreach (var resultConfig in resultConfigurations)
                         {
                             ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(resultConfig.UsedFor, null, restConfiguration.Id);
+                            var valueKey = new ValueKey(resultConfig.UsedFor, null, resultConfig.Id);
 
                             var value = restValueExecutionService.GetValue(
                                 responseString,
