@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.SharedModel.Enums;
+﻿namespace TeslaSolarCharger.Shared.Enums;
 
 public enum TemplateValueGatherType
 {

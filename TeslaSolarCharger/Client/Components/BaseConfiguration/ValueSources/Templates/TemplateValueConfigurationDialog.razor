@@ -1,0 +1,87 @@
+﻿@using MudExtensions
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Helper
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.SharedModel.Enums
+
+@inject IConstants Constants
+@inject IStringHelper StringHelper
+
+
+@if (TemplateValueConfiguration == null)
+{
+    <LoadingSpinnerComponent />
+}
+else
+{
+    <MudDialog>
+        <DialogContent>
+            <div class="p-2">
+                <MudSelectExtended T="TemplateValueGatherType?"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Value="@Type"
+                                   Label="Type"
+                                   Margin="Constants.InputMargin"
+                                   ValueChanged="TypeChanged">
+                    <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+                        @foreach (TemplateValueGatherType item in Enum.GetValues(typeof(TemplateValueGatherType)))
+                        {
+                            <MudSelectItemExtended T="TemplateValueGatherType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                        }
+                    </MudSelectItemGroupExtended>
+                </MudSelectExtended>
+            </div>
+
+            <EditFormComponent T="DtoFullRestValueConfiguration"
+                               WrappedElement="TemplateValueConfiguration"
+                               HideSubmitButton="true">
+            </EditFormComponent>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public int? ValueConfigurationId { get; set; }
+
+    private TemplateValueGatherType? Type { get; set; }
+
+    private EditableItem<DtoTemplateValueConfiguration<TConfig>>? TemplateValueConfiguration { get; set; }
+
+    void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(1/*should be the saved ID*/));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ValueConfigurationId == null)
+        {
+            TemplateValueConfiguration = new EditableItem<DtoTemplateValueConfiguration<TConfig>>(new());
+        }
+        else
+        {
+        }
+    }
+
+    private void TypeChanged(TemplateValueGatherType? newType)
+    {
+        Type = newType;
+    }
+
+}

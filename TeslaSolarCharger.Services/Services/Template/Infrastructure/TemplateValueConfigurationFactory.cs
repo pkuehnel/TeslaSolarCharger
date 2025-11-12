@@ -4,6 +4,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Template.Infrastructure.Contracts;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Template.Infrastructure;

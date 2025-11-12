@@ -3,6 +3,7 @@ using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.Template.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -13,6 +14,7 @@ public class ValueOverviewService(
     IRestValueConfigurationService restValueConfigurationService,
     IMqttConfigurationService mqttConfigurationService,
     IModbusValueConfigurationService modbusValueConfigurationService,
+    ITemplateValueConfigurationService templateValueConfigurationService,
     IGenericValueService genericValueService) : IValueOverviewService
 {
     public async Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews()
@@ -98,6 +100,38 @@ public class ValueOverviewService(
         foreach (var configuration in configurations)
         {
             var headline = configuration.Host + ":" + configuration.Port;
+            var overviewValue = new DtoValueConfigurationOverview(headline)
+            {
+                Id = configuration.Id,
+            };
+            overviews.Add(overviewValue);
+
+            var resultConfigurations =
+                await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(x => x.ModbusConfigurationId == configuration.Id);
+            foreach (var resultConfiguration in resultConfigurations)
+            {
+                var overviewValueResult = new DtoOverviewValueResult
+                {
+                    Id = resultConfiguration.Id,
+                    UsedFor = resultConfiguration.UsedFor,
+                };
+                AddResult(values, configuration.Id, configurationType, resultConfiguration.Id, overviewValueResult, overviewValue);
+            }
+        }
+        return overviews;
+    }
+
+    public async Task<List<DtoValueConfigurationOverview>> GetTemplateValueOverviews()
+    {
+        logger.LogTrace("{method}()", nameof(GetTemplateValueOverviews));
+        var overviews = new List<DtoValueConfigurationOverview>();
+        var configurationType = ConfigurationType.TemplateValue;
+        var values = genericValueService.GetAllByPredicate(
+            v => v.SourceValueKey.ConfigurationType == configurationType);
+        var configurations = await templateValueConfigurationService.GetConfigurationsByPredicateAsync(x => true);
+        foreach (var configuration in configurations)
+        {
+            var headline = configuration.Name;
             var overviewValue = new DtoValueConfigurationOverview(headline)
             {
                 Id = configuration.Id,

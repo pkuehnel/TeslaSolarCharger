@@ -37,9 +37,9 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         return dto as TDto;
     }
 
-    public async Task<IEnumerable<ITemplateValueConfigurationDto>> GetAllAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate)
+    public async Task<IEnumerable<ITemplateValueConfigurationDto>> GetConfigurationsByPredicateAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate)
     {
-        _logger.LogTrace("{method}({predicate})", nameof(GetAllAsync), predicate);
+        _logger.LogTrace("{method}({predicate})", nameof(GetConfigurationsByPredicateAsync), predicate);
         var entities = await _context.TemplateValueConfigurations
             .Where(predicate)
             .ToListAsync();

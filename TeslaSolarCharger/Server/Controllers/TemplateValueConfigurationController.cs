@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
@@ -9,11 +10,15 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class TemplateValueConfigurationController : ApiBaseController
 {
     private readonly ITemplateValueConfigurationService _service;
+    private readonly IValueOverviewService _valueOverviewService;
 
-    public TemplateValueConfigurationController(ITemplateValueConfigurationService service)
+    public TemplateValueConfigurationController(ITemplateValueConfigurationService service, IValueOverviewService valueOverviewService)
     {
         _service = service;
+        _valueOverviewService = valueOverviewService;
     }
+
+
 
     [HttpPost]
     public async Task<IActionResult> SaveSmaInverterTemplate(DtoSmaInverterTemplateValueConfiguration configuration)

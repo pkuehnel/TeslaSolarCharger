@@ -1,5 +1,49 @@
-﻿<h3>TemplateValueConfigurationComponent</h3>
+﻿@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+
+@inject IDialogService DialogService
+
+<GenericValueConfigurationComponent SourceName="Template"
+                                    ConfigurationOverviews="_configurationOverviews"
+                                    OnRefreshClicked="RefreshRequestResults"
+                                    OnConfigureClicked="id => OpenValueConfigurationDialog(id)"
+                                    OnDeleteClicked="id => DeleteValueConfiguration(id)"></GenericValueConfigurationComponent>
 
 @code {
+    private List<DtoValueConfigurationOverview>? _configurationOverviews;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshRequestResults();
+    }
+
+    private async Task RefreshRequestResults()
+    {
+        _configurationOverviews = new();
+    }
+
+    private async Task OpenValueConfigurationDialog(int? id)
+    {
+        var options = new DialogOptions()
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            BackdropClick = true,
+        };
+        var parameters = new DialogParameters<TemplateValueConfigurationDialog>
+        {
+            { x => x.ValueConfigurationId, id },
+        };
+        var title = id == default ? "Add" : "Edit";
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>($"{title} Template config", parameters, options);
+        var result = await dialog.Result;
+
+        await RefreshRequestResults();
+    }
+
+    private Task DeleteValueConfiguration(int id)
+    {
+        throw new NotImplementedException();
+    }
 
 }

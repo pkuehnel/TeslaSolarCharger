@@ -1,3 +1,4 @@
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
