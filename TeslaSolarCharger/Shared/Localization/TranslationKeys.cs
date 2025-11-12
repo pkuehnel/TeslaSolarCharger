@@ -6,8 +6,10 @@ public static class TranslationKeys
     public static string BaseConfigurationGeneralSectionTitle => nameof(BaseConfigurationGeneralSectionTitle);
     public static string BaseConfigurationTeslaMateSectionTitle => nameof(BaseConfigurationTeslaMateSectionTitle);
     public static string BaseConfigurationHomeGeofenceSectionTitle => nameof(BaseConfigurationHomeGeofenceSectionTitle);
+    public static string SolarValueSourcesSectionTitle => nameof(SolarValueSourcesSectionTitle);
     public static string LocationUpdateInfoText => nameof(LocationUpdateInfoText);
     public static string BaseConfigurationHomeGeofenceHint => nameof(BaseConfigurationHomeGeofenceHint);
+    public static string BaseConfigurationHomeGeofenceMapHandlingHint => nameof(BaseConfigurationHomeGeofenceMapHandlingHint);
     public static string BaseConfigurationTelegramSectionTitle => nameof(BaseConfigurationTelegramSectionTitle);
     public static string BaseConfigurationHowToSetupTelegramLinkText => nameof(BaseConfigurationHowToSetupTelegramLinkText);
     public static string BaseConfigurationTelegramBotNote => nameof(BaseConfigurationTelegramBotNote);

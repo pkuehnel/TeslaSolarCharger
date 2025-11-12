@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Contracts;
@@ -134,11 +132,11 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                             }
                         }
 
-                        return new ConcurrentDictionary<ValueKey, decimal>(values);
+                        return new(values);
                     },
                     defaultInterval,
                     _constants.SolarHistoricValueCapacity,
-                    new SourceValueKey(configuration.Id, ConfigurationType.TemplateValue)
+                    new(configuration.Id, ConfigurationType.TemplateValue)
                 );
 
                 result.Add(refreshable);
