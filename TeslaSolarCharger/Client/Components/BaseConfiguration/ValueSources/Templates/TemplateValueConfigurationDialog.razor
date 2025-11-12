@@ -1,15 +1,19 @@
 ﻿@using MudExtensions
+@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
-@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
 @using TeslaSolarCharger.Shared.Enums
-@using TeslaSolarCharger.Shared.Helper
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@using TeslaSolarCharger.SharedModel.Enums
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject ITemplateValueConfigurationService Service
+@inject ISnackbar Snackbar
 
 
 @if (TemplateValueConfiguration == null)
@@ -20,27 +24,41 @@ else
 {
     <MudDialog>
         <DialogContent>
-            <div class="p-2">
-                <MudSelectExtended T="TemplateValueGatherType?"
-                                   Variant="Variant.Outlined"
-                                   Clearable="true"
-                                   AnchorOrigin="Origin.BottomCenter"
-                                   Value="@Type"
-                                   Label="Type"
-                                   Margin="Constants.InputMargin"
-                                   ValueChanged="TypeChanged">
-                    <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+            <EditFormComponent T="DtoTemplateValueConfigurationBase"
+                               WrappedElement="TemplateValueConfiguration"
+                               HideSubmitButton="true"
+                               @ref="BaseForm">
+                <GenericInput For="() => TemplateValueConfiguration.Item.Name"></GenericInput>
+                <div class="p-2">
+                    <MudSelectExtended T="TemplateValueGatherType?"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Value="@TemplateValueConfiguration.Item.GatherType"
+                                       Label="Type"
+                                       Margin="Constants.InputMargin"
+                                       ValueChanged="TypeChanged">
                         @foreach (TemplateValueGatherType item in Enum.GetValues(typeof(TemplateValueGatherType)))
                         {
-                            <MudSelectItemExtended T="TemplateValueGatherType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                            <MudSelectItemExtended T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)item)">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
                         }
-                    </MudSelectItemGroupExtended>
-                </MudSelectExtended>
-            </div>
-
-            <EditFormComponent T="DtoFullRestValueConfiguration"
-                               WrappedElement="TemplateValueConfiguration"
-                               HideSubmitButton="true">
+                    </MudSelectExtended>
+                    @switch (TemplateValueConfiguration.Item.GatherType)
+                    {
+                        case TemplateValueGatherType.SmaEnergyMeter:
+                            break;
+                        case TemplateValueGatherType.SmaInverterModbus:
+                            <SmaInverterEditForm Configuration="@(GetSmaConfig())"
+                                                 @ref="ConfigurationComponent"/>
+                            break;
+                        case TemplateValueGatherType.SmaHybridInverterModbus:
+                            <SmaInverterEditForm Configuration="@(GetSmaConfig())"
+                                                 @ref="ConfigurationComponent"/>
+                            break;
+                        case TemplateValueGatherType.TeslaPowerwallFleetApi:
+                            break;
+                    }
+                </div>
             </EditFormComponent>
         </DialogContent>
         <DialogActions>
@@ -57,31 +75,70 @@ else
     [Parameter]
     public int? ValueConfigurationId { get; set; }
 
-    private TemplateValueGatherType? Type { get; set; }
+    private EditableItem<DtoTemplateValueConfigurationBase>? TemplateValueConfiguration { get; set; }
+    private IValidatableComponent? ConfigurationComponent { get; set; }
 
-    private EditableItem<DtoTemplateValueConfiguration<TConfig>>? TemplateValueConfiguration { get; set; }
+    public EditFormComponent<DtoTemplateValueConfigurationBase>? BaseForm { get; set; }
 
     void Cancel() => MudDialog.Cancel();
 
     private async Task Submit()
     {
+        if (BaseForm == default)
+        {
+            Snackbar.Add("Form is null, can not save values", Severity.Error);
+            return;
+        }
+        if (!BaseForm.WrappedElement.EditContext.Validate())
+        {
+            Snackbar.Add("Validation failed", Severity.Error);
+            return;
+        }
+
+        if (ConfigurationComponent == default)
+        {
+            Snackbar.Add("Configuration form is null", Severity.Error);
+            return;
+        }
+        if (!ConfigurationComponent.Validate())
+        {
+            Snackbar.Add("Configuration validation failed", Severity.Error);
+            return;
+        }
+
         MudDialog.Close(DialogResult.Ok(1/*should be the saved ID*/));
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        if (ValueConfigurationId == null)
+        if (ValueConfigurationId != default)
         {
-            TemplateValueConfiguration = new EditableItem<DtoTemplateValueConfiguration<TConfig>>(new());
+            var result = await Service.GetAsync(ValueConfigurationId.Value);
+            if (!result.HasError && result.Data != default)
+            {
+                TemplateValueConfiguration = new(result.Data);
+            }
         }
-        else
-        {
-        }
+        TemplateValueConfiguration ??= new(new());
     }
 
     private void TypeChanged(TemplateValueGatherType? newType)
     {
-        Type = newType;
+        if (newType == default || TemplateValueConfiguration == default)
+        {
+            return;
+        }
+        TemplateValueConfiguration.Item.GatherType = newType.Value;
     }
 
+
+    private DtoSmaInverterTemplateValueConfiguration? GetSmaConfig()
+    {
+        if (TemplateValueConfiguration?.Item.Configuration is JObject jObj)
+        {
+            return jObj.ToObject<DtoSmaInverterTemplateValueConfiguration>();
+        }
+
+        return null;
+    }
 }

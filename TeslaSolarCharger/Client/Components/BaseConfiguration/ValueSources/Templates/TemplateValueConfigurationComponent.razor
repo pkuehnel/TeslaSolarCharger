@@ -1,6 +1,8 @@
-﻿@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 
 @inject IDialogService DialogService
+@inject ITemplateValueConfigurationService TemplateValueConfigurationService
 
 <GenericValueConfigurationComponent SourceName="Template"
                                     ConfigurationOverviews="_configurationOverviews"
@@ -19,7 +21,7 @@
 
     private async Task RefreshRequestResults()
     {
-        _configurationOverviews = new();
+        _configurationOverviews = await TemplateValueConfigurationService.GetOverviews();
     }
 
     private async Task OpenValueConfigurationDialog(int? id)

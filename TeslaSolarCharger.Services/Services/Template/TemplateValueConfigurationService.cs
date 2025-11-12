@@ -24,20 +24,22 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         _factory = factory;
     }
 
-    public async Task<TDto?> GetAsync<TDto>(int id) where TDto : class, ITemplateValueConfigurationDto
+    public async Task<DtoTemplateValueConfigurationBase> GetAsync(int id)
     {
         _logger.LogTrace("{method}({id})", nameof(GetAsync), id);
         var entity = await _context.TemplateValueConfigurations
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (entity == null)
-            return null;
+        {
+            throw new KeyNotFoundException($"Could not find entity with id {id} in {nameof(_context.TemplateValueConfigurations)}");
+        }
 
         var dto = _factory.CreateDto(entity);
-        return dto as TDto;
+        return dto;
     }
 
-    public async Task<IEnumerable<ITemplateValueConfigurationDto>> GetConfigurationsByPredicateAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate)
+    public async Task<IEnumerable<DtoTemplateValueConfigurationBase>> GetConfigurationsByPredicateAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate)
     {
         _logger.LogTrace("{method}({predicate})", nameof(GetConfigurationsByPredicateAsync), predicate);
         var entities = await _context.TemplateValueConfigurations
@@ -47,7 +49,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         return entities.Select(e => _factory.CreateDto(e));
     }
 
-    public async Task<int> SaveAsync<TDto>(TDto dto) where TDto : class, ITemplateValueConfigurationDto
+    public async Task<int> SaveAsync<TDto>(TDto dto) where TDto : DtoTemplateValueConfigurationBase
     {
         _logger.LogTrace("{method}({@dto})", nameof(SaveAsync), dto);
         var entity = _factory.CreateEntity(dto);

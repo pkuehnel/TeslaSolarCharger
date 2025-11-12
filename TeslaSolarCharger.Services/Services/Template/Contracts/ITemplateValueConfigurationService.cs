@@ -7,8 +7,8 @@ namespace TeslaSolarCharger.Services.Services.Template.Contracts;
 
 public interface ITemplateValueConfigurationService
 {
-    Task<TDto?> GetAsync<TDto>(int id) where TDto : class, ITemplateValueConfigurationDto;
-    Task<IEnumerable<ITemplateValueConfigurationDto>> GetConfigurationsByPredicateAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate);
-    Task<int> SaveAsync<TDto>(TDto dto) where TDto : class, ITemplateValueConfigurationDto;
+    Task<DtoTemplateValueConfigurationBase> GetAsync(int id);
+    Task<IEnumerable<DtoTemplateValueConfigurationBase>> GetConfigurationsByPredicateAsync(Expression<Func<TemplateValueConfiguration, bool>> predicate);
+    Task<int> SaveAsync<TDto>(TDto dto) where TDto : DtoTemplateValueConfigurationBase;
     Task DeleteAsync(int id);
 }

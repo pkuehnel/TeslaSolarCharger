@@ -5,6 +5,6 @@ namespace TeslaSolarCharger.Services.Services.Template.Infrastructure.Contracts;
 
 public interface ITemplateValueConfigurationFactory
 {
-    ITemplateValueConfigurationDto CreateDto(TemplateValueConfiguration entity);
-    TemplateValueConfiguration CreateEntity(ITemplateValueConfigurationDto dto);
+    DtoTemplateValueConfigurationBase CreateDto(TemplateValueConfiguration entity);
+    TemplateValueConfiguration CreateEntity(DtoTemplateValueConfigurationBase dtoBase);
 }

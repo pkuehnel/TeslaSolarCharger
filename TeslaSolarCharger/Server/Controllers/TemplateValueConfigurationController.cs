@@ -18,10 +18,23 @@ public class TemplateValueConfigurationController : ApiBaseController
         _valueOverviewService = valueOverviewService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetTemplateValueOverviews()
+    {
+        var values = await _valueOverviewService.GetTemplateValueOverviews().ConfigureAwait(false);
+        return Ok(values);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetConfiguration(int id)
+    {
+        var configuration = await _service.GetAsync(id).ConfigureAwait(false);
+        return Ok(configuration);
+    }
 
 
     [HttpPost]
-    public async Task<IActionResult> SaveSmaInverterTemplate(DtoSmaInverterTemplateValueConfiguration configuration)
+    public async Task<IActionResult> SaveSmaInverterTemplate(DtoBaseSmaInverterTemplateValueConfiguration configuration)
     {
         var id = await _service.SaveAsync(configuration);
         return Ok(new DtoValue<int>(id));

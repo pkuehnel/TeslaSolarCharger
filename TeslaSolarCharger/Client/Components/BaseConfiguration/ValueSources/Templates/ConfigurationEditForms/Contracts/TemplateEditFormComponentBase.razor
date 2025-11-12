@@ -1,0 +1,55 @@
+﻿@implements IValidatableComponent
+
+@using TeslaSolarCharger.Client.Wrapper
+
+@typeparam TConfiguration where TConfiguration : new()
+
+@if (WrappedConfiguration != default)
+{
+    <EditFormComponent T="TConfiguration"
+                       WrappedElement="WrappedConfiguration"
+                       HideSubmitButton="true"
+                       @ref="ConfigurationEditForm">
+        @if (ChildContent is not null)
+        {
+            @ChildContent(WrappedConfiguration)
+        }
+    </EditFormComponent>
+}
+
+
+@code {
+
+    [Parameter, EditorRequired]
+    public TConfiguration? Configuration { get; set; }
+
+    [Parameter]
+    public RenderFragment<EditableItem<TConfiguration>>? ChildContent { get; set; }
+
+
+    private EditableItem<TConfiguration>? WrappedConfiguration { get; set; }
+    private EditFormComponent<TConfiguration>? ConfigurationEditForm { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        //Only on first load but not every time when parent component re-renders
+        if (WrappedConfiguration != default)
+        {
+            return;
+        }
+        Configuration ??= new();
+        WrappedConfiguration = new(Configuration);
+    }
+
+    public bool Validate()
+    {
+        if (ConfigurationEditForm == default)
+        {
+            return false;
+        }
+        var isValid = ConfigurationEditForm.WrappedElement.EditContext.Validate();
+        return isValid;
+    }
+
+}

@@ -131,23 +131,30 @@ public class ValueOverviewService(
         var configurations = await templateValueConfigurationService.GetConfigurationsByPredicateAsync(x => true);
         foreach (var configuration in configurations)
         {
-            var headline = configuration.Name;
+            var headline = configuration.Name ?? "Unknown name";
             var overviewValue = new DtoValueConfigurationOverview(headline)
             {
                 Id = configuration.Id,
             };
             overviews.Add(overviewValue);
 
-            var resultConfigurations =
-                await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(x => x.ModbusConfigurationId == configuration.Id);
-            foreach (var resultConfiguration in resultConfigurations)
+            var configurationSpecificValues = values.Where(v => v.SourceValueKey.SourceId == configuration.Id).ToList();
+            foreach (var historicValues in configurationSpecificValues.Select(v => v.HistoricValues))
             {
-                var overviewValueResult = new DtoOverviewValueResult
+                foreach (var historicValue in historicValues)
                 {
-                    Id = resultConfiguration.Id,
-                    UsedFor = resultConfiguration.UsedFor,
-                };
-                AddResult(values, configuration.Id, configurationType, resultConfiguration.Id, overviewValueResult, overviewValue);
+                    if (historicValue.Key.ValueUsage == default)
+                    {
+                        //Do not load car specific values here, only PV values are relavant
+                        continue;
+                    }
+                    var overviewValueResult = new DtoOverviewValueResult
+                    {
+                        Id = historicValue.Key.ResultConfigurationId,
+                        UsedFor = historicValue.Key.ValueUsage.Value,
+                    };
+                    AddResult(values, configuration.Id, configurationType, historicValue.Key.ResultConfigurationId, overviewValueResult, overviewValue);
+                }
             }
         }
         return overviews;

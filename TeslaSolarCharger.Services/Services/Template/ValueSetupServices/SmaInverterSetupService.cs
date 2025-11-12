@@ -40,11 +40,11 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
         var modbusConfigurations = new List<DtoModbusConfiguration>();
         foreach (var config in smaInverterConfigs)
         {
-            if (config is not DtoSmaInverterTemplateValueConfiguration smaConfig)
+            if (config is not DtoBaseSmaInverterTemplateValueConfiguration smaConfig)
             {
                 _logger.LogError(
                     "At least one configuration with GatherType {gatherType} is not of type {typeName}",
-                    templateValueGatherType, nameof(DtoSmaInverterTemplateValueConfiguration));
+                    templateValueGatherType, nameof(DtoBaseSmaInverterTemplateValueConfiguration));
                 continue;
             }
             if (smaConfig.Configuration == default)
@@ -60,6 +60,7 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                 Endianess = ModbusEndianess.BigEndian,
                 ConnectDelayMilliseconds = 0,
                 ReadTimeoutMilliseconds = 1000,
+                Id = config.Id,
             };
             modbusConfigurations.Add(modbusConfig);
         }
