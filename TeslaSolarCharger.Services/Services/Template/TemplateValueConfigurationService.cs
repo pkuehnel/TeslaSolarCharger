@@ -24,7 +24,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         _factory = factory;
     }
 
-    public async Task<TDto?> GetAsync<TDto>(int id) where TDto : class, ITemplateValueConfigurationDto
+    public async Task<ITemplateValueConfigurationDto?> GetAsync(int id)
     {
         _logger.LogTrace("{method}({id})", nameof(GetAsync), id);
         var entity = await _context.TemplateValueConfigurations
@@ -33,7 +33,12 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         if (entity == null)
             return null;
 
-        var dto = _factory.CreateDto(entity);
+        return _factory.CreateDto(entity);
+    }
+
+    public async Task<TDto?> GetAsync<TDto>(int id) where TDto : class, ITemplateValueConfigurationDto
+    {
+        var dto = await GetAsync(id);
         return dto as TDto;
     }
 

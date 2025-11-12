@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -17,11 +18,28 @@ public class TemplateValueConfigurationController : ApiBaseController
         _service = service;
         _valueOverviewService = valueOverviewService;
     }
+    [HttpGet]
+    public async Task<ActionResult<ITemplateValueConfigurationDto>> GetTemplateValueConfiguration(int id)
+    {
+        var configuration = await _service.GetAsync(id);
+        if (configuration == null)
+        {
+            return NotFound();
+        }
 
+        return Ok(configuration);
+    }
 
 
     [HttpPost]
     public async Task<IActionResult> SaveSmaInverterTemplate(DtoSmaInverterTemplateValueConfiguration configuration)
+    {
+        var id = await _service.SaveAsync(configuration);
+        return Ok(new DtoValue<int>(id));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SaveSmaHybridTemplate(DtoSmaHybridInverterTemplateValueConfiguration configuration)
     {
         var id = await _service.SaveAsync(configuration);
         return Ok(new DtoValue<int>(id));

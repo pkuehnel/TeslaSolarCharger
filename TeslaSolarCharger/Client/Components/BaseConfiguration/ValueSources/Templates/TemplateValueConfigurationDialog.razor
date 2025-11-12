@@ -1,18 +1,21 @@
-﻿@using MudExtensions
+@using System.Net.Http.Json
+@using MudExtensions
+@using Newtonsoft.Json.Linq
 @using TeslaSolarCharger.Client.Wrapper
-@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@using TeslaSolarCharger.SharedModel.Enums
 
+@inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject ISnackbar Snackbar
 
-
-@if (TemplateValueConfiguration == null)
+@if (IsLoading)
 {
     <LoadingSpinnerComponent />
 }
@@ -28,8 +31,9 @@ else
                                    Value="@Type"
                                    Label="Type"
                                    Margin="Constants.InputMargin"
+                                   Disabled="_isSaving"
                                    ValueChanged="TypeChanged">
-                    <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+                    <MudSelectItemGroupExtended T="TemplateValueGatherType" Text="Solar" Nested="true" InitiallyExpanded="false">
                         @foreach (TemplateValueGatherType item in Enum.GetValues(typeof(TemplateValueGatherType)))
                         {
                             <MudSelectItemExtended T="TemplateValueGatherType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
@@ -38,19 +42,93 @@ else
                 </MudSelectExtended>
             </div>
 
-            <EditFormComponent T="DtoFullRestValueConfiguration"
-                               WrappedElement="TemplateValueConfiguration"
-                               HideSubmitButton="true">
-            </EditFormComponent>
+            @if (!Type.HasValue)
+            {
+                <MudAlert Severity="Severity.Info" Class="mx-2 mt-2">
+                    Select a template type to start configuring.
+                </MudAlert>
+            }
+            else if (!IsSupported(Type.Value))
+            {
+                <MudAlert Severity="Severity.Warning" Class="mx-2 mt-2">
+                    The selected template type is not supported yet.
+                </MudAlert>
+            }
+            else if (Type == TemplateValueGatherType.SmaInverterModbus && _smaInverterTemplate != null)
+            {
+                <EditFormComponent T="DtoSmaInverterTemplateValueConfiguration"
+                                   WrappedElement="_smaInverterTemplate"
+                                   HideSubmitButton="true"
+                                   @ref="_smaInverterForm">
+                    <ChildContent>
+                        <GenericInput For="() => _smaInverterTemplate.Item.Name"></GenericInput>
+                        <GenericInput T="int?" For="() => _smaInverterTemplate.Item.MinRefreshIntervalMilliseconds"></GenericInput>
+                        <GenericInput For="() => _smaInverterTemplate.Item.ConfigurationVersion"></GenericInput>
+                        @if (_smaInverterTemplate.Item.Configuration != null)
+                        {
+                            <GenericInput For="() => _smaInverterTemplate.Item.Configuration.Host"></GenericInput>
+                            <GenericInput For="() => _smaInverterTemplate.Item.Configuration.Port"></GenericInput>
+                            <GenericInput For="() => _smaInverterTemplate.Item.Configuration.UnitId"></GenericInput>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Warning" Class="mx-2 mt-2">
+                                Configuration details are missing for this template.
+                            </MudAlert>
+                        }
+                    </ChildContent>
+                </EditFormComponent>
+            }
+            else if (Type == TemplateValueGatherType.SmaHybridInverterModbus && _smaHybridTemplate != null)
+            {
+                <EditFormComponent T="DtoSmaHybridInverterTemplateValueConfiguration"
+                                   WrappedElement="_smaHybridTemplate"
+                                   HideSubmitButton="true"
+                                   @ref="_smaHybridForm">
+                    <ChildContent>
+                        <GenericInput For="() => _smaHybridTemplate.Item.Name"></GenericInput>
+                        <GenericInput T="int?" For="() => _smaHybridTemplate.Item.MinRefreshIntervalMilliseconds"></GenericInput>
+                        <GenericInput For="() => _smaHybridTemplate.Item.ConfigurationVersion"></GenericInput>
+                        @if (_smaHybridTemplate.Item.Configuration != null)
+                        {
+                            <GenericInput For="() => _smaHybridTemplate.Item.Configuration.Host"></GenericInput>
+                            <GenericInput For="() => _smaHybridTemplate.Item.Configuration.Port"></GenericInput>
+                            <GenericInput For="() => _smaHybridTemplate.Item.Configuration.UnitId"></GenericInput>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Warning" Class="mx-2 mt-2">
+                                Configuration details are missing for this template.
+                            </MudAlert>
+                        }
+                    </ChildContent>
+                </EditFormComponent>
+            }
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="Cancel">Cancel</MudButton>
-            <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+            <MudButton OnClick="Cancel" Disabled="_isSaving">Cancel</MudButton>
+            <MudButton Color="Color.Primary" OnClick="Submit" Disabled="_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Processing</MudText>
+                }
+                else
+                {
+                    <MudText>Save</MudText>
+                }
+            </MudButton>
         </DialogActions>
     </MudDialog>
 }
 
 @code {
+    private static readonly HashSet<TemplateValueGatherType> SupportedTemplateTypes = new()
+    {
+        TemplateValueGatherType.SmaInverterModbus,
+        TemplateValueGatherType.SmaHybridInverterModbus,
+    };
+
     [CascadingParameter]
     IMudDialogInstance MudDialog { get; set; } = null!;
 
@@ -59,29 +137,225 @@ else
 
     private TemplateValueGatherType? Type { get; set; }
 
-    private EditableItem<DtoTemplateValueConfiguration<TConfig>>? TemplateValueConfiguration { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private bool _isSaving;
+
+    private EditableItem<DtoSmaInverterTemplateValueConfiguration>? _smaInverterTemplate;
+    private EditFormComponent<DtoSmaInverterTemplateValueConfiguration>? _smaInverterForm;
+
+    private EditableItem<DtoSmaHybridInverterTemplateValueConfiguration>? _smaHybridTemplate;
+    private EditFormComponent<DtoSmaHybridInverterTemplateValueConfiguration>? _smaHybridForm;
 
     void Cancel() => MudDialog.Cancel();
 
+    private bool IsSupported(TemplateValueGatherType gatherType) => SupportedTemplateTypes.Contains(gatherType);
+
     private async Task Submit()
     {
-        MudDialog.Close(DialogResult.Ok(1/*should be the saved ID*/));
+        if (!Type.HasValue)
+        {
+            Snackbar.Add("Please select a template type before saving.", Severity.Warning);
+            return;
+        }
+
+        if (!IsSupported(Type.Value))
+        {
+            Snackbar.Add("The selected template type is not supported yet.", Severity.Warning);
+            return;
+        }
+
+        switch (Type.Value)
+        {
+            case TemplateValueGatherType.SmaInverterModbus:
+                await SaveTemplateAsync(_smaInverterForm, "/api/TemplateValueConfiguration/SaveSmaInverterTemplate");
+                break;
+            case TemplateValueGatherType.SmaHybridInverterModbus:
+                await SaveTemplateAsync(_smaHybridForm, "/api/TemplateValueConfiguration/SaveSmaHybridTemplate");
+                break;
+            default:
+                Snackbar.Add("Unsupported template type.", Severity.Warning);
+                break;
+        }
     }
 
     protected override async Task OnInitializedAsync()
     {
         if (ValueConfigurationId == null)
         {
-            TemplateValueConfiguration = new EditableItem<DtoTemplateValueConfiguration<TConfig>>(new());
+            IsLoading = false;
+            return;
         }
-        else
+
+        await LoadExistingConfigurationAsync(ValueConfigurationId.Value);
+        IsLoading = false;
+    }
+
+    private async Task LoadExistingConfigurationAsync(int configurationId)
+    {
+        try
         {
+            var response = await HttpClient.GetAsync($"/api/TemplateValueConfiguration/GetTemplateValueConfiguration?id={configurationId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to load template configuration.", Severity.Error);
+                return;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                Snackbar.Add("Received empty template configuration from server.", Severity.Error);
+                return;
+            }
+
+            var parsed = JObject.Parse(json);
+            var gatherTypeToken = parsed.SelectToken("gatherType") ?? parsed.SelectToken("GatherType");
+            if (gatherTypeToken == null)
+            {
+                Snackbar.Add("Template configuration response does not contain a gather type.", Severity.Error);
+                return;
+            }
+
+            var gatherType = (TemplateValueGatherType)gatherTypeToken.Value<int>();
+            Type = gatherType;
+
+            switch (gatherType)
+            {
+                case TemplateValueGatherType.SmaInverterModbus:
+                    var inverterConfig = parsed.ToObject<DtoSmaInverterTemplateValueConfiguration>();
+                    if (inverterConfig == null)
+                    {
+                        Snackbar.Add("Failed to parse inverter template configuration.", Severity.Error);
+                        return;
+                    }
+                    inverterConfig.Configuration ??= new();
+                    _smaInverterTemplate = new EditableItem<DtoSmaInverterTemplateValueConfiguration>(inverterConfig);
+                    break;
+                case TemplateValueGatherType.SmaHybridInverterModbus:
+                    var hybridConfig = parsed.ToObject<DtoSmaHybridInverterTemplateValueConfiguration>();
+                    if (hybridConfig == null)
+                    {
+                        Snackbar.Add("Failed to parse hybrid template configuration.", Severity.Error);
+                        return;
+                    }
+                    hybridConfig.Configuration ??= new();
+                    _smaHybridTemplate = new EditableItem<DtoSmaHybridInverterTemplateValueConfiguration>(hybridConfig);
+                    break;
+                default:
+                    Snackbar.Add("The template type is currently not supported in the UI.", Severity.Error);
+                    break;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load template configuration: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveTemplateAsync<TTemplate>(EditFormComponent<TTemplate>? templateForm, string apiEndpoint)
+        where TTemplate : class, ITemplateValueConfigurationDto
+    {
+        if (templateForm?.WrappedElement == null)
+        {
+            Snackbar.Add("Template configuration form is not ready.", Severity.Error);
+            return;
+        }
+
+        var editableTemplate = templateForm.WrappedElement;
+        if (!editableTemplate.EditContext.Validate())
+        {
+            Snackbar.Add("Template configuration contains validation errors.", Severity.Error);
+            return;
+        }
+
+        if (editableTemplate.Item is DtoSmaInverterTemplateValueConfiguration inverterConfig && inverterConfig.Configuration == null)
+        {
+            inverterConfig.Configuration = new();
+        }
+
+        if (editableTemplate.Item is DtoSmaHybridInverterTemplateValueConfiguration hybridConfig && hybridConfig.Configuration == null)
+        {
+            hybridConfig.Configuration = new();
+        }
+
+        try
+        {
+            _isSaving = true;
+            StateHasChanged();
+
+            var response = await HttpClient.PostAsJsonAsync(apiEndpoint, editableTemplate.Item);
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to save template configuration.", Severity.Error);
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<DtoValue<int>>();
+            if (result?.Value == null)
+            {
+                Snackbar.Add("Server response did not contain the saved configuration identifier.", Severity.Error);
+                return;
+            }
+
+            _isSaving = false;
+            Snackbar.Add("Template configuration saved.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save template configuration: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            if (_isSaving)
+            {
+                _isSaving = false;
+                StateHasChanged();
+            }
         }
     }
 
     private void TypeChanged(TemplateValueGatherType? newType)
     {
-        Type = newType;
-    }
+        if (newType == Type)
+        {
+            return;
+        }
 
+        Type = newType;
+
+        if (!newType.HasValue)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        if (!IsSupported(newType.Value))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        switch (newType.Value)
+        {
+            case TemplateValueGatherType.SmaInverterModbus when _smaInverterTemplate == null:
+                _smaInverterTemplate = new EditableItem<DtoSmaInverterTemplateValueConfiguration>(
+                    new DtoSmaInverterTemplateValueConfiguration
+                    {
+                        Configuration = new(),
+                    });
+                break;
+            case TemplateValueGatherType.SmaHybridInverterModbus when _smaHybridTemplate == null:
+                _smaHybridTemplate = new EditableItem<DtoSmaHybridInverterTemplateValueConfiguration>(
+                    new DtoSmaHybridInverterTemplateValueConfiguration
+                    {
+                        Configuration = new(),
+                    });
+                break;
+        }
+
+        StateHasChanged();
+    }
 }
