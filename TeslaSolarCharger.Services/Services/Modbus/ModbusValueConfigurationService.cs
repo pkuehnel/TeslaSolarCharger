@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -20,21 +19,20 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
     private readonly ILogger<ModbusValueConfigurationService> _logger;
     private readonly ITeslaSolarChargerContext _context;
     private readonly IModbusClientHandlingService _modbusClientHandlingService;
-    private readonly IRefreshableValueHandlingService _refreshableValueHandlingService;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IConstants _constants;
+
+    public ConfigurationType ConfigurationType => ConfigurationType.ModbusSolarValue;
 
     public ModbusValueConfigurationService(ILogger<ModbusValueConfigurationService> logger,
         ITeslaSolarChargerContext context,
         IModbusClientHandlingService modbusClientHandlingService,
-        IRefreshableValueHandlingService refreshableValueHandlingService,
         IServiceScopeFactory serviceScopeFactory,
         IConstants constants)
     {
         _logger = logger;
         _context = context;
         _modbusClientHandlingService = modbusClientHandlingService;
-        _refreshableValueHandlingService = refreshableValueHandlingService;
         _serviceScopeFactory = serviceScopeFactory;
         _constants = constants;
     }
@@ -131,7 +129,6 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
             trackedData.CurrentValues.SetValues(dbData);
         }
         await _context.SaveChangesAsync().ConfigureAwait(false);
-        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -143,7 +140,6 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         _context.ModbusConfigurations.Remove(modbusConfiguration);
         await _context.SaveChangesAsync().ConfigureAwait(false);
-        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task DeleteResultConfiguration(int id)
@@ -153,7 +149,6 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         _context.ModbusResultConfigurations.Remove(modbusResultConfiguration);
         await _context.SaveChangesAsync().ConfigureAwait(false);
-        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData)
@@ -187,15 +182,16 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
             _context.ModbusConfigurations.Update(dbData);
         }
         await _context.SaveChangesAsync().ConfigureAwait(false);
-        await _refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
-    public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval)
+    public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval,
+        List<int> configurationIds)
     {
         _logger.LogTrace("{method}({defaultInterval})", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
+        Expression<Func<ModbusConfiguration, bool>> predicate = configurationIds.Count == 0 ? c => true : c => configurationIds.Contains(c.Id);
         var modbusConfigurations = await GetModbusConfigurationByPredicate(
-                c => true).ConfigureAwait(false);
+                predicate).ConfigureAwait(false);
 
         var result = new List<DelegateRefreshableValue<decimal>>();
         foreach (var modbusConfiguration in modbusConfigurations)

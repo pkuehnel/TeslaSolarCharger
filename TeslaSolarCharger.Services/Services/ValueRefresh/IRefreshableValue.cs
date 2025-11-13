@@ -27,6 +27,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _runGate = new(1, 1);
     private Exception? _lastError;
+    private bool _isCanceled;
 
     public SourceValueKey SourceValueKey { get; }
 
@@ -77,6 +78,8 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 
     public async Task RefreshValueAsync(CancellationToken ct)
     {
+        if(_isCanceled)
+            return;
         // try enter without waiting — ensures no reentrancy
         if (!await _runGate.WaitAsync(0, ct).ConfigureAwait(false))
             return;
@@ -125,6 +128,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     {
         try
         {
+            _isCanceled = true;
             _cts.Cancel();
         }
         catch

@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using TeslaSolarCharger.Model.Entities;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 

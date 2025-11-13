@@ -1,5 +1,4 @@
 ﻿@using MudExtensions
-@using Newtonsoft.Json.Linq
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
@@ -76,7 +75,7 @@ else
     public int? ValueConfigurationId { get; set; }
 
     private EditableItem<DtoTemplateValueConfigurationBase>? TemplateValueConfiguration { get; set; }
-    private IValidatableComponent? ConfigurationComponent { get; set; }
+    private ITemplateEditFormComponent? ConfigurationComponent { get; set; }
 
     public EditFormComponent<DtoTemplateValueConfigurationBase>? BaseForm { get; set; }
 
@@ -84,17 +83,11 @@ else
 
     private async Task Submit()
     {
-        if (BaseForm == default)
+        if (TemplateValueConfiguration == default)
         {
-            Snackbar.Add("Form is null, can not save values", Severity.Error);
+            Snackbar.Add("Configuration value is null", Severity.Error);
             return;
         }
-        if (!BaseForm.WrappedElement.EditContext.Validate())
-        {
-            Snackbar.Add("Validation failed", Severity.Error);
-            return;
-        }
-
         if (ConfigurationComponent == default)
         {
             Snackbar.Add("Configuration form is null", Severity.Error);
@@ -105,8 +98,26 @@ else
             Snackbar.Add("Configuration validation failed", Severity.Error);
             return;
         }
+        TemplateValueConfiguration.Item.Configuration = ConfigurationComponent.GetConfiguration();
 
-        MudDialog.Close(DialogResult.Ok(1/*should be the saved ID*/));
+        if (BaseForm == default)
+        {
+            Snackbar.Add("Form is null, can not save values", Severity.Error);
+            return;
+        }
+
+        
+        if (!BaseForm.WrappedElement.EditContext.Validate())
+        {
+            Snackbar.Add("Validation failed", Severity.Error);
+            return;
+        }
+        var result = await Service.SaveAsync(TemplateValueConfiguration.Item);
+        if (result.HasError)
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(result.Data));
     }
 
     protected override async Task OnParametersSetAsync()
@@ -129,16 +140,12 @@ else
             return;
         }
         TemplateValueConfiguration.Item.GatherType = newType.Value;
+        StateHasChanged();
     }
 
 
     private DtoSmaInverterTemplateValueConfiguration? GetSmaConfig()
     {
-        if (TemplateValueConfiguration?.Item.Configuration is JObject jObj)
-        {
-            return jObj.ToObject<DtoSmaInverterTemplateValueConfiguration>();
-        }
-
-        return null;
+        return TemplateValueConfiguration?.Item.Configuration?.ToObject<DtoSmaInverterTemplateValueConfiguration>();
     }
 }

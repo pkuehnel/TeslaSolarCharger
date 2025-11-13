@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System.Collections.Concurrent;
+using System.Linq.Expressions;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Contracts;
@@ -29,34 +32,39 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
         _serviceScopeFactory = serviceScopeFactory;
         _templateValueConfigurationService = templateValueConfigurationService;
     }
-    public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval)
+
+    public ConfigurationType ConfigurationType => ConfigurationType.TemplateValue;
+
+    public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval,
+        List<int> configurationIds)
     {
         _logger.LogTrace("{method}({defaultInterval}", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
         var templateValueGatherType = TemplateValueGatherType.SmaInverterModbus;
+        Expression<Func<TemplateValueConfiguration, bool>> expression = c => c.GatherType == templateValueGatherType && (configurationIds.Count == 0 || configurationIds.Contains(c.Id));
         var smaInverterConfigs = await _templateValueConfigurationService
-            .GetConfigurationsByPredicateAsync(c => c.GatherType == templateValueGatherType).ConfigureAwait(false);
+            .GetConfigurationsByPredicateAsync(expression).ConfigureAwait(false);
 
         var result = new List<DelegateRefreshableValue<decimal>>();
         var modbusConfigurations = new List<DtoModbusConfiguration>();
         foreach (var config in smaInverterConfigs)
         {
-            if (config is not DtoBaseSmaInverterTemplateValueConfiguration smaConfig)
+            if (config.Configuration == default)
             {
-                _logger.LogError(
-                    "At least one configuration with GatherType {gatherType} is not of type {typeName}",
-                    templateValueGatherType, nameof(DtoBaseSmaInverterTemplateValueConfiguration));
+                _logger.LogError("Template configuration with ID {id} has empty configuration", config.Id);
                 continue;
             }
-            if (smaConfig.Configuration == default)
+            var smaConfig = config.Configuration.ToObject<DtoSmaInverterTemplateValueConfiguration>();
+            if (smaConfig == default)
             {
-                _logger.LogError("Configuration of templateConfig {templateConfig} is null", smaConfig.Id);
+                _logger.LogError("Could not deserialize configuration {gatherType} for ID {id}. Json is: {json}", config.GatherType, config.Id, config.Configuration.ToString(Formatting.None));
                 continue;
             }
+
             var modbusConfig = new DtoModbusConfiguration()
             {
-                Host = smaConfig.Configuration.Host,
-                Port = smaConfig.Configuration.Port,
-                UnitIdentifier = smaConfig.Configuration.UnitId,
+                Host = smaConfig.Host,
+                Port = smaConfig.Port,
+                UnitIdentifier = smaConfig.UnitId,
                 Endianess = ModbusEndianess.BigEndian,
                 ConnectDelayMilliseconds = 0,
                 ReadTimeoutMilliseconds = 1000,

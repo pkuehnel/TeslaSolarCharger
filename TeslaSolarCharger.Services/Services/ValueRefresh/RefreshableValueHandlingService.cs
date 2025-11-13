@@ -78,23 +78,24 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public async Task RecreateRefreshables()
+    public async Task RecreateRefreshables(ConfigurationType? configurationType, params List<int> configurationIds)
     {
         _logger.LogTrace("{method}()", nameof(RecreateRefreshables));
 
         // 1) Request cancellation for any in-flight refresh
         var refreshablesSnapshot = GetRefreshablesSnapshot();
 
-        foreach (var refreshable in refreshablesSnapshot)
+        var refreshablesToCancel = refreshablesSnapshot
+            .Where(r => configurationType == default || r.SourceValueKey.ConfigurationType == configurationType)
+            .Where(r => configurationIds.Count == 0 || configurationIds.Contains(r.SourceValueKey.SourceId))
+            .ToList();
+        foreach (var refreshable in refreshablesToCancel)
         {
-            if (refreshable.IsExecuting)
-            {
-                refreshable.Cancel();
-            }
+            refreshable.Cancel();
         }
 
-        // 2) Await completion of any running tasks (best effort)
-        var running = refreshablesSnapshot
+        // 2) Await completion of any running tasks that need to be canceled
+        var running = refreshablesToCancel
             .Select(r => r.RunningTask)
             .Where(t => t is not null)
             .Cast<Task>()
@@ -117,7 +118,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
         }
 
         // 3) Dispose old refreshables
-        foreach (var refreshable in refreshablesSnapshot)
+        foreach (var refreshable in refreshablesToCancel)
         {
             try
             {
@@ -129,7 +130,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
             }
         }
 
-        ClearRefreshables();
+        RemoveRefreshables(refreshablesToCancel);
 
         using var setupScope = _serviceScopeFactory.CreateScope();
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
@@ -139,8 +140,12 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
         var newRefreshables = new List<DelegateRefreshableValue<decimal>>();
         foreach (var refreshableValueSetupService in refreshableValueSetupServices)
         {
+            if (configurationType != default && refreshableValueSetupService.ConfigurationType != configurationType)
+            {
+                continue;
+            }
             _logger.LogTrace("Gather refreshables for type {type}", refreshableValueSetupService.GetType().Name);
-            var refreshables = await refreshableValueSetupService.GetDecimalRefreshableValuesAsync(solarValueRefreshInterval);
+            var refreshables = await refreshableValueSetupService.GetDecimalRefreshableValuesAsync(solarValueRefreshInterval, configurationIds);
             _logger.LogTrace("Got {count} refreshables", refreshables.Count);
             newRefreshables.AddRange(refreshables);
         }
@@ -171,19 +176,14 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
         }
     }
 
-    private void AddRefreshable(IRefreshableValue<decimal> refreshable)
+    private void RemoveRefreshables(List<IRefreshableValue<decimal>> refreshablesToCancel)
     {
         lock (_refreshablesLock)
         {
-            _refreshables.Add(refreshable);
-        }
-    }
-
-    private void ClearRefreshables()
-    {
-        lock (_refreshablesLock)
-        {
-            _refreshables.Clear();
+            foreach (var refreshable in refreshablesToCancel)
+            {
+                _refreshables.Remove(refreshable);
+            }
         }
     }
 }

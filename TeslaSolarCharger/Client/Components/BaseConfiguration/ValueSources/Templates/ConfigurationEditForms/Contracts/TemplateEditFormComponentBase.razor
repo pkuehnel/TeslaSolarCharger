@@ -1,5 +1,6 @@
-﻿@implements IValidatableComponent
+﻿@implements ITemplateEditFormComponent
 
+@using Newtonsoft.Json.Linq
 @using TeslaSolarCharger.Client.Wrapper
 
 @typeparam TConfiguration where TConfiguration : new()
@@ -50,6 +51,17 @@
         }
         var isValid = ConfigurationEditForm.WrappedElement.EditContext.Validate();
         return isValid;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        if (Configuration is null)
+        {
+            return null;
+        }
+
+        // Convert the typed configuration to JObject
+        return JObject.FromObject(Configuration);
     }
 
 }

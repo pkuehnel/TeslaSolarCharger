@@ -1,20 +1,18 @@
-﻿@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+﻿@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
 
-@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.IValidatableComponent
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
 
-@if (Configuration is not null)
-{
-    <TemplateEditFormComponentBase TConfiguration="DtoSmaInverterTemplateValueConfiguration"
+<TemplateEditFormComponentBase TConfiguration="DtoSmaInverterTemplateValueConfiguration"
                                Configuration="Configuration"
                                @ref="TemplateEditForm">
-        <ChildContent Context="wrapped">
-            <GenericInput For="() => wrapped.Item.Host"></GenericInput>
-            <GenericInput For="() => wrapped.Item.Port"></GenericInput>
-            <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
-        </ChildContent>
-    </TemplateEditFormComponentBase>
-}
+    <ChildContent Context="wrapped">
+        <GenericInput For="() => wrapped.Item.Host"></GenericInput>
+        <GenericInput For="() => wrapped.Item.Port"></GenericInput>
+        <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
+    </ChildContent>
+</TemplateEditFormComponentBase>
 
 @code {
 
@@ -27,4 +25,10 @@
     {
         return TemplateEditForm?.Validate() ?? false;
     }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
 }

@@ -83,4 +83,5 @@ public interface IConstants
     DateTimeOffset FirstChargePriceTimeStamp { get; }
     int SpotPriceRefreshIntervalHours { get; }
     int ManualCarMinutesUntilForgetSoc { get; }
+    int RefreshableValuesRefreshIntervalSeconds { get; }
 }
