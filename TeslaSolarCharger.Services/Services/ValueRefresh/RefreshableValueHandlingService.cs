@@ -13,8 +13,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly HashSet<IRefreshableValue<decimal>> _refreshables = new();
-    private readonly object _refreshablesLock = new();
+    private readonly HashSet<IRefreshableValue<decimal>> _values = new();
+    private readonly object _valuesLock = new();
 
 
     public RefreshableValueHandlingService(
@@ -159,30 +159,30 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
 
     private List<IRefreshableValue<decimal>> GetRefreshablesSnapshot()
     {
-        lock (_refreshablesLock)
+        lock (_valuesLock)
         {
-            return _refreshables.ToList();
+            return _values.ToList();
         }
     }
 
     private void AddRefreshables(IEnumerable<IRefreshableValue<decimal>> refreshables)
     {
-        lock (_refreshablesLock)
+        lock (_valuesLock)
         {
             foreach (var refreshable in refreshables)
             {
-                _refreshables.Add(refreshable);
+                _values.Add(refreshable);
             }
         }
     }
 
     private void RemoveRefreshables(List<IRefreshableValue<decimal>> refreshablesToCancel)
     {
-        lock (_refreshablesLock)
+        lock (_valuesLock)
         {
             foreach (var refreshable in refreshablesToCancel)
             {
-                _refreshables.Remove(refreshable);
+                _values.Remove(refreshable);
             }
         }
     }
