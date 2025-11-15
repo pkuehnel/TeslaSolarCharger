@@ -1,23 +1,20 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
-using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 
-public class RefreshableValueHandlingService : IRefreshableValueHandlingService
+public class RefreshableValueHandlingService : IRefreshableValueHandlingService, IGenericValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly HashSet<IRefreshableValue<decimal>> _refreshables = new();
-    private readonly object _refreshablesLock = new();
+    private readonly HashSet<IRefreshableValue<decimal>> _values = new();
+    private readonly object _valuesLock = new();
 
 
     public RefreshableValueHandlingService(
@@ -56,12 +53,8 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
                     continue;
                 }
                 result.TryAdd(key.ValueUsage.Value, new());
-                foreach (var historicValue in latestValue.Values)
-                {
-                    result[key.ValueUsage.Value].Add(historicValue);
-                }
+                result[key.ValueUsage.Value].Add(latestValue);
             }
-
         }
 
         hasErrors = encounteredError;
@@ -85,23 +78,24 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public async Task RecreateRefreshables()
+    public async Task RecreateRefreshables(ConfigurationType? configurationType, params List<int> configurationIds)
     {
         _logger.LogTrace("{method}()", nameof(RecreateRefreshables));
 
         // 1) Request cancellation for any in-flight refresh
         var refreshablesSnapshot = GetRefreshablesSnapshot();
 
-        foreach (var refreshable in refreshablesSnapshot)
+        var refreshablesToCancel = refreshablesSnapshot
+            .Where(r => configurationType == default || r.SourceValueKey.ConfigurationType == configurationType)
+            .Where(r => configurationIds.Count == 0 || configurationIds.Contains(r.SourceValueKey.SourceId))
+            .ToList();
+        foreach (var refreshable in refreshablesToCancel)
         {
-            if (refreshable.IsExecuting)
-            {
-                refreshable.Cancel();
-            }
+            refreshable.Cancel();
         }
 
-        // 2) Await completion of any running tasks (best effort)
-        var running = refreshablesSnapshot
+        // 2) Await completion of any running tasks that need to be canceled
+        var running = refreshablesToCancel
             .Select(r => r.RunningTask)
             .Where(t => t is not null)
             .Cast<Task>()
@@ -124,7 +118,7 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
         }
 
         // 3) Dispose old refreshables
-        foreach (var refreshable in refreshablesSnapshot)
+        foreach (var refreshable in refreshablesToCancel)
         {
             try
             {
@@ -136,189 +130,60 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService
             }
         }
 
-        ClearRefreshables();
-
-        // 4) Recreate refreshables as before
-        var valueUsages = new HashSet<ValueUsage>
-        {
-            ValueUsage.InverterPower,
-            ValueUsage.GridPower,
-            ValueUsage.HomeBatteryPower,
-            ValueUsage.HomeBatterySoc,
-        };
+        RemoveRefreshables(refreshablesToCancel);
 
         using var setupScope = _serviceScopeFactory.CreateScope();
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var solarValueRefreshInterval = configurationWrapper.PvValueJobUpdateIntervall();
 
-        var setupRestValueConfigurationService = setupScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
-        var restConfigurations = await setupRestValueConfigurationService
-            .GetFullRestValueConfigurationsByPredicate(
-                c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
-            .ConfigureAwait(false);
-
-        var constants = setupScope.ServiceProvider.GetRequiredService<IConstants>();
-
-        foreach (var restConfiguration in restConfigurations)
+        var refreshableValueSetupServices = setupScope.ServiceProvider.GetServices<IRefreshableValueSetupService>();
+        var newRefreshables = new List<DelegateRefreshableValue<decimal>>();
+        foreach (var refreshableValueSetupService in refreshableValueSetupServices)
         {
-            try
+            if (configurationType != default && refreshableValueSetupService.ConfigurationType != configurationType)
             {
-                var refreshable = new DelegateRefreshableValue<decimal>(
-                    _serviceScopeFactory,
-                    async ct =>
-                    {
-                        using var executionScope = _serviceScopeFactory.CreateScope();
-                        var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
-                        var responseString = await restValueExecutionService
-                            .GetResult(restConfiguration)
-                            .ConfigureAwait(false);
-
-                        var restValueConfigurationService = executionScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
-                        var resultConfigurations = await restValueConfigurationService
-                            .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
-                            .ConfigureAwait(false);
-
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
-                        foreach (var resultConfig in resultConfigurations)
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(restConfiguration.Id, ConfigurationType.RestSolarValue, resultConfig.UsedFor, null);
-
-                            var val = restValueExecutionService.GetValue(
-                                responseString,
-                                restConfiguration.NodePatternType,
-                                resultConfig);
-
-                            if (!values.TryGetValue(valueKey, out var current))
-                            {
-                                current = new();
-                                values[valueKey] = current;
-                            }
-                            current.TryAdd(resultConfig.Id, val);
-                        }
-
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
-                    },
-                    solarValueRefreshInterval,
-                    constants.SolarHistoricValueCapacity
-                );
-
-                AddRefreshable(refreshable);
+                continue;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error while creating refreshable for {restConfigurationId} with URL {url}",
-                    restConfiguration.Id,
-                    restConfiguration.Url);
-            }
+            _logger.LogTrace("Gather refreshables for type {type}", refreshableValueSetupService.GetType().Name);
+            var refreshables = await refreshableValueSetupService.GetDecimalRefreshableValuesAsync(solarValueRefreshInterval, configurationIds);
+            _logger.LogTrace("Got {count} refreshables", refreshables.Count);
+            newRefreshables.AddRange(refreshables);
         }
+        AddRefreshables(newRefreshables);
+    }
 
-        var setupModbusValueConfigurationService = setupScope.ServiceProvider
-            .GetRequiredService<IModbusValueConfigurationService>();
-        var modbusConfigurations = await setupModbusValueConfigurationService
-            .GetModbusConfigurationByPredicate(
-                c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor)))
-            .ConfigureAwait(false);
+    public List<IGenericValue<decimal>> GetSnapshot()
+    {
+        return new(GetRefreshablesSnapshot());
+    }
 
-        foreach (var modbusConfiguration in modbusConfigurations)
+    private List<IRefreshableValue<decimal>> GetRefreshablesSnapshot()
+    {
+        lock (_valuesLock)
         {
-            try
+            return _values.ToList();
+        }
+    }
+
+    private void AddRefreshables(IEnumerable<IRefreshableValue<decimal>> refreshables)
+    {
+        lock (_valuesLock)
+        {
+            foreach (var refreshable in refreshables)
             {
-                var configuration = modbusConfiguration;
-                var refreshable = new DelegateRefreshableValue<decimal>(
-                    _serviceScopeFactory,
-                    async ct =>
-                    {
-                        using var executionScope = _serviceScopeFactory.CreateScope();
-                        var modbusValueConfigurationService = executionScope.ServiceProvider
-                            .GetRequiredService<IModbusValueConfigurationService>();
-                        var modbusValueExecutionService = executionScope.ServiceProvider
-                            .GetRequiredService<IModbusValueExecutionService>();
-
-                        var resultConfigurations = await modbusValueConfigurationService
-                            .GetResultConfigurationsByValueConfigurationId(configuration.Id)
-                            .ConfigureAwait(false);
-
-                        var values = new Dictionary<ValueKey, ConcurrentDictionary<int, decimal>>();
-                        foreach (var resultConfiguration in resultConfigurations)
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            var valueKey = new ValueKey(configuration.Id, ConfigurationType.ModbusSolarValue, resultConfiguration.UsedFor, null);
-                            try
-                            {
-                                var byteArray = await modbusValueExecutionService
-                                    .GetResult(configuration, resultConfiguration, false)
-                                    .ConfigureAwait(false);
-                                var value = await modbusValueExecutionService
-                                    .GetValue(byteArray, resultConfiguration)
-                                    .ConfigureAwait(false);
-
-                                if (!values.TryGetValue(valueKey, out var current))
-                                {
-                                    current = new();
-                                    values[valueKey] = current;
-                                }
-                                current.TryAdd(resultConfiguration.Id, value);
-
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                throw;
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(
-                                    ex,
-                                    "Error while refreshing modbus value for configuration {configurationId} result {resultId}",
-                                    configuration.Id,
-                                    resultConfiguration.Id);
-                                throw;
-                            }
-                        }
-
-                        return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, decimal>>(values);
-                    },
-                    solarValueRefreshInterval,
-                    constants.SolarHistoricValueCapacity
-                );
-
-                AddRefreshable(refreshable);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error while creating refreshable for modbus configuration {configurationId} ({host}:{port})",
-                    modbusConfiguration.Id,
-                    modbusConfiguration.Host,
-                    modbusConfiguration.Port);
+                _values.Add(refreshable);
             }
         }
     }
 
-    private IRefreshableValue<decimal>[] GetRefreshablesSnapshot()
+    private void RemoveRefreshables(List<IRefreshableValue<decimal>> refreshablesToCancel)
     {
-        lock (_refreshablesLock)
+        lock (_valuesLock)
         {
-            return _refreshables.ToArray();
-        }
-    }
-
-    private void AddRefreshable(IRefreshableValue<decimal> refreshable)
-    {
-        lock (_refreshablesLock)
-        {
-            _refreshables.Add(refreshable);
-        }
-    }
-
-    private void ClearRefreshables()
-    {
-        lock (_refreshablesLock)
-        {
-            _refreshables.Clear();
+            foreach (var refreshable in refreshablesToCancel)
+            {
+                _values.Remove(refreshable);
+            }
         }
     }
 }

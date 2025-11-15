@@ -16,5 +16,4 @@ public interface IRestValueExecutionService
     Task<string> GetResult(DtoFullRestValueConfiguration config);
     decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoJsonXmlResultConfiguration resultConfig);
     Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config);
-    Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews();
 }

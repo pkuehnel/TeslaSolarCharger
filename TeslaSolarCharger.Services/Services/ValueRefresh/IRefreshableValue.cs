@@ -21,51 +21,52 @@ public interface IRefreshableValue<T> : IGenericValue<T>, IAsyncDisposable
 public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly Func<CancellationToken, Task<IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, T>>>> _refresh;
+    private readonly Func<CancellationToken, Task<ConcurrentDictionary<ValueKey, T>>> _refresh;
     private readonly int _historicValueCapacity;
-    private readonly ConcurrentDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> _historicValues = new();
+    private readonly ConcurrentDictionary<ValueKey, DtoHistoricValue<T>> _historicValues = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _runGate = new(1, 1);
     private Exception? _lastError;
+    private bool _isCanceled;
+
+    public SourceValueKey SourceValueKey { get; }
 
     public DelegateRefreshableValue(
         IServiceScopeFactory serviceScopeFactory,
-        Func<CancellationToken, Task<IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, T>>>> refresh,
+        Func<CancellationToken, Task<ConcurrentDictionary<ValueKey, T>>> refresh,
         TimeSpan refreshInterval,
-        int historicValueCapacity)
+        int historicValueCapacity,
+        SourceValueKey sourceValueKey)
     {
         _serviceScopeFactory = serviceScopeFactory;
         _refresh = refresh;
         _historicValueCapacity = historicValueCapacity;
+        SourceValueKey = sourceValueKey;
         RefreshInterval = refreshInterval;
         using var scope = _serviceScopeFactory.CreateScope();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         NextExecution = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 
-    public IReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>> HistoricValues
+    public IReadOnlyDictionary<ValueKey, DtoHistoricValue<T>> HistoricValues
     {
         get
         {
-            return new ReadOnlyDictionary<ValueKey, ConcurrentDictionary<int, DtoHistoricValue<T>>>(_historicValues);
+            return new ReadOnlyDictionary<ValueKey, DtoHistoricValue<T>>(_historicValues);
         }
     }
 
-    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value, int resultConfigId)
+    public void UpdateValue(ValueKey valueKey, DateTimeOffset timestamp, T? value)
     {
-        if (!_historicValues.TryGetValue(valueKey, out var valueDictionary))
+        var exists = _historicValues.TryGetValue(valueKey, out var historicValue);
+        if (exists)
         {
-            valueDictionary = new();
-            _historicValues.TryAdd(valueKey, valueDictionary);
-        }
-        if (valueDictionary.TryGetValue(resultConfigId, out var historicValue))
-        {
-            historicValue.Update(timestamp, value);
+            historicValue?.Update(timestamp, value);
         }
         else
         {
-            historicValue = new DtoHistoricValue<T>(timestamp, value, _historicValueCapacity);
-            valueDictionary.TryAdd(resultConfigId, historicValue);
+            historicValue = new(timestamp, value, _historicValueCapacity);
+            _historicValues.TryAdd(valueKey, historicValue);
         }
     }
 
@@ -77,6 +78,8 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 
     public async Task RefreshValueAsync(CancellationToken ct)
     {
+        if(_isCanceled)
+            return;
         // try enter without waiting — ensures no reentrancy
         if (!await _runGate.WaitAsync(0, ct).ConfigureAwait(false))
             return;
@@ -116,10 +119,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
 
         foreach (var result in results)
         {
-            foreach (var resultValue in result.Value)
-            {
-                UpdateValue(result.Key, now, resultValue.Value, resultValue.Key);
-            }
+            UpdateValue(result.Key, now, result.Value);
         }
         return now;
     }
@@ -128,6 +128,7 @@ public sealed class DelegateRefreshableValue<T> : IRefreshableValue<T>
     {
         try
         {
+            _isCanceled = true;
             _cts.Cancel();
         }
         catch

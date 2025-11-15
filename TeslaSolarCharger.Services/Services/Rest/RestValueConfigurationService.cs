@@ -1,19 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueConfigurationService(
     ILogger<RestValueConfigurationService> logger,
     ITeslaSolarChargerContext context,
-    IRefreshableValueHandlingService refreshableValueHandlingService) : IRestValueConfigurationService
+    IServiceScopeFactory serviceScopeFactory,
+    IConstants constants) : IRestValueConfigurationService, IRefreshableValueSetupService
 {
+    public ConfigurationType ConfigurationType => ConfigurationType.RestSolarValue;
+
     public async Task<List<DtoRestValueConfiguration>> GetAllRestValueConfigurations()
     {
         logger.LogTrace("{method}()", nameof(GetAllRestValueConfigurations));
@@ -114,7 +120,6 @@ public class RestValueConfigurationService(
             }
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -151,7 +156,6 @@ public class RestValueConfigurationService(
             context.RestValueConfigurationHeaders.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -160,7 +164,6 @@ public class RestValueConfigurationService(
         logger.LogTrace("{method}({id})", nameof(DeleteHeader), id);
         context.RestValueConfigurationHeaders.Remove(new RestValueConfigurationHeader { Id = id });
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task<List<DtoJsonXmlResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId)
@@ -206,7 +209,6 @@ public class RestValueConfigurationService(
             context.RestValueResultConfigurations.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
         return dbData.Id;
     }
 
@@ -215,7 +217,6 @@ public class RestValueConfigurationService(
         logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
         context.RestValueResultConfigurations.Remove(new RestValueResultConfiguration { Id = id });
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
     }
 
     public async Task DeleteRestValueConfiguration(int id)
@@ -227,6 +228,67 @@ public class RestValueConfigurationService(
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.RestValueConfigurations.Remove(restValueConfiguration);
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables().ConfigureAwait(false);
+    }
+
+    public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval,
+        List<int> configurationIds)
+    {
+        logger.LogTrace("{method}()", nameof(GetDecimalRefreshableValuesAsync));
+        Expression<Func<RestValueConfiguration, bool>> predicate = configurationIds.Count == 0 ? c => true : c => configurationIds.Contains(c.Id);
+        var restConfigurations = await GetFullRestValueConfigurationsByPredicate(predicate).ConfigureAwait(false);
+        var result = new List<DelegateRefreshableValue<decimal>>();
+        foreach (var restConfiguration in restConfigurations)
+        {
+            try
+            {
+                var refreshable = new DelegateRefreshableValue<decimal>(
+                    serviceScopeFactory,
+                    async ct =>
+                    {
+                        using var executionScope = serviceScopeFactory.CreateScope();
+                        var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
+                        var responseString = await restValueExecutionService
+                            .GetResult(restConfiguration)
+                            .ConfigureAwait(false);
+
+                        var restValueConfigurationService = executionScope.ServiceProvider.GetRequiredService<IRestValueConfigurationService>();
+                        var resultConfigurations = await restValueConfigurationService
+                            .GetResultConfigurationsByConfigurationId(restConfiguration.Id)
+                            .ConfigureAwait(false);
+
+                        var values = new Dictionary<ValueKey, decimal>();
+                        foreach (var resultConfig in resultConfigurations)
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            var valueKey = new ValueKey(resultConfig.UsedFor, null, resultConfig.Id);
+
+                            var value = restValueExecutionService.GetValue(
+                                responseString,
+                                restConfiguration.NodePatternType,
+                                resultConfig);
+                            values.TryAdd(valueKey, 0m);
+                            values[valueKey] =+ value;
+                        }
+
+                        return new(values);
+                    },
+                    defaultInterval,
+                    constants.SolarHistoricValueCapacity,
+                    new(restConfiguration.Id, ConfigurationType.RestSolarValue)
+                );
+
+                result.Add(refreshable);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Error while creating refreshable for {restConfigurationId} with URL {url}",
+                    restConfiguration.Id,
+                    restConfiguration.Url);
+            }
+        }
+
+        return result;
     }
 }

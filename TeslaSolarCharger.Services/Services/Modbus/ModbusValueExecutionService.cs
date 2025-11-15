@@ -102,40 +102,4 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
 
         return stringbuilder.ToString();
     }
-
-    public async Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews()
-    {
-        logger.LogTrace("{method}()", nameof(GetModbusValueOverviews));
-        var modbusConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(x => true).ConfigureAwait(false);
-        var results = new List<DtoValueConfigurationOverview>();
-        foreach (var modbusConfiguration in modbusConfigurations)
-        {
-            var overviewElement = new DtoValueConfigurationOverview()
-            {
-                Id = modbusConfiguration.Id,
-                Heading = $"{modbusConfiguration.Host}:{modbusConfiguration.Port}",
-            };
-            results.Add(overviewElement);
-            var resultConfigurations = await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(x => x.ModbusConfigurationId == modbusConfiguration.Id).ConfigureAwait(false);
-            foreach (var resultConfiguration in resultConfigurations)
-            {
-                var dtoValueResult = new DtoOverviewValueResult() { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
-                try
-                {
-                    dtoValueResult.CalculatedValue = await GetValue(await GetResult(modbusConfiguration, resultConfiguration, true), resultConfiguration);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error getting value for modbus result configuration {id}", modbusConfiguration.Id);
-                    dtoValueResult.CalculatedValue = null;
-                }
-                finally
-                {
-                    overviewElement.Results.Add(dtoValueResult);
-                }
-            }
-            
-        }
-        return results;
-    }
 }

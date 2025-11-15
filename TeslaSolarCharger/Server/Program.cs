@@ -398,7 +398,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
         var refreshableValuesService = startupScope.ServiceProvider.GetRequiredService<IRefreshableValueHandlingService>();
-        await refreshableValuesService.RecreateRefreshables().ConfigureAwait(false);
+        await refreshableValuesService.RecreateRefreshables(null).ConfigureAwait(false);
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)

@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -110,52 +111,6 @@ public class RestValueExecutionService(
                 throw new InvalidOperationException($"NodePatternType {configNodePatternType} not supported");
         }
         return resultValueCalculationService.MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
-    }
-
-    public async Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews()
-    {
-        logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
-        var restValueConfigurations = await restValueConfigurationService.GetFullRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
-        var results = new List<DtoValueConfigurationOverview>();
-        foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
-        {
-            string? result;
-            var resultConfigurations = await restValueConfigurationService.GetRestResultConfigurationByPredicate(c => c.RestValueConfigurationId == dtoFullRestValueConfiguration.Id).ConfigureAwait(false);
-            var overviewElement = new DtoValueConfigurationOverview
-            {
-                Id = dtoFullRestValueConfiguration.Id,
-                Heading = dtoFullRestValueConfiguration.Url,
-            };
-            results.Add(overviewElement);
-            try
-            {
-                result = await GetResult(dtoFullRestValueConfiguration).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error getting result for rest configuration {id}", dtoFullRestValueConfiguration.Id);
-                result = null;
-            }
-            foreach (var resultConfiguration in resultConfigurations)
-            {
-                var dtoRestValueResult = new DtoOverviewValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
-                try
-                {
-                    dtoRestValueResult.CalculatedValue = result == null ? null : GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration); ;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error getting value for rest configuration {id}", resultConfiguration.Id);
-                    continue;
-                }
-                finally
-                {
-                    overviewElement.Results.Add(dtoRestValueResult);
-                }
-            }
-        }
-
-        return results;
     }
 
     public async Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config)

@@ -999,6 +999,30 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.ToTable("SpotPrices");
                 });
 
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.TemplateValueConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConfigurationJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GatherType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MinRefreshIntervalMilliseconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TemplateValueConfigurations");
+                });
+
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.TscConfiguration", b =>
                 {
                     b.Property<int>("Id")
