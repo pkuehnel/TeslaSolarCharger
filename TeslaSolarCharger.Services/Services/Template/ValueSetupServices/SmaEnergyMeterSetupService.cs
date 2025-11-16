@@ -9,6 +9,7 @@ using TeslaSolarCharger.Services.Services.Template.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
@@ -55,6 +56,9 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
         }
         var autoRefreshingValues = new List<IAutoRefreshingValue<decimal>>();
 
+        //Only one configuration can be used for the SMA Energy Meter as it listens on a fixed multicast address and port
+        var relevantConfiguration = dtoTemplateValueConfigurationBases.First();
+
         var autoRefreshingValue = new AutoRefreshingValue<decimal>(
             _serviceScopeFactory,
             (_, self, ct) =>
@@ -81,7 +85,12 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                     _logger.LogError(e, "Could not join multicast group");
                     return Task.CompletedTask;
                 }
-
+                uint? serialNumber = null;
+                var config = relevantConfiguration.Configuration?.ToObject<DtoSmaEnergyMeterTemplateValueConfiguration>();
+                if (config != default)
+                {
+                    serialNumber = config.SerialNumber;
+                }
                 while (!ct.IsCancellationRequested)
                 {
                     try
@@ -106,7 +115,7 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
 
                         var now = _dateTimeProvider.DateTimeOffSetUtcNow();
                         // Process the received data - this is like handling an event
-                        var results = ProcessEnergyMeterData(byteArray);
+                        var results = ProcessEnergyMeterData(byteArray, serialNumber);
                         if (results != null)
                         {
                             foreach (var result in results)
@@ -124,13 +133,13 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                 return Task.CompletedTask;
             },
             _constants.SolarHistoricValueCapacity,
-            new SourceValueKey(dtoTemplateValueConfigurationBases.First().Id, ConfigurationType.TemplateValue));
+            new SourceValueKey(relevantConfiguration.Id, ConfigurationType.TemplateValue));
 
         autoRefreshingValues.Add(autoRefreshingValue);
         return autoRefreshingValues;
     }
 
-    private Dictionary<ValueKey, decimal>? ProcessEnergyMeterData(byte[] byteArray)
+    private Dictionary<ValueKey, decimal>? ProcessEnergyMeterData(byte[] byteArray, uint? filterForSerialNumber)
     {
         _logger.LogTrace("New energy meter values received");
 
@@ -142,6 +151,12 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
 
         var serialNumber = Convert.ToUInt32(ConvertByteArray(byteArray, 20, 4));
         _logger.LogTrace("Serial number of energy meter is {serialNumber}", serialNumber);
+        if(filterForSerialNumber.HasValue && filterForSerialNumber.Value != serialNumber)
+        {
+            _logger.LogTrace("Serial number {serialNumber} does not match configured serial number {configuredSerialNumber}. Ignoring values.",
+                serialNumber, filterForSerialNumber.Value);
+            return null;
+        }
 
         var relevantValues = byteArray.Skip(28).Take(byteArray.Length - 27).ToArray();
         var obisValues = ConvertArrayToObisDictionary(relevantValues);
