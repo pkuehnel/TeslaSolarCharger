@@ -4,61 +4,22 @@ using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.ValueRefresh;
 
-public class RefreshableValueHandlingService : IRefreshableValueHandlingService, IGenericValueHandlingService
+public class RefreshableValueHandlingService : GenericValueHandlingServiceBase<IRefreshableValue<decimal>, decimal, int>,
+    IRefreshableValueHandlingService, IDecimalValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly HashSet<IRefreshableValue<decimal>> _values = new();
-    private readonly object _valuesLock = new();
 
 
     public RefreshableValueHandlingService(
         ILogger<RefreshableValueHandlingService> logger,
-        IServiceScopeFactory serviceScopeFactory)
+        IServiceScopeFactory serviceScopeFactory) : base(serviceScopeFactory)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
-    }
-
-    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<decimal>>> GetSolarValues(out bool hasErrors)
-    {
-        _logger.LogTrace("{method}()", nameof(GetSolarValues));
-        var result = new Dictionary<ValueUsage, List<DtoHistoricValue<decimal>>>();
-        var valueUsages = new HashSet<ValueUsage>
-        {
-            ValueUsage.InverterPower,
-            ValueUsage.GridPower,
-            ValueUsage.HomeBatteryPower,
-            ValueUsage.HomeBatterySoc,
-        };
-        var encounteredError = false;
-
-        var refreshablesSnapshot = GetRefreshablesSnapshot();
-
-        foreach (var refreshable in refreshablesSnapshot)
-        {
-            if (refreshable.HasError)
-            {
-                encounteredError = true;
-            }
-            foreach (var (key, latestValue) in refreshable.HistoricValues)
-            {
-                if (key.ValueUsage == default || !valueUsages.Contains(key.ValueUsage.Value))
-                {
-                    continue;
-                }
-                result.TryAdd(key.ValueUsage.Value, new());
-                result[key.ValueUsage.Value].Add(latestValue);
-            }
-        }
-
-        hasErrors = encounteredError;
-        return result;
     }
 
     public async Task RefreshValues()
@@ -78,9 +39,9 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public async Task RecreateRefreshables(ConfigurationType? configurationType, params List<int> configurationIds)
+    public override async Task RecreateValues(ConfigurationType? configurationType, params List<int> configurationIds)
     {
-        _logger.LogTrace("{method}()", nameof(RecreateRefreshables));
+        _logger.LogTrace("{method}()", nameof(RecreateValues));
 
         // 1) Request cancellation for any in-flight refresh
         var refreshablesSnapshot = GetRefreshablesSnapshot();
@@ -113,24 +74,11 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "One or more refresh tasks failed while cancelling during {method}.", nameof(RecreateRefreshables));
+                _logger.LogWarning(ex, "One or more refresh tasks failed while cancelling during {method}.", nameof(RecreateValues));
             }
         }
 
-        // 3) Dispose old refreshables
-        foreach (var refreshable in refreshablesToCancel)
-        {
-            try
-            {
-                await refreshable.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error disposing refreshable during {method}.", nameof(RecreateRefreshables));
-            }
-        }
-
-        RemoveRefreshables(refreshablesToCancel);
+        await RemoveValuesAsync(refreshablesToCancel);
 
         using var setupScope = _serviceScopeFactory.CreateScope();
         var configurationWrapper = setupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
@@ -149,41 +97,6 @@ public class RefreshableValueHandlingService : IRefreshableValueHandlingService,
             _logger.LogTrace("Got {count} refreshables", refreshables.Count);
             newRefreshables.AddRange(refreshables);
         }
-        AddRefreshables(newRefreshables);
-    }
-
-    public List<IGenericValue<decimal>> GetSnapshot()
-    {
-        return new(GetRefreshablesSnapshot());
-    }
-
-    private List<IRefreshableValue<decimal>> GetRefreshablesSnapshot()
-    {
-        lock (_valuesLock)
-        {
-            return _values.ToList();
-        }
-    }
-
-    private void AddRefreshables(IEnumerable<IRefreshableValue<decimal>> refreshables)
-    {
-        lock (_valuesLock)
-        {
-            foreach (var refreshable in refreshables)
-            {
-                _values.Add(refreshable);
-            }
-        }
-    }
-
-    private void RemoveRefreshables(List<IRefreshableValue<decimal>> refreshablesToCancel)
-    {
-        lock (_valuesLock)
-        {
-            foreach (var refreshable in refreshablesToCancel)
-            {
-                _values.Remove(refreshable);
-            }
-        }
+        AddGenericValues(newRefreshables);
     }
 }

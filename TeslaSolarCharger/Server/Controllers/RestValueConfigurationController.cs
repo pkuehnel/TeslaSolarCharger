@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Configuration;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -14,7 +15,7 @@ public class RestValueConfigurationController(
     IRestValueConfigurationService service,
     IRestValueExecutionService executionService,
     IValueOverviewService overviewService,
-    IRefreshableValueHandlingService refreshableValueHandlingService) : ApiBaseController
+    IDecimalValueHandlingService decimalValueHandlingService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()
@@ -45,7 +46,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult<DtoValue<int>>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
         var configurationId = await service.SaveRestValueConfiguration(dtoData).ConfigureAwait(false);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.RestSolarValue, configurationId);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, configurationId);
         return Ok(new DtoValue<int>(configurationId));
     }
 
@@ -60,7 +61,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult<DtoValue<int>>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
     {
         var headerId = await service.SaveHeader(parentId, dtoData);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.RestSolarValue, parentId);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
         return Ok(new DtoValue<int>(headerId));
     }
 
@@ -68,7 +69,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult> DeleteHeader(int id)
     {
         await service.DeleteHeader(id);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.RestSolarValue);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
         return Ok();
     }
 
@@ -83,7 +84,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoJsonXmlResultConfiguration dtoData)
     {
         var resultConfigurationId = await service.SaveResultConfiguration(parentId, dtoData);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.RestSolarValue, parentId);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
         return Ok(new DtoValue<int>(resultConfigurationId));
     }
 
@@ -91,7 +92,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult> DeleteResultConfiguration(int id)
     {
         await service.DeleteResultConfiguration(id);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.RestSolarValue);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
         return Ok();
     }
 
@@ -99,7 +100,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult> DeleteRestValueConfiguration(int id)
     {
         await service.DeleteRestValueConfiguration(id);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.RestSolarValue, id);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, id);
         return Ok();
     }
 }

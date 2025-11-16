@@ -14,58 +14,37 @@ using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt;
 
-public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger,
-    IServiceProvider serviceProvider,
-    IRestValueExecutionService restValueExecutionService,
-    IDateTimeProvider dateTimeProvider,
-    MqttClientFactory mqttClientFactory,
-    IConstants constants)
-    : IMqttClientHandlingService, IGenericValueHandlingService
+public class MqttClientHandlingService : GenericValueHandlingServiceBase<IRefreshableValue<decimal>, decimal, int>, IMqttClientHandlingService, IDecimalValueHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
     private readonly ConcurrentDictionary<string, AutoRefreshingValue<decimal>> _values = new();
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly ILogger<MqttClientHandlingService> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IRestValueExecutionService _restValueExecutionService;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly MqttClientFactory _mqttClientFactory;
+    private readonly IConstants _constants;
 
-    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<decimal>>> GetSolarValues()
+    public MqttClientHandlingService(ILogger<MqttClientHandlingService> logger,
+        IServiceProvider serviceProvider,
+        IRestValueExecutionService restValueExecutionService,
+        IDateTimeProvider dateTimeProvider,
+        MqttClientFactory mqttClientFactory,
+        IConstants constants,
+        IServiceScopeFactory serviceScopeFactory) : base(serviceScopeFactory)
     {
-        logger.LogTrace("{method}()", nameof(GetSolarValues));
-        var result = new Dictionary<ValueUsage, List<DtoHistoricValue<decimal>>>();
-        var valueUsages = new HashSet<ValueUsage>
-        {
-            ValueUsage.InverterPower,
-            ValueUsage.GridPower,
-            ValueUsage.HomeBatteryPower,
-            ValueUsage.HomeBatterySoc,
-        };
-        foreach (var mqttKeyValues in _values.Values)
-        {
-            foreach (var (valueKey, resultValue) in mqttKeyValues.HistoricValues)
-            {
-
-
-                if (valueKey.ValueUsage == default || !valueUsages.Contains(valueKey.ValueUsage.Value))
-                {
-                    continue;
-                }
-                if (!result.ContainsKey(valueKey.ValueUsage.Value))
-                {
-                    result[valueKey.ValueUsage.Value] = new();
-                }
-                result[valueKey.ValueUsage.Value].Add(resultValue);
-            }
-        }
-        return result;
-    }
-
-    public ReadOnlyDictionary<string, AutoRefreshingValue<decimal>> GetRawValues()
-    {
-        logger.LogTrace("{method}()", nameof(GetRawValues));
-        return new(_values);
+        _logger = logger;
+        _serviceProvider = serviceProvider;
+        _restValueExecutionService = restValueExecutionService;
+        _dateTimeProvider = dateTimeProvider;
+        _mqttClientFactory = mqttClientFactory;
+        _constants = constants;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations, bool forceReconnection)
@@ -93,12 +72,12 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
 
         if (!string.IsNullOrWhiteSpace(mqttConfiguration.Username) && !string.IsNullOrEmpty(mqttConfiguration.Password))
         {
-            logger.LogTrace("Add username and password to mqtt client options");
+            _logger.LogTrace("Add username and password to mqtt client options");
             var utf8 = Encoding.UTF8;
             var passwordBytes = utf8.GetBytes(mqttConfiguration.Password);
             mqttClientOptions.Credentials = new MqttClientCredentials(mqttConfiguration.Username, passwordBytes);
         }
-        var mqttClient = serviceProvider.GetRequiredService<IMqttClient>();
+        var mqttClient = _serviceProvider.GetRequiredService<IMqttClient>();
         mqttClient.ApplicationMessageReceivedAsync += e =>
         {
             var topicResultConfigurations = resultConfigurations
@@ -106,28 +85,28 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
                 .ToList();
             if (topicResultConfigurations.Count < 1)
             {
-                logger.LogDebug("No result configuration found for topic {topic}", e.ApplicationMessage.Topic);
+                _logger.LogDebug("No result configuration found for topic {topic}", e.ApplicationMessage.Topic);
                 return Task.CompletedTask;
             }
             var payloadString = e.ApplicationMessage.ConvertPayloadToString();
             if (payloadString == default)
             {
-                logger.LogWarning("Received empty payloadString for topic {topic}", e.ApplicationMessage.Topic);
+                _logger.LogWarning("Received empty payloadString for topic {topic}", e.ApplicationMessage.Topic);
                 return Task.CompletedTask;
             }
-            logger.LogDebug("Received value {payloadString} for topic {topic}", payloadString, e.ApplicationMessage.Topic);
+            _logger.LogDebug("Received value {payloadString} for topic {topic}", payloadString, e.ApplicationMessage.Topic);
             foreach (var resultConfiguration in topicResultConfigurations)
             {
-                var value = restValueExecutionService.GetValue(payloadString, resultConfiguration.NodePatternType, resultConfiguration);
+                var value = _restValueExecutionService.GetValue(payloadString, resultConfiguration.NodePatternType, resultConfiguration);
                 var mqttKeyValues = _values.GetOrAdd(key,
-                    new AutoRefreshingValue<decimal>(new(mqttConfiguration.Id, ConfigurationType.MqttSolarValue), constants.SolarHistoricValueCapacity));
-                mqttKeyValues.UpdateValue(new(resultConfiguration.UsedFor, null, resultConfiguration.Id), dateTimeProvider.DateTimeOffSetUtcNow(), value);
+                    new AutoRefreshingValue<decimal>(new(mqttConfiguration.Id, ConfigurationType.MqttSolarValue), _constants.SolarHistoricValueCapacity, _serviceScopeFactory));
+                mqttKeyValues.UpdateValue(new(resultConfiguration.UsedFor, null, resultConfiguration.Id), _dateTimeProvider.DateTimeOffSetUtcNow(), value);
             }
             return Task.CompletedTask;
         };
         await mqttClient.ConnectAsync(mqttClientOptions);
         
-        var mqttSubscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder()
+        var mqttSubscribeOptions = _mqttClientFactory.CreateSubscribeOptionsBuilder()
             .Build();
 
         if (resultConfigurations.Count > 0)
@@ -159,7 +138,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
 
     public void RemoveClient(string host, int port, string? userName)
     {
-        logger.LogTrace("{method}({host}, {port}, {userName})", nameof(RemoveClient), host, port, userName);
+        _logger.LogTrace("{method}({host}, {port}, {userName})", nameof(RemoveClient), host, port, userName);
         var key = CreateMqttClientKey(host, port, userName);
         RemoveClientByKey(key);
     }
@@ -178,9 +157,9 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         return default;
     }
 
-    public List<IGenericValue<decimal>> GetSnapshot()
+    public override Task RecreateValues(ConfigurationType? configurationType, params List<int> configurationIds)
     {
-        return new(_values.Values.ToList());
+        throw new NotImplementedException();
     }
 
     private void RemoveClientByKey(string key)

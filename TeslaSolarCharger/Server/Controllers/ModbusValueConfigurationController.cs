@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
@@ -11,7 +12,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 
 public class ModbusValueConfigurationController(IModbusValueConfigurationService configurationService,
     IValueOverviewService valueOverviewService,
-    IRefreshableValueHandlingService refreshableValueHandlingService) : ApiBaseController
+    IDecimalValueHandlingService decimalValueHandlingService) : ApiBaseController
 {
     [HttpGet]
     public Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews() =>
@@ -29,14 +30,14 @@ public class ModbusValueConfigurationController(IModbusValueConfigurationService
     public async Task<ActionResult<DtoValue<int>>> UpdateModbusValueConfiguration([FromBody] DtoModbusConfiguration dtoData)
     {
         var modbusConfigurationId = await configurationService.SaveModbusConfiguration(dtoData);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.ModbusSolarValue, modbusConfigurationId).ConfigureAwait(false);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.ModbusSolarValue, modbusConfigurationId).ConfigureAwait(false);
         return Ok(new DtoValue<int>(modbusConfigurationId));
     }
     [HttpPost]
     public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoModbusValueResultConfiguration dtoData)
     {
         var modbusResultConfiugrationId = await configurationService.SaveModbusResultConfiguration(parentId, dtoData);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.ModbusSolarValue, parentId).ConfigureAwait(false);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.ModbusSolarValue, parentId).ConfigureAwait(false);
         return Ok(new DtoValue<int>(modbusResultConfiugrationId));
     }
 
@@ -44,7 +45,7 @@ public class ModbusValueConfigurationController(IModbusValueConfigurationService
     public async Task<ActionResult> DeleteModbusConfiguration(int id)
     {
         await configurationService.DeleteModbusConfiguration(id);
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.ModbusSolarValue, id).ConfigureAwait(false);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.ModbusSolarValue, id).ConfigureAwait(false);
         return Ok();
     }
 
@@ -53,7 +54,7 @@ public class ModbusValueConfigurationController(IModbusValueConfigurationService
     {
         await configurationService.DeleteResultConfiguration(id);
         //Do not limit deleting to an ID, simply recreate all to avoid need to lookup parent
-        await refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.ModbusSolarValue).ConfigureAwait(false);
+        await decimalValueHandlingService.RecreateValues(ConfigurationType.ModbusSolarValue).ConfigureAwait(false);
         return Ok();
     }
 }

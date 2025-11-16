@@ -8,10 +8,10 @@ namespace TeslaSolarCharger.Services.Services;
 public class GenericValueService : IGenericValueService
 {
     private readonly ILogger<GenericValueService> _logger;
-    private readonly IEnumerable<IGenericValueHandlingService> _genericValueHandlingServices;
+    private readonly IEnumerable<IDecimalValueHandlingService> _genericValueHandlingServices;
 
     public GenericValueService(ILogger<GenericValueService> logger,
-        IEnumerable<IGenericValueHandlingService> genericValueHandlingServices)
+        IEnumerable<IDecimalValueHandlingService> genericValueHandlingServices)
     {
         _logger = logger;
         _genericValueHandlingServices = genericValueHandlingServices;

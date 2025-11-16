@@ -11,6 +11,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
@@ -42,7 +43,7 @@ public class PvValueService(
     ILoadPointManagementService loadPointManagementService,
     IAppStateNotifier appStateNotifier,
     IChangeTrackingService changeTrackingService,
-    IRefreshableValueHandlingService refreshableValueHandlingService)
+    IDecimalValueHandlingService decimalValueHandlingService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -713,7 +714,6 @@ public class PvValueService(
     public async Task UpdatePvValues()
     {
         logger.LogTrace("{method}()", nameof(UpdatePvValues));
-        var errorWhileUpdatingPvValues = false;
         if (configurationWrapper.ShouldUseFakeSolarValues())
         {
             logger.LogWarning("Fake solar values are used.");
@@ -884,25 +884,12 @@ public class PvValueService(
             ValueUsage.HomeBatterySoc,
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
-        var refreshableResults = refreshableValueHandlingService.GetSolarValues(out var refreshableErrors);
-        if (refreshableErrors)
-        {
-            errorWhileUpdatingPvValues = true;
-        }
+        var refreshableResults = decimalValueHandlingService.GetValuesByUsage(valueUsages, true);
+        
         foreach (var refreshableResult in refreshableResults)
         {
             resultSums.TryAdd(refreshableResult.Key, 0);
             resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
-        }
-
-        var mqttValues = mqttClientHandlingService.GetSolarValues();
-        foreach (var mqttValue in mqttValues)
-        {
-            if (valueUsages.Contains(mqttValue.Key))
-            {
-                resultSums.TryAdd(mqttValue.Key, 0);
-                resultSums[mqttValue.Key] += mqttValue.Value.Sum(v => v.Value);
-            }
         }
 
 
@@ -915,10 +902,7 @@ public class PvValueService(
             SafeToInt(homeBatteryPower) : null;
         settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
             SafeToInt(homeBatterySoc) : null;
-        if (!errorWhileUpdatingPvValues)
-        {
-            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-        }
+        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
         int? powerBuffer = configurationWrapper.PowerBuffer();
         if (settings.InverterPower == null && settings.Overage == null)
         {

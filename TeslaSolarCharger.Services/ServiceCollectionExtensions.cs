@@ -44,8 +44,8 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
 
-                .AddTransient<IGenericValueHandlingService>(sp => sp.GetRequiredService<MqttClientHandlingService>())
-                .AddTransient<IGenericValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
+                .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<MqttClientHandlingService>())
+                .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
 
             ;
 }

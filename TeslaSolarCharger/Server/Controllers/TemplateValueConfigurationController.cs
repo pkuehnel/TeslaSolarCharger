@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Contracts;
-using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
@@ -13,15 +13,15 @@ public class TemplateValueConfigurationController : ApiBaseController
 {
     private readonly ITemplateValueConfigurationService _service;
     private readonly IValueOverviewService _valueOverviewService;
-    private readonly IRefreshableValueHandlingService _refreshableValueHandlingService;
+    private readonly IDecimalValueHandlingService _decimalValueHandlingService;
 
     public TemplateValueConfigurationController(ITemplateValueConfigurationService service,
         IValueOverviewService valueOverviewService,
-        IRefreshableValueHandlingService refreshableValueHandlingService)
+        IDecimalValueHandlingService decimalValueHandlingService)
     {
         _service = service;
         _valueOverviewService = valueOverviewService;
-        _refreshableValueHandlingService = refreshableValueHandlingService;
+        _decimalValueHandlingService = decimalValueHandlingService;
     }
 
     [HttpGet]
@@ -43,7 +43,7 @@ public class TemplateValueConfigurationController : ApiBaseController
     public async Task<IActionResult> SaveConfiguration(DtoTemplateValueConfigurationBase configuration)
     {
         var id = await _service.SaveAsync(configuration).ConfigureAwait(false);
-        await _refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.TemplateValue, id).ConfigureAwait(false);
+        await _decimalValueHandlingService.RecreateValues(ConfigurationType.TemplateValue, id).ConfigureAwait(false);
         return Ok(new DtoValue<int>(id));
     }
 
@@ -51,7 +51,7 @@ public class TemplateValueConfigurationController : ApiBaseController
     public async Task<ActionResult> DeleteConfiguration(int id)
     {
         await _service.DeleteAsync(id);
-        await _refreshableValueHandlingService.RecreateRefreshables(ConfigurationType.TemplateValue, id);
+        await _decimalValueHandlingService.RecreateValues(ConfigurationType.TemplateValue, id);
         return Ok();
     }
 }
