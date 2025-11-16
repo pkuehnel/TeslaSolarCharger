@@ -45,6 +45,8 @@ else
                     @switch (TemplateValueConfiguration.Item.GatherType)
                     {
                         case TemplateValueGatherType.SmaEnergyMeter:
+                            <SmaEnergyMeterEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoSmaEnergyMeterTemplateValueConfiguration>())"
+                                                    @ref="ConfigurationComponent" />
                             break;
                         case TemplateValueGatherType.SmaInverterModbus:
                             <SmaInverterEditForm Configuration="@(GetSmaConfig())"

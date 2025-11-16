@@ -17,14 +17,14 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt;
 
-public class MqttClientReconnectionService : IAutoRefreshingValueSetupService
+public class MqttClientSetupService : IAutoRefreshingValueSetupService
 {
-    private readonly ILogger<MqttClientReconnectionService> _logger;
+    private readonly ILogger<MqttClientSetupService> _logger;
     private readonly IMqttConfigurationService _mqttConfigurationService;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IConstants _constants;
 
-    public MqttClientReconnectionService(ILogger<MqttClientReconnectionService> logger,
+    public MqttClientSetupService(ILogger<MqttClientSetupService> logger,
         IMqttConfigurationService mqttConfigurationService,
         IServiceScopeFactory serviceScopeFactory,
         IConstants constants)

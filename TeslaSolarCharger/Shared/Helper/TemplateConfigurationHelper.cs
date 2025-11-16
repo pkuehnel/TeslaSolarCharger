@@ -9,7 +9,7 @@ public static class TemplateValueConfigurationTypeHelper
     private static readonly Dictionary<TemplateValueGatherType, Type> GatherTypeToConfigType
         = new()
         {
-            //{ TemplateValueGatherType.SmaEnergyMeter,           typeof(DtoSmaEnergyMeterTemplateValueConfiguration) },
+            { TemplateValueGatherType.SmaEnergyMeter,           typeof(DtoSmaEnergyMeterTemplateValueConfiguration) },
             { TemplateValueGatherType.SmaInverterModbus,        typeof(DtoSmaInverterTemplateValueConfiguration) },
             { TemplateValueGatherType.SmaHybridInverterModbus,  typeof(DtoSmaInverterTemplateValueConfiguration) },
             //{ TemplateValueGatherType.TeslaPowerwallFleetApi,   typeof(DtoTeslaPowerwallFleetTemplateValueConfiguration) },
