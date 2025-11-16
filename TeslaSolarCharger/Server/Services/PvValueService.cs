@@ -37,13 +37,12 @@ public class PvValueService(
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext context,
     IModbusValueConfigurationService modbusValueConfigurationService,
-    IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
     IConstants constants,
     ILoadPointManagementService loadPointManagementService,
     IAppStateNotifier appStateNotifier,
     IChangeTrackingService changeTrackingService,
-    IDecimalValueHandlingService decimalValueHandlingService)
+    IEnumerable<IDecimalValueHandlingService> decimalValueHandlingServices)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -884,14 +883,15 @@ public class PvValueService(
             ValueUsage.HomeBatterySoc,
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
-        var refreshableResults = decimalValueHandlingService.GetValuesByUsage(valueUsages, true);
-        
-        foreach (var refreshableResult in refreshableResults)
+        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
         {
-            resultSums.TryAdd(refreshableResult.Key, 0);
-            resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
+            var refreshableResults = decimalValueHandlingService.GetValuesByUsage(valueUsages, true);
+            foreach (var refreshableResult in refreshableResults)
+            {
+                resultSums.TryAdd(refreshableResult.Key, 0);
+                resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
+            }
         }
-
 
         int? inverterValue = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
             SafeToInt(inverterPower) : null;

@@ -44,7 +44,7 @@ public abstract class
 
     public List<IGenericValue<TValue>> GetSnapshot()
     {
-        return GetRefreshablesSnapshot()
+        return GetGenericValuesSnapshot()
             .Cast<IGenericValue<TValue>>()
             .ToList();
     }
@@ -53,7 +53,7 @@ public abstract class
     {
         var result = new Dictionary<ValueUsage, List<DtoHistoricValue<TValue>>>();
 
-        var refreshablesSnapshot = GetRefreshablesSnapshot();
+        var refreshablesSnapshot = GetGenericValuesSnapshot();
 
         foreach (var refreshable in refreshablesSnapshot)
         {
@@ -76,7 +76,7 @@ public abstract class
         return result;
     }
 
-    protected List<TGenericValue> GetRefreshablesSnapshot()
+    protected List<TGenericValue> GetGenericValuesSnapshot()
     {
         lock (_valuesLock)
         {

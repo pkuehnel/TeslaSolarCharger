@@ -30,7 +30,7 @@ public class RefreshableValueHandlingService : GenericValueHandlingServiceBase<I
         var now = dateTimeProvider.DateTimeOffSetUtcNow();
 
         // snapshot to avoid modification during enumeration
-        var refreshables = GetRefreshablesSnapshot();
+        var refreshables = GetGenericValuesSnapshot();
 
         var tasks = refreshables
             .Where(r => !r.IsExecuting && (r.NextExecution == null || r.NextExecution <= now))
@@ -44,7 +44,7 @@ public class RefreshableValueHandlingService : GenericValueHandlingServiceBase<I
         _logger.LogTrace("{method}()", nameof(RecreateValues));
 
         // 1) Request cancellation for any in-flight refresh
-        var refreshablesSnapshot = GetRefreshablesSnapshot();
+        var refreshablesSnapshot = GetGenericValuesSnapshot();
 
         var refreshablesToCancel = refreshablesSnapshot
             .Where(r => configurationType == default || r.SourceValueKey.ConfigurationType == configurationType)

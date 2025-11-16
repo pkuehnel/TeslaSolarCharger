@@ -30,21 +30,21 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IModbusValueExecutionService, ModbusValueExecutionService>()
                 .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
                 .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
-                .AddTransient<IMqttClientReconnectionService, MqttClientReconnectionService>()
                 .AddTransient<IGenericValueService, GenericValueService>()
                 .AddSingleton<RefreshableValueHandlingService>()
-                .AddSingleton<MqttClientHandlingService>()
+                .AddSingleton<AutoRefreshingValueHandlingService>()
 
                 .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
                 .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
                 .AddSingleton<IRefreshableValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
-                .AddSingleton<IMqttClientHandlingService>(sp => sp.GetRequiredService<MqttClientHandlingService>())
 
                 .AddTransient<IRefreshableValueSetupService, RestValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
 
-                .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<MqttClientHandlingService>())
+                .AddTransient<IAutoRefreshingValueSetupService, MqttClientReconnectionService>()
+
+                .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<AutoRefreshingValueHandlingService>())
                 .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
 
             ;

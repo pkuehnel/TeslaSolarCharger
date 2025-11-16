@@ -9,8 +9,7 @@ using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 namespace TeslaSolarCharger.Services.Services.Mqtt;
 
 public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
-    ITeslaSolarChargerContext context,
-    IMqttClientHandlingService mqttClientHandlingService) : IMqttConfigurationService
+    ITeslaSolarChargerContext context) : IMqttConfigurationService
 {
     public async Task<List<DtoMqttConfiguration>> GetMqttConfigurationsByPredicate(Expression<Func<MqttConfiguration, bool>> predicate)
     {
@@ -39,11 +38,6 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
     public async Task<int> SaveConfiguration(DtoMqttConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveConfiguration), dtoData);
-        if (dtoData.Id != default)
-        {
-            mqttClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port, dtoData.Username);
-            RemoveMqttClientsByConfigurationId(dtoData.Id);
-        }
 
         var dbData = new MqttConfiguration()
         {
@@ -62,7 +56,6 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
             context.MqttConfigurations.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await ConnectMqttClientByConfigurationId(dbData.Id);
         return dbData.Id;
     }
 
@@ -75,7 +68,6 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
             .Include(m => m.MqttResultConfigurations)
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.MqttConfigurations.Remove(configuration);
-        RemoveMqttClientsByConfigurationId(configuration.Id);
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -133,9 +125,7 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         {
             context.MqttResultConfigurations.Update(dbData);
         }
-        RemoveMqttClientsByConfigurationId(parentId);
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await ConnectMqttClientByConfigurationId(parentId);
         return dbData.Id;
     }
 
@@ -145,24 +135,6 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         var configuration = await context.MqttResultConfigurations
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.MqttResultConfigurations.Remove(configuration);
-        RemoveMqttClientsByConfigurationId(configuration.MqttConfigurationId);
         await context.SaveChangesAsync().ConfigureAwait(false);
-        await ConnectMqttClientByConfigurationId(configuration.MqttConfigurationId);
-    }
-
-    private void RemoveMqttClientsByConfigurationId(int id)
-    {
-        var hostPortUserCombination = context.MqttConfigurations.Where(x => x.Id == id)
-            .Select(x => new { x.Host, x.Port, x.Username })
-            .Single();
-        mqttClientHandlingService.RemoveClient(hostPortUserCombination.Host, hostPortUserCombination.Port, hostPortUserCombination.Username);
-    }
-
-    private async Task ConnectMqttClientByConfigurationId(int configurationId)
-    {
-        logger.LogTrace("{method}({configurationId})", nameof(ConnectMqttClientByConfigurationId), configurationId);
-        var configuration = await GetConfigurationById(configurationId);
-        var resultConfigurations = await GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == configurationId);
-        await mqttClientHandlingService.ConnectClient(configuration, resultConfigurations, true);
     }
 }
