@@ -15,7 +15,7 @@ public class RestValueConfigurationController(
     IRestValueConfigurationService service,
     IRestValueExecutionService executionService,
     IValueOverviewService overviewService,
-    IDecimalValueHandlingService decimalValueHandlingService) : ApiBaseController
+    IGenericValueService genericValueHandlingService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()
@@ -46,7 +46,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult<DtoValue<int>>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
         var configurationId = await service.SaveRestValueConfiguration(dtoData).ConfigureAwait(false);
-        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, configurationId);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, configurationId);
         return Ok(new DtoValue<int>(configurationId));
     }
 
@@ -61,7 +61,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult<DtoValue<int>>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
     {
         var headerId = await service.SaveHeader(parentId, dtoData);
-        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
         return Ok(new DtoValue<int>(headerId));
     }
 
@@ -69,7 +69,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult> DeleteHeader(int id)
     {
         await service.DeleteHeader(id);
-        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
         return Ok();
     }
 
@@ -84,7 +84,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoJsonXmlResultConfiguration dtoData)
     {
         var resultConfigurationId = await service.SaveResultConfiguration(parentId, dtoData);
-        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
         return Ok(new DtoValue<int>(resultConfigurationId));
     }
 
@@ -92,7 +92,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult> DeleteResultConfiguration(int id)
     {
         await service.DeleteResultConfiguration(id);
-        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
         return Ok();
     }
 
@@ -100,7 +100,7 @@ public class RestValueConfigurationController(
     public async Task<ActionResult> DeleteRestValueConfiguration(int id)
     {
         await service.DeleteRestValueConfiguration(id);
-        await decimalValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, id);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, id);
         return Ok();
     }
 }

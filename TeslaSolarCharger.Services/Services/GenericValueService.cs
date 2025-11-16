@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
@@ -8,24 +10,32 @@ namespace TeslaSolarCharger.Services.Services;
 public class GenericValueService : IGenericValueService
 {
     private readonly ILogger<GenericValueService> _logger;
-    private readonly IEnumerable<IDecimalValueHandlingService> _genericValueHandlingServices;
+    private readonly IEnumerable<IDecimalValueHandlingService> _decimalValueHandlingServices;
 
     public GenericValueService(ILogger<GenericValueService> logger,
-        IEnumerable<IDecimalValueHandlingService> genericValueHandlingServices)
+        IEnumerable<IDecimalValueHandlingService> decimalValueHandlingServices)
     {
         _logger = logger;
-        _genericValueHandlingServices = genericValueHandlingServices;
+        _decimalValueHandlingServices = decimalValueHandlingServices;
     }
 
     public List<IGenericValue<decimal>> GetAllByPredicate(Expression<Func<IGenericValue<decimal>, bool>> predicate)
     {
         var elements = new List<IGenericValue<decimal>>();
-        foreach (var service in _genericValueHandlingServices)
+        foreach (var service in _decimalValueHandlingServices)
         {
             var snapshot = service.GetSnapshot();
             var filtered = snapshot.AsQueryable().Where(predicate).ToList();
             elements.AddRange(filtered);
         }
         return elements;
+    }
+
+    public async Task RecreateValues(ConfigurationType? configurationType, params List<int> configurationIds)
+    {
+        foreach (var service in _decimalValueHandlingServices)
+        {
+            await service.RecreateValues(configurationType, configurationIds);
+        }
     }
 }

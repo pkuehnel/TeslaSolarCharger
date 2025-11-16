@@ -12,7 +12,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 
 public class ModbusValueConfigurationController(IModbusValueConfigurationService configurationService,
     IValueOverviewService valueOverviewService,
-    IDecimalValueHandlingService decimalValueHandlingService) : ApiBaseController
+    IGenericValueService decimalValueHandlingService) : ApiBaseController
 {
     [HttpGet]
     public Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews() =>

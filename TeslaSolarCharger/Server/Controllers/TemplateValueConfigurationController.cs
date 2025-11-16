@@ -13,15 +13,15 @@ public class TemplateValueConfigurationController : ApiBaseController
 {
     private readonly ITemplateValueConfigurationService _service;
     private readonly IValueOverviewService _valueOverviewService;
-    private readonly IDecimalValueHandlingService _decimalValueHandlingService;
+    private readonly IGenericValueService _genericValueHandlingService;
 
     public TemplateValueConfigurationController(ITemplateValueConfigurationService service,
         IValueOverviewService valueOverviewService,
-        IDecimalValueHandlingService decimalValueHandlingService)
+        IGenericValueService genericValueHandlingService)
     {
         _service = service;
         _valueOverviewService = valueOverviewService;
-        _decimalValueHandlingService = decimalValueHandlingService;
+        _genericValueHandlingService = genericValueHandlingService;
     }
 
     [HttpGet]
@@ -43,7 +43,7 @@ public class TemplateValueConfigurationController : ApiBaseController
     public async Task<IActionResult> SaveConfiguration(DtoTemplateValueConfigurationBase configuration)
     {
         var id = await _service.SaveAsync(configuration).ConfigureAwait(false);
-        await _decimalValueHandlingService.RecreateValues(ConfigurationType.TemplateValue, id).ConfigureAwait(false);
+        await _genericValueHandlingService.RecreateValues(ConfigurationType.TemplateValue, id).ConfigureAwait(false);
         return Ok(new DtoValue<int>(id));
     }
 
@@ -51,7 +51,7 @@ public class TemplateValueConfigurationController : ApiBaseController
     public async Task<ActionResult> DeleteConfiguration(int id)
     {
         await _service.DeleteAsync(id);
-        await _decimalValueHandlingService.RecreateValues(ConfigurationType.TemplateValue, id);
+        await _genericValueHandlingService.RecreateValues(ConfigurationType.TemplateValue, id);
         return Ok();
     }
 }

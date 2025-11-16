@@ -20,10 +20,7 @@ public sealed class AutoRefreshingValue<T> : GenericValueBase<T>, IAutoRefreshin
     public Task? RunningTask { get; private set; }
     public bool IsRunning { get; private set; }
 
-    /// <param name="startAsync">
-    /// A delegate that wires up the push source and keeps updating this instance via UpdateValue.
-    /// It must return a Task that completes when cancellation is requested.
-    /// </param>
+
     public AutoRefreshingValue(
         IServiceScopeFactory serviceScopeFactory,
         Func<IServiceProvider, AutoRefreshingValue<T>, CancellationToken, Task> startAsync,
