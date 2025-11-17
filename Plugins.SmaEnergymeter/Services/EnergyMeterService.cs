@@ -28,7 +28,7 @@ public class EnergyMeterService
             _logger.LogError("Invalid multicast IP address: {address}", ipAddressString);
             throw new InvalidOperationException();
         }
-        using var udpClient = new UdpClient(AddressFamily.Unspecified);
+        using var udpClient = new UdpClient(AddressFamily.InterNetwork);
         udpClient.ExclusiveAddressUse = false;
         udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, energymeterPort));
