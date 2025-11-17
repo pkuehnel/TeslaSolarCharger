@@ -14,7 +14,7 @@ using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Services.Services.Template.ValueSetupServices;
+namespace TeslaSolarCharger.Services.Services.Template.ValueSetupServices.Sma;
 
 public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
 {

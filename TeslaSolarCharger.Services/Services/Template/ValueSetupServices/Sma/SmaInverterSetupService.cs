@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
@@ -15,7 +14,7 @@ using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Services.Services.Template.ValueSetupServices;
+namespace TeslaSolarCharger.Services.Services.Template.ValueSetupServices.Sma;
 
 public class SmaInverterSetupService : IRefreshableValueSetupService
 {
