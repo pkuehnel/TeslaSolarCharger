@@ -33,8 +33,10 @@ public class GenericValueService : IGenericValueService
 
     public async Task RecreateValues(ConfigurationType? configurationType, params List<int> configurationIds)
     {
+        _logger.LogTrace("{method}({configurationType}, {@configurationIds})", nameof(RecreateValues), configurationType, configurationIds);
         foreach (var service in _decimalValueHandlingServices)
         {
+            _logger.LogTrace("Recreate values for type {typeName}", service.GetType().Name);
             await service.RecreateValues(configurationType, configurationIds);
         }
     }
