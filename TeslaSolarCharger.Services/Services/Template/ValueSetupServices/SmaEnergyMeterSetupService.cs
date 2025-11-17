@@ -71,10 +71,11 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                     _logger.LogError("Invalid multicast IP address: {address}", MulticastAddress);
                     return Task.CompletedTask;
                 }
-
+                _logger.LogTrace("Creating group endpoint with {ipAddress}:{Port}", ipAddress, EnergyMeterPort);
                 var groupEndPoint = new IPEndPoint(ipAddress, EnergyMeterPort);
-
+                _logger.LogTrace("Creating UDP client");
                 using var udpClient = new UdpClient(EnergyMeterPort);
+                _logger.LogTrace("Set socket options.");
                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
                 try
