@@ -228,7 +228,7 @@ public class ModbusValueConfigurationService : IModbusValueConfigurationService,
                                     .ConfigureAwait(false);
 
                                 values.TryAdd(valueKey, 0m);
-                                values[valueKey] = +value;
+                                values[valueKey] += value;
 
                             }
                             catch (OperationCanceledException)

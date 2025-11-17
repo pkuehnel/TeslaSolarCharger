@@ -159,15 +159,8 @@ public class SmaHybridInverterSetupService : IRefreshableValueSetupService
                                     .GetValue(byteArray, resultConfiguration)
                                     .ConfigureAwait(false);
 
-                                if (value < 0)
-                                {
-                                    var logger = executionScope.ServiceProvider.GetRequiredService<ILogger<SmaInverterSetupService>>();
-                                    logger.LogDebug("Received raw value of {value} lower than 0. This is normal behaviour for SMA inverters in standby, using 0 for future calculations", value);
-                                    value = 0;
-                                }
-
                                 values.TryAdd(valueKey, 0m);
-                                values[valueKey] = +value;
+                                values[valueKey] += value;
 
                             }
                             catch (OperationCanceledException)
@@ -176,7 +169,7 @@ public class SmaHybridInverterSetupService : IRefreshableValueSetupService
                             }
                             catch (Exception ex)
                             {
-                                var logger = executionScope.ServiceProvider.GetRequiredService<ILogger<SmaInverterSetupService>>();
+                                var logger = executionScope.ServiceProvider.GetRequiredService<ILogger<SmaHybridInverterSetupService>>();
                                 logger.LogError(
                                     ex,
                                     "Error while refreshing modbus value for configuration {configurationId} result {resultId}",

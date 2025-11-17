@@ -121,7 +121,7 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
                                 }
 
                                 values.TryAdd(valueKey, 0m);
-                                values[valueKey] = +value;
+                                values[valueKey] += value;
 
                             }
                             catch (OperationCanceledException)
