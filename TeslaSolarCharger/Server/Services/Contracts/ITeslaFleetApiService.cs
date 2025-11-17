@@ -24,4 +24,5 @@ public interface ITeslaFleetApiService
 
     Task<TeslaCarFleetApiState?> GetFleetApiState(int carId);
     Task RefreshVehicleOnlineState(DtoCar car);
+    Task<Dictionary<long, string?>> GetEnergySites();
 }
