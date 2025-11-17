@@ -45,6 +45,7 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
 
     public async Task<List<IAutoRefreshingValue<decimal>>> GetDecimalAutoRefreshingValuesAsync(List<int> configurationIds)
     {
+        _logger.LogTrace("{method}({@configurationIds})", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
         var templateValueGatherType = TemplateValueGatherType.SmaEnergyMeter;
         Expression<Func<TemplateValueConfiguration, bool>> expression = c => c.GatherType == templateValueGatherType && (configurationIds.Count == 0 || configurationIds.Contains(c.Id));
         var templateConfigs = await _templateValueConfigurationService
@@ -52,17 +53,19 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
         var dtoTemplateValueConfigurationBases = templateConfigs.ToList();
         if (!dtoTemplateValueConfigurationBases.Any())
         {
+            _logger.LogInformation("No SMA Energy Meter template value configurations found");
             return new();
         }
         var autoRefreshingValues = new List<IAutoRefreshingValue<decimal>>();
 
         //Only one configuration can be used for the SMA Energy Meter as it listens on a fixed multicast address and port
-        var relevantConfiguration = dtoTemplateValueConfigurationBases.First();
+        var relevantConfiguration = dtoTemplateValueConfigurationBases.OrderBy(c => c.Id).First();
 
         var autoRefreshingValue = new AutoRefreshingValue<decimal>(
             _serviceScopeFactory,
             (_, self, ct) =>
             {
+                _logger.LogTrace("Setup autorefreshing value");
                 if (!IPAddress.TryParse(MulticastAddress, out var ipAddress))
                 {
                     _logger.LogError("Invalid multicast IP address: {address}", MulticastAddress);
@@ -76,6 +79,7 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
 
                 try
                 {
+                    _logger.LogTrace("Join multicast group");
                     udpClient.JoinMulticastGroup(ipAddress);
                     _logger.LogInformation("Joined multicast group {address}:{port}",
                         MulticastAddress, EnergyMeterPort);
@@ -90,6 +94,7 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                 if (config != default)
                 {
                     serialNumber = config.SerialNumber;
+                    _logger.LogTrace("Filter for serialnumber {serialNumber}", serialNumber);
                 }
                 while (!ct.IsCancellationRequested)
                 {
@@ -101,6 +106,7 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                         try
                         {
                             byteArray = udpClient.Receive(ref groupEndPoint);
+                            _logger.LogTrace("New energy meter values received");
                         }
                         catch (ObjectDisposedException) when (ct.IsCancellationRequested)
                         {
@@ -141,7 +147,7 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
 
     private Dictionary<ValueKey, decimal>? ProcessEnergyMeterData(byte[] byteArray, uint? filterForSerialNumber)
     {
-        _logger.LogTrace("New energy meter values received");
+        _logger.LogTrace("{method}({byteArray}, {serialNumber})", nameof(ProcessEnergyMeterData), byteArray, filterForSerialNumber);
 
         if (byteArray.Length < 600)
         {

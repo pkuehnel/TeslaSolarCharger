@@ -38,7 +38,7 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
     public async Task<List<DelegateRefreshableValue<decimal>>> GetDecimalRefreshableValuesAsync(TimeSpan defaultInterval,
         List<int> configurationIds)
     {
-        _logger.LogTrace("{method}({defaultInterval}", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
+        _logger.LogTrace("{method}({defaultInterval})", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
         var templateValueGatherType = TemplateValueGatherType.SmaInverterModbus;
         Expression<Func<TemplateValueConfiguration, bool>> expression = c => c.GatherType == templateValueGatherType && (configurationIds.Count == 0 || configurationIds.Contains(c.Id));
         var smaInverterConfigs = await _templateValueConfigurationService
