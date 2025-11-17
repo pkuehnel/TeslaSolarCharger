@@ -1,7 +1,6 @@
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
-using TeslaSolarCharger.Shared.Localization;
 
-namespace TeslaSolarCharger.Shared.Localization.Registries;
+namespace TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries;
 
 public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationRegistry<BaseConfigurationBase>
 {

@@ -1,7 +1,6 @@
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
-using TeslaSolarCharger.Shared.Localization;
 
-namespace TeslaSolarCharger.Shared.Localization.Registries;
+namespace TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries;
 
 public class ModbusValueResultConfigurationPropertyLocalization : PropertyLocalizationRegistry<DtoModbusValueResultConfiguration>
 {

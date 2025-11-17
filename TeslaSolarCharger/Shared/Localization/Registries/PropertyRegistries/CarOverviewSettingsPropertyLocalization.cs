@@ -1,7 +1,6 @@
 using TeslaSolarCharger.Shared.Dtos.Home;
-using TeslaSolarCharger.Shared.Localization;
 
-namespace TeslaSolarCharger.Shared.Localization.Registries;
+namespace TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries;
 
 public class CarOverviewSettingsPropertyLocalization : PropertyLocalizationRegistry<DtoCarOverviewSettings>
 {
