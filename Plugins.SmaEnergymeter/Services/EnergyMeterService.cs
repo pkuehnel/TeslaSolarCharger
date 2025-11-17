@@ -41,7 +41,7 @@ public class EnergyMeterService
             _logger.LogError(e, "Could not join multicast group");
             throw;
         }
-        var groupEndPoint = new IPEndPoint(ipAddress ?? throw new InvalidOperationException(), energymeterPort);
+        var groupEndPoint = new IPEndPoint(ipAddress, energymeterPort);
         while (true)
         {
             _logger.LogTrace("Waiting for new values");
