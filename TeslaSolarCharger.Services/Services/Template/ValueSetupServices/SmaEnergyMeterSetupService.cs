@@ -71,12 +71,10 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                     _logger.LogError("Invalid multicast IP address: {address}", MulticastAddress);
                     return Task.CompletedTask;
                 }
-                _logger.LogTrace("Creating group endpoint with {ipAddress}:{Port}", ipAddress, EnergyMeterPort);
-                var groupEndPoint = new IPEndPoint(ipAddress, EnergyMeterPort);
-                _logger.LogTrace("Creating UDP client");
-                using var udpClient = new UdpClient(EnergyMeterPort);
-                _logger.LogTrace("Set socket options.");
+                using var udpClient = new UdpClient(AddressFamily.InterNetwork);
+                udpClient.ExclusiveAddressUse = false;
                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, EnergyMeterPort));
 
                 try
                 {
@@ -84,12 +82,14 @@ public class SmaEnergyMeterSetupService : IAutoRefreshingValueSetupService
                     udpClient.JoinMulticastGroup(ipAddress);
                     _logger.LogInformation("Joined multicast group {address}:{port}",
                         MulticastAddress, EnergyMeterPort);
+
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Could not join multicast group");
                     return Task.CompletedTask;
                 }
+                var groupEndPoint = new IPEndPoint(ipAddress, EnergyMeterPort);
                 uint? serialNumber = null;
                 var config = relevantConfiguration.Configuration?.ToObject<DtoSmaEnergyMeterTemplateValueConfiguration>();
                 if (config != default)
