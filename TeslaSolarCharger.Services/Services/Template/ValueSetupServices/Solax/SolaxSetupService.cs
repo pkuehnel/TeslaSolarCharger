@@ -133,9 +133,9 @@ public class SolaxSetupService : IRefreshableValueSetupService
         var result = new Dictionary<ValueKey, decimal>
         {
             { new(ValueUsage.InverterPower, null, 1), pv1Power + pv2Power },
-            { new(ValueUsage.GridPower, null, 1), actualGridPower },
-            { new(ValueUsage.HomeBatteryPower, null, 1), actualBatteryPower },
-            { new(ValueUsage.HomeBatterySoc, null, 1), solaxDto.Data[batterySocIndex] },
+            { new(ValueUsage.GridPower, null, 2), actualGridPower },
+            { new(ValueUsage.HomeBatteryPower, null, 3), actualBatteryPower },
+            { new(ValueUsage.HomeBatterySoc, null, 4), solaxDto.Data[batterySocIndex] },
         };
         return result;
     }
