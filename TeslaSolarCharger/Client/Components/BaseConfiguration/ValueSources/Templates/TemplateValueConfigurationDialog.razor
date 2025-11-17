@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Solax
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
@@ -50,13 +51,17 @@ else
                             break;
                         case TemplateValueGatherType.SmaInverterModbus:
                             <SmaInverterEditForm Configuration="@(GetSmaConfig())"
-                                                 @ref="ConfigurationComponent"/>
+                                                 @ref="ConfigurationComponent" />
                             break;
                         case TemplateValueGatherType.SmaHybridInverterModbus:
                             <SmaInverterEditForm Configuration="@(GetSmaConfig())"
-                                                 @ref="ConfigurationComponent"/>
+                                                 @ref="ConfigurationComponent" />
                             break;
                         case TemplateValueGatherType.TeslaPowerwallFleetApi:
+                            break;
+                        case TemplateValueGatherType.SolaxApi:
+                            <SolaxApiEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoSolaxTemplateValueConfiguration>())"
+                                                    @ref="ConfigurationComponent" />
                             break;
                     }
                 </div>
@@ -108,7 +113,7 @@ else
             return;
         }
 
-        
+
         if (!BaseForm.WrappedElement.EditContext.Validate())
         {
             Snackbar.Add("Validation failed", Severity.Error);

@@ -12,6 +12,7 @@ using TeslaSolarCharger.Services.Services.Template.Contracts;
 using TeslaSolarCharger.Services.Services.Template.Infrastructure;
 using TeslaSolarCharger.Services.Services.Template.Infrastructure.Contracts;
 using TeslaSolarCharger.Services.Services.Template.ValueSetupServices.Sma;
+using TeslaSolarCharger.Services.Services.Template.ValueSetupServices.Solax;
 using TeslaSolarCharger.Services.Services.ValueRefresh;
 using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 
@@ -42,6 +43,7 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
                 .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
                 .AddTransient<IRefreshableValueSetupService, SmaHybridInverterSetupService>()
+                .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
 
                 .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
                 .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()
@@ -49,5 +51,6 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<AutoRefreshingValueHandlingService>())
                 .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
 
+                .AddHttpClient()
             ;
 }
