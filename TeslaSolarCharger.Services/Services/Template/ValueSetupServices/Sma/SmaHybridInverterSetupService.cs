@@ -40,7 +40,7 @@ public class SmaHybridInverterSetupService : IRefreshableValueSetupService
         List<int> configurationIds)
     {
         _logger.LogTrace("{method}({defaultInterval})", nameof(GetDecimalRefreshableValuesAsync), defaultInterval);
-        var templateValueGatherType = TemplateValueGatherType.SmaInverterModbus;
+        var templateValueGatherType = TemplateValueGatherType.SmaHybridInverterModbus;
         Expression<Func<TemplateValueConfiguration, bool>> expression = c => c.GatherType == templateValueGatherType && (configurationIds.Count == 0 || configurationIds.Contains(c.Id));
         var smaInverterConfigs = await _templateValueConfigurationService
             .GetConfigurationsByPredicateAsync(expression).ConfigureAwait(false);
