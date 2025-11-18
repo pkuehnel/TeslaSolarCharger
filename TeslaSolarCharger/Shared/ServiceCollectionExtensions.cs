@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPropertyLocalizationRegistry, DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSmaInverterTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSolaxTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoTeslaPowerwallTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<ITextLocalizationService, TextLocalizationService>()
             .AddSingleton<ITextLocalizationRegistry, SharedComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BaseConfigurationPageLocalizationRegistry>()

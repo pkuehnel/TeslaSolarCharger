@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Net;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
@@ -168,5 +169,11 @@ public static class Extensions
             // Passed all tests, lets set the value
             targetProperty.SetValue(destination, srcProp.GetValue(source, null), null);
         }
+    }
+
+    public static bool IsSuccessStatusCode(this HttpStatusCode statusCode)
+    {
+        var code = (int)statusCode;
+        return code >= 200 && code <= 299;
     }
 }

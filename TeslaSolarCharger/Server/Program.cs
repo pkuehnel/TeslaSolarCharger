@@ -25,7 +25,6 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
-using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -55,7 +54,6 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
-builder.Services.AddServicesDependencies();
 builder.Services.AddMudServices();
 builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 
