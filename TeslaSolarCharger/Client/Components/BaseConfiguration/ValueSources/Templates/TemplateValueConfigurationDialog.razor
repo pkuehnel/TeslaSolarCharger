@@ -6,6 +6,7 @@
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Solax
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.TeslaPowerwall
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
@@ -58,6 +59,8 @@ else
                                                  @ref="ConfigurationComponent" />
                             break;
                         case TemplateValueGatherType.TeslaPowerwallFleetApi:
+                            <TeslaPowerwallEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoTeslaPowerwallTemplateValueConfiguration>())"
+                                                    @ref="ConfigurationComponent" />
                             break;
                         case TemplateValueGatherType.SolaxApi:
                             <SolaxApiEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoSolaxTemplateValueConfiguration>())"

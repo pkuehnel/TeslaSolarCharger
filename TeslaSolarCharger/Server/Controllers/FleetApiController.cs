@@ -34,4 +34,11 @@ public class FleetApiController(
 
     [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
+
+    [HttpGet]
+    public async Task<IActionResult> GetEnergySites()
+    {
+        var result = await fleetApiService.GetEnergySites();
+        return Ok(result);
+    }
 }
