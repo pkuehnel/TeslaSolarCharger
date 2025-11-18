@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TeslaSolarCharger.Services.Services.Contracts;
-using TeslaSolarCharger.Services.Services.Rest.Contracts;
-using TeslaSolarCharger.Services.Services.Template.Contracts;
-using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
