@@ -2,6 +2,7 @@ using LanguageExt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Net;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -1132,6 +1133,35 @@ public class TeslaFleetApiService(
             logger.LogError(e, "An HTTP request error occured");
             throw;
         }
+    }
+
+    public async Task<Dictionary<long, string?>> GetEnergySites()
+    {
+        logger.LogTrace("{method}()", nameof(GetEnergySites));
+        var backendApiResponse = await GetAllProductsFromTeslaAccount();
+        var json = backendApiResponse.JsonResponse;
+        if (json == default)
+        {
+            return new();
+        }
+        var root = JObject.Parse(json);
+        var response = root["response"]
+                       ?? throw new JsonException("Property 'response' not found.");
+
+        var energySiteIdPropertyName = "energy_site_id";
+        var siteNamePropertyName = "site_name";
+        var sites = response
+            .OfType<JObject>()
+            .Where(o =>
+                o[energySiteIdPropertyName]?.Type == JTokenType.Integer &&
+                o[siteNamePropertyName]?.Type == JTokenType.String)
+            .ToDictionary(
+                o => (long)o[energySiteIdPropertyName]!,   // we filtered by Type == Integer
+                o => (string)o[siteNamePropertyName]!);
+
+        
+
+        return sites;
     }
 
     public async Task<DtoBackendApiTeslaResponse> GetEnergyLiveStatus(string energySiteId)

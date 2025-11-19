@@ -17,15 +17,14 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
 using Constants = TeslaSolarCharger.Shared.Resources.Constants;
-using TeslaSolarCharger.Services.Services.Contracts;
-using TeslaSolarCharger.Services;
-using TeslaSolarCharger.Services.Services;
 
 namespace TeslaSolarCharger.Tests;
 

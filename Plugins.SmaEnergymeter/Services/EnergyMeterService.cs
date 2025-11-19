@@ -22,15 +22,16 @@ public class EnergyMeterService
     {
         _logger.LogTrace("{method}()", nameof(StartLogging));
         var energymeterPort = _configuration.GetValue<int>("EnergyMeterPort");
-        _logger.LogDebug("Use energymeterport {engergymeterPort}", energymeterPort);
-        using var udpClient = new UdpClient(energymeterPort);
-        udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         var ipAddressString = _configuration.GetValue<string>("EnergyMeterMulticastAddress");
-        _logger.LogDebug("Use IP Address {ipAddressString}", ipAddressString);
-        IPAddress.TryParse(ipAddressString, out var ipAddress);
-        _logger.LogDebug("Parsed Ip Adress: {ipAddress}", ipAddress?.ToString());
-        var groupEndPoint = new IPEndPoint(ipAddress ?? throw new InvalidOperationException(), energymeterPort);
-        _logger.LogDebug("Joining Multicast group");
+        if (!IPAddress.TryParse(ipAddressString, out var ipAddress))
+        {
+            _logger.LogError("Invalid multicast IP address: {address}", ipAddressString);
+            throw new InvalidOperationException();
+        }
+        using var udpClient = new UdpClient(AddressFamily.InterNetwork);
+        udpClient.ExclusiveAddressUse = false;
+        udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, energymeterPort));
         try
         {
             udpClient.JoinMulticastGroup(ipAddress);
@@ -40,6 +41,7 @@ public class EnergyMeterService
             _logger.LogError(e, "Could not join multicast group");
             throw;
         }
+        var groupEndPoint = new IPEndPoint(ipAddress, energymeterPort);
         while (true)
         {
             _logger.LogTrace("Waiting for new values");

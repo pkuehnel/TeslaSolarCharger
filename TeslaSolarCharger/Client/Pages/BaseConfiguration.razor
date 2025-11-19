@@ -1,4 +1,8 @@
 @page "/BaseConfiguration"
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Modbus
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Mqtt
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Rest
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
@@ -29,25 +33,16 @@ else
         <h3>@T(TranslationKeys.BaseConfigurationGeneralSectionTitle)</h3>
         <GenericInput For="() => _dtoBaseConfiguration.Item.MaxCombinedCurrent" />
         <hr />
-        <h3>@T(TranslationKeys.BaseConfigurationTeslaMateSectionTitle)</h3>
-        <GenericInput T="bool"
-        For="() => _dtoBaseConfiguration.Item.UseTeslaMateIntegration"
-        OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
-        @if (_dtoBaseConfiguration.Item.UseTeslaMateIntegration)
-        {
-            <GenericInput For="() => _dtoBaseConfiguration.Item.UseTeslaMateAsDataSource"></GenericInput>
-            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbServer" />
 
-            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbPort" />
-            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbDatabaseName" />
-            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbUser" />
-            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbPassword" IsPassword="true" />
-
-            <GenericInput For="() => _dtoBaseConfiguration.Item.MosquitoServer" />
-        }
-
+        <h3>@T(TranslationKeys.SolarValueSourcesSectionTitle)</h3>
+        <TemplateValueConfigurationComponent />
+        
+        <RestValueConfigurationComponent />
+        <ModbusValueConfigurationComponent />
+        <MqttValueConfigurationComponent />
 
         <h3>@T(TranslationKeys.BaseConfigurationHomeGeofenceSectionTitle)</h3>
+        <small class="form-text text-muted">@T(TranslationKeys.BaseConfigurationHomeGeofenceHint)</small>
         <div class="mb-3">
             <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
             Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
@@ -55,7 +50,7 @@ else
             LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
             LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude; Snackbar.Add(T(TranslationKeys.LocationUpdateInfoText), Severity.Info); })"></MapComponent>
 
-            <small class="form-text text-muted">@T(TranslationKeys.BaseConfigurationHomeGeofenceHint)</small>
+            <small class="form-text text-muted">@T(TranslationKeys.BaseConfigurationHomeGeofenceMapHandlingHint)</small>
         </div>
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
@@ -86,26 +81,39 @@ else
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.MaxInverterAcPower" />
 
-        <RestValueConfigurationComponent />
-        <ModbusValueConfigurationComponent />
-        <MqttValueConfigurationComponent />
-
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>@T(TranslationKeys.BaseConfigurationTelegramSectionTitle)</h3>
             <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">@T(TranslationKeys.BaseConfigurationHowToSetupTelegramLinkText)</a>
             <div>@T(TranslationKeys.BaseConfigurationTelegramBotNote)</div>
             <GenericInput T="string?"
-            For="() => _dtoBaseConfiguration.Item.TelegramBotKey"
-            OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+                          For="() => _dtoBaseConfiguration.Item.TelegramBotKey"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
             <GenericInput T="string?"
-            For="() => _dtoBaseConfiguration.Item.TelegramChannelId"
-            OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+                          For="() => _dtoBaseConfiguration.Item.TelegramChannelId"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
             <GenericInput For="() => _dtoBaseConfiguration.Item.SendStackTraceToTelegram"></GenericInput>
             <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.BaseConfigurationSendTestMessageButton)'
                                          IsDisabled="_telegramSettingsChanged"
                                          DisabledToolTipText='@T(TranslationKeys.BaseConfigurationSaveBeforeTestingTooltip)'
                                          OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
         </div>
+        
+        <h3>@T(TranslationKeys.BaseConfigurationTeslaMateSectionTitle)</h3>
+        <GenericInput T="bool"
+                      For="() => _dtoBaseConfiguration.Item.UseTeslaMateIntegration"
+                      OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
+        @if (_dtoBaseConfiguration.Item.UseTeslaMateIntegration)
+        {
+            <GenericInput For="() => _dtoBaseConfiguration.Item.UseTeslaMateAsDataSource"></GenericInput>
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbServer" />
+
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbPort" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbDatabaseName" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbUser" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbPassword" IsPassword="true" />
+
+            <GenericInput For="() => _dtoBaseConfiguration.Item.MosquitoServer" />
+        }
 
         <MudExpansionPanels>
             <MudExpansionPanel Text="@T(TranslationKeys.BaseConfigurationAdvancedSettingsPanelText)">

@@ -16,7 +16,7 @@ public class EditableItem<T>
         EditContext = new EditContext(item ?? throw new ArgumentNullException(nameof(item)));
         MessageStore = new ValidationMessageStore(EditContext);
         // Subscribe to the FieldChanged event
-        EditContext.OnFieldChanged += (sender, args) =>
+        EditContext.OnFieldChanged += (_, args) =>
         {
             // Clear validation messages for the changed field
             MessageStore.Clear(args.FieldIdentifier);
@@ -41,8 +41,11 @@ public class EditableItem<T>
         {
             if (string.IsNullOrEmpty(propertyName)) continue;
 
-            var fieldIdentifier = new FieldIdentifier(Item, propertyName);
-            MessageStore.Clear(fieldIdentifier);
+            if (Item != null)
+            {
+                var fieldIdentifier = new FieldIdentifier(Item, propertyName);
+                MessageStore.Clear(fieldIdentifier);
+            }
         }
 
         // Notify the EditContext to update the UI once after all properties are cleared

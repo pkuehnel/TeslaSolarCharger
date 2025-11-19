@@ -235,6 +235,13 @@ public class DebugController(
     }
 
     [HttpGet]
+    public async Task<IActionResult> GetEnergySites()
+    {
+        var sites = await teslaFleetApiService.GetEnergySites();
+        return Ok(sites);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetEnergyLiveStatus(string energySiteId)
     {
         var products = await teslaFleetApiService.GetEnergyLiveStatus(energySiteId);
