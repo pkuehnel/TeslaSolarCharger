@@ -8,7 +8,7 @@ public class DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization : P
     {
         Register(x => x.SerialNumber,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                "Serialnumber",
+                "Serial number",
                 "Serialnumber of your Energy Meter or Home Manager 2.0. Can be left empty if you only have one Energy Meter (which is the case for most setups)"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Seriennummer",
