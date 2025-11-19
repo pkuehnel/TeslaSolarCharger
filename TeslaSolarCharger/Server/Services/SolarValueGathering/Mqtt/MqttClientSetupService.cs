@@ -145,7 +145,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
 
                     // Stay alive until cancellation
                     var tcs = new TaskCompletionSource<object?>();
-                    await using (ct.Register(() => tcs.TrySetResult(null)))
+                    await using (ct.Register(() => tcs.TrySetResult(null)).ConfigureAwait(false))
                     {
                         await tcs.Task.ConfigureAwait(false);
                     }
@@ -158,6 +158,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     try
                     {
                         if (client.IsConnected)
+                            // ReSharper disable once MethodSupportsCancellation
                             await client.DisconnectAsync().ConfigureAwait(false);
                     }
                     catch

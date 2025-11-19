@@ -144,7 +144,7 @@ public class ValueOverviewService(
                 {
                     if (historicValue.Key.ValueUsage == default)
                     {
-                        //Do not load car specific values here, only PV values are relavant
+                        //Do not load car specific values here, only PV values are relevant
                         continue;
                     }
                     var overviewValueResult = new DtoOverviewValueResult

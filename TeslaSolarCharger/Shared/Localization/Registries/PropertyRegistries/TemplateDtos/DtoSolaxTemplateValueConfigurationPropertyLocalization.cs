@@ -9,10 +9,10 @@ public class DtoSolaxTemplateValueConfigurationPropertyLocalization : PropertyLo
         Register(x => x.Host,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Host",
-                "IP address or DNS name of your Solay system"),
+                "IP address or DNS name of your Solax system"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Host",
-                "IP-Adresse oder DNS-Name deines Solay systems"));
+                "IP-Adresse oder DNS-Name deines Solax systems"));
 
         Register(x => x.Password,
             new PropertyLocalizationTranslation(LanguageCodes.English,

@@ -36,9 +36,9 @@ public class ModbusValueConfigurationController(IModbusValueConfigurationService
     [HttpPost]
     public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoModbusValueResultConfiguration dtoData)
     {
-        var modbusResultConfiugrationId = await configurationService.SaveModbusResultConfiguration(parentId, dtoData);
+        var modbusResultConfigurationId = await configurationService.SaveModbusResultConfiguration(parentId, dtoData);
         await decimalValueHandlingService.RecreateValues(ConfigurationType.ModbusSolarValue, parentId).ConfigureAwait(false);
-        return Ok(new DtoValue<int>(modbusResultConfiugrationId));
+        return Ok(new DtoValue<int>(modbusResultConfigurationId));
     }
 
     [HttpDelete]

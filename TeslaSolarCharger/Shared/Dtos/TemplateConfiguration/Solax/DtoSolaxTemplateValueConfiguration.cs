@@ -8,9 +8,9 @@ public class DtoSolaxTemplateValueConfiguration
     public string? Password { get; set; }
 }
 
-public class DtoSolaxTemplateValueConfgiurationValidator : AbstractValidator<DtoSolaxTemplateValueConfiguration>
+public class DtoSolaxTemplateValueConfigurationValidator : AbstractValidator<DtoSolaxTemplateValueConfiguration>
 {
-    public DtoSolaxTemplateValueConfgiurationValidator()
+    public DtoSolaxTemplateValueConfigurationValidator()
     {
         RuleFor(x => x.Host).NotEmpty();
     }

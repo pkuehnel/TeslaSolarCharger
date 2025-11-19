@@ -90,7 +90,7 @@ public class SolaxSetupService : IRefreshableValueSetupService
             new("optType", "ReadRealTimeData"),
             new ("pwd", typedConfig.Password ?? string.Empty ),
         };
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
         var content = new FormUrlEncodedContent(parameters);
         request.Content = content;
         var httpClient = httpClientFactory.CreateClient();

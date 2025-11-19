@@ -22,7 +22,7 @@ public interface IGenericValueHandlingService<TValue, TConfigurationId>
     Task RecreateValues(ConfigurationType? configurationType, params List<TConfigurationId> configurationIds);
     List<IGenericValue<TValue>> GetSnapshot();
     IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages,
-        bool ignoreValuesWithError);
+        bool skipValuesWithError);
 }
 
 public abstract class
@@ -47,7 +47,7 @@ public abstract class
             .ToList();
     }
 
-    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages, bool ignoreValuesWithError)
+    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages, bool skipValuesWithError)
     {
         var result = new Dictionary<ValueUsage, List<DtoHistoricValue<TValue>>>();
 
@@ -55,7 +55,7 @@ public abstract class
 
         foreach (var refreshable in refreshablesSnapshot)
         {
-            if (!ignoreValuesWithError && refreshable.HasError)
+            if (skipValuesWithError && refreshable.HasError)
             {
                 continue;
             }
