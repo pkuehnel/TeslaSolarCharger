@@ -1081,20 +1081,6 @@ public class TeslaFleetApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<Fin<List<DtoTesla>>> GetNewCarsInAccount()
-    {
-        logger.LogTrace("{method}()", nameof(GetNewCarsInAccount));
-        var result = await GetAllCarsFromAccount();
-        return result.Map(carList =>
-        {
-            // Filter the list for new cars
-            var newCars = carList
-                .Where(c => settings.Cars.Any(sc => string.Equals(sc.Vin, c.Vin, StringComparison.CurrentCultureIgnoreCase)))
-                .ToList();
-            return newCars;
-        });
-    }
-
     public async Task<DtoBackendApiTeslaResponse> GetAllProductsFromTeslaAccount()
     {
         logger.LogTrace("{method}()", nameof(GetAllProductsFromTeslaAccount));
