@@ -92,6 +92,7 @@
 
 	<ItemGroup>
 	  <Folder Include="Exceptions\" />
+	  <Folder Include="Services\SolarValueGathering\Template\ValueSetupServices\Kostal\" />
 	</ItemGroup>
 
 

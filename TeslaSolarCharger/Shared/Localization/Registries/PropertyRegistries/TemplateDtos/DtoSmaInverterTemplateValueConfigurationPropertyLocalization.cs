@@ -9,24 +9,24 @@ public class DtoSmaInverterTemplateValueConfigurationPropertyLocalization : Prop
         Register(x => x.Host,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Host",
-                "IP address or DNS name of your SMA inverter"),
+                "IP address or DNS name of your Modbus device"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Host",
-                "IP-Adresse oder DNS-Name deines SMA Wechselrichters"));
+                "IP-Adresse oder DNS-Name deines Modbus Geräts"));
         Register(x => x.Port,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Modbus-Port",
-                "Default value is 502 and should not be changed normally"),
+                "The default value should not be changed normally"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Modbus-Port",
-                "Der Standardwert ist 502 und sollte normalerweise nicht geändert werden"));
+                "Der Standardwert sollte normalerweise nicht geändert werden"));
         Register(x => x.UnitId,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Unit-ID",
-                "Default value is 3 and should not be changed normally"),
+                "The default value should not be changed normally"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Unit-ID",
-                "Der Standardwert ist 3 und sollte normalerweise nicht geändert werden"));
+                "Der Standardwert sollte normalerweise nicht geändert werden"));
 
     }
 }

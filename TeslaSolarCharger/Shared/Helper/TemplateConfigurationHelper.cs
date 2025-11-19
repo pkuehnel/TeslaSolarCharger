@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
+﻿using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Kostal;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Solax;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.TeslaPowerwall;
 using TeslaSolarCharger.Shared.Enums;
@@ -16,6 +17,7 @@ public static class TemplateValueConfigurationTypeHelper
             { TemplateValueGatherType.SmaHybridInverterModbus,  typeof(DtoSmaInverterTemplateValueConfiguration) },
             { TemplateValueGatherType.TeslaPowerwallFleetApi,   typeof(DtoTeslaPowerwallTemplateValueConfiguration) },
             { TemplateValueGatherType.SolaxApi,   typeof(DtoSolaxTemplateValueConfiguration) },
+            { TemplateValueGatherType.KostalHybridInverterModbus,   typeof(DtoKostalModbusConfiguration) },
         };
 
     public static Type? GetConfigurationType(TemplateValueGatherType gatherType)
