@@ -47,7 +47,8 @@ else
                 }
             </MudText>
             <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"
-                                                AutoPhaseSwitchingSupported="@(chargingStation.CanSwitchBetween1And3Phases == true)"></ChargingStationConnectorsComponent>
+                                                AutoPhaseSwitchingSupported="@(chargingStation.CanSwitchBetween1And3Phases == true)"
+                                                IsOcppConnected="chargingStation.IsConnected"></ChargingStationConnectorsComponent>
         </div>
     }
 }

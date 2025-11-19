@@ -23,9 +23,8 @@ using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
-using TeslaSolarCharger.Services;
-using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -55,7 +54,6 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
-builder.Services.AddServicesDependencies();
 builder.Services.AddMudServices();
 builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 
@@ -397,8 +395,11 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
-        var refreshableValuesService = startupScope.ServiceProvider.GetRequiredService<IRefreshableValueHandlingService>();
-        await refreshableValuesService.RecreateRefreshables().ConfigureAwait(false);
+        var decimalValueHandlingServices = startupScope.ServiceProvider.GetServices<IDecimalValueHandlingService>();
+        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
+        {
+            await decimalValueHandlingService.RecreateValues(null).ConfigureAwait(false);
+        }
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)

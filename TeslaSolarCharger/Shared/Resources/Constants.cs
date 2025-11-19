@@ -88,4 +88,5 @@ public class Constants : IConstants
     public DateTimeOffset FirstChargePriceTimeStamp => new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
     public int SpotPriceRefreshIntervalHours => 2;
     public int ManualCarMinutesUntilForgetSoc => 10;
+    public int RefreshableValuesRefreshIntervalSeconds => 1;
 }

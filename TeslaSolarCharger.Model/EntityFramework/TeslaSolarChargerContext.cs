@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
@@ -40,6 +41,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<CarChargingTarget> CarChargingTargets { get; set; } = null!;
     public DbSet<PvValueLog> PvValueLogs { get; set; } = null!;
     public DbSet<ChargingStationConnectorAllowedCar> ChargingStationConnectorAllowedCars { get; set; } = null!;
+    public DbSet<TemplateValueConfiguration> TemplateValueConfigurations { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 

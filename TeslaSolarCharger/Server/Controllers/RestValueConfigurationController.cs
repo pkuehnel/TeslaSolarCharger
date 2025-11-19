@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Configuration;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
@@ -8,8 +11,11 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class RestValueConfigurationController(IRestValueConfigurationService service,
-    IRestValueExecutionService executionService) : ApiBaseController
+public class RestValueConfigurationController(
+    IRestValueConfigurationService service,
+    IRestValueExecutionService executionService,
+    IValueOverviewService overviewService,
+    IGenericValueService genericValueHandlingService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()
@@ -20,7 +26,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
 
     [HttpGet]
     public Task<List<DtoValueConfigurationOverview>> GetRestValueConfigurations() =>
-        executionService.GetRestValueOverviews();
+        overviewService.GetRestValueOverviews();
 
     [HttpPost]
     public async Task<ActionResult<DtoValue<string>>> DebugRestValueConfiguration([FromBody] DtoFullRestValueConfiguration config)
@@ -39,7 +45,9 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     [HttpPost]
     public async Task<ActionResult<DtoValue<int>>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
-        return Ok(new DtoValue<int>(await service.SaveRestValueConfiguration(dtoData)));
+        var configurationId = await service.SaveRestValueConfiguration(dtoData).ConfigureAwait(false);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, configurationId);
+        return Ok(new DtoValue<int>(configurationId));
     }
 
     [HttpGet]
@@ -52,13 +60,16 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     [HttpPost]
     public async Task<ActionResult<DtoValue<int>>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
     {
-        return Ok(new DtoValue<int>(await service.SaveHeader(parentId, dtoData)));
+        var headerId = await service.SaveHeader(parentId, dtoData);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
+        return Ok(new DtoValue<int>(headerId));
     }
 
     [HttpDelete]
     public async Task<ActionResult> DeleteHeader(int id)
     {
         await service.DeleteHeader(id);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
         return Ok();
     }
 
@@ -72,13 +83,16 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     [HttpPost]
     public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoJsonXmlResultConfiguration dtoData)
     {
-        return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
+        var resultConfigurationId = await service.SaveResultConfiguration(parentId, dtoData);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, parentId);
+        return Ok(new DtoValue<int>(resultConfigurationId));
     }
 
     [HttpDelete]
     public async Task<ActionResult> DeleteResultConfiguration(int id)
     {
         await service.DeleteResultConfiguration(id);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue);
         return Ok();
     }
 
@@ -86,6 +100,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     public async Task<ActionResult> DeleteRestValueConfiguration(int id)
     {
         await service.DeleteRestValueConfiguration(id);
+        await genericValueHandlingService.RecreateValues(ConfigurationType.RestSolarValue, id);
         return Ok();
     }
 }
