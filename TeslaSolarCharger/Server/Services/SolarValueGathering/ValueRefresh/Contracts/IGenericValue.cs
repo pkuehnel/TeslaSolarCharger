@@ -100,6 +100,7 @@ public abstract class GenericValueBase<T> : IGenericValue<T>
 /// </summary>
 /// <param name="ValueUsage"></param>
 /// <param name="CarValueType"></param>
+/// <param name="ResultConfigurationId"></param>
 public sealed record ValueKey(
     ValueUsage? ValueUsage,
     CarValueType? CarValueType,

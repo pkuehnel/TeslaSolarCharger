@@ -44,6 +44,12 @@ public class TeslaPowerwallSetupService : IRefreshableValueSetupService
         var configs = await _templateValueConfigurationService
             .GetConfigurationsByPredicateAsync(expression).ConfigureAwait(false);
         var result = new List<DelegateRefreshableValue<decimal>>();
+        //Reduce Tesla API calls
+        var minInterval = TimeSpan.FromSeconds(10);
+        if (defaultInterval < minInterval)
+        {
+            defaultInterval = minInterval;
+        }
         foreach (var config in configs)
         {
             if (config.Configuration == default)
