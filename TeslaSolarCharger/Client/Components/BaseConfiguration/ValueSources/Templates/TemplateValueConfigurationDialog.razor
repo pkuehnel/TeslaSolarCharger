@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Kostal
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Solax
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.TeslaPowerwall
@@ -64,7 +65,11 @@ else
                             break;
                         case TemplateValueGatherType.SolaxApi:
                             <SolaxApiEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoSolaxTemplateValueConfiguration>())"
-                                                    @ref="ConfigurationComponent" />
+                                              @ref="ConfigurationComponent" />
+                            break;
+                        case TemplateValueGatherType.KostalHybridInverterModbus:
+                            <KostalInverterEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoKostalModbusConfiguration>())"
+                                              @ref="ConfigurationComponent" />
                             break;
                     }
                 </div>

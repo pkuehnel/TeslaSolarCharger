@@ -35,6 +35,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Template;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Solax;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.TeslaPowerwall;
@@ -201,6 +202,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IRefreshableValueSetupService, SmaHybridInverterSetupService>()
             .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
             .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
+            .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
 
             .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
             .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()

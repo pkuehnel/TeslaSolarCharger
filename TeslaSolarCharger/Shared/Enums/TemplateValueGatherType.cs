@@ -7,4 +7,5 @@ public enum TemplateValueGatherType
     SmaHybridInverterModbus= 3,
     TeslaPowerwallFleetApi = 101,
     SolaxApi = 201,
+    KostalHybridInverterModbus = 301,
 }
