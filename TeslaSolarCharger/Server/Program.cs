@@ -211,46 +211,54 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         logger.LogInformation("Checking for existing migration locks...");
         var providerName = teslaSolarChargerContext.Database.ProviderName;
-        if (providerName == "Microsoft.EntityFrameworkCore.Sqlite")
+        var strategy = teslaSolarChargerContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            // Check if the lock table exists and clear it
-            var sql = @"
+            if (providerName == "Microsoft.EntityFrameworkCore.Sqlite")
+            {
+                // Check if the lock table exists and clear it
+                var sql = @"
                 DELETE FROM __EFMigrationsLock 
                 WHERE EXISTS (
                     SELECT 1 FROM sqlite_master 
                     WHERE type='table' AND name='__EFMigrationsLock'
                 )";
 
+                try
+                {
+                    var rowsAffected = await teslaSolarChargerContext.Database.ExecuteSqlRawAsync(sql).ConfigureAwait(false);
+                    if (rowsAffected > 0)
+                    {
+                        logger.LogInformation("Cleared {RowCount} migration lock(s)", rowsAffected);
+                    }
+                    else
+                    {
+                        logger.LogDebug("No migration locks to clear");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Failed to clear migratoin locks: {Message}", ex.Message);
+                }
+            }
+
             try
             {
-                var rowsAffected = await teslaSolarChargerContext.Database.ExecuteSqlRawAsync(sql).ConfigureAwait(false);
-                if (rowsAffected > 0)
-                {
-                    logger.LogInformation("Cleared {RowCount} migration lock(s)", rowsAffected);
-                }
-                else
-                {
-                    logger.LogDebug("No migration locks to clear");
-                }
+                logger.LogInformation("Starting database migration with detailed logging...");
+                // ReSharper disable once UseConfigureAwaitFalseForAsyncDisposable
+                await using var transaction = await teslaSolarChargerContext.Database.BeginTransactionAsync();
+                await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+                await transaction.CommitAsync();
+                logger.LogInformation("Database migration completed");
             }
-            catch (Exception ex)
+            finally
             {
-                logger.LogError("Failed to clear migratoin locks: {Message}", ex.Message);
+                // Restore original logger
+                Log.Logger = originalLogger;
+                migrationLogger.Dispose();
             }
-        }
-
-        try
-        {
-            logger.LogInformation("Starting database migration with detailed logging...");
-            await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
-            logger.LogInformation("Database migration completed");
-        }
-        finally
-        {
-            // Restore original logger
-            Log.Logger = originalLogger;
-            migrationLogger.Dispose();
-        }
+        }).ConfigureAwait(false);
+        
 
         var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
