@@ -154,6 +154,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
             .AddScoped<IManualCarHandlingService, ManualCarHandlingService>()
             .AddTransient<IChargingServiceV2, ChargingServiceV2>()
+            .AddTransient<IChargingScheduleService, ChargingScheduleService>()
             .AddTransient<IHomeService, HomeService>()
             .AddTransient<ISunCalculator, SunCalculator>()
             .AddTransient<IHomeBatteryEnergyCalculator, HomeBatteryEnergyCalculator>()
