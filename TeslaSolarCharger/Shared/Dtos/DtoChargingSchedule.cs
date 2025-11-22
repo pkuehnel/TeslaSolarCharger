@@ -25,7 +25,9 @@ public class DtoChargingSchedule : ValidFromToBase
     {
         get
         {
-            var estimatedPower = Math.Max(TargetMinPower, EstimatedSolarPower);
+            //next line only required because MathMax does not accept more than 2 parameters
+            var estimatedNotRequiredPower = Math.Max(EstimatedSolarPower, TargetHomeBatteryPower ?? 0);
+            var estimatedPower = Math.Max(TargetMinPower, estimatedNotRequiredPower);
             return Math.Min(MaxPossiblePower, estimatedPower);
         }
     }
