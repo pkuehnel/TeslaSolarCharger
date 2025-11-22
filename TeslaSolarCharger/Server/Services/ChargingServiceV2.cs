@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Localization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
