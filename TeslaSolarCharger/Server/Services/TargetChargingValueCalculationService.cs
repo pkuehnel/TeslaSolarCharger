@@ -76,10 +76,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
 
 
         foreach (var loadPoint in targetChargingValues
-                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
+                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.TargetMinPower > 0))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
         {
-            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
+            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.TargetMinPower > 0);
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
@@ -89,9 +89,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     new("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
-            var chargingSchedulePower = chargingSchedule.TargetGridPower.HasValue && (chargingSchedule.ChargingPower < (powerToControl + (chargingSchedule.TargetGridPower ?? 0)))
-                                ? (powerToControl + (chargingSchedule.TargetGridPower ?? 0))
-                                : chargingSchedule.ChargingPower;
+            var chargingSchedulePower = chargingSchedule.TargetMinPower;
+            if (chargingSchedule.TargetHomeBatteryPower > chargingSchedulePower)
+            {
+                chargingSchedulePower = chargingSchedule.TargetHomeBatteryPower.Value;
+            }
+
             var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
                 ? chargingSchedulePower
                 : powerToControlIncludingHomeBatteryDischargePower;

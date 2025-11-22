@@ -40,10 +40,10 @@
                                 @(context.Item.ValidTo.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
-                        <PropertyColumn Property="x => x.ChargingPower"
-                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower)))">
+                        <PropertyColumn Property="x => x.EstimatedChargingPower"
+                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.EstimatedChargingPower)))">
                             <CellTemplate>
-                                @(context.Item.ChargingPower.ToString("N0"))W
+                            @(context.Item.EstimatedChargingPower.ToString("N0"))W
                             </CellTemplate>
                         </PropertyColumn>
                     </Columns>

@@ -22,19 +22,19 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -67,26 +67,26 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 00, 0, TimeSpan.Zero),
-                ChargingPower = 8000,
-                OnlyChargeOnAtLeastSolarPower = 6200,
+                TargetMinPower = 8000,
+                EstimatedSolarPower = 6200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -119,26 +119,26 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 00, 0, TimeSpan.Zero),
-                ChargingPower = 8000,
-                OnlyChargeOnAtLeastSolarPower = 6200,
+                TargetMinPower = 8000,
+                EstimatedSolarPower = 6200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -185,26 +185,26 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 00, 0, TimeSpan.Zero),
-                ChargingPower = 8000,
-                OnlyChargeOnAtLeastSolarPower = 6200,
+                TargetMinPower = 8000,
+                EstimatedSolarPower = 6200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -254,19 +254,19 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000)
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
