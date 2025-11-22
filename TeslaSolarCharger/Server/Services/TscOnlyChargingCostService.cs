@@ -308,16 +308,25 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
     private async Task<List<Price>> AddSpotPrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, ChargePrice chargePrice)
     {
+        logger.LogTrace("{method}({from}, {to}, {chargePriceId})", nameof(AddSpotPrices), from, to, chargePrice.Id);
         var fromUtc = from.UtcDateTime;
         var toUtc = to.UtcDateTime;
 
         //required as if from is within a range the spot price before the range is also relevant
-        var previous = await context.SpotPrices
+        var previouses = await context.SpotPrices
             .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion && p.StartDate < fromUtc)
             .OrderByDescending(p => p.StartDate)
             .Select(p => new { p.StartDate, p.Price })
-            .FirstOrDefaultAsync()
+            .Take(2)
+            .ToListAsync()
             .ConfigureAwait(false);
+        if (previouses.Count < 2)
+        {
+            logger.LogError("Can not add spot prices as slice length is not detectable");
+            prices.Clear();
+            return prices;
+        }
+        var sliceLenght = previouses[0].StartDate - previouses[1].StartDate;
 
         var spotPrices = await context.SpotPrices
             .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion &&
@@ -328,27 +337,20 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ToListAsync()
             .ConfigureAwait(false);
 
-        if (previous != default)
-        {
-            spotPrices.Insert(0, previous);
-        }
-
+        spotPrices.Insert(0, previouses.First());
         if (spotPrices.Count == 0)
-            return prices;
-
-        // Build implicit (Start, End) slices where End = next.Start (last is capped to 'toUtc')
-        var slices = new List<(DateTimeOffset Start, DateTimeOffset End, decimal Price)>(spotPrices.Count);
-        for (var i = 0; i < spotPrices.Count; i++)
         {
-            var start = new DateTimeOffset(spotPrices[i].StartDate, TimeSpan.Zero);
-            var end = new DateTimeOffset((i < spotPrices.Count - 1) ? spotPrices[i + 1].StartDate : toUtc, TimeSpan.Zero);
-
-            if (end > start) // guard against duplicates/out-of-order
-                slices.Add((start, end, spotPrices[i].Price));
+            prices.Clear();
+            return prices;
         }
 
-        if (slices.Count == 0)
-            return prices;
+        var slices = new List<(DateTimeOffset Start, DateTimeOffset End, decimal Price)>(spotPrices.Count);
+        foreach (var spotPrice in spotPrices)
+        {
+            var start = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero);
+            var end = start + sliceLenght;
+            slices.Add((start, end, spotPrice.Price));
+        }
 
         var updatedPrices = new List<Price>();
 
