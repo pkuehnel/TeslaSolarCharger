@@ -411,9 +411,17 @@ public class ChargingScheduleService : IChargingScheduleService
 
             var newMinTargetPower = Math.Max(overlappingExistingChargingSchedule.TargetMinPower, dtoChargingSchedule.TargetMinPower);
             var newEstimatedSolarPower = Math.Max(overlappingExistingChargingSchedule.EstimatedSolarPower, dtoChargingSchedule.EstimatedSolarPower);
+            int? newTargetHomeBatteryPower = null;
+            if (dtoChargingSchedule.TargetHomeBatteryPower.HasValue || overlappingExistingChargingSchedule.TargetHomeBatteryPower.HasValue)
+            {
+                newTargetHomeBatteryPower = Math.Max(overlappingExistingChargingSchedule.TargetHomeBatteryPower ?? 0,
+                    dtoChargingSchedule.TargetHomeBatteryPower ?? 0);
+            }
+            
 
             overlappingExistingChargingSchedule.TargetMinPower = newMinTargetPower;
             overlappingExistingChargingSchedule.EstimatedSolarPower = newEstimatedSolarPower;
+            overlappingExistingChargingSchedule.TargetHomeBatteryPower = newTargetHomeBatteryPower;
 
             var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
             var slotAddedEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, addedPower);
