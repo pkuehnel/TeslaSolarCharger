@@ -53,7 +53,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
 
         var calculateMinSoc = await GetDynamicMinSocAtTime(currentDate, homeBatteryUsableEnergy.Value, cancellationToken)
             .ConfigureAwait(false);
-        if (calculateMinSoc != _configurationWrapper.HomeBatteryMinSoc())
+        if (calculateMinSoc.HasValue && calculateMinSoc != _configurationWrapper.HomeBatteryMinSoc())
         {
             var configuration = await _configurationWrapper.GetBaseConfigurationAsync();
             configuration.HomeBatteryMinSoc = calculateMinSoc;
@@ -127,7 +127,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         return estimatedSoc;
     }
 
-    private async Task<int> GetDynamicMinSocAtTime(DateTimeOffset targetTime,
+    private async Task<int?> GetDynamicMinSocAtTime(DateTimeOffset targetTime,
         int homeBatteryUsableEnergy, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({targetTime}, {homeBatteryUsableEnergy})", nameof(GetDynamicMinSocAtTime), targetTime,
@@ -141,7 +141,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         {
             _logger.LogWarning("Could not calculate sunset for current date {targetTime}. Using configured home battery min soc.",
                 targetTime);
-            return 0;
+            return null;
         }
 
         var nextSunrise = _sunCalculator.NextSunrise(homeGeofenceLatitude, homeGeofenceLongitude, targetTime,
@@ -150,7 +150,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         {
             _logger.LogWarning("Could not calculate sunrise for current date {targetTime}. Using configured home battery min soc.",
                 targetTime);
-            return 0;
+            return null;
         }
 
         _settings.NextSunEvent = nextSunrise < nextSunset ? NextSunEvent.Sunrise : NextSunEvent.Sunset;

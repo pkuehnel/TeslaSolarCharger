@@ -542,7 +542,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (unfulFilledChargingTargets.Count < 1)
             {
                 _logger.LogDebug("No charging targets found for car {carId}.", carId);
-                return new();
+                continue;
             }
             var lastPluggedIn = car.PluggedIn.Value == true ? (car.PluggedIn.LastChanged ?? currentDate) : currentDate;
             foreach (var carChargingTarget in unfulFilledChargingTargets)
