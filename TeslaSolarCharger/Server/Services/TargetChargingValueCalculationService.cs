@@ -76,10 +76,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
 
 
         foreach (var loadPoint in targetChargingValues
-                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.TargetMinPower > 0))
+                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && (c.TargetMinPower > 0 || c.TargetHomeBatteryPower > 0)))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
         {
-            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.TargetMinPower > 0);
+            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && (c.TargetMinPower > 0 || c.TargetHomeBatteryPower > 0));
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
