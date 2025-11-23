@@ -111,6 +111,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var predictionInterval = TimeSpan.FromHours(1);
         var currentNextFullHour = currentTime.NextFullHour();
         var futureFullHour = new DateTimeOffset(futureTime.Year, futureTime.Month, futureTime.Day, futureTime.Hour, 0, 0, TimeSpan.Zero);
+        futureFullHour = futureFullHour.AddHours(1);
 
         var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(
             currentNextFullHour,
