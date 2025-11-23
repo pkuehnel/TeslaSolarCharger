@@ -19,7 +19,9 @@ public class DtoChargingSchedule : ValidFromToBase
     public int TargetMinPower { get; set; }
     public int? TargetHomeBatteryPower { get; set; }
     public int EstimatedSolarPower { get; set; }
-    private int MaxPossiblePower { get; init; }
+    //Needs to be public for ValidFromToSplitter which clones properties
+    // ReSharper disable once MemberCanBePrivate.Global
+    public int MaxPossiblePower { get; set; }
 
     public int EstimatedChargingPower
     {

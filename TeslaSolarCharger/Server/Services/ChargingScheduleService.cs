@@ -235,11 +235,11 @@ public class ChargingScheduleService : IChargingScheduleService
         var chargingSwitchCosts = _configurationWrapper.ChargingSwitchCosts();
         //Do not use car is charging here as also when it is preconditioning switching already happend
         var isCurrentlyCharging = loadpoint.ChargingPower > 0;
-        var remainingEnergyToCoverFromGrid = minimumEnergyToCharge;
         var chargePricesIncludingSchedules = new Dictionary<int, (decimal chargeCost, List<DtoChargingSchedule> chargingSchedules)>();
 
         for (var startWithXCheapestPrice = 0; startWithXCheapestPrice < splittedGridPrices.Count; startWithXCheapestPrice++)
         {
+            var remainingEnergyToCoverFromGrid = minimumEnergyToCharge;
             var serializedSchedules = JsonConvert.SerializeObject(schedules);
             var loopChargingSchedules = JsonConvert.DeserializeObject<List<DtoChargingSchedule>>(serializedSchedules);
             if (loopChargingSchedules == default)
