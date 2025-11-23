@@ -434,11 +434,11 @@ public class ChargingScheduleService : IChargingScheduleService
                 var hoursToReduce = (slotAddedEnergy - energyToAdd1) / (double)dtoChargingSchedule.EstimatedChargingPower;
                 if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                 {
-                    dtoChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
+                    overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                 }
                 else if (splittedExistingChargingSchedules.Any(s => s.ValidFrom == dtoChargingSchedule.ValidTo))
                 {
-                    dtoChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
+                    overlappingExistingChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
                 }
                 // Need to reduce the power increase to stay within limit
                 var timeSpan = dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom;
