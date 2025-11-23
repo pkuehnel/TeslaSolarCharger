@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -206,11 +205,6 @@ public class ChargingScheduleService : IChargingScheduleService
                         }
                     }
                 }
-            }
-
-            if (minimumEnergyToCharge <= 0)
-            {
-                return schedules;
             }
 
             schedules = await AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, minimumEnergyToCharge, maxPower);
@@ -450,13 +444,6 @@ public class ChargingScheduleService : IChargingScheduleService
             }
         }
         return (splittedExistingChargingSchedules, additionalScheduledEnergy);
-    }
-
-    private enum EnergyCutOffType
-    {
-        Start,
-        End,
-        ReducePower,
     }
 
     private int GetRemainingEnergyToCharge(DateTimeOffset currentDate, List<DtoChargingSchedule> schedules,
