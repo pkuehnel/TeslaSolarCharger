@@ -118,7 +118,7 @@ public class ChargingScheduleService : IChargingScheduleService
             {
                 _logger.LogDebug("Next target {@nextTarget} is in the past. Plan charging immediatly.", nextTarget);
                 var startDate = currentDate;
-                while (minimumEnergyToCharge > 0)
+                while (minimumEnergyToCharge > 100)
                 {
                     var chargingDuration = CalculateChargingDuration(minimumEnergyToCharge, maxPower);
                     var validToDate = startDate + chargingDuration;
@@ -179,7 +179,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     _logger.LogTrace("Available discharge power: {availableDischargePower}W", availableDischargePower);
                     if (availableDischargePower > 0)
                     {
-                        while (homeBatteryEnergyToCharge > 0)
+                        while (homeBatteryEnergyToCharge > 100)
                         {
                             var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);
                             var scheduleEnd = nextTarget.NextExecutionTime;
