@@ -1,5 +1,4 @@
-﻿using TeslaSolarCharger.Server.Dtos;
-using TeslaSolarCharger.Server.Services.Contracts;
+﻿using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -14,29 +13,21 @@ public class ValidFromToSplitter : IValidFromToSplitter
     }
 
     /// <summary>
-    /// Splits the specified left and right item lists into segments based on all unique boundary dates within the given
-    /// date range.
+    /// Overload: returns segments inside [startDate, endDate] split by boundaries,
+    /// PLUS all values outside the boundaries (unchanged except where they cross a boundary,
+    /// in which case they are cut exactly at the boundary).
     /// </summary>
-    /// <remarks>Boundary dates are determined by combining startDate, endDate, and all ValidFrom/ValidTo
-    /// values from both item lists that fall within the specified range. Each segment represents a time interval
-    /// between consecutive boundary dates, and only items whose validity covers the entire segment are included. The
-    /// returned lists preserve the order of segments as determined by the sorted boundary dates.</remarks>
-    /// <typeparam name="TLeft">The type of items in the left list. Must inherit from ValidFromToBase and have a parameterless constructor.</typeparam>
-    /// <typeparam name="TRight">The type of items in the right list. Must inherit from ValidFromToBase and have a parameterless constructor.</typeparam>
-    /// <param name="leftItems">The list of left items to be segmented. Each item must have valid date boundaries defined by ValidFrom and
-    /// ValidTo.</param>
-    /// <param name="rightItems">The list of right items to be segmented. Each item must have valid date boundaries defined by ValidFrom and
-    /// ValidTo.</param>
-    /// <param name="startDate">The start of the date range for segmentation. Must be less than or equal to endDate.</param>
-    /// <param name="endDate">The end of the date range for segmentation. Must be greater than or equal to startDate.</param>
-    /// <returns>A tuple containing two lists: SplitLeft and SplitRight. Each list contains segments of the original items, split
-    /// by all unique boundary dates within the specified range. If no segments are found, the lists will be empty.</returns>
-    /// <exception cref="ArgumentException">Thrown when startDate is greater than endDate.</exception>
-    public (List<TLeft> SplitLeft, List<TRight> SplitRight) SplitByBoundaries<TLeft, TRight>(List<TLeft> leftItems, List<TRight> rightItems, DateTimeOffset startDate, DateTimeOffset endDate)
+    public (List<TLeft> SplitLeft, List<TRight> SplitRight) SplitByBoundaries<TLeft, TRight>(
+        List<TLeft> leftItems,
+        List<TRight> rightItems,
+        DateTimeOffset startDate,
+        DateTimeOffset endDate,
+        bool includeOuterSegments)
         where TLeft : ValidFromToBase, new()
         where TRight : ValidFromToBase, new()
     {
         _logger.LogTrace("{method}()", nameof(SplitByBoundaries));
+
         if (startDate > endDate)
         {
             throw new ArgumentException(
@@ -44,16 +35,19 @@ public class ValidFromToSplitter : IValidFromToSplitter
                 nameof(startDate)
             );
         }
-        
+
         var splitLeft = new List<TLeft>();
         var splitRight = new List<TRight>();
+
+        // --- inner segmentation as before (only inside [startDate, endDate]) ---
+
         var boundaryTimes = new[]
             {
-                startDate,
-                endDate,
-            }
-            .Concat(leftItems.SelectMany(item => new[] { item.ValidFrom, item.ValidTo, }))
-            .Concat(rightItems.SelectMany(item => new[] { item.ValidFrom, item.ValidTo, }))
+            startDate,
+            endDate,
+        }
+            .Concat(leftItems.SelectMany(item => new[] { item.ValidFrom, item.ValidTo }))
+            .Concat(rightItems.SelectMany(item => new[] { item.ValidFrom, item.ValidTo }))
             .Where(time => time >= startDate && time <= endDate)
             .Distinct()
             .OrderBy(time => time)
@@ -97,10 +91,75 @@ public class ValidFromToSplitter : IValidFromToSplitter
             }
         }
 
+        if (!includeOuterSegments)
+        {
+            return (splitLeft, splitRight);
+        }
+
+        // --- add segments outside [startDate, endDate] ---
+
+        void AddOuterSegments<T>(List<T> sourceItems, List<T> target)
+            where T : ValidFromToBase, new()
+        {
+            foreach (var item in sourceItems)
+            {
+                // Entirely before or entirely after -> return as is
+                if (item.ValidTo <= startDate || item.ValidFrom >= endDate)
+                {
+                    var clone = new T
+                    {
+                        ValidFrom = item.ValidFrom,
+                        ValidTo = item.ValidTo,
+                    };
+                    CopyOtherProperties(item, clone);
+                    target.Add(clone);
+                    continue;
+                }
+
+                // Part before the start boundary
+                if (item.ValidFrom < startDate)
+                {
+                    var before = new T
+                    {
+                        ValidFrom = item.ValidFrom,
+                        ValidTo = startDate,
+                    };
+                    CopyOtherProperties(item, before);
+                    target.Add(before);
+                }
+
+                // Part after the end boundary
+                if (item.ValidTo > endDate)
+                {
+                    var after = new T
+                    {
+                        ValidFrom = endDate,
+                        ValidTo = item.ValidTo,
+                    };
+                    CopyOtherProperties(item, after);
+                    target.Add(after);
+                }
+            }
+        }
+
+        AddOuterSegments(leftItems, splitLeft);
+        AddOuterSegments(rightItems, splitRight);
+
+        // Optional: keep overall result ordered by time
+        splitLeft = splitLeft
+            .OrderBy(x => x.ValidFrom)
+            .ThenBy(x => x.ValidTo)
+            .ToList();
+
+        splitRight = splitRight
+            .OrderBy(x => x.ValidFrom)
+            .ThenBy(x => x.ValidTo)
+            .ToList();
+
         return (splitLeft, splitRight);
     }
 
-    // Shallow‐copies all properties except StartTime/EndTime
+    // Shallow‐copies all properties except ValidFrom/ValidTo
     private void CopyOtherProperties<T>(T source, T target)
     {
         var props = typeof(T)

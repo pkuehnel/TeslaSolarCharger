@@ -226,7 +226,7 @@ public class ChargingScheduleService : IChargingScheduleService
         }
 
         (var splittedGridPrices, schedules) =
-            _validFromToSplitter.SplitByBoundaries(electricityPrices, schedules, currentDate, nextTarget.NextExecutionTime);
+            _validFromToSplitter.SplitByBoundaries(electricityPrices, schedules, currentDate, nextTarget.NextExecutionTime, false);
         var chargingSwitchCosts = _configurationWrapper.ChargingSwitchCosts();
         //Do not use car is charging here as also when it is preconditioning switching already happend
         var isCurrentlyCharging = loadpoint.ChargingPower > 0;
@@ -371,7 +371,8 @@ public class ChargingScheduleService : IChargingScheduleService
         var newScheduleDummyList = new List<DtoChargingSchedule>();
         newScheduleDummyList.Add(newChargingSchedule);
         var (splittedNewChedules, splittedExistingChargingSchedules)
-            = _validFromToSplitter.SplitByBoundaries(newScheduleDummyList, existingSchedules, newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo);
+            = _validFromToSplitter.SplitByBoundaries(newScheduleDummyList, existingSchedules,
+                newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
 
         foreach (var dtoChargingSchedule in splittedNewChedules)
         {
