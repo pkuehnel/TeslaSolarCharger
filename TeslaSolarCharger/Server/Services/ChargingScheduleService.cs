@@ -133,6 +133,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     startDate = new(validToDate.Year, validToDate.Month, validToDate.Day, validToDate.Hour,
                         validToDate.Minute, validToDate.Second, validToDate.Offset);
                 }
+                return schedules;
             }
 
             if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
