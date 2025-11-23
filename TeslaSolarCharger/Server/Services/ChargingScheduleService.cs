@@ -91,7 +91,7 @@ public class ChargingScheduleService : IChargingScheduleService
             }
             var minimumEnergyToCharge = GetMinimumEnergyToCharge(currentDate, nextTarget, car, carUsableEnergy, schedules);
             var homeBatteryEnergyToCharge = 0;
-            if (minimumEnergyToCharge == 0)
+            if (nextTarget.DischargeHomeBatteryToMinSoc)
             {
                 if (_settings.HomeBatterySoc != default)
                 {
@@ -105,7 +105,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     }
                 }
 
-                if (homeBatteryEnergyToCharge < 1)
+                if (homeBatteryEnergyToCharge < 1 && minimumEnergyToCharge == 0)
                 {
                     _logger.LogDebug("No energy to charge calculated for car {carId}. Do not plan charging schedule.", car.Id);
                     continue;
