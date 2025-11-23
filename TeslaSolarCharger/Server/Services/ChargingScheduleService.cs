@@ -127,6 +127,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     {
                         ValidFrom = startDate,
                         ValidTo = validToDate,
+                        TargetMinPower = maxPower,
                     };
                     (schedules, var additionalScheduledEnergy) = AddChargingSchedule(schedules, chargingScheduleToAdd, maxPower, minimumEnergyToCharge);
                     minimumEnergyToCharge -= additionalScheduledEnergy;
