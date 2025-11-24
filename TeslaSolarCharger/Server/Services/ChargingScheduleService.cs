@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
@@ -286,7 +286,8 @@ public class ChargingScheduleService : IChargingScheduleService
         //Do not use car is charging here as also when it is preconditioning switching already happend
         var isCurrentlyCharging = loadpoint.ChargingPower > 0;
         _logger.LogTrace("Is currently charging at loadpoint {carId}_{connectorId}: {isCurrentlyCharging}, currentChargingPower={chargingPower}", loadpoint.CarId, loadpoint.ChargingConnectorId, isCurrentlyCharging, loadpoint.ChargingPower);
-        var chargePricesIncludingSchedules = new Dictionary<int, (decimal chargeCost, List<DtoChargingSchedule> chargingSchedules)>();
+        // CHANGED: Value tuple now includes 'int remainingEnergy' to track if the schedule was fulfilled
+        var chargePricesIncludingSchedules = new Dictionary<int, (decimal chargeCost, List<DtoChargingSchedule> chargingSchedules, int remainingEnergy)>();
 
         for (var startWithXCheapestPrice = 0; startWithXCheapestPrice < splittedGridPrices.Count; startWithXCheapestPrice++)
         {
@@ -316,6 +317,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 if (cheapestPrice == default)
                 {
                     _logger.LogDebug("No more grid price slots available for scheduling with startWithXCheapestPrice={startWithXCheapestPrice}. RemainingEnergyToCoverFromGrid={remainingEnergyToCoverFromGrid}", startWithXCheapestPrice, remainingEnergyToCoverFromGrid);
+                    // Break the loop; we will handle the deficit (overflow) after selecting the best option
                     break;
                 }
 
@@ -334,10 +336,51 @@ public class ChargingScheduleService : IChargingScheduleService
                 _logger.LogTrace("Updated grid charging costs: added={additionalCosts}, total={chargingCosts}, remainingEnergyToCoverFromGrid={remainingEnergyToCoverFromGrid}", additionalCosts, chargingCosts, remainingEnergyToCoverFromGrid);
             }
             _logger.LogTrace("Finished evaluation for startWithXCheapestPrice={startWithXCheapestPrice}. TotalChargingCosts={chargingCosts}, resultingSchedulesCount={loopScheduleCount}", startWithXCheapestPrice, chargingCosts, loopChargingSchedules.Count);
-            chargePricesIncludingSchedules[startWithXCheapestPrice] = (chargingCosts, loopChargingSchedules);
+            // CHANGED: Store remainingEnergyToCoverFromGrid in the dictionary
+            chargePricesIncludingSchedules[startWithXCheapestPrice] = (chargingCosts, loopChargingSchedules, remainingEnergyToCoverFromGrid);
         }
+
         _logger.LogTrace("Completed evaluation of all grid schedule options. Option count={optionCount}", chargePricesIncludingSchedules.Count);
-        schedules = chargePricesIncludingSchedules.OrderBy(c => c.Value.chargeCost).FirstOrDefault().Value.chargingSchedules;
+
+        // CHANGED: Select the best option and check for remaining energy
+        var bestOption = chargePricesIncludingSchedules.OrderBy(c => c.Value.chargeCost).FirstOrDefault().Value;
+        schedules = bestOption.chargingSchedules;
+        var finalRemainingEnergy = bestOption.remainingEnergy;
+
+        // FIX: If there is still energy to charge after optimizing available grid slots, schedule it immediately after NextExecutionTime
+        if (finalRemainingEnergy > 100)
+        {
+            _logger.LogWarning("Time window until {nextExecutionTime} was insufficient to charge required energy. Scheduling remaining {remaining}Wh after target time.", nextTarget.NextExecutionTime, finalRemainingEnergy);
+
+            var overflowStartDate = nextTarget.NextExecutionTime;
+
+            // Ensure we don't start in the past if NextExecutionTime is weirdly configured, though main logic prevents this usually
+            if (overflowStartDate < currentDate)
+                overflowStartDate = currentDate;
+
+            while (finalRemainingEnergy > 100)
+            {
+                var chargingDuration = CalculateChargingDuration(finalRemainingEnergy, maxPower);
+                var validToDate = overflowStartDate + chargingDuration;
+
+                var overflowSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower)
+                {
+                    ValidFrom = overflowStartDate,
+                    ValidTo = validToDate,
+                    TargetMinPower = maxPower
+                };
+
+                (schedules, var addedEnergy) = AddChargingSchedule(schedules, overflowSchedule, maxPower, finalRemainingEnergy);
+
+                _logger.LogTrace("Added overflow schedule: ValidFrom={validFrom}, ValidTo={validTo}, AddedEnergy={addedEnergy}", overflowStartDate, validToDate, addedEnergy);
+
+                finalRemainingEnergy -= addedEnergy;
+
+                // Advance start date in case AddChargingSchedule split the schedule or we need multiple iterations (unlikely with simple duration calc, but safe)
+                overflowStartDate = new DateTimeOffset(validToDate.Year, validToDate.Month, validToDate.Day, validToDate.Hour, validToDate.Minute, validToDate.Second, validToDate.Offset);
+            }
+        }
+
         _logger.LogTrace("Selected optimal grid schedules option. Final schedule count={scheduleCount}", schedules.Count);
         return schedules;
     }
