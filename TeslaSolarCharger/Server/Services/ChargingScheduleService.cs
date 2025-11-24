@@ -468,7 +468,7 @@ public class ChargingScheduleService : IChargingScheduleService
                         dtoChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                         _logger.LogTrace("Adjusted dtoChargingSchedule.ValidTo to {validTo}", dtoChargingSchedule.ValidTo);
                     }
-                    else if (splittedExistingChargingSchedules.Any(s => s.ValidFrom == dtoChargingSchedule.ValidTo))
+                    else
                     {
                         dtoChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
                         _logger.LogTrace("Adjusted dtoChargingSchedule.ValidFrom to {validFrom}", dtoChargingSchedule.ValidFrom);
