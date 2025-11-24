@@ -121,7 +121,7 @@ public class ChargingScheduleService : IChargingScheduleService
             }
 
             var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
-            _logger.LogTrace("Max charging power for car {carId} at loadpoint {carId}_{connectorId}: {maxPower}W", car.Id, loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower);
+            _logger.LogTrace("Max charging power at loadpoint {carId}_{connectorId}: {maxPower}W", loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower);
             //Target was not reached in time so schedule full power until target is reached
             if (nextTarget.NextExecutionTime < currentDate)
             {
@@ -249,6 +249,13 @@ public class ChargingScheduleService : IChargingScheduleService
             }
 
             schedules = await AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, minimumEnergyToCharge, maxPower);
+            if (minPhases != default && minCurrent != default)
+            {
+                var minChargingPower = GetPowerAtPhasesAndCurrent(minPhases.Value, minCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
+                var isCurrentlyCharging = loadpoint.ChargingPower > 0;
+
+                schedules = OptimizeChargingSchedules(schedules, currentDate, isCurrentlyCharging, minChargingPower);
+            }
             _logger.LogTrace("Schedules after AppendOptimalGridSchedules for target {@target}: {scheduleCount} schedules.", nextTarget, schedules.Count);
         }
         _logger.LogTrace("Finished GenerateChargingSchedulesForLoadPoint for loadpoint {carId}_{connectorId}. Total schedules: {scheduleCount}", loadpoint.CarId, loadpoint.ChargingConnectorId, schedules.Count);
@@ -259,7 +266,7 @@ public class ChargingScheduleService : IChargingScheduleService
         DtoLoadPointOverview loadpoint,
         List<DtoChargingSchedule> schedules, int minimumEnergyToCharge, int maxPower)
     {
-        _logger.LogTrace("AppendOptimalGridSchedules called for loadpoint {carId}_{connectorId}, carId={carId}, minimumEnergyToCharge={minimumEnergyToCharge}, maxPower={maxPower}, currentDate={currentDate}, nextExecutionTime={nextExecutionTime}", loadpoint.CarId, loadpoint.ChargingConnectorId, loadpoint.CarId, minimumEnergyToCharge, maxPower, currentDate, nextTarget.NextExecutionTime);
+        _logger.LogTrace("AppendOptimalGridSchedules called for loadpoint {carId}_{connectorId}, minimumEnergyToCharge={minimumEnergyToCharge}, maxPower={maxPower}, currentDate={currentDate}, nextExecutionTime={nextExecutionTime}", loadpoint.CarId, loadpoint.ChargingConnectorId, minimumEnergyToCharge, maxPower, currentDate, nextTarget.NextExecutionTime);
         var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
         _logger.LogTrace("Retrieved {priceCount} electricity price slices for grid scheduling between {currentDate} and {nextExecutionTime}", electricityPrices.Count, currentDate, nextTarget.NextExecutionTime);
         var endTimeOrderedElectricityPrices = electricityPrices.OrderBy(p => p.ValidTo).ToList();
@@ -286,7 +293,7 @@ public class ChargingScheduleService : IChargingScheduleService
             _logger.LogTrace("Start evaluating grid schedule option with startWithXCheapestPrice={startWithXCheapestPrice}", startWithXCheapestPrice);
             var remainingEnergyToCoverFromGrid = minimumEnergyToCharge;
             var serializedSchedules = JsonConvert.SerializeObject(schedules);
-            _logger.LogTrace("Serialized base schedules for cloning. Length={length}", serializedSchedules?.Length);
+            _logger.LogTrace("Serialized base schedules for cloning. Length={length}", serializedSchedules.Length);
             var loopChargingSchedules = JsonConvert.DeserializeObject<List<DtoChargingSchedule>>(serializedSchedules);
             if (loopChargingSchedules == default)
             {
@@ -331,8 +338,117 @@ public class ChargingScheduleService : IChargingScheduleService
         }
         _logger.LogTrace("Completed evaluation of all grid schedule options. Option count={optionCount}", chargePricesIncludingSchedules.Count);
         schedules = chargePricesIncludingSchedules.OrderBy(c => c.Value.chargeCost).FirstOrDefault().Value.chargingSchedules;
-        _logger.LogTrace("Selected optimal grid schedules option. Final schedule count={scheduleCount}", schedules?.Count);
+        _logger.LogTrace("Selected optimal grid schedules option. Final schedule count={scheduleCount}", schedules.Count);
         return schedules;
+    }
+
+    private List<DtoChargingSchedule> OptimizeChargingSchedules(List<DtoChargingSchedule> schedules,
+    DateTimeOffset currentDate, bool isCurrentlyCharging, int minChargingPower)
+    {
+        _logger.LogTrace("Starting schedule optimization. Input count: {count}", schedules.Count);
+
+        if (!schedules.Any())
+        {
+            return schedules;
+        }
+
+        // 1. Sort schedules by start time to ensure correct processing
+        var sortedSchedules = schedules.OrderBy(s => s.ValidFrom).ToList();
+        var filledSchedules = new List<DtoChargingSchedule>();
+
+        // 2. Handle Leading Edge (Current Charging)
+        // If the loadpoint is currently charging, we want to bridge the gap from 'now' to the first schedule
+        var maxGapToFill = TimeSpan.FromMinutes(20);
+        if (isCurrentlyCharging)
+        {
+            var firstSchedule = sortedSchedules.First();
+            if (firstSchedule.ValidFrom > currentDate)
+            {
+                var gap = firstSchedule.ValidFrom - currentDate;
+                if (gap <= maxGapToFill && gap > TimeSpan.Zero)
+                {
+                    _logger.LogTrace("Filling leading gap for currently charging loadpoint. Gap: {gap}", gap);
+                    var leadingSchedule = new DtoChargingSchedule(firstSchedule.CarId, firstSchedule.OcppChargingConnectorId, firstSchedule.MaxPossiblePower)
+                    {
+                        ValidFrom = currentDate,
+                        ValidTo = firstSchedule.ValidFrom,
+                        TargetMinPower = minChargingPower,
+                    };
+                    filledSchedules.Add(leadingSchedule);
+                }
+            }
+        }
+
+        // 3. Fill internal gaps <= 20 minutes
+        for (var i = 0; i < sortedSchedules.Count; i++)
+        {
+            filledSchedules.Add(sortedSchedules[i]);
+
+            if (i < sortedSchedules.Count - 1)
+            {
+                var current = sortedSchedules[i];
+                var next = sortedSchedules[i + 1];
+
+                // Ensure we only fill if there is an actual gap (next starts after current ends)
+                if (next.ValidFrom > current.ValidTo)
+                {
+                    var gap = next.ValidFrom - current.ValidTo;
+                    if (gap <= maxGapToFill)
+                    {
+                        _logger.LogTrace("Filling gap between schedules. Gap: {gap}, From: {from}, To: {to}", gap, current.ValidTo, next.ValidFrom);
+                        var fillerSchedule = new DtoChargingSchedule(current.CarId, current.OcppChargingConnectorId, current.MaxPossiblePower)
+                        {
+                            ValidFrom = current.ValidTo,
+                            ValidTo = next.ValidFrom,
+                            TargetMinPower = minChargingPower,
+                        };
+                        filledSchedules.Add(fillerSchedule);
+                    }
+                }
+            }
+        }
+
+        // 4. Merge contiguous schedules with identical power values
+        var mergedSchedules = new List<DtoChargingSchedule>();
+        if (filledSchedules.Any())
+        {
+            var current = filledSchedules[0];
+            for (var i = 1; i < filledSchedules.Count; i++)
+            {
+                var next = filledSchedules[i];
+
+                // Schedules are candidates for merge if they are contiguous (allow for minimal tolerance or exact match)
+                // and possess identical power parameters
+                var isContiguous = current.ValidTo == next.ValidFrom;
+
+                if (isContiguous && AreSchedulesMergeable(current, next))
+                {
+                    // Merge: Extend the current schedule to the end of the next one
+                    _logger.LogTrace("Merging contiguous schedules. Start: {start}, NewEnd: {end}, Power: {power}", current.ValidFrom, next.ValidTo, current.TargetMinPower);
+                    current.ValidTo = next.ValidTo;
+                }
+                else
+                {
+                    mergedSchedules.Add(current);
+                    current = next;
+                }
+            }
+            mergedSchedules.Add(current);
+        }
+
+        _logger.LogTrace("Finished schedule optimization. Output count: {count}", mergedSchedules.Count);
+        return mergedSchedules;
+    }
+
+    private bool AreSchedulesMergeable(DtoChargingSchedule a, DtoChargingSchedule b)
+    {
+        // Check all power-relevant properties and identifiers
+        return a.TargetMinPower == b.TargetMinPower &&
+               a.TargetHomeBatteryPower == b.TargetHomeBatteryPower &&
+               a.EstimatedSolarPower == b.EstimatedSolarPower &&
+               a.MaxPossiblePower == b.MaxPossiblePower &&
+               a.CarId == b.CarId &&
+               a.OcppChargingConnectorId == b.OcppChargingConnectorId;
     }
 
 
