@@ -513,7 +513,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                     _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidTo to {validTo}", overlappingExistingChargingSchedule.ValidTo);
                 }
-                else if (splittedExistingChargingSchedules.Any(s => s.ValidFrom == dtoChargingSchedule.ValidTo))
+                else
                 {
                     overlappingExistingChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
                     _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidFrom to {validFrom}", overlappingExistingChargingSchedule.ValidFrom);
