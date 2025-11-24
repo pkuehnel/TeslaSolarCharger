@@ -424,10 +424,10 @@ public class ChargingScheduleService : IChargingScheduleService
     /// additional scheduled energy in watt-hours. The list reflects any adjustments made to comply with power and
     /// energy constraints.</returns>
     private (List<DtoChargingSchedule> chargingSchedulesAfterPowerAdd, int additionalScheduledEnergy) AddChargingSchedule(
-    List<DtoChargingSchedule> existingSchedules,
-    DtoChargingSchedule newChargingSchedule,
-    int maxChargingPower,
-    int maxEnergyToAdd)
+     List<DtoChargingSchedule> existingSchedules,
+     DtoChargingSchedule newChargingSchedule,
+     int maxChargingPower,
+     int maxEnergyToAdd)
     {
         _logger.LogTrace("{method}({existingChargingSchedules}, {@newChargingSchedule}, {maxChargingPower}, {maxEnergyToAdd})",
             nameof(AddChargingSchedule), existingSchedules, newChargingSchedule, maxChargingPower, maxEnergyToAdd);
@@ -437,19 +437,24 @@ public class ChargingScheduleService : IChargingScheduleService
         var (splittedNewChedules, splittedExistingChargingSchedules)
             = _validFromToSplitter.SplitByBoundaries(newScheduleDummyList, existingSchedules,
                 newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
+        _logger.LogTrace("After SplitByBoundaries: {newCount} new schedules, {existingCount} existing schedules", splittedNewChedules.Count, splittedExistingChargingSchedules.Count);
 
         foreach (var dtoChargingSchedule in splittedNewChedules)
         {
+            _logger.LogTrace("Processing dtoChargingSchedule {@dtoChargingSchedule}", dtoChargingSchedule);
             var overlappingExistingChargingSchedule = splittedExistingChargingSchedules
                 .FirstOrDefault(c => c.ValidFrom == dtoChargingSchedule.ValidFrom
                                      && c.ValidTo == dtoChargingSchedule.ValidTo);
+            _logger.LogTrace("Overlapping schedule {hasOverlap}", overlappingExistingChargingSchedule == default ? "not found" : "found");
             if (overlappingExistingChargingSchedule == default)
             {
                 var slotEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, dtoChargingSchedule.EstimatedChargingPower);
                 var energyToAdd = Math.Min(slotEnergy, maxEnergyToAdd - additionalScheduledEnergy);
+                _logger.LogTrace("No overlap: slotEnergy={slotEnergy}, energyToAdd={energyToAdd}, additionalScheduledEnergy={additionalScheduledEnergy}, maxEnergyToAdd={maxEnergyToAdd}", slotEnergy, energyToAdd, additionalScheduledEnergy, maxEnergyToAdd);
 
                 if (energyToAdd <= 0)
                 {
+                    _logger.LogTrace("Breaking because energyToAdd <= 0 (energyToAdd={energyToAdd})", energyToAdd);
                     break;
                 }
 
@@ -457,22 +462,27 @@ public class ChargingScheduleService : IChargingScheduleService
                 if (energyToAdd < slotEnergy)
                 {
                     var hoursToReduce = (slotEnergy - energyToAdd) / (double)dtoChargingSchedule.EstimatedChargingPower;
+                    _logger.LogTrace("Partial energy in new slot: reducing hours by {hoursToReduce}", hoursToReduce);
                     if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                     {
                         dtoChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
+                        _logger.LogTrace("Adjusted dtoChargingSchedule.ValidTo to {validTo}", dtoChargingSchedule.ValidTo);
                     }
                     else if (splittedExistingChargingSchedules.Any(s => s.ValidFrom == dtoChargingSchedule.ValidTo))
                     {
                         dtoChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
+                        _logger.LogTrace("Adjusted dtoChargingSchedule.ValidFrom to {validFrom}", dtoChargingSchedule.ValidFrom);
                     }
                 }
 
                 splittedExistingChargingSchedules.Add(dtoChargingSchedule);
                 additionalScheduledEnergy += energyToAdd;
+                _logger.LogTrace("Added new schedule, additionalScheduledEnergy now {additionalScheduledEnergy}", additionalScheduledEnergy);
                 continue;
             }
 
             var earlierEstimatedPower = overlappingExistingChargingSchedule.EstimatedChargingPower;
+            _logger.LogTrace("Overlap: earlierEstimatedPower={earlierEstimatedPower}", earlierEstimatedPower);
 
             var newMinTargetPower = Math.Max(overlappingExistingChargingSchedule.TargetMinPower, dtoChargingSchedule.TargetMinPower);
             var newEstimatedSolarPower = Math.Max(overlappingExistingChargingSchedule.EstimatedSolarPower, dtoChargingSchedule.EstimatedSolarPower);
@@ -482,7 +492,8 @@ public class ChargingScheduleService : IChargingScheduleService
                 newTargetHomeBatteryPower = Math.Max(overlappingExistingChargingSchedule.TargetHomeBatteryPower ?? 0,
                     dtoChargingSchedule.TargetHomeBatteryPower ?? 0);
             }
-            
+            _logger.LogTrace("Calculated merged targets: newMinTargetPower={newMinTargetPower}, newEstimatedSolarPower={newEstimatedSolarPower}, newTargetHomeBatteryPower={newTargetHomeBatteryPower}", newMinTargetPower, newEstimatedSolarPower, newTargetHomeBatteryPower);
+
 
             overlappingExistingChargingSchedule.TargetMinPower = newMinTargetPower;
             overlappingExistingChargingSchedule.EstimatedSolarPower = newEstimatedSolarPower;
@@ -491,31 +502,39 @@ public class ChargingScheduleService : IChargingScheduleService
             var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
             var slotAddedEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, addedPower);
             var energyToAdd1 = Math.Min(slotAddedEnergy, maxEnergyToAdd - additionalScheduledEnergy);
+            _logger.LogTrace("Overlap energy: addedPower={addedPower}, slotAddedEnergy={slotAddedEnergy}, energyToAdd1={energyToAdd1}, additionalScheduledEnergy={additionalScheduledEnergy}, maxEnergyToAdd={maxEnergyToAdd}", addedPower, slotAddedEnergy, energyToAdd1, additionalScheduledEnergy, maxEnergyToAdd);
 
             if (energyToAdd1 < slotAddedEnergy && energyToAdd1 > 0)
             {
                 var hoursToReduce = (slotAddedEnergy - energyToAdd1) / (double)dtoChargingSchedule.EstimatedChargingPower;
+                _logger.LogTrace("Partial overlap energy: reducing hours by {hoursToReduce}", hoursToReduce);
                 if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                 {
                     overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
+                    _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidTo to {validTo}", overlappingExistingChargingSchedule.ValidTo);
                 }
                 else if (splittedExistingChargingSchedules.Any(s => s.ValidFrom == dtoChargingSchedule.ValidTo))
                 {
                     overlappingExistingChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
+                    _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidFrom to {validFrom}", overlappingExistingChargingSchedule.ValidFrom);
                 }
                 // Need to reduce the power increase to stay within limit
                 var timeSpan = dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom;
                 var limitedAddedPower = (int)(energyToAdd1 / (timeSpan.TotalHours));
                 overlappingExistingChargingSchedule.TargetMinPower = earlierEstimatedPower + limitedAddedPower;
+                _logger.LogTrace("Limited added power: timeSpan={timeSpan}, limitedAddedPower={limitedAddedPower}, new TargetMinPower={targetMinPower}", timeSpan, limitedAddedPower, overlappingExistingChargingSchedule.TargetMinPower);
             }
 
             additionalScheduledEnergy += energyToAdd1;
+            _logger.LogTrace("After overlap handling, additionalScheduledEnergy={additionalScheduledEnergy}", additionalScheduledEnergy);
 
             if (additionalScheduledEnergy >= maxEnergyToAdd)
             {
+                _logger.LogTrace("Breaking because additionalScheduledEnergy >= maxEnergyToAdd ({additionalScheduledEnergy} >= {maxEnergyToAdd})", additionalScheduledEnergy, maxEnergyToAdd);
                 break; // Reached the limit
             }
         }
+        _logger.LogTrace("Returning from AddChargingSchedule with {scheduleCount} schedules and {additionalScheduledEnergy} additional energy", splittedExistingChargingSchedules.Count, additionalScheduledEnergy);
         return (splittedExistingChargingSchedules, additionalScheduledEnergy);
     }
 
