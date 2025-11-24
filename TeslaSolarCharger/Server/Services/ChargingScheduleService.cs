@@ -264,9 +264,9 @@ public class ChargingScheduleService : IChargingScheduleService
 
     private async Task<List<DtoChargingSchedule>> AppendOptimalGridSchedules(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget,
         DtoLoadPointOverview loadpoint,
-        List<DtoChargingSchedule> schedules, int minimumEnergyToCharge, int maxPower)
+        List<DtoChargingSchedule> schedules, int energyToCharge, int maxPower)
     {
-        _logger.LogTrace("AppendOptimalGridSchedules called for loadpoint {carId}_{connectorId}, minimumEnergyToCharge={minimumEnergyToCharge}, maxPower={maxPower}, currentDate={currentDate}, nextExecutionTime={nextExecutionTime}", loadpoint.CarId, loadpoint.ChargingConnectorId, minimumEnergyToCharge, maxPower, currentDate, nextTarget.NextExecutionTime);
+        _logger.LogTrace("AppendOptimalGridSchedules called for loadpoint {carId}_{connectorId}, energyToCharge={energyToCharge}, maxPower={maxPower}, currentDate={currentDate}, nextExecutionTime={nextExecutionTime}", loadpoint.CarId, loadpoint.ChargingConnectorId, energyToCharge, maxPower, currentDate, nextTarget.NextExecutionTime);
         var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
         _logger.LogTrace("Retrieved {priceCount} electricity price slices for grid scheduling between {currentDate} and {nextExecutionTime}", electricityPrices.Count, currentDate, nextTarget.NextExecutionTime);
         var endTimeOrderedElectricityPrices = electricityPrices.OrderBy(p => p.ValidTo).ToList();
@@ -291,7 +291,7 @@ public class ChargingScheduleService : IChargingScheduleService
         for (var startWithXCheapestPrice = 0; startWithXCheapestPrice < splittedGridPrices.Count; startWithXCheapestPrice++)
         {
             _logger.LogTrace("Start evaluating grid schedule option with startWithXCheapestPrice={startWithXCheapestPrice}", startWithXCheapestPrice);
-            var remainingEnergyToCoverFromGrid = minimumEnergyToCharge;
+            var remainingEnergyToCoverFromGrid = energyToCharge;
             var serializedSchedules = JsonConvert.SerializeObject(schedules);
             _logger.LogTrace("Serialized base schedules for cloning. Length={length}", serializedSchedules.Length);
             var loopChargingSchedules = JsonConvert.DeserializeObject<List<DtoChargingSchedule>>(serializedSchedules);
