@@ -367,7 +367,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 {
                     ValidFrom = overflowStartDate,
                     ValidTo = validToDate,
-                    TargetMinPower = maxPower
+                    TargetMinPower = maxPower,
                 };
 
                 (schedules, var addedEnergy) = AddChargingSchedule(schedules, overflowSchedule, maxPower, finalRemainingEnergy);
@@ -726,6 +726,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     private async Task<(int? UsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? minPhases, int? minCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
     {
+        _logger.LogTrace("{methdod}({carId}, {connectorId})", nameof(GetChargingScheduleRelevantData), carId, chargingConnectorId);
         var connectorData = chargingConnectorId != default
             ? await _context.OcppChargingStationConnectors
                 .Where(c => c.Id == chargingConnectorId)
@@ -763,7 +764,8 @@ public class ChargingScheduleService : IChargingScheduleService
         var minPhases = CalculateMinValue(connectorData?.ConnectedPhasesCount, carPhases);
         var minCurrent = CalculateMinValue(connectorData?.MinCurrent, carData?.MinimumAmpere);
 
-
+        _logger.LogTrace("Result: usableEnergy={usableEnergy}, carSoc={carSoc}, maxPhases={maxPhases}, maxCurrent={maxCurrent}, minPhases={minPhases}, minCurrent={minCurrent}",
+            carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
         return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
     }
 
@@ -837,6 +839,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     private int GetPowerAtPhasesAndCurrent(int phases, decimal current, int? voltage)
     {
+        _logger.LogTrace("{method}({phases}, {current}, {voltage})", nameof(GetPowerAtPhasesAndCurrent), phases, current, voltage);
         return (int)(phases * current * (voltage ?? 230));
     }
 
