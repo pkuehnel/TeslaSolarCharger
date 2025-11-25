@@ -1,4 +1,4 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
@@ -31,13 +31,13 @@
                     <PropertyColumn Property="x => x.ScheduleReasons"
                                     Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ScheduleReasons)))">
                         <CellTemplate>
-                            <div class="row gap-1">
+                            <div class="d-flex flex-row">
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
                                 {
                                     <MudTooltip Text="Enough solar power expected"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="m-1">
                                         <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
                                     </MudTooltip>
                                 }
@@ -46,41 +46,17 @@
                                     <MudTooltip Text="Discharging home battery"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="m-1">
                                         <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
                                     </MudTooltip>
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
                                 {
-                                    <MudTooltip Text="Enough solar power expected"
-                                                Placement="Placement.Top"
-                                                Arrow="true"
-                                                RootClass="col">
-                                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
-                                    </MudTooltip>
-                                    <MudTooltip Text="Discharging home battery"
-                                                Placement="Placement.Top"
-                                                Arrow="true"
-                                                RootClass="col">
-                                        <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
-                                    </MudTooltip>
                                     <MudTooltip Text="Cheap grid price"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="col">
+                                                RootClass="m-1">
                                         <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
-                                    </MudTooltip>
-                                    <MudTooltip Text="Bridge between schedules to reduce charge starts/stops"
-                                                Placement="Placement.Top"
-                                                Arrow="true"
-                                                RootClass="col">
-                                        <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
-                                    </MudTooltip>
-                                    <MudTooltip Text="Latest possible time"
-                                                Placement="Placement.Top"
-                                                Arrow="true"
-                                                RootClass="col">
-                                        <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
                                     </MudTooltip>
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
@@ -88,7 +64,7 @@
                                     <MudTooltip Text="Bridge between schedules to reduce charge starts/stops"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="m-1">
                                         <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
                                     </MudTooltip>
                                 }
@@ -97,7 +73,7 @@
                                     <MudTooltip Text="Latest possible time"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="m-1">
                                         <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
                                     </MudTooltip>
                                 }
