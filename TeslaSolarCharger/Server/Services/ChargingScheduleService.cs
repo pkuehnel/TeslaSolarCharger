@@ -738,6 +738,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     c.ConnectedPhasesCount,
                     c.MaxCurrent,
                     c.MinCurrent,
+                    c.AutoSwitchBetween1And3PhasesEnabled,
                 })
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false)
@@ -763,37 +764,20 @@ public class ChargingScheduleService : IChargingScheduleService
         var carPhases = carData?.CarType == CarType.Tesla ? carSetting?.ActualPhases : carData?.MaximumPhases;
         _logger.LogTrace("CarPhases: {carPhases}", carPhases);
         _logger.LogTrace("Calculate max phases");
-        var maxPhases = CalculateMaxValue(connectorData?.ConnectedPhasesCount, carPhases);
+        var maxPhases = CalculateMinValue(connectorData?.ConnectedPhasesCount, carPhases);
         _logger.LogTrace("Calculate max current");
-        var maxCurrent = CalculateMaxValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
+        var maxCurrent = CalculateMinValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
         _logger.LogTrace("Calculate min phases");
-        var minPhases = CalculateMinValue(connectorData?.ConnectedPhasesCount, carPhases);
+        var connectorMinPhases = connectorData?.AutoSwitchBetween1And3PhasesEnabled == true
+            ? 1
+            : connectorData?.ConnectedPhasesCount;
+        var minPhases = CalculateMinValue(connectorMinPhases, carPhases);
         _logger.LogTrace("Calculate min current");
         var minCurrent = CalculateMinValue(connectorData?.MinCurrent, carData?.MinimumAmpere);
 
         _logger.LogTrace("Result: usableEnergy={usableEnergy}, carSoc={carSoc}, maxPhases={maxPhases}, maxCurrent={maxCurrent}, minPhases={minPhases}, minCurrent={minCurrent}",
             carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
         return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
-    }
-
-    private int? CalculateMaxValue(int? connectorValue, int? carValue)
-    {
-        // If one is null, the HasValue check and Math.Max/Min are the cleanest approach.
-
-        if (connectorValue.HasValue && carValue.HasValue)
-        {
-            // Both have values, return the greater one.
-            return Math.Max(connectorValue.Value, carValue.Value);
-        }
-
-        if (connectorValue.HasValue)
-        {
-            // Only connector has value.
-            return connectorValue;
-        }
-
-        // Only carValue has value, or both are null.
-        return carValue;
     }
 
     private int? CalculateMinValue(int? connectorValue, int? carValue)
