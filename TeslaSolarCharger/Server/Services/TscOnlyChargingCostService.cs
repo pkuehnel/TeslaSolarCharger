@@ -337,9 +337,11 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ToListAsync()
             .ConfigureAwait(false);
 
-        spotPrices.Insert(0, previouses.First());
+        logger.LogTrace("Found {count} spot prices", spotPrices.Count);
+        spotPrices.Insert(0, previouses.Skip(1).First());
         if (spotPrices.Count == 0)
         {
+            logger.LogTrace("No spot prices found in given time range {from} - {to}", from, to);
             prices.Clear();
             return prices;
         }
@@ -349,6 +351,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         {
             var start = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero);
             var end = start + sliceLenght;
+            logger.LogTrace("Add slice with start {start}, end {end} and price {price}", start, end, spotPrice.Price);
             slices.Add((start, end, spotPrice.Price));
         }
 
@@ -356,6 +359,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
         foreach (var price in prices.OrderBy(p => p.ValidFrom))
         {
+            logger.LogTrace("Add spot prices for price which is valid from {ValidFrom} to {validTo}", price.ValidFrom, price.ValidTo);
             // Only consider slices that overlap the price window
             var relevant = slices
                 .Where(s => s.End > price.ValidFrom && s.Start < price.ValidTo)
@@ -364,6 +368,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             if (relevant.Count == 0)
             {
+                logger.LogTrace("Did not find andy relevant spot price");
                 updatedPrices.Add(price);
                 continue;
             }
@@ -372,6 +377,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             foreach (var (spotStart, spotEnd, price1) in relevant)
             {
+                logger.LogTrace("Handling spot price valid from {from} to {to} and cursor {cursor}", spotStart, spotEnd, cursor);
                 if (cursor >= price.ValidTo) break;
 
                 // gap before spot starts
