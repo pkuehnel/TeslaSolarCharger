@@ -423,7 +423,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 });
             }
         }
-
+        logger.LogTrace("Return updates prices {@updatedPrices}", updatedPrices);
         return updatedPrices.OrderBy(p => p.ValidFrom).ToList();
     }
 
