@@ -774,40 +774,42 @@ public class ChargingScheduleService : IChargingScheduleService
         return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
     }
 
-    private int? CalculateMaxValue(
-        int? connectorValue,
-        int? carValue)
+    private int? CalculateMaxValue(int? connectorValue, int? carValue)
     {
-        _logger.LogTrace("{method}({connectorValue}, {chargerValue})", nameof(CalculateMaxValue), connectorValue, carValue);
-        if (connectorValue == default)
+        // If one is null, the HasValue check and Math.Max/Min are the cleanest approach.
+
+        if (connectorValue.HasValue && carValue.HasValue)
         {
-            return carValue;
+            // Both have values, return the greater one.
+            return Math.Max(connectorValue.Value, carValue.Value);
         }
 
-        if (carValue != default && carValue < connectorValue)
+        if (connectorValue.HasValue)
         {
-            return carValue;
+            // Only connector has value.
+            return connectorValue;
         }
 
-        return connectorValue;
+        // Only carValue has value, or both are null.
+        return carValue;
     }
 
-    private int? CalculateMinValue(
-        int? connectorValue,
-        int? carValue)
+    private int? CalculateMinValue(int? connectorValue, int? carValue)
     {
-        _logger.LogTrace("{method}({connectorValue}, {chargerValue})", nameof(CalculateMinValue), connectorValue, carValue);
-        if (connectorValue == default)
+        if (connectorValue.HasValue && carValue.HasValue)
         {
-            return carValue;
+            // Both have values, return the smaller one.
+            return Math.Min(connectorValue.Value, carValue.Value);
         }
 
-        if (carValue != default && carValue > connectorValue)
+        if (connectorValue.HasValue)
         {
-            return carValue;
+            // Only connector has value.
+            return connectorValue;
         }
 
-        return connectorValue;
+        // Only carValue has value, or both are null.
+        return carValue;
     }
 
 
