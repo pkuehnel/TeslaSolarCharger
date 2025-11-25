@@ -31,53 +31,77 @@
                     <PropertyColumn Property="x => x.ScheduleReasons"
                                     Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ScheduleReasons)))">
                         <CellTemplate>
-                                <div class="d-grid gap-1">
-                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
-                                    {
-                                        <MudTooltip Text="Enough solar power expected"
-                                                    Placement="Placement.Top"
-                                                    Arrow="true"
-                                                    RootClass="@string.Empty">
-                                            <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
-                                        </MudTooltip>
-                                    }
-                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.HomeBatteryDischarging))
-                                    {
+                            <div class="d-grid gap-1">
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
+                                {
+                                    <MudTooltip Text="Enough solar power expected"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="@string.Empty">
+                                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
+                                    </MudTooltip>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.HomeBatteryDischarging))
+                                {
                                     <MudTooltip Text="Discharging home battery"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="@string.Empty">
                                         <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
                                     </MudTooltip>
-                                    }
-                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
-                                    {
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
+                                {
+                                    <MudTooltip Text="Enough solar power expected"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="@string.Empty">
+                                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Discharging home battery"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="@string.Empty">
+                                        <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
+                                    </MudTooltip>
                                     <MudTooltip Text="Cheap grid price"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="@string.Empty">
                                         <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
                                     </MudTooltip>
-                                    }
-                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
-                                    {
                                     <MudTooltip Text="Bridge between schedules to reduce charge starts/stops"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="@string.Empty">
                                         <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
                                     </MudTooltip>
-                                    }
-                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.LatestPossibleTime))
-                                    {
                                     <MudTooltip Text="Latest possible time"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="@string.Empty">
                                         <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
                                     </MudTooltip>
-                                    }
-                                </div>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
+                                {
+                                    <MudTooltip Text="Bridge between schedules to reduce charge starts/stops"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="@string.Empty">
+                                        <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
+                                    </MudTooltip>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.LatestPossibleTime))
+                                {
+                                    <MudTooltip Text="Latest possible time"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="@string.Empty">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
+                                    </MudTooltip>
+                                }
+                            </div>
 
                         </CellTemplate>
                     </PropertyColumn>
