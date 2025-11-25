@@ -274,7 +274,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
     public async Task<List<Price>> GetPricesInTimeSpan(DateTimeOffset from, DateTimeOffset to)
     {
-        logger.LogTrace("{method}({from}, {to})", nameof(GetGridPricesInTimeSpan), from, to);
+        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
         var prices = await GetGridPricesInTimeSpan(from.ToUniversalTime().DateTime, to.ToUniversalTime().DateTime).ConfigureAwait(false);
         return prices;
     }
@@ -338,7 +338,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ConfigureAwait(false);
 
         logger.LogTrace("Found {count} spot prices", spotPrices.Count);
-        spotPrices.Insert(0, previouses.Skip(1).First());
+        //need the first as it is ordered descending, so first is the last before
+        spotPrices.Insert(0, previouses.First());
         if (spotPrices.Count == 0)
         {
             logger.LogTrace("No spot prices found in given time range {from} - {to}", from, to);
