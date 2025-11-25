@@ -31,7 +31,7 @@
                     <PropertyColumn Property="x => x.ScheduleReasons"
                                     Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ScheduleReasons)))">
                         <CellTemplate>
-                            <div class="d-grid gap-1">
+                            <div class="row gap-1">
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
                                 {
                                     <MudTooltip Text="Enough solar power expected"
@@ -55,31 +55,31 @@
                                     <MudTooltip Text="Enough solar power expected"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="col">
                                         <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
                                     </MudTooltip>
                                     <MudTooltip Text="Discharging home battery"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="col">
                                         <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
                                     </MudTooltip>
                                     <MudTooltip Text="Cheap grid price"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="col">
                                         <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
                                     </MudTooltip>
                                     <MudTooltip Text="Bridge between schedules to reduce charge starts/stops"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="col">
                                         <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
                                     </MudTooltip>
                                     <MudTooltip Text="Latest possible time"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
-                                                RootClass="@string.Empty">
+                                                RootClass="col">
                                         <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
                                     </MudTooltip>
                                 }
