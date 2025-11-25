@@ -28,6 +28,37 @@
                              Hover="true" Dense="true" Striped="true" Breakpoint="Breakpoint.Sm"
                              Loading="@(_elements == null)">
                     <Columns>
+                    <PropertyColumn Property="x => x.ScheduleReasons"
+                                    Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ScheduleReasons)))">
+                        <CellTemplate>
+                            <MudTooltip Text="Test"
+                                        Placement="Placement.Top"
+                                        Arrow="true">
+                                <div class="d-grid gap-1">
+                                    @if(context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
+                                    }
+                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.HomeBatteryDischarging))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
+                                    }
+                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
+                                    }
+                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
+                                    }
+                                    @if (context.Item.ScheduleReasons.Contains(ScheduleReason.LatestPossibleTime))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
+                                    }
+                                </div>
+                            </MudTooltip>
+                        </CellTemplate>
+                    </PropertyColumn>
                         <PropertyColumn Property="x => x.ValidFrom"
                                         Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom)))">
                             <CellTemplate>
@@ -43,7 +74,7 @@
                         <PropertyColumn Property="x => x.EstimatedChargingPower"
                                         Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.EstimatedChargingPower)))">
                             <CellTemplate>
-                            @(context.Item.EstimatedChargingPower.ToString("N0"))W
+                                @(context.Item.EstimatedChargingPower.ToString("N0"))W
                             </CellTemplate>
                         </PropertyColumn>
                     </Columns>
