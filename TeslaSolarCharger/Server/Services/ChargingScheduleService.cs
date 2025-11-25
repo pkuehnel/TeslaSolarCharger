@@ -759,10 +759,14 @@ public class ChargingScheduleService : IChargingScheduleService
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
         var carSoC = carSetting?.SoC.Value;
         var carPhases = carData?.CarType == CarType.Tesla ? carSetting?.ActualPhases : carData?.MaximumPhases;
-
+        _logger.LogTrace("CarPhases: {carPhases}", carPhases);
+        _logger.LogTrace("Calculate max phases");
         var maxPhases = CalculateMaxValue(connectorData?.ConnectedPhasesCount, carPhases);
+        _logger.LogTrace("Calculate max current");
         var maxCurrent = CalculateMaxValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
+        _logger.LogTrace("Calculate min phases");
         var minPhases = CalculateMinValue(connectorData?.ConnectedPhasesCount, carPhases);
+        _logger.LogTrace("Calculate min current");
         var minCurrent = CalculateMinValue(connectorData?.MinCurrent, carData?.MinimumAmpere);
 
         _logger.LogTrace("Result: usableEnergy={usableEnergy}, carSoc={carSoc}, maxPhases={maxPhases}, maxCurrent={maxCurrent}, minPhases={minPhases}, minCurrent={minCurrent}",
@@ -774,6 +778,7 @@ public class ChargingScheduleService : IChargingScheduleService
         int? connectorValue,
         int? carValue)
     {
+        _logger.LogTrace("{method}({connectorValue}, {chargerValue})", nameof(CalculateMaxValue), connectorValue, carValue);
         if (connectorValue == default)
         {
             return carValue;
@@ -791,6 +796,7 @@ public class ChargingScheduleService : IChargingScheduleService
         int? connectorValue,
         int? carValue)
     {
+        _logger.LogTrace("{method}({connectorValue}, {chargerValue})", nameof(CalculateMinValue), connectorValue, carValue);
         if (connectorValue == default)
         {
             return carValue;
