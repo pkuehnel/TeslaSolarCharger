@@ -2,11 +2,12 @@
 
 public class DtoChargingSchedule : ValidFromToBase
 {
-    public DtoChargingSchedule(int? carId, int? ocppChargingConnectorId, int maxPossiblePower)
+    public DtoChargingSchedule(int? carId, int? ocppChargingConnectorId, int maxPossiblePower, HashSet<ScheduleReason> scheduleReasons)
     {
         CarId = carId;
         OcppChargingConnectorId = ocppChargingConnectorId;
         MaxPossiblePower = maxPossiblePower;
+        ScheduleReasons = scheduleReasons;
     }
 
     //Required for ValidFromToSplitter
@@ -22,6 +23,7 @@ public class DtoChargingSchedule : ValidFromToBase
     //Needs to be public for ValidFromToSplitter which clones properties
     // ReSharper disable once MemberCanBePrivate.Global
     public int MaxPossiblePower { get; set; }
+    public HashSet<ScheduleReason> ScheduleReasons { get; set; } = new();
 
     public int EstimatedChargingPower
     {
@@ -33,4 +35,13 @@ public class DtoChargingSchedule : ValidFromToBase
             return Math.Min(MaxPossiblePower, estimatedPower);
         }
     }
+}
+
+public enum ScheduleReason
+{
+    ExpectedSolarProduction,
+    HomeBatteryDischarging,
+    CheapGridPrice,
+    BridgeSchedules,
+    LatestPossibleTime,
 }

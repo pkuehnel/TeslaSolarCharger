@@ -132,7 +132,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     var chargingDuration = CalculateChargingDuration(minimumEnergyToCharge, maxPower);
                     var validToDate = startDate + chargingDuration;
                     _logger.LogTrace("Immediate charging iteration for car {carId}: start={startDate}, end={validToDate}, remainingEnergy={remainingEnergy}", car.Id, startDate, validToDate, minimumEnergyToCharge);
-                    var chargingScheduleToAdd = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower)
+                    var chargingScheduleToAdd = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.LatestPossibleTime,])
                     {
                         ValidFrom = startDate,
                         ValidTo = validToDate,
@@ -174,7 +174,7 @@ public class ChargingScheduleService : IChargingScheduleService
                                 ? nextTarget.NextExecutionTime
                                 : maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key.AddHours(_constants.SolarPowerSurplusPredictionIntervalHours);
                         _logger.LogTrace("Solar-based schedule window for car {carId}: start={startDate}, end={endDate}, estimatedSolarPower={estimatedSolarPower}", car.Id, startDate, endDate, maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Value);
-                        var chargingScheduleToAdd = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId, maxPower)
+                        var chargingScheduleToAdd = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.ExpectedSolarProduction])
                         {
                             ValidFrom = startDate,
                             ValidTo = endDate,
@@ -214,7 +214,7 @@ public class ChargingScheduleService : IChargingScheduleService
                                 dischargeDuration, scheduleEnd, scheduleStart);
                             if (scheduleStart < scheduleEnd)
                             {
-                                var homeBatteryChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId, maxPower)
+                                var homeBatteryChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.HomeBatteryDischarging])
                                 {
                                     ValidFrom = scheduleStart,
                                     ValidTo = scheduleEnd,
@@ -322,7 +322,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 }
 
                 _logger.LogTrace("Selected cheapest grid price slot: ValidFrom={validFrom}, ValidTo={validTo}, GridPrice={gridPrice}, elementsToSkip={elementsToSkip}", cheapestPrice.ValidFrom, cheapestPrice.ValidTo, cheapestPrice.GridPrice, elementsToSkip);
-                var chargingSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower)
+                var chargingSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.CheapGridPrice])
                 {
                     ValidFrom = cheapestPrice.ValidFrom,
                     ValidTo = cheapestPrice.ValidTo,
@@ -363,7 +363,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 var chargingDuration = CalculateChargingDuration(finalRemainingEnergy, maxPower);
                 var validToDate = overflowStartDate + chargingDuration;
 
-                var overflowSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower)
+                var overflowSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.LatestPossibleTime])
                 {
                     ValidFrom = overflowStartDate,
                     ValidTo = validToDate,
@@ -411,7 +411,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 if (gap <= maxGapToFill && gap > TimeSpan.Zero)
                 {
                     _logger.LogTrace("Filling leading gap for currently charging loadpoint. Gap: {gap}", gap);
-                    var leadingSchedule = new DtoChargingSchedule(firstSchedule.CarId, firstSchedule.OcppChargingConnectorId, firstSchedule.MaxPossiblePower)
+                    var leadingSchedule = new DtoChargingSchedule(firstSchedule.CarId, firstSchedule.OcppChargingConnectorId, firstSchedule.MaxPossiblePower, [ScheduleReason.BridgeSchedules])
                     {
                         ValidFrom = currentDate,
                         ValidTo = firstSchedule.ValidFrom,
@@ -439,7 +439,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     if (gap <= maxGapToFill)
                     {
                         _logger.LogTrace("Filling gap between schedules. Gap: {gap}, From: {from}, To: {to}", gap, current.ValidTo, next.ValidFrom);
-                        var fillerSchedule = new DtoChargingSchedule(current.CarId, current.OcppChargingConnectorId, current.MaxPossiblePower)
+                        var fillerSchedule = new DtoChargingSchedule(current.CarId, current.OcppChargingConnectorId, current.MaxPossiblePower, [ScheduleReason.BridgeSchedules])
                         {
                             ValidFrom = current.ValidTo,
                             ValidTo = next.ValidFrom,
@@ -657,8 +657,9 @@ public class ChargingScheduleService : IChargingScheduleService
             overlappingExistingChargingSchedule.TargetMinPower = newMinTargetPower;
             overlappingExistingChargingSchedule.EstimatedSolarPower = newEstimatedSolarPower;
             overlappingExistingChargingSchedule.TargetHomeBatteryPower = newTargetHomeBatteryPower;
+            overlappingExistingChargingSchedule.ScheduleReasons.UnionWith(dtoChargingSchedule.ScheduleReasons);
 
-            var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
+        var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
             var slotAddedEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, addedPower);
             var energyToAdd1 = Math.Min(slotAddedEnergy, maxEnergyToAdd - additionalScheduledEnergy);
             _logger.LogTrace("Overlap energy: addedPower={addedPower}, slotAddedEnergy={slotAddedEnergy}, energyToAdd1={energyToAdd1}, additionalScheduledEnergy={additionalScheduledEnergy}, maxEnergyToAdd={maxEnergyToAdd}", addedPower, slotAddedEnergy, energyToAdd1, additionalScheduledEnergy, maxEnergyToAdd);
