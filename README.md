@@ -541,6 +541,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7210
+#      - BluetoothAdapter=hci0#Optional: If you have multiple Bluetooth adapters, specify the one to use here
     volumes:
       - tscbleapi:/externalFiles
       - /var/run/dbus:/var/run/dbus
@@ -580,6 +581,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7210
+#      - BluetoothAdapter=hci0#Optional: If you have multiple Bluetooth adapters, specify the one to use here
     volumes:
       - tscbleapi:/externalFiles
       - /var/run/dbus:/var/run/dbus
@@ -604,6 +606,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7210
+#      - BluetoothAdapter=hci0#Optional: If you have multiple Bluetooth adapters, specify the one to use here
     volumes:
       - tscbleapi:/externalFiles
       - /var/run/dbus:/var/run/dbus
