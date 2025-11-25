@@ -268,6 +268,7 @@ public class ChargingScheduleService : IChargingScheduleService
     {
         _logger.LogTrace("AppendOptimalGridSchedules called for loadpoint {carId}_{connectorId}, energyToCharge={energyToCharge}, maxPower={maxPower}, currentDate={currentDate}, nextExecutionTime={nextExecutionTime}", loadpoint.CarId, loadpoint.ChargingConnectorId, energyToCharge, maxPower, currentDate, nextTarget.NextExecutionTime);
         var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
+        var electricityPriceCount = electricityPrices.Count;
         _logger.LogTrace("Retrieved {priceCount} electricity price slices for grid scheduling between {currentDate} and {nextExecutionTime}", electricityPrices.Count, currentDate, nextTarget.NextExecutionTime);
         var endTimeOrderedElectricityPrices = electricityPrices.OrderBy(p => p.ValidTo).ToList();
         var lastGridPrice = endTimeOrderedElectricityPrices.LastOrDefault();
@@ -322,7 +323,8 @@ public class ChargingScheduleService : IChargingScheduleService
                 }
 
                 _logger.LogTrace("Selected cheapest grid price slot: ValidFrom={validFrom}, ValidTo={validTo}, GridPrice={gridPrice}, elementsToSkip={elementsToSkip}", cheapestPrice.ValidFrom, cheapestPrice.ValidTo, cheapestPrice.GridPrice, elementsToSkip);
-                var chargingSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.CheapGridPrice])
+                var chargeReason = electricityPriceCount < 2 ? ScheduleReason.LatestPossibleTime : ScheduleReason.CheapGridPrice;
+                var chargingSchedule = new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId, maxPower, [chargeReason])
                 {
                     ValidFrom = cheapestPrice.ValidFrom,
                     ValidTo = cheapestPrice.ValidTo,
