@@ -768,7 +768,7 @@ public class ChargingScheduleService : IChargingScheduleService
         _logger.LogTrace("Calculate max current");
         var maxCurrent = CalculateMinValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
         _logger.LogTrace("Calculate min phases");
-        var connectorMinPhases = connectorData?.AutoSwitchBetween1And3PhasesEnabled == true
+        var connectorMinPhases = connectorData?.AutoSwitchBetween1And3PhasesEnabled == true && carData?.CarType != CarType.Tesla
             ? 1
             : connectorData?.ConnectedPhasesCount;
         var minPhases = CalculateMinValue(connectorMinPhases, carPhases);
