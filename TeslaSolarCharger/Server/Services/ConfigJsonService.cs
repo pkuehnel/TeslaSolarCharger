@@ -328,6 +328,70 @@ public class ConfigJsonService(
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
             }
+            //set soc of manual cars to null if they were plugged out for too long
+            if (carDataItem.CarType == CarType.Manual && dtoCar.SoC.Value != default)
+            {
+                var lastManualSoc = await teslaSolarChargerContext.CarValueLogs
+                    .Where(c => c.Type == CarValueType.StateOfCharge && c.Source == CarValueSource.Manual)
+                    .OrderByDescending(c => c.Timestamp)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync().ConfigureAwait(false);
+                if (lastManualSoc != default)
+                {
+                    var plugChanges = await teslaSolarChargerContext.CarValueLogs
+                        .Where(c => c.Type == CarValueType.IsPluggedIn && c.Timestamp > lastManualSoc.Timestamp)
+                        .OrderBy(c => c.Timestamp)
+                        .AsNoTracking()
+                        .ToListAsync().ConfigureAwait(false);
+                    var plugStateBeforeLastmanualSoc = await teslaSolarChargerContext.CarValueLogs
+                        .Where(c => c.Type == CarValueType.IsPluggedIn && c.Timestamp <= lastManualSoc.Timestamp)
+                        .OrderByDescending(c => c.Timestamp)
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync().ConfigureAwait(false);
+                    if (plugStateBeforeLastmanualSoc != default)
+                    {
+                        plugChanges.Insert(0, plugStateBeforeLastmanualSoc);
+                    }
+
+                    DateTimeOffset? lastPluggedOut = null;
+                    var maxPluggedOutTime = TimeSpan.FromMinutes(constants.ManualCarMinutesUntilForgetSoc);
+                    for (var i = 0; i < plugChanges.Count; i++)
+                    {
+                        var plugChange = plugChanges[i];
+                        if (i == 0 && plugChange.BooleanValue == false)
+                        {
+                            lastPluggedOut = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero);
+                            continue;
+                        }
+
+                        if (plugChange.BooleanValue == false)
+                        {
+                            lastPluggedOut = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero);
+                        }
+                        else if (plugChange.BooleanValue == true)
+                        {
+                            if (lastPluggedOut != default)
+                            {
+                                var timeDiff = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero) - lastPluggedOut.Value;
+                                if (timeDiff > maxPluggedOutTime)
+                                {
+                                    dtoCar.SoC.Update(dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
+                                }
+                            }
+
+                            lastPluggedOut = null;
+                        }
+                    }
+                    if (lastPluggedOut != null)
+                    {
+                        var timeDiff = dateTimeProvider.DateTimeOffSetUtcNow() - lastPluggedOut.Value;
+                        if (timeDiff > maxPluggedOutTime)
+                        {
+                            dtoCar.SoC.Update(dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
+                        }
+                    }
+                }
+            }
             //Do not trigger car state changed here as app will crash when finding cars in settings
         }
         var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
