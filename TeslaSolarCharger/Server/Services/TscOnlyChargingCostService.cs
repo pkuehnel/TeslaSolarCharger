@@ -378,7 +378,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             foreach (var (spotStart, spotEnd, price1) in relevant)
             {
-                logger.LogTrace("Handling spot price valid from {from} to {to} and cursor {cursor}", spotStart, spotEnd, cursor);
+                logger.LogTrace("Handling spot price valid from {from} to {to}, price {price} and cursor {cursor}", spotStart, spotEnd, price1, cursor);
                 if (cursor >= price.ValidTo) break;
 
                 // gap before spot starts
