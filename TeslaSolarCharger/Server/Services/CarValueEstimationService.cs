@@ -49,9 +49,12 @@ public class CarValueEstimationService : ICarValueEstimationService
             {
                 continue;
             }
+            _logger.LogTrace("Car {id} last connector match: {lastMatch}", car.Id, car.LastMatchedToChargingConnector);
             var lastConnectorMatch = car.LastMatchedToChargingConnector ?? _settings.StartupTime;
+            _logger.LogTrace("Using {timestamp} as last connector match", lastConnectorMatch);
             if (lastConnectorMatch < currentDate.AddMinutes(-_constants.ManualCarMinutesUntilForgetSoc))
             {
+                _logger.LogTrace("Plugging out manual car {carId} and clearing SoC as last connector match was more than {minutes} minutes ago", car.Id, _constants.ManualCarMinutesUntilForgetSoc);
                 car.PluggedIn.Update(currentDate, false);
                 car.SoC.Update(currentDate, null);
                 await _loadPointManagementService.CarStateChanged(car.Id);
