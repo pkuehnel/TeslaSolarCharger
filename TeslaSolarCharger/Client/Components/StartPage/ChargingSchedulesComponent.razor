@@ -34,7 +34,7 @@
                             <div class="d-flex flex-row">
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
                                 {
-                                    <MudTooltip Text="Enough solar power expected"
+                                    <MudTooltip Text="@T("Enough solar power expected")"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -43,7 +43,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.HomeBatteryDischarging))
                                 {
-                                    <MudTooltip Text="Discharging home battery"
+                                    <MudTooltip Text="@T("Discharging home battery")"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -52,7 +52,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
                                 {
-                                    <MudTooltip Text="Cheap grid price"
+                                    <MudTooltip Text="@T("Cheap grid price")"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -61,7 +61,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
                                 {
-                                    <MudTooltip Text="Bridge between schedules to reduce charge starts/stops"
+                                    <MudTooltip Text="@T("Bridge between schedules to reduce charge starts/stops")"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -70,7 +70,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.LatestPossibleTime))
                                 {
-                                    <MudTooltip Text="Latest possible time"
+                                    <MudTooltip Text="@T("Latest possible time")"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
