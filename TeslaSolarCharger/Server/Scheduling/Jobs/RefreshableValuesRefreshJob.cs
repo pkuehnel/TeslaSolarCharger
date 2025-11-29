@@ -1,5 +1,5 @@
 ﻿using Quartz;
-using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 

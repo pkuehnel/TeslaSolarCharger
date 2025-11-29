@@ -10,11 +10,10 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
-using TeslaSolarCharger.Services.Services.Modbus.Contracts;
-using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
-using TeslaSolarCharger.Services.Services.Rest.Contracts;
-using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -36,13 +35,12 @@ public class PvValueService(
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext context,
     IModbusValueConfigurationService modbusValueConfigurationService,
-    IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
     IConstants constants,
     ILoadPointManagementService loadPointManagementService,
     IAppStateNotifier appStateNotifier,
     IChangeTrackingService changeTrackingService,
-    IRefreshableValueHandlingService refreshableValueHandlingService)
+    IEnumerable<IDecimalValueHandlingService> decimalValueHandlingServices)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -713,7 +711,6 @@ public class PvValueService(
     public async Task UpdatePvValues()
     {
         logger.LogTrace("{method}()", nameof(UpdatePvValues));
-        var errorWhileUpdatingPvValues = false;
         if (configurationWrapper.ShouldUseFakeSolarValues())
         {
             logger.LogWarning("Fake solar values are used.");
@@ -884,27 +881,15 @@ public class PvValueService(
             ValueUsage.HomeBatterySoc,
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
-        var refreshableResults = refreshableValueHandlingService.GetSolarValues(out var refreshableErrors);
-        if (refreshableErrors)
+        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
         {
-            errorWhileUpdatingPvValues = true;
-        }
-        foreach (var refreshableResult in refreshableResults)
-        {
-            resultSums.TryAdd(refreshableResult.Key, 0);
-            resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
-        }
-
-        var mqttValues = mqttClientHandlingService.GetSolarValues();
-        foreach (var mqttValue in mqttValues)
-        {
-            if (valueUsages.Contains(mqttValue.Key))
+            var refreshableResults = decimalValueHandlingService.GetValuesByUsage(valueUsages, true);
+            foreach (var refreshableResult in refreshableResults)
             {
-                resultSums.TryAdd(mqttValue.Key, 0);
-                resultSums[mqttValue.Key] += mqttValue.Value.Sum(v => v.Value);
+                resultSums.TryAdd(refreshableResult.Key, 0);
+                resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
             }
         }
-
 
         int? inverterValue = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
             SafeToInt(inverterPower) : null;
@@ -915,10 +900,7 @@ public class PvValueService(
             SafeToInt(homeBatteryPower) : null;
         settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
             SafeToInt(homeBatterySoc) : null;
-        if (!errorWhileUpdatingPvValues)
-        {
-            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-        }
+        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
         int? powerBuffer = configurationWrapper.PowerBuffer();
         if (settings.InverterPower == null && settings.Overage == null)
         {

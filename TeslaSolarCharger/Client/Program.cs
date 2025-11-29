@@ -46,6 +46,7 @@ builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<IChargePriceService, ChargePriceService>();
 builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 builder.Services.AddScoped<IBaseConfigurationService, BaseConfigurationService>();
+builder.Services.AddScoped<ITemplateValueConfigurationService, TemplateValueConfigurationService>();
 builder.Services.AddSingleton<IEntityKeyGenerationHelper, EntityKeyGenerationHelper>();
 builder.Services.AddTransient<IChartWidthCalculator, ChartWidthCalculator>();
 builder.Services.AddTransient<IApexChartHelper, ApexChartHelper>();

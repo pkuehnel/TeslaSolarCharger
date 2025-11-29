@@ -32,7 +32,10 @@ else
                         </MudAlert>
                     }
                     <GenericInput For="() => chargingStationConnector.Item.Name"></GenericInput>
-                    <GenericInput For="() => chargingStationConnector.Item.ShouldBeManaged"></GenericInput>
+                    @if (!IsOcppConnected)
+                    {
+                        <GenericInput For="() => chargingStationConnector.Item.ShouldBeManaged"></GenericInput>
+                    }
                     <GenericInput For="() => chargingStationConnector.Item.MinCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.SwitchOffAtCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.SwitchOnAtCurrent"></GenericInput>
@@ -68,6 +71,9 @@ else
     public int? ChargingStationId { get; set; }
     [Parameter]
     public bool AutoPhaseSwitchingSupported { get; set; }
+
+    [Parameter]
+    public bool IsOcppConnected { get; set; }
 
     private List<EditableItem<DtoChargingStationConnector>>? _chargingStationConnectors;
 

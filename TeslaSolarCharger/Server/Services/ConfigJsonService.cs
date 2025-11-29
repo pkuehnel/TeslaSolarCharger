@@ -307,6 +307,7 @@ public class ConfigJsonService(
                                     || c.BooleanValue != latestValue.BooleanValue
                                     || c.InvalidValue != latestValue.InvalidValue))
                     .OrderByDescending(c => c.Timestamp)
+                    .AsNoTracking()
                     .FirstOrDefaultAsync();
                 if (valueBeforeLatestValue != default)
                 {
@@ -323,6 +324,7 @@ public class ConfigJsonService(
                                         || c.BooleanValue != valueBeforeLatestValue.BooleanValue
                                         || c.InvalidValue != valueBeforeLatestValue.InvalidValue))
                         .OrderBy(c => c.Timestamp)
+                        .AsNoTracking()
                         .FirstAsync();
                     UpdateCarPropertyValue(dtoCar, valueAfterBeforeLatestValue, fleetTelemetryConfiguration);
                 }
@@ -363,7 +365,7 @@ public class ConfigJsonService(
 
     private void UpdateCarPropertyValue(DtoCar dtoCar, CarValueLog logValue, FleetTelemetryConfiguration? fleetTelemetryConfiguration)
     {
-        logger.LogTrace("{method}({carId}, {@logValue})", nameof(UpdateCarPropertyValue), dtoCar.Id, logValue);
+        logger.LogTrace("{method}({carId}, {logValue})", nameof(UpdateCarPropertyValue), dtoCar.Id, logValue);
         if (logValue.Type is CarValueType.LocatedAtHome or CarValueType.LocatedAtFavorite or CarValueType.LocatedAtWork)
         {
             if (fleetTelemetryConfiguration == default)

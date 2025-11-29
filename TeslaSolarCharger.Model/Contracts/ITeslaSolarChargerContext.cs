@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using TeslaSolarCharger.Model.Entities;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
 namespace TeslaSolarCharger.Model.Contracts;
@@ -38,4 +39,5 @@ public interface ITeslaSolarChargerContext
     DbSet<CarChargingTarget> CarChargingTargets { get; set; }
     DbSet<PvValueLog> PvValueLogs { get; set; }
     DbSet<ChargingStationConnectorAllowedCar> ChargingStationConnectorAllowedCars { get; set; }
+    DbSet<TemplateValueConfiguration> TemplateValueConfigurations { get; set; }
 }

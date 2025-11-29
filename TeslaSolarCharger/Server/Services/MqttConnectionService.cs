@@ -1,12 +1,10 @@
 ﻿using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class MqttConnectionService(
     ILogger<MqttConnectionService> logger,
-    ITeslaMateMqttService teslaMateMqttService,
-    IMqttClientReconnectionService mqttClientReconnectionService)
+    ITeslaMateMqttService teslaMateMqttService)
     : IMqttConnectionService
 {
     public async Task ReconnectMqttServices()
@@ -19,15 +17,6 @@ public class MqttConnectionService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error while connecting TeslaMateMqttService");
-        }
-
-        try
-        {
-            await mqttClientReconnectionService.ReconnectMqttClients().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error while reconnecting MqttClients");
         }
     }
 }
