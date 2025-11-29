@@ -1,4 +1,4 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
@@ -12,51 +12,104 @@
 @inject ITextLocalizationService TextLocalizer
 
 <MudExpansionPanels>
-        <MudExpansionPanel ExpandedChanged="IsExpandedChanged">
-            <TitleContent>
-                @if (_elements == default)
-                {
-                    <PlaceholderComponent Count="1" />
-                }
-                else
-                {
-                    @(_elements.Count < 1 ? T("Nothing planned") : string.Format(T("Next planned charge starts at {0}"), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
-                }
-            </TitleContent>
-            <ChildContent>
-                <MudDataGrid Items="_elements" Groupable="true" Filterable="true"
-                             Hover="true" Dense="true" Striped="true" Breakpoint="Breakpoint.None"
-                             Loading="@(_elements == null)">
-                    <Columns>
-                        <PropertyColumn Property="x => x.ValidFrom"
-                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom)))">
-                            <CellTemplate>
-                                @(context.Item.ValidFrom.ToLocalTime().ToString("g"))
-                            </CellTemplate>
-                        </PropertyColumn>
-                        <PropertyColumn Property="x => x.ValidTo"
-                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo)))">
-                            <CellTemplate>
-                                @(context.Item.ValidTo.ToLocalTime().ToString("g"))
-                            </CellTemplate>
-                        </PropertyColumn>
-                        <PropertyColumn Property="x => x.ChargingPower"
-                                        Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower)))">
-                            <CellTemplate>
-                                @(context.Item.ChargingPower.ToString("N0"))W
-                            </CellTemplate>
-                        </PropertyColumn>
-                    </Columns>
-                </MudDataGrid>
-                @if(_showChart)
-                {
-                    <div class="d-flex align-items-center justify-content-center mt-3 border border-gray-300 p-3 rounded">
-                        <ChargingSchedulesChartComponent ChargingSchedules="_elements" />
-                    </div>
-                }
-            </ChildContent>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+    <MudExpansionPanel ExpandedChanged="IsExpandedChanged">
+        <TitleContent>
+            @if (_elements == default)
+            {
+                <PlaceholderComponent Count="1" />
+            }
+            else
+            {
+                @(_elements.Count < 1 ? T("Nothing planned") : string.Format(T("Next planned charge starts at {0}"), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
+            }
+        </TitleContent>
+        <ChildContent>
+            <MudDataGrid Items="_elements" Groupable="true" Filterable="true"
+                         Hover="true" Dense="true" Striped="true" Breakpoint="Breakpoint.Sm"
+                         Loading="@(_elements == null)">
+                <Columns>
+                    <PropertyColumn Property="x => x.ScheduleReasons"
+                                    Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ScheduleReasons)))">
+                        <CellTemplate>
+                            <div class="d-flex flex-row">
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
+                                {
+                                    <MudTooltip Text="@T("Enough solar power expected")"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="mx-1">
+                                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" />
+                                    </MudTooltip>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.HomeBatteryDischarging))
+                                {
+                                    <MudTooltip Text="@T("Discharging home battery")"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="mx-1">
+                                        <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull" />
+                                    </MudTooltip>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
+                                {
+                                    <MudTooltip Text="@T("Cheap grid price")"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="mx-1">
+                                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
+                                    </MudTooltip>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
+                                {
+                                    <MudTooltip Text="@T("Bridge between schedules to reduce charge starts/stops")"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="mx-1">
+                                        <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
+                                    </MudTooltip>
+                                }
+                                @if (context.Item.ScheduleReasons.Contains(ScheduleReason.LatestPossibleTime))
+                                {
+                                    <MudTooltip Text="@T("Latest possible time")"
+                                                Placement="Placement.Top"
+                                                Arrow="true"
+                                                RootClass="mx-1">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" />
+                                    </MudTooltip>
+                                }
+                            </div>
+
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.ValidFrom"
+                                    Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom)))">
+                        <CellTemplate>
+                            @(context.Item.ValidFrom.ToLocalTime().ToString("g"))
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.ValidTo"
+                                    Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo)))">
+                        <CellTemplate>
+                            @(context.Item.ValidTo.ToLocalTime().ToString("g"))
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.EstimatedChargingPower"
+                                    Title="@T(StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.EstimatedChargingPower)))">
+                        <CellTemplate>
+                            @(context.Item.EstimatedChargingPower.ToString("N0"))W
+                        </CellTemplate>
+                    </PropertyColumn>
+                </Columns>
+            </MudDataGrid>
+            @if (_showChart)
+            {
+                <div class="d-flex align-items-center justify-content-center mt-3 border border-gray-300 p-3 rounded">
+                    <ChargingSchedulesChartComponent ChargingSchedules="_elements" />
+                </div>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 
 @code {

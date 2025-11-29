@@ -89,4 +89,5 @@ public class Constants : IConstants
     public int SpotPriceRefreshIntervalHours => 2;
     public int ManualCarMinutesUntilForgetSoc => 10;
     public int RefreshableValuesRefreshIntervalSeconds => 1;
+    public int SolarPowerSurplusPredictionIntervalHours => 1;
 }

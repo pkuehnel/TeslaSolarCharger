@@ -84,4 +84,5 @@ public interface IConstants
     int SpotPriceRefreshIntervalHours { get; }
     int ManualCarMinutesUntilForgetSoc { get; }
     int RefreshableValuesRefreshIntervalSeconds { get; }
+    int SolarPowerSurplusPredictionIntervalHours { get; }
 }

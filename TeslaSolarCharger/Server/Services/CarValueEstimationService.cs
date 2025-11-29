@@ -49,9 +49,12 @@ public class CarValueEstimationService : ICarValueEstimationService
             {
                 continue;
             }
+            _logger.LogTrace("Car {id} last connector match: {lastMatch}", car.Id, car.LastMatchedToChargingConnector);
             var lastConnectorMatch = car.LastMatchedToChargingConnector ?? _settings.StartupTime;
+            _logger.LogTrace("Using {timestamp} as last connector match", lastConnectorMatch);
             if (lastConnectorMatch < currentDate.AddMinutes(-_constants.ManualCarMinutesUntilForgetSoc))
             {
+                _logger.LogTrace("Plugging out manual car {carId} and clearing SoC as last connector match was more than {minutes} minutes ago", car.Id, _constants.ManualCarMinutesUntilForgetSoc);
                 car.PluggedIn.Update(currentDate, false);
                 car.SoC.Update(currentDate, null);
                 await _loadPointManagementService.CarStateChanged(car.Id);
@@ -73,7 +76,7 @@ public class CarValueEstimationService : ICarValueEstimationService
 
     private async Task UpdateSocEstimation(Car car, CancellationToken cancellationToken)
     {
-        _logger.LogTrace("{method}({carId}) started", nameof(UpdateSocEstimation), car.Id);
+        _logger.LogTrace("{method}({carId})", nameof(UpdateSocEstimation), car.Id);
         var lastNonEstimatedSoc = await _context.CarValueLogs
             .Where(cvl => cvl.CarId == car.Id
                           && cvl.Type == CarValueType.StateOfCharge
@@ -81,37 +84,98 @@ public class CarValueEstimationService : ICarValueEstimationService
             .OrderByDescending(cvl => cvl.Timestamp)
             .Select(cvl => new { Timestamp = new DateTimeOffset(cvl.Timestamp, TimeSpan.Zero), cvl.IntValue })
             .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        _logger.LogTrace("{method} lastNonEstimatedSoc: {@lastNonEstimatedSoc}", nameof(UpdateSocEstimation), lastNonEstimatedSoc);
+        _logger.LogTrace("lastNonEstimatedSoc: {@lastNonEstimatedSoc}", lastNonEstimatedSoc);
         if (lastNonEstimatedSoc?.IntValue == null)
         {
-            _logger.LogTrace("{method} exiting: no lastNonEstimatedSoc", nameof(UpdateSocEstimation));
+            _logger.LogTrace("exiting: no lastNonEstimatedSoc");
             return;
         }
 
-        var lastPluggedOutObject = await _context.CarValueLogs
+        _logger.LogTrace("Loading plug state changes since lastNonEstimatedSoc for car {carId}", car.Id);
+        // All plug state changes after lastNonEstimatedSoc
+        var plugChanges = await _context.CarValueLogs
             .Where(cvl => cvl.CarId == car.Id
                           && cvl.Type == CarValueType.IsPluggedIn
-                          && cvl.BooleanValue == false)
-            .OrderByDescending(cvl => cvl.Timestamp)
-            .Select(cvl => new { cvl.Timestamp })
-            .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        _logger.LogTrace("{method} lastPluggedOutObject: {@lastPluggedOutObject}", nameof(UpdateSocEstimation), lastPluggedOutObject);
-        var lastPluggedOutTimeStamp = lastPluggedOutObject == default
-            ? DateTimeOffset.MinValue
-            : new(lastPluggedOutObject.Timestamp, TimeSpan.Zero);
-        _logger.LogTrace("{method} lastPluggedOutTimeStamp: {lastPluggedOutTimeStamp}", nameof(UpdateSocEstimation), lastPluggedOutTimeStamp);
-        var firstPluggedInAfterPlugOutObject = await _context.CarValueLogs
-            .Where(cvl => cvl.CarId == car.Id
-                          && cvl.Type == CarValueType.IsPluggedIn
-                          && cvl.BooleanValue == true
-                          && cvl.Timestamp > lastPluggedOutTimeStamp.DateTime)
+                          && cvl.Timestamp > lastNonEstimatedSoc.Timestamp.UtcDateTime)
             .OrderBy(cvl => cvl.Timestamp)
-            .Select(cvl => new { cvl.Timestamp })
-            .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        _logger.LogTrace("{method} firstPluggedInAfterPlugOutObject: {@firstPluggedInAfterPlugOutObject}", nameof(UpdateSocEstimation), firstPluggedInAfterPlugOutObject);
-        if (firstPluggedInAfterPlugOutObject == default)
+            .Select(cvl => new { cvl.Timestamp, cvl.BooleanValue })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // Last plug state before / at lastNonEstimatedSoc (to know what state we started in)
+        var plugStateBeforeLastNonEstimatedSoc = await _context.CarValueLogs
+            .Where(cvl => cvl.CarId == car.Id
+                          && cvl.Type == CarValueType.IsPluggedIn
+                          && cvl.Timestamp <= lastNonEstimatedSoc.Timestamp.UtcDateTime)
+            .OrderByDescending(cvl => cvl.Timestamp)
+            .Select(cvl => new { cvl.Timestamp, cvl.BooleanValue })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        _logger.LogTrace("plugStateBeforeLastNonEstimatedSoc: {@plugStateBeforeLastNonEstimatedSoc}", plugStateBeforeLastNonEstimatedSoc);
+
+        if (plugStateBeforeLastNonEstimatedSoc != default)
         {
-            _logger.LogTrace("{method} exiting: no firstPluggedInAfterPlugOutObject", nameof(UpdateSocEstimation));
+            plugChanges.Insert(0, plugStateBeforeLastNonEstimatedSoc);
+        }
+
+        _logger.LogTrace("Plug states (including before lastNonEstimatedSoc): {@plugChanges}", plugChanges);
+
+        // Walk through all plug changes and check if there is at least one plug-in after a plug-out
+        DateTimeOffset? lastPluggedOut = null;
+        var maxPluggedOutTime = TimeSpan.FromMinutes(_constants.ManualCarMinutesUntilForgetSoc);
+        var settingsCar = _settings.Cars.FirstOrDefault(c => c.Id == car.Id);
+        var socSetToNull = false;
+        for (var i = 0; i < plugChanges.Count; i++)
+        {
+            var plugChange = plugChanges[i];
+            _logger.LogTrace("Handling plug change [{i}] {@plugChange}", i, plugChange);
+
+            // Same shape as your manual-car logic:
+            if (i == 0 && plugChange.BooleanValue == false)
+            {
+                _logger.LogTrace("Set lastPluggedOut to {timestamp} as first plugChange is pluggedOut", plugChange.Timestamp);
+                lastPluggedOut = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero);
+                continue;
+            }
+
+            if (plugChange.BooleanValue == false && lastPluggedOut == default)
+            {
+                _logger.LogTrace("Set lastPluggedOut to {timestamp} as plugChange is pluggedOut", plugChange.Timestamp);
+                lastPluggedOut = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero);
+            }
+            else if (plugChange.BooleanValue == true)
+            {
+                if (lastPluggedOut != default)
+                {
+                    _logger.LogTrace("Last plugged out was not default, so checking if was longer plugged out than {maxPluggedOutTime}", maxPluggedOutTime);
+                    var timeDiff = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero) - lastPluggedOut.Value;
+                    _logger.LogTrace("Actual time diff is {timeDiff}", timeDiff);
+                    if (timeDiff > maxPluggedOutTime)
+                    {
+                        _logger.LogTrace("Time diff is too long so set soc to null");
+                        settingsCar?.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
+                        socSetToNull = true;
+                        break;
+                    }
+                }
+                _logger.LogTrace("Set last plugged to null as plugChange is pluggedIn");
+                lastPluggedOut = null;
+            }
+        }
+        if (lastPluggedOut != null && settingsCar?.SoC.Value == null)
+        {
+            var timeDiff = _dateTimeProvider.DateTimeOffSetUtcNow() - lastPluggedOut.Value;
+            _logger.LogTrace("Car has been plugged out for {timeDiff}", timeDiff);
+            if (timeDiff > maxPluggedOutTime)
+            {
+                _logger.LogTrace("Time diff is too long so set soc to null");
+                settingsCar?.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
+                socSetToNull = true;
+            }
+        }
+        if (socSetToNull)
+        {
             return;
         }
 
@@ -122,10 +186,10 @@ public class CarValueEstimationService : ICarValueEstimationService
             .OrderBy(m => m.Timestamp)
             .Select(m => m.EstimatedEnergyWs)
             .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        _logger.LogTrace("{method} chargedEnergyAtLastNonEstimatedSoc: {chargedEnergyAtLastNonEstimatedSoc}", nameof(UpdateSocEstimation), chargedEnergyAtLastNonEstimatedSoc);
+        _logger.LogTrace("chargedEnergyAtLastNonEstimatedSoc: {chargedEnergyAtLastNonEstimatedSoc}", chargedEnergyAtLastNonEstimatedSoc);
         if (chargedEnergyAtLastNonEstimatedSoc == default)
         {
-            _logger.LogTrace("{method} exiting: no chargedEnergyAtLastNonEstimatedSoc", nameof(UpdateSocEstimation));
+            _logger.LogTrace("exiting: no chargedEnergyAtLastNonEstimatedSoc");
             return;
         }
 
@@ -136,24 +200,24 @@ public class CarValueEstimationService : ICarValueEstimationService
             .OrderByDescending(m => m.Timestamp)
             .Select(m => m.EstimatedEnergyWs)
             .FirstOrDefaultAsync(cancellationToken: cancellationToken);
-        _logger.LogTrace("{method} latestChargedEnergy: {latestChargedEnergy}", nameof(UpdateSocEstimation), latestChargedEnergy);
+        _logger.LogTrace("latestChargedEnergy: {latestChargedEnergy}", latestChargedEnergy);
         if (latestChargedEnergy == default)
         {
-            _logger.LogTrace("{method} exiting: no latestChargedEnergy", nameof(UpdateSocEstimation));
+            _logger.LogTrace("exiting: no latestChargedEnergy");
             return;
         }
 
         var chargedSinceLastNonEstimatedSoc = latestChargedEnergy.Value - chargedEnergyAtLastNonEstimatedSoc.Value;
-        _logger.LogTrace("{method} chargedSinceLastNonEstimatedSoc: {chargedSinceLastNonEstimatedSoc}", nameof(UpdateSocEstimation), chargedSinceLastNonEstimatedSoc);
+        _logger.LogTrace("chargedSinceLastNonEstimatedSoc: {chargedSinceLastNonEstimatedSoc}", chargedSinceLastNonEstimatedSoc);
         var carBatteryCapacity = car.UsableEnergy * 3_600_000; // kWh to Ws
-        _logger.LogTrace("{method} carBatteryCapacity: {carBatteryCapacity}", nameof(UpdateSocEstimation), carBatteryCapacity);
+        _logger.LogTrace("carBatteryCapacity: {carBatteryCapacity}", carBatteryCapacity);
         if (carBatteryCapacity <= 0)
         {
             _logger.LogWarning("Can not estimate soc for car {carId} as usable energy is {usableEnergy} which is <= 0", car.Id, car.UsableEnergy);
             return;
         }
         var estimatedSoc = (int)(lastNonEstimatedSoc.IntValue.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
-        _logger.LogTrace("{method} estimatedSoc: {estimatedSoc}", nameof(UpdateSocEstimation), estimatedSoc);
+        _logger.LogTrace("estimatedSoc: {estimatedSoc}", estimatedSoc);
         var estimatedSocCarValueLog = new CarValueLog()
         {
             CarId = car.Id,
@@ -162,18 +226,17 @@ public class CarValueEstimationService : ICarValueEstimationService
             IntValue = estimatedSoc,
             Source = CarValueSource.Estimation,
         };
-        _logger.LogTrace("{method} adding estimatedSocCarValueLog: {@estimatedSocCarValueLog}", nameof(UpdateSocEstimation), estimatedSocCarValueLog);
+        _logger.LogTrace("adding estimatedSocCarValueLog: {@estimatedSocCarValueLog}", estimatedSocCarValueLog);
         _context.CarValueLogs.Add(estimatedSocCarValueLog);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        var settingsCar = _settings.Cars.FirstOrDefault(c => c.Id == car.Id);
         if (settingsCar == default)
         {
-            _logger.LogTrace("{method} exiting: no settingsCar found", nameof(UpdateSocEstimation));
+            _logger.LogTrace("exiting: no settingsCar found");
             return;
         }
 
         settingsCar.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), estimatedSoc);
-        _logger.LogTrace("{method} completed successfully with estimatedSoc={estimatedSoc}", nameof(UpdateSocEstimation), estimatedSoc);
+        _logger.LogTrace("completed successfully with estimatedSoc={estimatedSoc}", estimatedSoc);
         await _loadPointManagementService.CarStateChanged(car.Id);
     }
 
