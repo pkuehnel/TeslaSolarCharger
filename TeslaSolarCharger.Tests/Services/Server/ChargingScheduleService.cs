@@ -19,8 +19,10 @@ public class ChargingScheduleService : TestBase
     {
     }
 
-    [Fact]
-    public async Task GenerateChargingSchedulesForLoadPoint_BasicScenario()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GenerateChargingSchedulesForLoadPoint_BasicScenario(bool manageChargingPowerByCar)
     {
         // Arrange
         var currentDate = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero);
@@ -30,7 +32,7 @@ public class ChargingScheduleService : TestBase
             CarId = 1,
             ChargingConnectorId = 1,
             ChargingPriority = 1,
-            ManageChargingPowerByCar = true,
+            ManageChargingPowerByCar = manageChargingPowerByCar,
         };
 
         var target = new DtoTimeZonedChargingTarget
@@ -46,13 +48,15 @@ public class ChargingScheduleService : TestBase
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
 
-        // Mock car and connector data retrieval
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>
         {
             new DtoCar
             {
                 Id = 1,
+                Vin = "vin",
                 MaximumAmpere = 16,
+                MinimumAmpere = 6,
+                ChargeModeV2 = Shared.Enums.ChargeModeV2.Auto,
                 ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 3),
                 SoC = new DtoTimeStampedValue<int?>(currentDate, 50),
                 UsableEnergy = 75, // kWh
@@ -64,6 +68,7 @@ public class ChargingScheduleService : TestBase
         {
             Id = 1,
             MaxCurrent = 16,
+            MinCurrent = 6,
             ConnectedPhasesCount = 3,
             AutoSwitchBetween1And3PhasesEnabled = true,
         });
@@ -72,6 +77,7 @@ public class ChargingScheduleService : TestBase
             Id = 1,
             UsableEnergy = 75,
             MaximumAmpere = 16,
+            MinimumAmpere = 6,
             MaximumPhases = 3,
             CarType = Shared.Enums.CarType.Tesla,
         });
@@ -89,8 +95,10 @@ public class ChargingScheduleService : TestBase
         Assert.Contains(result, s => s.TargetMinPower > 0);
     }
 
-    [Fact]
-    public async Task GenerateChargingSchedulesForLoadPoint_WithSolarSurplus()
+    [Theory]
+    [InlineData(5000, 6000)]
+    [InlineData(7000, 5500)]
+    public async Task GenerateChargingSchedulesForLoadPoint_WithSolarSurplus(int firstSlice, int secondSlice)
     {
         // Arrange
         var currentDate = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero);
@@ -101,9 +109,9 @@ public class ChargingScheduleService : TestBase
         // Predict high surplus for the next few hours
         var predictedSurplusSlices = new Dictionary<DateTimeOffset, int>
         {
-            { currentDate.AddHours(0), 5000 },
-            { currentDate.AddHours(1), 5000 },
-            { currentDate.AddHours(2), 5000 },
+            { currentDate.AddHours(0), firstSlice },
+            { currentDate.AddHours(1), secondSlice },
+            { currentDate.AddHours(2), firstSlice },
         };
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -113,19 +121,38 @@ public class ChargingScheduleService : TestBase
             new DtoCar
             {
                 Id = 1,
+                Vin = "vin",
                 MaximumAmpere = 16,
+                MinimumAmpere = 6,
+                ChargeModeV2 = Shared.Enums.ChargeModeV2.Auto,
                 ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 3),
                 SoC = new DtoTimeStampedValue<int?>(currentDate, 50),
                 UsableEnergy = 75,
             },
         });
 
-        Context.OcppChargingStationConnectors.Add(new ("test") { Id = 1, MaxCurrent = 16, ConnectedPhasesCount = 3 });
-        Context.Cars.Add(new() { Id = 1, UsableEnergy = 75, MaximumAmpere = 16, MaximumPhases = 3 });
+        Context.OcppChargingStationConnectors.Add(new ("test")
+        {
+            Id = 1,
+            MaxCurrent = 16,
+            MinCurrent = 6,
+            ConnectedPhasesCount = 3,
+            AutoSwitchBetween1And3PhasesEnabled = true,
+        });
+        Context.Cars.Add(new()
+        {
+            Id = 1,
+            UsableEnergy = 75,
+            MaximumAmpere = 16,
+            MinimumAmpere = 6,
+            MaximumPhases = 3,
+            CarType = Shared.Enums.CarType.Tesla,
+        });
         await Context.SaveChangesAsync();
 
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.CarChargeLoss()).Returns(0);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.UsePredictedSolarPowerGenerationForChargingSchedules()).Returns(true);
 
         // Act
         var result = await service.GenerateChargingSchedulesForLoadPoint(loadPoint, chargingTargets, predictedSurplusSlices, currentDate, CancellationToken.None);
@@ -133,6 +160,64 @@ public class ChargingScheduleService : TestBase
         // Assert
         Assert.NotNull(result);
         // Should align schedules with surplus
-        Assert.Contains(result, s => s.EstimatedSolarPower > 0);
+        Assert.Contains(result, s => s.EstimatedSolarPower >= Math.Min(firstSlice, secondSlice));
+    }
+
+    [Fact]
+    public async Task GenerateChargingSchedulesForLoadPoint_ReturnsEmpty_WhenCarNotAuto()
+    {
+        // Arrange
+        var currentDate = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero);
+        var loadPoint = new DtoLoadPointOverview { CarId = 1, ChargingConnectorId = 1, ManageChargingPowerByCar = true };
+        var target = new DtoTimeZonedChargingTarget { Id = 1, TargetSoc = 80, CarId = 1, NextExecutionTime = currentDate.AddHours(5) };
+        var chargingTargets = new List<DtoTimeZonedChargingTarget> { target };
+        var predictedSurplusSlices = new Dictionary<DateTimeOffset, int>();
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>
+        {
+            new DtoCar
+            {
+                Id = 1,
+                Vin = "vin",
+                MaximumAmpere = 16,
+                MinimumAmpere = 6,
+                ChargeModeV2 = Shared.Enums.ChargeModeV2.Manual,
+                ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 3),
+                SoC = new DtoTimeStampedValue<int?>(currentDate, 50),
+                UsableEnergy = 75,
+            },
+        });
+
+        Context.OcppChargingStationConnectors.Add(new ("test")
+        {
+            Id = 1,
+            MaxCurrent = 16,
+            MinCurrent = 6,
+            ConnectedPhasesCount = 3,
+            AutoSwitchBetween1And3PhasesEnabled = true,
+        });
+        Context.Cars.Add(new()
+        {
+            Id = 1,
+            UsableEnergy = 75,
+            MaximumAmpere = 16,
+            MinimumAmpere = 6,
+            MaximumPhases = 3,
+            CarType = Shared.Enums.CarType.Tesla,
+        });
+        await Context.SaveChangesAsync();
+
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.CarChargeLoss()).Returns(0);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.UsePredictedSolarPowerGenerationForChargingSchedules()).Returns(true);
+
+        // Act
+        var result = await service.GenerateChargingSchedulesForLoadPoint(loadPoint, chargingTargets, predictedSurplusSlices, currentDate, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 }

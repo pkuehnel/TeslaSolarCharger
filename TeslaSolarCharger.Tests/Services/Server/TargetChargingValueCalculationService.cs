@@ -73,8 +73,10 @@ public class TargetChargingValueCalculationService : TestBase
         Assert.Equal(10, targetChargingValues[0].TargetValues?.TargetCurrent);
     }
 
-    [Fact]
-    public async Task AppendTargetValues_MaxCombinedCurrent_LimitsPower()
+    [Theory]
+    [InlineData(15, 10, 5)]
+    [InlineData(18, 10, 8)]
+    public async Task AppendTargetValues_MaxCombinedCurrent_LimitsPower(int maxCombinedCurrent, decimal expectedLp1, decimal expectedLp2)
     {
         // Arrange
         var currentDate = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero);
@@ -118,11 +120,9 @@ public class TargetChargingValueCalculationService : TestBase
 
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { car1, car2 });
 
-        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(15);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(maxCombinedCurrent);
 
         // Act
-        // Max combined current 15A. Each car wants 10A.
-        // Priority 1 gets 10A. Priority 2 gets 5A (which might be below min, but check result).
         await service.AppendTargetValues(targetChargingValues, schedules, currentDate, 4600, 0, CancellationToken.None);
 
         // Assert
@@ -130,11 +130,10 @@ public class TargetChargingValueCalculationService : TestBase
 
         // Priority 1
         Assert.NotNull(targetChargingValues[0].TargetValues);
-        Assert.Equal(10, targetChargingValues[0].TargetValues?.TargetCurrent);
+        Assert.Equal(expectedLp1, targetChargingValues[0].TargetValues?.TargetCurrent);
 
         // Priority 2
         Assert.NotNull(targetChargingValues[1].TargetValues);
-        // It should be limited to 5A.
-        Assert.Equal(5, targetChargingValues[1].TargetValues?.TargetCurrent);
+        Assert.Equal(expectedLp2, targetChargingValues[1].TargetValues?.TargetCurrent);
     }
 }
