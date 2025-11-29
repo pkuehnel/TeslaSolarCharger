@@ -390,7 +390,7 @@ public class ChargingScheduleService : IChargingScheduleService
     private List<DtoChargingSchedule> OptimizeChargingSchedules(List<DtoChargingSchedule> schedules,
     DateTimeOffset currentDate, bool isCurrentlyCharging, int minChargingPower)
     {
-        _logger.LogTrace("Starting schedule optimization. Input count: {count}", schedules.Count);
+        _logger.LogTrace("{method}({@schedules}, {currentDate}, {isCurrentlyCharging}, {minChargingPowe})", nameof(OptimizeChargingSchedules), schedules, currentDate, isCurrentlyCharging, minChargingPower);
 
         if (!schedules.Any())
         {
