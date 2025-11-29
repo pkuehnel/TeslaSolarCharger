@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -91,7 +90,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
-        var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints, _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
+        var powerToControl = _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints);
         if (ShouldSkipPowerUpdatesDueToTooRecentAmpChangesOrPlugin(chargingLoadPoints, currentDate))
         {
             return;
