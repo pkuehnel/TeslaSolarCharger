@@ -2,18 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac.Extras.FakeItEasy;
-using Autofac.Extras.Moq;
-using Moq;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
-using TeslaSolarCharger.Server.Services;
-using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.Shared.TimeProviding;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.Contracts; // For IConfigurationWrapper
-using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -40,11 +33,11 @@ public class TargetChargingValueCalculationService : TestBase
             CarId = 1,
             ChargingConnectorId = 1,
             ChargingPriority = 1,
-            ManageChargingPowerByCar = true
+            ManageChargingPowerByCar = true,
         };
         var targetChargingValues = new List<DtoTargetChargingValues>
         {
-            new DtoTargetChargingValues(loadPoint)
+            new DtoTargetChargingValues(loadPoint),
         };
 
         var schedules = new List<Shared.Dtos.DtoChargingSchedule>
@@ -55,8 +48,8 @@ public class TargetChargingValueCalculationService : TestBase
                 ValidTo = currentDate.AddHours(1),
                 TargetMinPower = 2300, // 10A * 230V
                 CarId = 1,
-                OcppChargingConnectorId = 1
-            }
+                OcppChargingConnectorId = 1,
+            },
         };
 
         Mock.Mock<TeslaSolarCharger.Server.Services.Contracts.IShouldStartStopChargingCalculator>();
@@ -66,7 +59,7 @@ public class TargetChargingValueCalculationService : TestBase
                 Id = 1,
                 MaximumAmpere = 16,
                 IsCharging = new DtoTimeStampedValue<bool?>(currentDate, true),
-                ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 1)
+                ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 1),
             };
 
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { car });
@@ -77,7 +70,7 @@ public class TargetChargingValueCalculationService : TestBase
         // Assert
         Assert.Single(targetChargingValues);
         Assert.NotNull(targetChargingValues[0].TargetValues);
-        Assert.Equal(10, targetChargingValues[0].TargetValues.TargetCurrent);
+        Assert.Equal(10, targetChargingValues[0].TargetValues?.TargetCurrent);
     }
 
     [Fact]
@@ -97,13 +90,13 @@ public class TargetChargingValueCalculationService : TestBase
         var targetChargingValues = new List<DtoTargetChargingValues>
         {
             new DtoTargetChargingValues(loadPoint1),
-            new DtoTargetChargingValues(loadPoint2)
+            new DtoTargetChargingValues(loadPoint2),
         };
 
         var schedules = new List<Shared.Dtos.DtoChargingSchedule>
         {
             new Shared.Dtos.DtoChargingSchedule { ValidFrom = currentDate.AddHours(-1), ValidTo = currentDate.AddHours(1), TargetMinPower = 2300, CarId = 1, OcppChargingConnectorId = 1 },
-            new Shared.Dtos.DtoChargingSchedule { ValidFrom = currentDate.AddHours(-1), ValidTo = currentDate.AddHours(1), TargetMinPower = 2300, CarId = 2, OcppChargingConnectorId = 2 }
+            new Shared.Dtos.DtoChargingSchedule { ValidFrom = currentDate.AddHours(-1), ValidTo = currentDate.AddHours(1), TargetMinPower = 2300, CarId = 2, OcppChargingConnectorId = 2 },
         };
 
         Mock.Mock<TeslaSolarCharger.Server.Services.Contracts.IShouldStartStopChargingCalculator>();
@@ -113,14 +106,14 @@ public class TargetChargingValueCalculationService : TestBase
             Id = 1,
             MaximumAmpere = 16,
             IsCharging = new DtoTimeStampedValue<bool?>(currentDate, true),
-            ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 1)
+            ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 1),
         };
 
         var car2 = new DtoCar {
             Id = 2,
             MaximumAmpere = 16,
             IsCharging = new DtoTimeStampedValue<bool?>(currentDate, true),
-            ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 1)
+            ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 1),
         };
 
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { car1, car2 });
@@ -137,11 +130,11 @@ public class TargetChargingValueCalculationService : TestBase
 
         // Priority 1
         Assert.NotNull(targetChargingValues[0].TargetValues);
-        Assert.Equal(10, targetChargingValues[0].TargetValues.TargetCurrent);
+        Assert.Equal(10, targetChargingValues[0].TargetValues?.TargetCurrent);
 
         // Priority 2
         Assert.NotNull(targetChargingValues[1].TargetValues);
         // It should be limited to 5A.
-        Assert.Equal(5, targetChargingValues[1].TargetValues.TargetCurrent);
+        Assert.Equal(5, targetChargingValues[1].TargetValues?.TargetCurrent);
     }
 }

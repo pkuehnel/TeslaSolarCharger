@@ -2,18 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac.Extras.FakeItEasy;
-using Autofac.Extras.Moq;
-using Moq;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
-using TeslaSolarCharger.Server.Services;
-using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.Shared.TimeProviding;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.Contracts; // For IConfigurationWrapper
-using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -37,7 +30,7 @@ public class ChargingScheduleService : TestBase
             CarId = 1,
             ChargingConnectorId = 1,
             ChargingPriority = 1,
-            ManageChargingPowerByCar = true
+            ManageChargingPowerByCar = true,
         };
 
         var target = new DtoTimeZonedChargingTarget
@@ -45,7 +38,7 @@ public class ChargingScheduleService : TestBase
             Id = 1,
             TargetSoc = 80,
             CarId = 1,
-            NextExecutionTime = currentDate.AddHours(2)
+            NextExecutionTime = currentDate.AddHours(2),
         };
 
         var chargingTargets = new List<DtoTimeZonedChargingTarget> { target };
@@ -62,25 +55,25 @@ public class ChargingScheduleService : TestBase
                 MaximumAmpere = 16,
                 ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 3),
                 SoC = new DtoTimeStampedValue<int?>(currentDate, 50),
-                UsableEnergy = 75 // kWh
-            }
+                UsableEnergy = 75, // kWh
+            },
         });
 
         // Use in-memory db from TestBase
-        Context.OcppChargingStationConnectors.Add(new Model.Entities.TeslaSolarCharger.OcppChargingStationConnector
+        Context.OcppChargingStationConnectors.Add(new("test")
         {
             Id = 1,
             MaxCurrent = 16,
             ConnectedPhasesCount = 3,
-            AutoSwitchBetween1And3PhasesEnabled = true
+            AutoSwitchBetween1And3PhasesEnabled = true,
         });
-        Context.Cars.Add(new Model.Entities.TeslaSolarCharger.Car
+        Context.Cars.Add(new()
         {
             Id = 1,
             UsableEnergy = 75,
             MaximumAmpere = 16,
             MaximumPhases = 3,
-            CarType = TeslaSolarCharger.Shared.Enums.CarType.Tesla
+            CarType = Shared.Enums.CarType.Tesla,
         });
         await Context.SaveChangesAsync();
 
@@ -110,7 +103,7 @@ public class ChargingScheduleService : TestBase
         {
             { currentDate.AddHours(0), 5000 },
             { currentDate.AddHours(1), 5000 },
-            { currentDate.AddHours(2), 5000 }
+            { currentDate.AddHours(2), 5000 },
         };
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -123,12 +116,12 @@ public class ChargingScheduleService : TestBase
                 MaximumAmpere = 16,
                 ChargerPhases = new DtoTimeStampedValue<int?>(currentDate, 3),
                 SoC = new DtoTimeStampedValue<int?>(currentDate, 50),
-                UsableEnergy = 75
-            }
+                UsableEnergy = 75,
+            },
         });
 
-        Context.OcppChargingStationConnectors.Add(new Model.Entities.TeslaSolarCharger.OcppChargingStationConnector { Id = 1, MaxCurrent = 16, ConnectedPhasesCount = 3 });
-        Context.Cars.Add(new Model.Entities.TeslaSolarCharger.Car { Id = 1, UsableEnergy = 75, MaximumAmpere = 16, MaximumPhases = 3 });
+        Context.OcppChargingStationConnectors.Add(new ("test") { Id = 1, MaxCurrent = 16, ConnectedPhasesCount = 3 });
+        Context.Cars.Add(new() { Id = 1, UsableEnergy = 75, MaximumAmpere = 16, MaximumPhases = 3 });
         await Context.SaveChangesAsync();
 
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.CarChargeLoss()).Returns(0);
