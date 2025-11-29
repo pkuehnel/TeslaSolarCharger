@@ -1,5 +1,3 @@
-using TeslaSolarCharger.Shared.Localization;
-
 namespace TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage;
 
 public class ChargingSchedulesComponentLocalizationRegistry : TextLocalizationRegistry<ChargingSchedulesComponentLocalizationRegistry>

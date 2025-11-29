@@ -624,7 +624,8 @@ public class ChargingScheduleService : IChargingScheduleService
                 {
                     var hoursToReduce = (slotEnergy - energyToAdd) / (double)dtoChargingSchedule.EstimatedChargingPower;
                     _logger.LogTrace("Partial energy in new slot: reducing hours by {hoursToReduce}", hoursToReduce);
-                    if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+
+                    if (existingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                     {
                         dtoChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                         _logger.LogTrace("Adjusted dtoChargingSchedule.ValidTo to {validTo}", dtoChargingSchedule.ValidTo);
@@ -670,7 +671,8 @@ public class ChargingScheduleService : IChargingScheduleService
             {
                 var hoursToReduce = (slotAddedEnergy - energyToAdd1) / (double)dtoChargingSchedule.EstimatedChargingPower;
                 _logger.LogTrace("Partial overlap energy: reducing hours by {hoursToReduce}", hoursToReduce);
-                if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+
+                if (existingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                 {
                     overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                     _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidTo to {validTo}", overlappingExistingChargingSchedule.ValidTo);
