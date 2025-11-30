@@ -179,7 +179,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    private int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
+    internal int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
     {
         _logger.LogTrace("{method}({@loadPointTargetValues}, {estimatedCurrentUsage})", nameof(CalculateEstimatedPowerUsage), loadPointTargetValues, estimatedCurrentUsage);
         var voltage = loadPointTargetValues.LoadPoint.EstimatedVoltageWhileCharging ?? _settings.AverageHomeGridVoltage ?? 230m;
