@@ -190,7 +190,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    private decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
+    internal decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
     {
         _logger.LogTrace("{method}({@loadPoint}, {@constraintValues})", nameof(CalculateEstimatedCurrentUsage), loadPoint, constraintValues);
         if (loadPoint.TargetValues == default)
