@@ -1,11 +1,10 @@
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
-using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace TeslaSolarCharger.Tests.Services.Server.TargetChargingValueCalculationServiceTests;
+namespace TeslaSolarCharger.Tests.Services.Server.TargetChargingValueCalculationService;
 
 public class CalculateEstimatedPowerUsageTests : TestBase
 {
@@ -59,7 +58,7 @@ public class CalculateEstimatedPowerUsageTests : TestBase
         var loadPoint = new DtoLoadPointOverview
         {
             EstimatedVoltageWhileCharging = loadPointVoltage,
-            ActualPhases = loadPointPhases
+            ActualPhases = loadPointPhases,
         };
 
         var dto = new DtoTargetChargingValues(loadPoint);
@@ -67,7 +66,7 @@ public class CalculateEstimatedPowerUsageTests : TestBase
         {
             dto.TargetValues = new TargetValues
             {
-                TargetPhases = targetPhases
+                TargetPhases = targetPhases,
             };
         }
 
