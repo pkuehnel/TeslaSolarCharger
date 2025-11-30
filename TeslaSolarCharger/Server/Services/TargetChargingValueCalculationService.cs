@@ -714,7 +714,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return constraintValues;
     }
 
-    private bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
+    internal bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, T comparator, out DateTimeOffset? relevantAt)
     {
         _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timeSpanUntilIsRelevant}, {comparator})",
