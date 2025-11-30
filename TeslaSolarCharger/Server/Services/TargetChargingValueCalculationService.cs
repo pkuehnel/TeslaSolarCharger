@@ -150,7 +150,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     /// The reduction is applied first to <paramref name="additionalHomeBatteryDischargePower"/> until it reaches zero; 
     /// any remaining power usage is then subtracted from <paramref name="powerToControl"/>.
     /// </returns>
-    private (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
+    internal (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
         int powerToControl,
         int additionalHomeBatteryDischargePower,
         int estimatedPowerUsage)
