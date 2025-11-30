@@ -33,28 +33,6 @@ public class AreSchedulesMergeableTests : TestBase
         Assert.True(result == expectedResult, description);
     }
 
-    [Fact]
-    public void AreSchedulesMergeable_DifferentReasons_ReturnsFalse()
-    {
-        // Arrange
-        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-        var s1 = new DtoChargingSchedule(1, 1, 1000, new HashSet<ScheduleReason> { ScheduleReason.ExpectedSolarProduction });
-        var s2 = new DtoChargingSchedule(1, 1, 1000, new HashSet<ScheduleReason> { ScheduleReason.CheapGridPrice });
-
-        // Ensure other properties match
-        s1.TargetMinPower = 100;
-        s2.TargetMinPower = 100;
-
-        // Act
-        var result = service.AreSchedulesMergeable(s1, s2);
-
-        // Assert
-        // This test intentionally fails because the current implementation ignores ScheduleReasons
-        // when checking for mergeability, returning true instead of false.
-        // We believe this is a bug/issue because merging schedules with different reasons loses information.
-        Assert.False(result, "Schedules with different reasons should not be mergeable to preserve reason information.");
-    }
-
     public static IEnumerable<object[]> GetMergeableScenarios()
     {
         var baseSchedule = new DtoChargingSchedule(1, 1, 11000, new HashSet<ScheduleReason> { ScheduleReason.ExpectedSolarProduction })
@@ -122,23 +100,29 @@ public class AreSchedulesMergeableTests : TestBase
         s10.OcppChargingConnectorId = 2;
         yield return new object[] { Clone(baseSchedule), s10, false, "OcppChargingConnectorId mismatch should not be mergeable" };
 
-         // 11. OcppChargingConnectorId Match (Null vs Null)
+        // 11. OcppChargingConnectorId Match (Null vs Null)
         var s11a = Clone(baseSchedule);
         s11a.OcppChargingConnectorId = null;
         var s11b = Clone(baseSchedule);
         s11b.OcppChargingConnectorId = null;
         yield return new object[] { s11a, s11b, true, "OcppChargingConnectorId match (null vs null) should be mergeable" };
+
+        // 12. Different ScheduleReasons - Mergeable
+        // Base has ExpectedSolarProduction. We set this one to CheapGridPrice.
+        var s12 = Clone(baseSchedule);
+        s12.ScheduleReasons = new HashSet<ScheduleReason> { ScheduleReason.CheapGridPrice };
+        yield return new object[] { Clone(baseSchedule), s12, true, "Schedules with different reasons should be mergeable provided other props match" };
     }
 
     private static DtoChargingSchedule Clone(DtoChargingSchedule s)
     {
-         return new DtoChargingSchedule(s.CarId, s.OcppChargingConnectorId, s.MaxPossiblePower, new HashSet<ScheduleReason>(s.ScheduleReasons))
-         {
-             TargetMinPower = s.TargetMinPower,
-             TargetHomeBatteryPower = s.TargetHomeBatteryPower,
-             EstimatedSolarPower = s.EstimatedSolarPower,
-             ValidFrom = s.ValidFrom,
-             ValidTo = s.ValidTo
-         };
+        return new DtoChargingSchedule(s.CarId, s.OcppChargingConnectorId, s.MaxPossiblePower, new HashSet<ScheduleReason>(s.ScheduleReasons))
+        {
+            TargetMinPower = s.TargetMinPower,
+            TargetHomeBatteryPower = s.TargetHomeBatteryPower,
+            EstimatedSolarPower = s.EstimatedSolarPower,
+            ValidFrom = s.ValidFrom,
+            ValidTo = s.ValidTo
+        };
     }
 }
