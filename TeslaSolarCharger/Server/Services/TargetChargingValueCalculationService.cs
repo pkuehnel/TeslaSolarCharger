@@ -733,7 +733,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return result;
     }
 
-    private bool IsTimeStampedValueRelevant<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
+    internal bool IsTimeStampedValueRelevant<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, out DateTimeOffset? relevantAt)
     {
         _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timespanUntilIsRelevant})",
