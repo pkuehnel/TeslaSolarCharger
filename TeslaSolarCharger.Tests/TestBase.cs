@@ -17,9 +17,12 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
+using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Tests.Data;
@@ -38,6 +41,8 @@ public class TestBase : IDisposable
     protected readonly AutoFake _fake;
 
     protected ITeslaSolarChargerContext Context => _ctx;
+
+    protected DateTimeOffset CurrentFakeDate => new(2023, 2, 2, 8, 0, 0, TimeSpan.Zero);
 
     protected LoggingLevelSwitch LogLevelSwitch { get; }
 
@@ -62,14 +67,13 @@ public class TestBase : IDisposable
                 .Build()
             ;
 
-        var currentFakeTime = new DateTime(2023, 2, 2, 8, 0, 0);
-
         _fake = new AutoFake();
         _fake.Provide<IIssueKeys, IssueKeys>();
         _fake.Provide<IPossibleIssues, PossibleIssues>();
         _fake.Provide<IResultValueCalculationService, ResultValueCalculationService>();
         _fake.Provide<IConstants, Constants>();
-        _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentFakeTime));
+        _fake.Provide<IValidFromToSplitter, ValidFromToSplitter>();
+        _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime));
         _fake.Provide<IConfiguration>(configuration);
 
         Mock = AutoMock.GetLoose(
@@ -80,6 +84,7 @@ public class TestBase : IDisposable
                 b.Register((_, _) => _fake.Resolve<IPossibleIssues>());
                 b.Register((_, _) => _fake.Resolve<IResultValueCalculationService>());
                 b.Register((_, _) => _fake.Resolve<IConstants>());
+                b.Register((_, _) => _fake.Resolve<IValidFromToSplitter>());
                 b.Register((_, _) => _fake.Resolve<IConfiguration>());
                 b.RegisterType<FakeDateTimeProvider>();
                 //b.Register((_, _) => _fake.Resolve<IDateTimeProvider>());

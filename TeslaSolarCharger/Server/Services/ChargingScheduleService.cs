@@ -262,7 +262,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return schedules;
     }
 
-    private async Task<List<DtoChargingSchedule>> AppendOptimalGridSchedules(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget,
+    internal async Task<List<DtoChargingSchedule>> AppendOptimalGridSchedules(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget,
         DtoLoadPointOverview loadpoint,
         List<DtoChargingSchedule> schedules, int energyToCharge, int maxPower)
     {
@@ -387,7 +387,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return schedules;
     }
 
-    private List<DtoChargingSchedule> OptimizeChargingSchedules(List<DtoChargingSchedule> schedules,
+    internal List<DtoChargingSchedule> OptimizeChargingSchedules(List<DtoChargingSchedule> schedules,
     DateTimeOffset currentDate, bool isCurrentlyCharging, int minChargingPower)
     {
         _logger.LogTrace("{method}({@schedules}, {currentDate}, {isCurrentlyCharging}, {minChargingPowe})", nameof(OptimizeChargingSchedules), schedules, currentDate, isCurrentlyCharging, minChargingPower);
@@ -485,7 +485,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return mergedSchedules;
     }
 
-    private bool AreSchedulesMergeable(DtoChargingSchedule a, DtoChargingSchedule b)
+    internal bool AreSchedulesMergeable(DtoChargingSchedule a, DtoChargingSchedule b)
     {
         // Check all power-relevant properties and identifiers
         return a.TargetMinPower == b.TargetMinPower &&
@@ -497,7 +497,7 @@ public class ChargingScheduleService : IChargingScheduleService
     }
 
 
-    private List<Price> GetOrderedElectricityPrices(DateTimeOffset currentDate, List<Price> splittedGridPrices, bool isCurrentlyCharging,
+    internal List<Price> GetOrderedElectricityPrices(DateTimeOffset currentDate, List<Price> splittedGridPrices, bool isCurrentlyCharging,
         List<DtoChargingSchedule> splittedChargingSchedules, decimal chargingSwitchCosts, int maxPower)
     {
         var gridPricesIncludingCorrections = new List<Price>();
@@ -534,7 +534,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return gridPriceOrderedElectricityPrices;
     }
 
-    private Price GetCopy(Price oldPrice)
+    internal Price GetCopy(Price oldPrice)
     {
         return new Price()
         {
@@ -545,7 +545,7 @@ public class ChargingScheduleService : IChargingScheduleService
         };
     }
 
-    private int GetMinimumEnergyToCharge(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget, DtoCar car,
+    internal int GetMinimumEnergyToCharge(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget, DtoCar car,
         int? carUsableEnergy, List<DtoChargingSchedule> schedules)
     {
         var minimumEnergyToCharge = 0;
@@ -584,7 +584,7 @@ public class ChargingScheduleService : IChargingScheduleService
     /// <returns>A tuple containing the updated list of charging schedules after adding the new schedule, and the total
     /// additional scheduled energy in watt-hours. The list reflects any adjustments made to comply with power and
     /// energy constraints.</returns>
-    private (List<DtoChargingSchedule> chargingSchedulesAfterPowerAdd, int additionalScheduledEnergy) AddChargingSchedule(
+    internal (List<DtoChargingSchedule> chargingSchedulesAfterPowerAdd, int additionalScheduledEnergy) AddChargingSchedule(
      List<DtoChargingSchedule> existingSchedules,
      DtoChargingSchedule newChargingSchedule,
      int maxChargingPower,
@@ -625,7 +625,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     var hoursToReduce = (slotEnergy - energyToAdd) / (double)dtoChargingSchedule.EstimatedChargingPower;
                     _logger.LogTrace("Partial energy in new slot: reducing hours by {hoursToReduce}", hoursToReduce);
 
-                    if (existingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+                    if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                     {
                         dtoChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                         _logger.LogTrace("Adjusted dtoChargingSchedule.ValidTo to {validTo}", dtoChargingSchedule.ValidTo);
@@ -662,7 +662,7 @@ public class ChargingScheduleService : IChargingScheduleService
             overlappingExistingChargingSchedule.TargetHomeBatteryPower = newTargetHomeBatteryPower;
             overlappingExistingChargingSchedule.ScheduleReasons.UnionWith(dtoChargingSchedule.ScheduleReasons);
 
-        var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
+            var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
             var slotAddedEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, addedPower);
             var energyToAdd1 = Math.Min(slotAddedEnergy, maxEnergyToAdd - additionalScheduledEnergy);
             _logger.LogTrace("Overlap energy: addedPower={addedPower}, slotAddedEnergy={slotAddedEnergy}, energyToAdd1={energyToAdd1}, additionalScheduledEnergy={additionalScheduledEnergy}, maxEnergyToAdd={maxEnergyToAdd}", addedPower, slotAddedEnergy, energyToAdd1, additionalScheduledEnergy, maxEnergyToAdd);
@@ -672,7 +672,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 var hoursToReduce = (slotAddedEnergy - energyToAdd1) / (double)dtoChargingSchedule.EstimatedChargingPower;
                 _logger.LogTrace("Partial overlap energy: reducing hours by {hoursToReduce}", hoursToReduce);
 
-                if (existingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+                if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                 {
                     overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                     _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidTo to {validTo}", overlappingExistingChargingSchedule.ValidTo);
@@ -702,7 +702,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return (splittedExistingChargingSchedules, additionalScheduledEnergy);
     }
 
-    private int GetRemainingEnergyToCharge(DateTimeOffset currentDate, List<DtoChargingSchedule> schedules,
+    internal int GetRemainingEnergyToCharge(DateTimeOffset currentDate, List<DtoChargingSchedule> schedules,
         DateTimeOffset targetNextExecutionTime, int energyToChargeWhileIgnoringExistingChargingSchedules)
     {
         _logger.LogTrace("{method}({currentDate}, {@schedules}, {nextTargetNextExecution}, {energyToCharge})",
@@ -729,7 +729,7 @@ public class ChargingScheduleService : IChargingScheduleService
     }
 
 
-    private async Task<(int? UsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? minPhases, int? minCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
+    internal async Task<(int? UsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? minPhases, int? minCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
     {
         _logger.LogTrace("{methdod}({carId}, {connectorId})", nameof(GetChargingScheduleRelevantData), carId, chargingConnectorId);
         var connectorData = chargingConnectorId != default
@@ -782,7 +782,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
     }
 
-    private int? CalculateMinValue(int? connectorValue, int? carValue)
+    internal int? CalculateMinValue(int? connectorValue, int? carValue)
     {
         if (connectorValue.HasValue && carValue.HasValue)
         {
@@ -802,7 +802,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
 
 
-    private int CalculateEnergyToCharge(
+    internal int CalculateEnergyToCharge(
         int chargingTargetSoc,
         int currentSoC,
         int usableEnergy)
@@ -819,7 +819,7 @@ public class ChargingScheduleService : IChargingScheduleService
     }
 
 
-    private int GetHomeBatteryEnergyFromSocDifference(int socDifference)
+    internal int GetHomeBatteryEnergyFromSocDifference(int socDifference)
     {
         _logger.LogTrace("{method}()", nameof(GetHomeBatteryEnergyFromSocDifference));
         var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
@@ -834,13 +834,13 @@ public class ChargingScheduleService : IChargingScheduleService
         return 0;
     }
 
-    private int GetPowerAtPhasesAndCurrent(int phases, decimal current, int? voltage)
+    internal int GetPowerAtPhasesAndCurrent(int phases, decimal current, int? voltage)
     {
         _logger.LogTrace("{method}({phases}, {current}, {voltage})", nameof(GetPowerAtPhasesAndCurrent), phases, current, voltage);
         return (int)(phases * current * (voltage ?? 230));
     }
 
-    private TimeSpan CalculateChargingDuration(
+    internal TimeSpan CalculateChargingDuration(
         int energyToChargeWh,
         double maxChargingPowerW)
     {
@@ -848,7 +848,7 @@ public class ChargingScheduleService : IChargingScheduleService
         return TimeSpan.FromHours(energyToChargeWh / maxChargingPowerW);
     }
 
-    private int CalculateChargedEnergy(
+    internal int CalculateChargedEnergy(
         TimeSpan chargingDuration,
         int chargingPower)
     {

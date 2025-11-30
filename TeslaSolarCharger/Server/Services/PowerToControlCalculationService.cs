@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.Model.Contracts;
+﻿using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -7,7 +6,6 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -18,32 +16,31 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IConstants _constants;
+    private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
 
     public PowerToControlCalculationService(ILogger<PowerToControlCalculationService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IConfigurationWrapper configurationWrapper,
-        IConstants constants)
+        IConstants constants,
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
         _constants = constants;
+        _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
     }
 
-    public async Task<int> CalculatePowerToControl(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper, CancellationToken cancellationToken)
+    public int CalculatePowerToControl(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints)
     {
         _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
-        var resultConfigurations = await _context.ModbusResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken);
-        resultConfigurations.AddRange(await _context.RestValueResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken));
-        resultConfigurations.AddRange(await _context.MqttResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken));
         var availablePowerSources = new DtoAvailablePowerSources()
         {
-            InverterPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.InverterPower),
-            GridPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.GridPower),
-            HomeBatteryPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.HomeBatteryPower),
+            InverterPowerAvailable = _settings.InverterPower != default,
+            GridPowerAvailable = _settings.Overage != default,
+            HomeBatteryPowerAvailable = _settings.HomeBatteryPower != default && _settings.HomeBatterySoc != default,
         };
         if (availablePowerSources.InverterPowerAvailable || availablePowerSources.GridPowerAvailable || availablePowerSources.HomeBatteryPowerAvailable)
         {
@@ -54,18 +51,17 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
                 {
                     var dummyPower = chargingLoadPoints.Sum(c => c.ChargingPower);
                     _logger.LogWarning("Use {dummyPower}W as power to control due to too old solar values {pvValuesAge}", dummyPower, pvValuesAge);
-                    notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
+                    _notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
                     return dummyPower;
                 }
             }
         }
-        
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         if (buffer != 0)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Charging speed is {(buffer > 0 ? "decreased" : "increased")} due to power buffer being set to {buffer}W"));
+            _notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Charging speed is {(buffer > 0 ? "decreased" : "increased")} due to power buffer being set to {buffer}W"));
         }
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
@@ -87,7 +83,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         _logger.LogDebug("Calculated overage {overage} after subtracting power buffer ({buffer})", overage, buffer);
         if (availablePowerSources.HomeBatteryPowerAvailable)
         {
-            overage = AddHomeBatteryStateToPowerCalculation(overage, notChargingWithExpectedPowerReasonHelper);
+            overage = AddHomeBatteryStateToPowerCalculation(overage, _notChargingWithExpectedPowerReasonHelper);
         }
         return overage + currentChargingPower;
     }

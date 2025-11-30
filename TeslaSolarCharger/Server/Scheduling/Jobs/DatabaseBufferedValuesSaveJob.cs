@@ -11,7 +11,13 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
 {
     public async Task Execute(IJobExecutionContext context)
     {
-        logger.LogTrace("{method}({context})", nameof(Execute), context);
+        logger.LogTrace("{method}()", nameof(Execute));
+        await ExecuteWithoutContext(context.CancellationToken);
+    }
+
+    public async Task ExecuteWithoutContext(CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}()", nameof(ExecuteWithoutContext));
         try
         {
             await meterValueLogService.SaveBufferedMeterValuesToDatabase().ConfigureAwait(false);
@@ -30,6 +36,6 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
             logger.LogError(ex, "An error occurred while saving buffered charger meter values to the database.");
         }
 
-        await carValueEstimationService.UpdateAllCarValueEstimations(context.CancellationToken).ConfigureAwait(false);
+        await carValueEstimationService.UpdateAllCarValueEstimations(cancellationToken).ConfigureAwait(false);
     }
 }

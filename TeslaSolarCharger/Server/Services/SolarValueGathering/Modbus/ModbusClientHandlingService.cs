@@ -320,6 +320,7 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
         foreach (var key in keysToRemove)
         {
             await RemoveClientByKey(key);
+            logger.LogTrace("Client with key {key} removed", key);
         }
     }
 }
