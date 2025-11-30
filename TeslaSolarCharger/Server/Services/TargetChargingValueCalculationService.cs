@@ -473,7 +473,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return null;
     }
 
-    private async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
+    internal async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
         DateTimeOffset currentDate, decimal maxCombinedCurrent, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({carId}, {connectorId}, {useCarToManageChargingSpeed}, {currentDate}, {maxCombinedCurrent})",
