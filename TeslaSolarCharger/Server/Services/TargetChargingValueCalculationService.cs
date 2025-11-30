@@ -222,7 +222,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return currentToSet;
     }
 
-    private TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
+    internal TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({@constraintValues}, {@loadpoint}, {powerToSet}, {ignoreTimers}, {currentDate})", nameof(GetTargetValue), constraintValues, loadpoint, powerToSet, ignoreTimers, currentDate);
         if (loadpoint.IsPluggedIn != true || loadpoint.IsHome == false)
