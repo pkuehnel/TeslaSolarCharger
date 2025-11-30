@@ -5,13 +5,13 @@ using TeslaSolarCharger.Shared.Dtos;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace TeslaSolarCharger.Tests.Services.Server;
+namespace TeslaSolarCharger.Tests.Services.Server.ChargingSchedulesService;
 
-public class ChargingScheduleService : TestBase
+public class AddChargingScheduleTests : TestBase
 {
     private const int MaxPower = 11_040;
 
-    public ChargingScheduleService(ITestOutputHelper outputHelper)
+    public AddChargingScheduleTests(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
     }
