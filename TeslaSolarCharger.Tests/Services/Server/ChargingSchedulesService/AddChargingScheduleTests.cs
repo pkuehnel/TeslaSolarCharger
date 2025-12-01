@@ -34,25 +34,6 @@ public class AddChargingScheduleTests : TestBase
         };
     }
 
-    // --- REFACTORED EXISTING TESTS ---
-
-    private DtoChargingSchedule CreateSchedule(
-        DateTimeOffset from,
-        DateTimeOffset to,
-        int targetMinPower,
-        int? targetHomeBatteryPower,
-        ScheduleReason reason)
-    {
-        return new DtoChargingSchedule(1, null, MaxPower, new HashSet<ScheduleReason> { reason })
-        {
-            ValidFrom = from,
-            ValidTo = to,
-            TargetMinPower = targetMinPower,
-            TargetHomeBatteryPower = targetHomeBatteryPower,
-            MaxPossiblePower = MaxPower,
-        };
-    }
-
     [Theory]
     [InlineData(true, "StartHigh")]
     [InlineData(false, "EndHigh")]
@@ -70,16 +51,17 @@ public class AddChargingScheduleTests : TestBase
         // If contiguous, we add a dummy schedule BEFORE the target slot
         if (contiguousWithPrevious)
         {
-            existingSchedules.Add(CreateSchedule(start.AddHours(-1), start, 0, 0, ScheduleReason.LatestPossibleTime));
+            existingSchedules.Add(CreateSchedule(start.AddHours(-1), start, 0, MaxPower, ScheduleReason.LatestPossibleTime));
         }
 
         // Existing overlapping schedule: HomeBatteryDischarging (4500W)
-        var existingSchedule = CreateSchedule(start, end, 0, HomeBatPower, ScheduleReason.HomeBatteryDischarging);
+        var existingSchedule = CreateSchedule(start, end, 0, MaxPower, ScheduleReason.HomeBatteryDischarging);
+        existingSchedule.TargetHomeBatteryPower = HomeBatPower;
         existingSchedules.Add(existingSchedule);
 
         // New: CheapGridPrice (11000W) overlapping
         // We set TargetMinPower to MaxPower.
-        var newSchedule = CreateSchedule(start, end, MaxPower, null, ScheduleReason.CheapGridPrice);
+        var newSchedule = CreateSchedule(start, end, MaxPower, MaxPower, ScheduleReason.CheapGridPrice);
 
         // We want to add only 1000Wh of Grid energy.
         // Full grid boost would provide (11000 - 4500) * 1h = 6500Wh.
