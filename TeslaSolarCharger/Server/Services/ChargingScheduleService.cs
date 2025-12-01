@@ -216,18 +216,13 @@ public class ChargingScheduleService : IChargingScheduleService
                             }
                             var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);
                             var scheduleEnd = nextTarget.NextExecutionTime;
-                            var scheduleStart = scheduleEnd - dischargeDuration;
-                            if (scheduleStart < currentDate)
-                            {
-                                scheduleStart = currentDate;
-                            }
                             _logger.LogTrace("Discharge duration: {dischargeDuration}; Scheduled end: {scheduledEnd}; scheduled start: {scheduledStart}",
-                                dischargeDuration, scheduleEnd, scheduleStart);
-                            if (scheduleStart < scheduleEnd)
+                                dischargeDuration, scheduleEnd, currentDate);
+                            if (currentDate < scheduleEnd)
                             {
                                 var homeBatteryChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId, maxPower, [ScheduleReason.HomeBatteryDischarging])
                                 {
-                                    ValidFrom = scheduleStart,
+                                    ValidFrom = currentDate,
                                     ValidTo = scheduleEnd,
                                     TargetHomeBatteryPower = availableDischargePower,
                                 };
@@ -239,7 +234,7 @@ public class ChargingScheduleService : IChargingScheduleService
                             }
                             else
                             {
-                                _logger.LogTrace("Skipping home battery discharge schedule because scheduleStart >= scheduleEnd (start={scheduleStart}, end={scheduleEnd})", scheduleStart, scheduleEnd);
+                                _logger.LogTrace("Skipping home battery discharge schedule because scheduleStart >= scheduleEnd (start={scheduleStart}, end={scheduleEnd})", currentDate, scheduleEnd);
                             }
                         }
                         _logger.LogTrace("Finished home battery discharge planning for target {@target}. Remaining homeBatteryEnergyToCharge={homeBatteryEnergyToCharge}, minimumEnergyToCharge={minimumEnergyToCharge}", nextTarget, homeBatteryEnergyToCharge, minimumEnergyToCharge);
