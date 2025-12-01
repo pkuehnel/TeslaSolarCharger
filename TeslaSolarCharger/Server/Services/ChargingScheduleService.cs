@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -127,8 +128,13 @@ public class ChargingScheduleService : IChargingScheduleService
             {
                 _logger.LogDebug("Next target {@nextTarget} is in the past. Plan charging immediatly.", nextTarget);
                 var startDate = currentDate;
+                var loopCount = 0;
                 while (minimumEnergyToCharge > 100)
                 {
+                    if (CheckLoopLimit(++loopCount))
+                    {
+                        break;
+                    }
                     var chargingDuration = CalculateChargingDuration(minimumEnergyToCharge, maxPower);
                     var validToDate = startDate + chargingDuration;
                     _logger.LogTrace("Immediate charging iteration for car {carId}: start={startDate}, end={validToDate}, remainingEnergy={remainingEnergy}", car.Id, startDate, validToDate, minimumEnergyToCharge);
@@ -201,8 +207,13 @@ public class ChargingScheduleService : IChargingScheduleService
                     _logger.LogTrace("Available discharge power: {availableDischargePower}W", availableDischargePower);
                     if (availableDischargePower > 0)
                     {
+                        var loopCount = 0;
                         while (homeBatteryEnergyToCharge > 100)
                         {
+                            if (CheckLoopLimit(++loopCount))
+                            {
+                                break;
+                            }
                             var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);
                             var scheduleEnd = nextTarget.NextExecutionTime;
                             var scheduleStart = scheduleEnd - dischargeDuration;
@@ -305,8 +316,13 @@ public class ChargingScheduleService : IChargingScheduleService
             _logger.LogTrace("Deserialized loopChargingSchedules. Count={loopScheduleCount}", loopChargingSchedules.Count);
             var i = 0;
             var chargingCosts = 0m;
+            var loopCount = 0;
             while (remainingEnergyToCoverFromGrid > 100)
             {
+                if (CheckLoopLimit(++loopCount))
+                {
+                    break;
+                }
                 var gridPriceOrderedElectricityPrices = GetOrderedElectricityPrices(currentDate, splittedGridPrices, isCurrentlyCharging, loopChargingSchedules, chargingSwitchCosts, maxPower);
                 _logger.LogTrace("Ordered {count} grid price slices by effective cost for current iteration. remainingEnergyToCoverFromGrid={remainingEnergyToCoverFromGrid}", gridPriceOrderedElectricityPrices.Count, remainingEnergyToCoverFromGrid);
                 gridPriceOrderedElectricityPrices = gridPriceOrderedElectricityPrices.Where(p =>
@@ -359,9 +375,13 @@ public class ChargingScheduleService : IChargingScheduleService
             // Ensure we don't start in the past if NextExecutionTime is weirdly configured, though main logic prevents this usually
             if (overflowStartDate < currentDate)
                 overflowStartDate = currentDate;
-
+            var loopCount = 0;
             while (finalRemainingEnergy > 100)
             {
+                if (CheckLoopLimit(++loopCount))
+                {
+                    break;
+                }
                 var chargingDuration = CalculateChargingDuration(finalRemainingEnergy, maxPower);
                 var validToDate = overflowStartDate + chargingDuration;
 
@@ -686,7 +706,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 {
                     TargetMinPower = originalTargetMinPower,
                     EstimatedSolarPower = originalEstimatedSolarPower,
-                    TargetHomeBatteryPower = originalTargetHomeBatteryPower
+                    TargetHomeBatteryPower = originalTargetHomeBatteryPower,
                 };
 
                 if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
@@ -700,7 +720,6 @@ public class ChargingScheduleService : IChargingScheduleService
                     overlappingExistingChargingSchedule.ValidTo = splitTime;
 
                     splittedExistingChargingSchedules.Insert(splittedExistingChargingSchedules.IndexOf(overlappingExistingChargingSchedule) + 1, lowPowerSchedule);
-                    _logger.LogTrace("Split schedule (Start High): HighPower [From {start} To {mid}], LowPower [From {mid} To {end}]", overlappingExistingChargingSchedule.ValidFrom, splitTime, lowPowerSchedule.ValidTo);
                 }
                 else
                 {
@@ -713,7 +732,6 @@ public class ChargingScheduleService : IChargingScheduleService
                     overlappingExistingChargingSchedule.ValidFrom = splitTime;
 
                     splittedExistingChargingSchedules.Insert(splittedExistingChargingSchedules.IndexOf(overlappingExistingChargingSchedule), lowPowerSchedule);
-                    _logger.LogTrace("Split schedule (End High): LowPower [From {start} To {mid}], HighPower [From {mid} To {end}]", lowPowerSchedule.ValidFrom, splitTime, overlappingExistingChargingSchedule.ValidTo);
                 }
             }
 
@@ -881,5 +899,16 @@ public class ChargingScheduleService : IChargingScheduleService
         int chargingPower)
     {
         return (int)(chargingDuration.TotalHours * chargingPower);
+    }
+
+    private bool CheckLoopLimit(int currentIteration, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        const int MaxLoopIterations = 50;
+        if (currentIteration > MaxLoopIterations)
+        {
+            _logger.LogWarning("Auto-breaking loop after {maxIterations} iterations at {file}:{line}.", MaxLoopIterations, file, line);
+            return true;
+        }
+        return false;
     }
 }
