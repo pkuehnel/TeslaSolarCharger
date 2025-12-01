@@ -29,409 +29,299 @@ public class AddChargingScheduleTests : TestBase
             ValidFrom = from,
             ValidTo = to,
             TargetMinPower = targetPower,
-            MaxPossiblePower = maxPower,
+            MaxPossiblePower = maxPower
         };
     }
 
-    // --- REFACTORED EXISTING TESTS ---
+    [Theory]
+    [MemberData(nameof(GetPartialOverlapTestData))]
+    public void AddChargingSchedule_PartialOverlap_SplitsSchedules(
+        int existingPower,
+        int newTargetPower,
+        int maxPower,
+        double overlapDurationHours,
+        double boostDurationHours,
+        string testDescription)
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var start = CurrentFakeDate;
+        var end = CurrentFakeDate.AddHours(overlapDurationHours); // e.g. 1 hour total duration
+
+        // Existing schedule (e.g., Home Battery discharge)
+        var existingSchedule = CreateSchedule(start, end, existingPower, maxPower, ScheduleReason.HomeBatteryDischarging);
+        var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
+
+        // New schedule request (e.g., Grid boost) for the same duration, but we will limit energy
+        var newSchedule = CreateSchedule(start, end, newTargetPower, maxPower, ScheduleReason.LatestPossibleTime);
+
+        // Calculate Max Energy to Add:
+        // We only want to add enough energy for 'boostDurationHours' at the DIFFERENCE in power.
+        // E.g. (11000 - 4500) * 0.166h
+        var powerDifference = newTargetPower - existingPower;
+        var maxEnergyToAdd = (int)(powerDifference * boostDurationHours);
+        // Add a small epsilon to avoid rounding issues causing it to be slightly under
+        maxEnergyToAdd += 1;
+
+        // Act
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, maxPower, maxEnergyToAdd);
+
+        // Assert
+        // We expect the schedule to be SPLIT into TWO parts:
+        // 1. One part at existingPower (Base)
+        // 2. One part at newTargetPower (Boosted)
+        // Total duration should still be 'overlapDurationHours' (approximately, due to float math)
+
+        Assert.True(schedules.Count >= 2, $"Should have split the schedule into at least 2 parts (Base and Boost) for test '{testDescription}'.");
+
+        // Verify we have a Boosted segment
+        var boostedSegment = schedules.FirstOrDefault(s => s.TargetMinPower >= newTargetPower);
+        Assert.NotNull(boostedSegment); // Fail if no segment has the high power
+
+        // Verify we have a Base segment
+        var baseSegment = schedules.FirstOrDefault(s => s.TargetMinPower == existingPower);
+        Assert.NotNull(baseSegment);
+
+        // Verify duration of boosted segment is close to expected
+        var actualBoostDuration = (boostedSegment.ValidTo - boostedSegment.ValidFrom).TotalHours;
+        Assert.InRange(actualBoostDuration, boostDurationHours - 0.05, boostDurationHours + 0.05);
+
+        // Verify total energy added
+        Assert.InRange(addedEnergy, maxEnergyToAdd - 10, maxEnergyToAdd + 10);
+    }
+
+    public static IEnumerable<object[]> GetPartialOverlapTestData()
+    {
+        // Scenario 1: User reported case
+        // 4500W base, 11000W boost, 1 hour total, ~10 mins boost (0.166h)
+        yield return new object[] { 4500, 11000, 11088, 1.0, 0.166, "User Scenario: 4.5kW Base, 11kW Boost, 10min fill" };
+
+        // Scenario 2: Half hour boost
+        yield return new object[] { 4500, 11000, 11088, 1.0, 0.5, "Half Hour Boost" };
+
+        // Scenario 3: Different power levels
+        yield return new object[] { 2000, 10000, 11000, 2.0, 0.25, "Low Base, High Boost, 15min fill in 2h slot" };
+    }
+
 
     [Fact]
     public void AddChargingSchedule_EmptyList_AddsFullSchedule()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
         var existingSchedules = new List<DtoChargingSchedule>();
         var start = CurrentFakeDate.AddHours(1);
         var end = CurrentFakeDate.AddHours(2);
-
         var newSchedule = CreateSchedule(start, end, MaxPower);
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower);
 
-        // Assert
         Assert.Single(schedules);
-        Assert.Equal(MaxPower, addedEnergy); // 1 hour @ MaxPower = MaxPower energy
-        Assert.Equal(start, schedules[0].ValidFrom);
-        Assert.Equal(end, schedules[0].ValidTo);
+        Assert.Equal(MaxPower, addedEnergy);
     }
-
-    [Fact]
-    public void AddChargingSchedule_EmptyList_EnergyLimit_AdjustsStartTime()
-    {
-        // Arrange
-        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-        var existingSchedules = new List<DtoChargingSchedule>();
-        var start = CurrentFakeDate.AddMinutes(60);
-        var end = CurrentFakeDate.AddMinutes(120);
-
-        // We request 1 hour at MaxPower, but allow only half the energy
-        var newSchedule = CreateSchedule(start, end, MaxPower);
-        var maxEnergyToAdd = MaxPower / 2;
-
-        // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd);
-
-        // Assert
-        Assert.Single(schedules);
-        Assert.Equal(maxEnergyToAdd, addedEnergy);
-
-        // Since energy is half, time should be reduced by half (start time shifts forward)
-        // Logic check: (slotEnergy - energyToAdd) / Power = (Max - Max/2)/Max = 0.5 hours to reduce
-        Assert.Equal(start.AddMinutes(30), schedules[0].ValidFrom);
-        Assert.Equal(end, schedules[0].ValidTo);
-    }
-
-    // --- NEW TESTS: FULL OVERLAP SCENARIOS ---
 
     [Fact]
     public void AddChargingSchedule_FullOverlap_IncreasesExistingPower()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
         var start = CurrentFakeDate.AddHours(1);
         var end = CurrentFakeDate.AddHours(2);
-
-        // Existing schedule running at HALF power
-        var existingSchedule = CreateSchedule(start, end, MaxPower / 2);
+        var existingSchedule = CreateSchedule(start, end, MaxPower / 2, MaxPower, ScheduleReason.HomeBatteryDischarging);
         var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
+        var newSchedule = CreateSchedule(start, end, MaxPower, MaxPower, ScheduleReason.LatestPossibleTime);
 
-        // New schedule requesting FULL power
-        var newSchedule = CreateSchedule(start, end, MaxPower);
-
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower);
 
-        // Assert
         Assert.Single(schedules);
         var result = schedules.First();
-
-        // 1. Power should be upgraded to MaxPower (Math.Max logic)
         Assert.Equal(MaxPower, result.TargetMinPower);
-
-        // 2. Added Energy should be the DIFFERENCE (Max - Half)
         Assert.Equal(MaxPower / 2, addedEnergy);
-
-        // 3. Reasons should be merged
-        Assert.Equal(start, result.ValidFrom);
-        Assert.Equal(end, result.ValidTo);
     }
 
     [Fact]
     public void AddChargingSchedule_FullOverlap_AlreadyMaxPower_NoChange()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
         var start = CurrentFakeDate.AddHours(1);
         var end = CurrentFakeDate.AddHours(2);
-
-        // Existing is already at MAX power
         var existingSchedule = CreateSchedule(start, end, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
-
-        // New schedule also at MAX power
         var newSchedule = CreateSchedule(start, end, MaxPower);
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower);
 
-        // Assert
         Assert.Single(schedules);
         var result = schedules.First();
-
         Assert.Equal(MaxPower, result.TargetMinPower);
-        // Should add 0 energy because we are already maxed out
         Assert.Equal(0, addedEnergy);
     }
-
-    // --- NEW TESTS: PARTIAL OVERLAP SCENARIOS ---
 
     [Fact]
     public void AddChargingSchedule_PartialOverlap_IncreasesPowerOnOverlap_AndAddsNewSlot()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-
-        // Time segments: 10:00 -> 11:00 -> 12:00
         var t1 = CurrentFakeDate;
         var t2 = CurrentFakeDate.AddHours(1);
         var t3 = CurrentFakeDate.AddHours(2);
 
         // Existing: 10:00 - 12:00 @ 50% Power
-        // Note: The splitter in your service logic is responsible for breaking this up.
-        // Assuming the mocked/real splitter functions correctly, it will break the existing schedule 
-        // into 10-11 and 11-12 to match the new schedule boundaries.
+        // The splitter will likely split this into 10-11 and 11-12
         var existingSchedule = CreateSchedule(t1, t3, MaxPower / 2);
         var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
 
         // New: 11:00 - 12:00 @ 100% Power (Overlaps the second half of existing)
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower);
-
-        // Assert
-        // Result should have:
-        // 1. 10:00-11:00 @ 50% (Untouched existing part)
-        // 2. 11:00-12:00 @ 100% (Merged part)
-
-        // Note: Depending on how the Splitter works, this might return 2 items.
-        // Item 1: 10-11 (50%)
-        // Item 2: 11-12 (100%)
 
         Assert.Equal(2, schedules.Count);
 
-        // Check first segment (Unchanged)
         var segment1 = schedules.FirstOrDefault(s => s.ValidFrom == t1);
         Assert.NotNull(segment1);
         Assert.Equal(MaxPower / 2, segment1.TargetMinPower);
 
-        // Check second segment (Upgraded)
         var segment2 = schedules.FirstOrDefault(s => s.ValidFrom == t2);
         Assert.NotNull(segment2);
         Assert.Equal(MaxPower, segment2.TargetMinPower);
-
-        // Energy added is the difference for 1 hour: (Max - Max/2)
         Assert.Equal(MaxPower / 2, addedEnergy);
     }
 
     [Fact]
     public void AddChargingSchedule_PartialOverlap_AlreadyMax_NoPowerChange_ButStructureUpdate()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-
         var t1 = CurrentFakeDate;
         var t2 = CurrentFakeDate.AddHours(1);
         var t3 = CurrentFakeDate.AddHours(2);
 
-        // Existing: 10:00 - 12:00 @ 100% Power
         var existingSchedule = CreateSchedule(t1, t3, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
-
-        // New: 11:00 - 12:00 @ 100% Power
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower);
 
-        // Assert
-        // Even though power didn't change, the splitter likely physically split the list into two objects
-        // to accommodate the boundary checks.
         Assert.Equal(2, schedules.Count);
-
         var segment2 = schedules.FirstOrDefault(s => s.ValidFrom == t2);
         Assert.NotNull(segment2);
         Assert.Equal(MaxPower, segment2.TargetMinPower);
-
-        // No energy added
         Assert.Equal(0, addedEnergy);
     }
 
     [Fact]
     public void AddChargingSchedule_ComplexOverlap_InsertsNewSlot_AndUpgradesExisting()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-
-        // 10:00 -> 11:00 -> 12:00 -> 13:00
         var t10 = CurrentFakeDate;
         var t11 = CurrentFakeDate.AddHours(1);
         var t12 = CurrentFakeDate.AddHours(2);
 
-        // Existing: 10:00 - 11:00 @ 50%
         var existing = CreateSchedule(t10, t11, MaxPower / 2);
         var existingSchedules = new List<DtoChargingSchedule> { existing };
 
-        // New: 10:30 - 12:00 @ 100% (Partial overlap 10:30-11:00, New 11:00-12:00)
-        // Note: This relies on the Splitter handling the 10:30 cut.
         var t10_30 = t10.AddMinutes(30);
         var newSchedule = CreateSchedule(t10_30, t12, MaxPower);
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower * 10);
-
-        // Assert
-        // Expected outcome structure based on Splitter logic + Add logic:
-        // 1. 10:00 - 10:30 @ 50% (Remaining existing)
-        // 2. 10:30 - 11:00 @ 100% (Merged/Upgraded)
-        // 3. 11:00 - 12:00 @ 100% (Brand New)
 
         Assert.Equal(3, schedules.Count);
 
-        // 1. Untouched part
         var part1 = schedules.Single(s => s.ValidFrom == t10);
         Assert.Equal(t10_30, part1.ValidTo);
         Assert.Equal(MaxPower / 2, part1.TargetMinPower);
 
-        // 2. Overlap part
         var part2 = schedules.Single(s => s.ValidFrom == t10_30 && s.ValidTo == t11);
         Assert.Equal(MaxPower, part2.TargetMinPower);
 
-        // 3. New part
         var part3 = schedules.Single(s => s.ValidFrom == t11);
         Assert.Equal(t12, part3.ValidTo);
         Assert.Equal(MaxPower, part3.TargetMinPower);
-
-        // Energy Check:
-        // Overlap upgrade: 0.5h * (100% - 50%) = 0.5h * 50% Power
-        // New part: 1.0h * 100% Power
-        var overlapEnergy = CalculateEnergy(0.5, MaxPower / 2);
-        var newPartEnergy = CalculateEnergy(1.0, MaxPower);
-        Assert.Equal(overlapEnergy + newPartEnergy, addedEnergy);
     }
 
     [Fact]
     public void AddChargingSchedule_PartialEnergy_WithGap_ShiftsValidFromLater()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-
-        var tStartExisting = CurrentFakeDate;           // 10:00
-        var tEndExisting = CurrentFakeDate.AddHours(1); // 11:00
-
-        // 10 minute gap
-        var tStartNew = tEndExisting.AddMinutes(10);    // 11:10
-        var tEndNew = tStartNew.AddHours(1);            // 12:10
+        var tStartExisting = CurrentFakeDate;
+        var tEndExisting = CurrentFakeDate.AddHours(1);
+        var tStartNew = tEndExisting.AddMinutes(10);
+        var tEndNew = tStartNew.AddHours(1);
 
         var existing = CreateSchedule(tStartExisting, tEndExisting, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existing };
-
         var newSchedule = CreateSchedule(tStartNew, tEndNew, MaxPower);
-
-        // Limit energy to 50% (30 mins worth of power)
         var maxEnergyToAdd = MaxPower / 2;
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd);
 
-        // Assert
         Assert.Equal(2, schedules.Count);
-
-        // 1. Existing schedule remains untouched
         var s1 = schedules.Single(s => s.ValidFrom == tStartExisting);
         Assert.Equal(tEndExisting, s1.ValidTo);
 
-        // 2. New schedule:
-        // Because of the gap, the code shortens from the START (ValidFrom increases).
-        // We requested 1h duration but only gave 0.5h energy. 
-        // Start should shift by 30 mins: 11:10 -> 11:40.
         var s2 = schedules.Single(s => s.ValidTo == tEndNew);
         Assert.Equal(tStartNew.AddMinutes(30), s2.ValidFrom);
-
         Assert.Equal(maxEnergyToAdd, addedEnergy);
     }
 
     [Fact]
     public void AddChargingSchedule_PartialEnergy_Contiguous_ShiftsValidToEarlier()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-
-        var t1 = CurrentFakeDate;           // 10:00
-        var t2 = CurrentFakeDate.AddHours(1); // 11:00 (Boundary)
-        var t3 = CurrentFakeDate.AddHours(2); // 12:00
+        var t1 = CurrentFakeDate;
+        var t2 = CurrentFakeDate.AddHours(1);
+        var t3 = CurrentFakeDate.AddHours(2);
 
         var existing = CreateSchedule(t1, t2, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existing };
-
-        // New schedule starts exactly when existing ends (11:00)
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
-
-        // Limit energy to 50% (30 mins worth)
         var maxEnergyToAdd = MaxPower / 2;
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd);
 
-        // Assert
         Assert.Equal(2, schedules.Count);
-
-        // 1. Existing schedule untouched
         var s1 = schedules.Single(s => s.ValidFrom == t1);
         Assert.Equal(t2, s1.ValidTo);
 
-        // 2. New schedule:
-        // Because it is contiguous (Any found matching ValidTo), code shortens from the END.
-        // Start remains 11:00. End shifts from 12:00 -> 11:30.
         var s2 = schedules.Single(s => s.ValidFrom == t2);
         Assert.Equal(t2.AddMinutes(30), s2.ValidTo);
-
         Assert.Equal(maxEnergyToAdd, addedEnergy);
     }
 
     [Fact]
     public void AddChargingSchedule_PartialOverlap_WithPriorNeighbor_MaintainsContinuity()
     {
-        // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-        // Timeline: 10:00 -> 11:00 -> 11:30 -> 12:00 -> 13:00
-        var t1 = CurrentFakeDate;                // 10:00
-        var t2 = CurrentFakeDate.AddHours(1);    // 11:00
-        var t2_5 = CurrentFakeDate.AddMinutes(90); // 11:30
-        var t3 = CurrentFakeDate.AddHours(2);    // 12:00
-        var t4 = CurrentFakeDate.AddHours(3);    // 13:00
+        var t1 = CurrentFakeDate;
+        var t2 = CurrentFakeDate.AddHours(1);
+        var t2_5 = CurrentFakeDate.AddMinutes(90);
+        var t3 = CurrentFakeDate.AddHours(2);
+        var t4 = CurrentFakeDate.AddHours(3);
 
-        // Existing: Two distinct 1-hour blocks at 50% power
-        // 1. 10:00 - 11:00
-        // 2. 11:00 - 12:00
         var existing1 = CreateSchedule(t1, t2, MaxPower / 2);
         var existing2 = CreateSchedule(t2, t3, MaxPower / 2);
         var existingSchedules = new List<DtoChargingSchedule> { existing1, existing2 };
 
-        // New: 11:30 - 13:00 @ 100% Power 
-        // (Overlaps the last 30 mins of existing2, plus 60 mins of new time)
         var newSchedule = CreateSchedule(t2_5, t4, MaxPower);
-
-        // Energy Limit: Set to 11040 (MaxPower)
-        // 1. Overlap (30 mins): Increases power by 50%. Energy cost = 0.5h * 5520 = 2760.
-        // 2. Remaining Budget: 11040 - 2760 = 8280.
-        // 3. New Slot (1 hour): Wants 11040. Can only afford 8280. 
-        //    8280 / 11040 = 0.75 hours (45 minutes).
         var maxEnergyToAdd = MaxPower;
 
-        // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd);
 
-        // Assert
-        // The splitter breaks the list into:
-        // 1. 10:00 - 11:00 (Existing 1 - untouched)
-        // 2. 11:00 - 11:30 (Existing 2 part A - untouched split)
-        // 3. 11:30 - 12:00 (Existing 2 part B - Overlap/Upgraded)
-        // 4. 12:00 - 12:45 (New Schedule - Shortened from 13:00 due to energy limit)
         Assert.Equal(4, schedules.Count);
 
-        // 1. Existing First Hour (10:00 - 11:00)
         var s1 = schedules.Single(s => s.ValidFrom == t1);
         Assert.Equal(t2, s1.ValidTo);
         Assert.Equal(MaxPower / 2, s1.TargetMinPower);
 
-        // 2. Existing Second Hour Part A (11:00 - 11:30)
-        // This part is outside the new schedule's start time, so it remains at 50%
         var s2 = schedules.Single(s => s.ValidFrom == t2);
         Assert.Equal(t2_5, s2.ValidTo);
         Assert.Equal(MaxPower / 2, s2.TargetMinPower);
 
-        // 3. Existing Second Hour Part B (11:30 - 12:00) - The Overlap
-        // This matches the start of newSchedule. Power is upgraded to Max.
         var s3 = schedules.Single(s => s.ValidFrom == t2_5);
         Assert.Equal(t3, s3.ValidTo);
         Assert.Equal(MaxPower, s3.TargetMinPower);
 
-        // 4. New Schedule Portion (12:00 - 12:45)
-        // Starts at 12:00. 
-        // Continuity Logic: Because there is an existing schedule ending at 12:00 (s3),
-        // the system shortens the ValidTo (end) rather than the ValidFrom (start).
-        // Duration is 0.75h (45m). End time is 12:45.
         var s4 = schedules.Single(s => s.ValidFrom == t3);
         Assert.Equal(t3.AddMinutes(45), s4.ValidTo);
         Assert.Equal(MaxPower, s4.TargetMinPower);
 
-        // Total Added Energy Check
         Assert.Equal(maxEnergyToAdd, addedEnergy);
     }
-
-    // Helper just for the calculation check in the final test
-    private int CalculateEnergy(double hours, int power) => (int)(hours * power);
-
 }

@@ -669,24 +669,70 @@ public class ChargingScheduleService : IChargingScheduleService
 
             if (energyToAdd1 < slotAddedEnergy && energyToAdd1 > 0)
             {
-                var hoursToReduce = (slotAddedEnergy - energyToAdd1) / (double)dtoChargingSchedule.EstimatedChargingPower;
-                _logger.LogTrace("Partial overlap energy: reducing hours by {hoursToReduce}", hoursToReduce);
+                var boostDurationHours = energyToAdd1 / (double)addedPower;
+                var boostDuration = TimeSpan.FromHours(boostDurationHours);
+                _logger.LogTrace("Partial overlap energy: Split schedule to support boost for {boostDuration}", boostDuration);
 
-                if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+                // Determine split strategy. Default to putting boost at the end (LatestPossibleTime logic),
+                // or match continuity if connected to previous.
+                // If contiguous with previous, we assume previous is part of the 'Base' run, so Base should be first.
+                var putBoostAtEnd = true;
+                // We could add logic here to check reasons or validFrom, but 'End' is a safe default for "charging later".
+
+                if (putBoostAtEnd)
                 {
-                    overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
-                    _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidTo to {validTo}", overlappingExistingChargingSchedule.ValidTo);
+                    var splitTime = overlappingExistingChargingSchedule.ValidTo - boostDuration;
+
+                    // Create Boost Schedule (Split -> End)
+                    var boostSchedule = new DtoChargingSchedule(
+                        overlappingExistingChargingSchedule.CarId,
+                        overlappingExistingChargingSchedule.OcppChargingConnectorId,
+                        overlappingExistingChargingSchedule.MaxPossiblePower,
+                        new HashSet<ScheduleReason>(overlappingExistingChargingSchedule.ScheduleReasons))
+                    {
+                        ValidFrom = splitTime,
+                        ValidTo = overlappingExistingChargingSchedule.ValidTo,
+                        TargetMinPower = newMinTargetPower,
+                        TargetHomeBatteryPower = overlappingExistingChargingSchedule.TargetHomeBatteryPower,
+                        EstimatedSolarPower = overlappingExistingChargingSchedule.EstimatedSolarPower
+                    };
+
+                    // Revert overlapping schedule to Base Power (Start -> Split)
+                    overlappingExistingChargingSchedule.ValidTo = splitTime;
+                    overlappingExistingChargingSchedule.TargetMinPower = earlierEstimatedPower;
+                    // Note: ScheduleReasons remain merged, which is acceptable.
+
+                    splittedExistingChargingSchedules.Add(boostSchedule);
+                    _logger.LogTrace("Split schedule (Boost End): Base {baseStart}-{baseEnd} @ {basePower}W; Boost {boostStart}-{boostEnd} @ {boostPower}W",
+                        overlappingExistingChargingSchedule.ValidFrom, overlappingExistingChargingSchedule.ValidTo, overlappingExistingChargingSchedule.TargetMinPower,
+                        boostSchedule.ValidFrom, boostSchedule.ValidTo, boostSchedule.TargetMinPower);
                 }
                 else
                 {
-                    overlappingExistingChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
-                    _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidFrom to {validFrom}", overlappingExistingChargingSchedule.ValidFrom);
+                    // Logic for Boost at Start if needed in future
+                    var splitTime = overlappingExistingChargingSchedule.ValidFrom + boostDuration;
+
+                    var boostSchedule = new DtoChargingSchedule(
+                        overlappingExistingChargingSchedule.CarId,
+                        overlappingExistingChargingSchedule.OcppChargingConnectorId,
+                        overlappingExistingChargingSchedule.MaxPossiblePower,
+                        new HashSet<ScheduleReason>(overlappingExistingChargingSchedule.ScheduleReasons))
+                    {
+                        ValidFrom = overlappingExistingChargingSchedule.ValidFrom,
+                        ValidTo = splitTime,
+                        TargetMinPower = newMinTargetPower,
+                        TargetHomeBatteryPower = overlappingExistingChargingSchedule.TargetHomeBatteryPower,
+                        EstimatedSolarPower = overlappingExistingChargingSchedule.EstimatedSolarPower
+                    };
+
+                    overlappingExistingChargingSchedule.ValidFrom = splitTime;
+                    overlappingExistingChargingSchedule.TargetMinPower = earlierEstimatedPower;
+
+                    splittedExistingChargingSchedules.Add(boostSchedule);
+                    _logger.LogTrace("Split schedule (Boost Start): Boost {boostStart}-{boostEnd} @ {boostPower}W; Base {baseStart}-{baseEnd} @ {basePower}W",
+                        boostSchedule.ValidFrom, boostSchedule.ValidTo, boostSchedule.TargetMinPower,
+                        overlappingExistingChargingSchedule.ValidFrom, overlappingExistingChargingSchedule.ValidTo, overlappingExistingChargingSchedule.TargetMinPower);
                 }
-                // Need to reduce the power increase to stay within limit
-                var timeSpan = dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom;
-                var limitedAddedPower = (int)(energyToAdd1 / (timeSpan.TotalHours));
-                overlappingExistingChargingSchedule.TargetMinPower = earlierEstimatedPower + limitedAddedPower;
-                _logger.LogTrace("Limited added power: timeSpan={timeSpan}, limitedAddedPower={limitedAddedPower}, new TargetMinPower={targetMinPower}", timeSpan, limitedAddedPower, overlappingExistingChargingSchedule.TargetMinPower);
             }
 
             additionalScheduledEnergy += energyToAdd1;
