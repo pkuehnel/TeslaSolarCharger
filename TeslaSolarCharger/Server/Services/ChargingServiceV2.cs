@@ -313,7 +313,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return false;
     }
 
-    private async Task AddNoOcppConnectionReason(CancellationToken cancellationToken)
+    internal async Task AddNoOcppConnectionReason(CancellationToken cancellationToken)
     {
         var chargingConnectorIdsToManage = await _context.OcppChargingStationConnectors
             .Where(c => c.ShouldBeManaged)
