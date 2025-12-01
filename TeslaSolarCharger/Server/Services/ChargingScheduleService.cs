@@ -361,7 +361,10 @@ public class ChargingScheduleService : IChargingScheduleService
         _logger.LogTrace("Completed evaluation of all grid schedule options. Option count={optionCount}", chargePricesIncludingSchedules.Count);
 
         // CHANGED: Select the best option and check for remaining energy
-        var bestOption = chargePricesIncludingSchedules.OrderBy(c => c.Value.chargeCost).FirstOrDefault().Value;
+        var bestOption = chargePricesIncludingSchedules
+            .OrderBy(c => c.Value.remainingEnergy)
+            .ThenBy(c => c.Value.chargeCost)
+            .FirstOrDefault().Value;
         schedules = bestOption.chargingSchedules;
         var finalRemainingEnergy = bestOption.remainingEnergy;
 
