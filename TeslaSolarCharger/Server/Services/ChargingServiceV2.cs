@@ -418,7 +418,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task SetCurrentOfNonChargingTeslasToMax()
+    internal async Task SetCurrentOfNonChargingTeslasToMax()
     {
         _logger.LogTrace("{method}()", nameof(SetCurrentOfNonChargingTeslasToMax));
         var carsToSetToMaxCurrent = _settings.CarsToManage
