@@ -225,7 +225,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <param name="targetChargingValue"></param>
     /// <param name="currentDate"></param>
     /// <returns>Succeeded</returns>
-    private async Task<bool> SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(DtoTargetChargingValues targetChargingValue, DateTimeOffset currentDate, CancellationToken cancellationToken)
+    internal async Task<bool> SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(DtoTargetChargingValues targetChargingValue, DateTimeOffset currentDate, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@targetChargingValue}, {currentDate})", nameof(SetChargingPowerOfOccpConnectorForCarManagedLoadpoint), targetChargingValue, currentDate);
         if (targetChargingValue.LoadPoint.ManageChargingPowerByCar
@@ -245,7 +245,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return true;
     }
 
-    private async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
+    internal async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
         DateTimeOffset currentDate, CancellationToken cancellationToken, DtoOcppConnectorState ocppState)
     {
         var connectorConfig = await _context.OcppChargingStationConnectors
