@@ -640,7 +640,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     var hoursToReduce = (slotEnergy - energyToAdd) / (double)dtoChargingSchedule.EstimatedChargingPower;
                     _logger.LogTrace("Partial energy in new slot: reducing hours by {hoursToReduce}", hoursToReduce);
 
-                    if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+                    if (ShouldScheduleFromStartInsteadOfUntilEnd(splittedExistingChargingSchedules, dtoChargingSchedule))
                     {
                         dtoChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
                         _logger.LogTrace("Adjusted dtoChargingSchedule.ValidTo to {validTo}", dtoChargingSchedule.ValidTo);
@@ -704,7 +704,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     TargetHomeBatteryPower = originalTargetHomeBatteryPower,
                 };
 
-                if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
+                if (ShouldScheduleFromStartInsteadOfUntilEnd(splittedExistingChargingSchedules, dtoChargingSchedule))
                 {
                     // Contiguous with previous: Keep High Power at Start
                     var splitTime = overlappingExistingChargingSchedule.ValidFrom.AddHours(durationHours);
@@ -741,6 +741,11 @@ public class ChargingScheduleService : IChargingScheduleService
         }
         _logger.LogTrace("Returning from AddChargingSchedule with {scheduleCount} schedules and {additionalScheduledEnergy} additional energy", splittedExistingChargingSchedules.Count, additionalScheduledEnergy);
         return (splittedExistingChargingSchedules, additionalScheduledEnergy);
+    }
+
+    internal bool ShouldScheduleFromStartInsteadOfUntilEnd(List<DtoChargingSchedule> splittedExistingChargingSchedules, DtoChargingSchedule dtoChargingSchedule)
+    {
+        return splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom && (s.TargetMinPower > 0 || s.TargetHomeBatteryPower > 0));
     }
 
     internal int GetRemainingEnergyToCharge(DateTimeOffset currentDate, List<DtoChargingSchedule> schedules,
