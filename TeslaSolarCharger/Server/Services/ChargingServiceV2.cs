@@ -357,7 +357,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
+    internal async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({currentDate})", nameof(SetCarChargingTargetsToFulFilled), currentDate);
         var carIds = _settings.CarsToManage.Select(c => c.Id).ToHashSet();
