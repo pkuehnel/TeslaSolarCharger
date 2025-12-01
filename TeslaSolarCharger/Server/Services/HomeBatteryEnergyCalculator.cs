@@ -94,8 +94,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         List<DtoChargingSchedule> schedules,
         CancellationToken cancellationToken)
     {
-        _logger.LogTrace("{method}({futureTime}, {currentSocPercent})", nameof(GetEstimatedHomeBatterySocAtTime), futureTime,
-            currentSocPercent);
+        _logger.LogTrace("{method}({futureTime}, {currentSocPercent}, {@schedules})", nameof(GetEstimatedHomeBatterySocAtTime), futureTime,
+            currentSocPercent, schedules);
 
         var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
         if (homeBatteryUsableEnergy == default)
@@ -332,8 +332,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     DateTimeOffset targetTime,
     List<DtoChargingSchedule> schedules)
     {
-        _logger.LogTrace("{method}({@energyDifferences}, {batteryUsableCapacityInWh}, {initialSocPercent}, {targetTime})",
-            nameof(SimulateBatterySoc), energyDifferences, batteryUsableCapacityInWh, initialSocPercent, targetTime);
+        _logger.LogTrace("{method}({@energyDifferences}, {batteryUsableCapacityInWh}, {initialSocPercent}, {targetTime}, {@scheduled})",
+            nameof(SimulateBatterySoc), energyDifferences, batteryUsableCapacityInWh, initialSocPercent, targetTime, schedules);
 
         var energyInBattery = (int)(batteryUsableCapacityInWh * (initialSocPercent / 100.0));
         var batteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
