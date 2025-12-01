@@ -105,7 +105,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     var homeBatteryMinSocAtTime =
                         await _homeBatteryEnergyCalculator.GetHomeBatteryMinSocAtTime(nextTarget.NextExecutionTime, cancellationToken);
                     var estimatedHomeBatterySocAtTime =
-                        await _homeBatteryEnergyCalculator.GetEstimatedHomeBatterySocAtTime(nextTarget.NextExecutionTime, _settings.HomeBatterySoc.Value, cancellationToken);
+                        await _homeBatteryEnergyCalculator.GetEstimatedHomeBatterySocAtTime(nextTarget.NextExecutionTime, _settings.HomeBatterySoc.Value, schedules, cancellationToken);
                     _logger.LogTrace("Home battery SoC data for target {@target}: minSoCAtTime={minSoC}, estimatedSoCAtTime={estimatedSoC}", nextTarget, homeBatteryMinSocAtTime, estimatedHomeBatterySocAtTime);
                     if (homeBatteryMinSocAtTime != default && estimatedHomeBatterySocAtTime != default)
                     {

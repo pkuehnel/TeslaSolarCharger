@@ -1,6 +1,7 @@
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -86,9 +87,11 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     /// </summary>
     /// <param name="futureTime">The future time to estimate SoC for</param>
     /// <param name="currentSocPercent">The current actual battery SoC percentage</param>
+    /// <param name="schedules"></param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The estimated SoC percentage at the future time, or null if calculation fails</returns>
     public async Task<int?> GetEstimatedHomeBatterySocAtTime(DateTimeOffset futureTime, int currentSocPercent,
+        List<DtoChargingSchedule> schedules,
         CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({futureTime}, {currentSocPercent})", nameof(GetEstimatedHomeBatterySocAtTime), futureTime,
@@ -123,7 +126,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             predictedSurplusPerSlices,
             homeBatteryUsableEnergy.Value,
             currentSocPercent,
-            futureFullHour);
+            futureFullHour,
+            schedules);
 
         return estimatedSoc;
     }
@@ -322,33 +326,84 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     /// <summary>
     /// Simulates battery SoC forward in time based on predicted energy surpluses.
     /// </summary>
-    private int SimulateBatterySoc(
-        IReadOnlyDictionary<DateTimeOffset, int> energyDifferences,
-        int batteryUsableCapacityInWh,
-        int initialSocPercent,
-        DateTimeOffset targetTime)
+    private int SimulateBatterySoc(IReadOnlyDictionary<DateTimeOffset, int> energyDifferences,
+    int batteryUsableCapacityInWh,
+    int initialSocPercent,
+    DateTimeOffset targetTime,
+    List<DtoChargingSchedule> schedules)
     {
         _logger.LogTrace("{method}({@energyDifferences}, {batteryUsableCapacityInWh}, {initialSocPercent}, {targetTime})",
             nameof(SimulateBatterySoc), energyDifferences, batteryUsableCapacityInWh, initialSocPercent, targetTime);
 
         var energyInBattery = (int)(batteryUsableCapacityInWh * (initialSocPercent / 100.0));
         var batteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        var localDictionary = energyDifferences.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 
-        foreach (var energyDifference in localDictionary)
+        var sortedEntries = energyDifferences.OrderBy(x => x.Key).ToList();
+
+        for (var i = 0; i < sortedEntries.Count; i++)
         {
-            if (energyDifference.Key > targetTime)
+            var currentEntry = sortedEntries[i];
+            var intervalStart = currentEntry.Key;
+
+            if (intervalStart > targetTime)
             {
                 break;
             }
 
-            _logger.LogTrace("Adding {energy} Wh of {date}", energyDifference.Value, energyDifference.Key);
-            energyInBattery = ApplyEnergyChange(energyInBattery, energyDifference.Value, batteryMaxChargingPower);
+            // Determine the end of this time interval
+            var intervalEnd = (i + 1 < sortedEntries.Count) ? sortedEntries[i + 1].Key : targetTime;
+
+            if (intervalEnd > targetTime)
+            {
+                intervalEnd = targetTime;
+            }
+
+            // 1. Filter for potentially relevant schedules (optimization)
+            var activeSchedules = schedules
+                .Where(s => s.ValidFrom < intervalEnd && s.ValidTo > intervalStart)
+                .ToList();
+
+            double totalConsumedWh = 0;
+
+            // 2. Calculate specific overlap for each schedule individually
+            foreach (var schedule in activeSchedules)
+            {
+                // The overlap starts at the later of the two start times
+                var overlapStart = schedule.ValidFrom > intervalStart ? schedule.ValidFrom : intervalStart;
+
+                // The overlap ends at the earlier of the two end times
+                var overlapEnd = schedule.ValidTo < intervalEnd ? schedule.ValidTo : intervalEnd;
+
+                var overlapDuration = overlapEnd - overlapStart;
+
+                // Only calculate if there is a positive duration
+                if (overlapDuration.TotalHours > 0)
+                {
+                    var scheduleEnergy = schedule.EstimatedChargingPower * overlapDuration.TotalHours;
+                    totalConsumedWh += scheduleEnergy;
+
+                    _logger.LogTrace("Schedule {id} consumes {energy} Wh ({power}W for {min} min) within interval",
+                        schedule.CarId, scheduleEnergy, schedule.EstimatedChargingPower, overlapDuration.TotalMinutes);
+                }
+            }
+
+            var consumedBySchedulesWh = (int)totalConsumedWh;
+
+            if (consumedBySchedulesWh > 0)
+            {
+                _logger.LogTrace("Total reduced available energy by {consumed} Wh in interval {start} to {end}",
+                   consumedBySchedulesWh, intervalStart, intervalEnd);
+            }
+
+            // Adjust the base energy difference
+            var adjustedEnergyDifference = currentEntry.Value - consumedBySchedulesWh;
+
+            energyInBattery = ApplyEnergyChange(energyInBattery, adjustedEnergyDifference, batteryMaxChargingPower);
 
             // Clamp to battery capacity
             energyInBattery = Math.Max(0, Math.Min(energyInBattery, batteryUsableCapacityInWh));
 
-            _logger.LogTrace("Energy in battery at {date}: {energy} Wh", energyDifference.Key, energyInBattery);
+            _logger.LogTrace("Energy in battery at {date}: {energy} Wh", intervalStart, energyInBattery);
         }
 
         var finalSocPercent = (int)((energyInBattery / (double)batteryUsableCapacityInWh) * 100);
