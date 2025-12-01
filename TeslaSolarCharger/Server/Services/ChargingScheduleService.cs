@@ -154,7 +154,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 continue;
             }
 
-            if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
+            if (false && _configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
             {
                 _logger.LogTrace("Using predicted solar power generation for charging schedules for target {@target}.", nextTarget);
                 if (minPhases == default || minCurrent == default)
@@ -867,7 +867,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     internal int GetHomeBatteryEnergyFromSocDifference(int socDifference)
     {
-        _logger.LogTrace("{method}()", nameof(GetHomeBatteryEnergyFromSocDifference));
+        _logger.LogTrace("{method}({socDiffernce})", nameof(GetHomeBatteryEnergyFromSocDifference), socDifference);
         var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
         if (homeBatteryEnergy == default)
         {
