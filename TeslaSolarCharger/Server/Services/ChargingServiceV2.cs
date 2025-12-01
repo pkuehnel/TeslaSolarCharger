@@ -330,7 +330,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private void AddNotChargingReasons()
+    internal void AddNotChargingReasons()
     {
         foreach (var dtoCar in _settings.CarsToManage)
         {
