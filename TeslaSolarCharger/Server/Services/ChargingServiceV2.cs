@@ -476,7 +476,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     
 
-    private async Task CalculateGeofences(DateTimeOffset currentDate)
+    internal async Task CalculateGeofences(DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}()", nameof(CalculateGeofences));
         foreach (var car in _settings.CarsToManage)
