@@ -646,6 +646,12 @@ public class ChargingScheduleService : IChargingScheduleService
             var earlierEstimatedPower = overlappingExistingChargingSchedule.EstimatedChargingPower;
             _logger.LogTrace("Overlap: earlierEstimatedPower={earlierEstimatedPower}", earlierEstimatedPower);
 
+            // Capture original state before mutation
+            var originalTargetMinPower = overlappingExistingChargingSchedule.TargetMinPower;
+            var originalEstimatedSolarPower = overlappingExistingChargingSchedule.EstimatedSolarPower;
+            var originalTargetHomeBatteryPower = overlappingExistingChargingSchedule.TargetHomeBatteryPower;
+            var originalScheduleReasons = new HashSet<ScheduleReason>(overlappingExistingChargingSchedule.ScheduleReasons);
+
             var newMinTargetPower = Math.Max(overlappingExistingChargingSchedule.TargetMinPower, dtoChargingSchedule.TargetMinPower);
             var newEstimatedSolarPower = Math.Max(overlappingExistingChargingSchedule.EstimatedSolarPower, dtoChargingSchedule.EstimatedSolarPower);
             int? newTargetHomeBatteryPower = null;
@@ -669,24 +675,46 @@ public class ChargingScheduleService : IChargingScheduleService
 
             if (energyToAdd1 < slotAddedEnergy && energyToAdd1 > 0)
             {
-                var hoursToReduce = (slotAddedEnergy - energyToAdd1) / (double)dtoChargingSchedule.EstimatedChargingPower;
-                _logger.LogTrace("Partial overlap energy: reducing hours by {hoursToReduce}", hoursToReduce);
+                var durationHours = energyToAdd1 / (double)addedPower;
+                _logger.LogTrace("Partial overlap energy: splitting schedule. High power needed for {durationHours} hours.", durationHours);
+
+                var lowPowerSchedule = new DtoChargingSchedule(
+                    overlappingExistingChargingSchedule.CarId,
+                    overlappingExistingChargingSchedule.OcppChargingConnectorId,
+                    overlappingExistingChargingSchedule.MaxPossiblePower,
+                    originalScheduleReasons)
+                {
+                    TargetMinPower = originalTargetMinPower,
+                    EstimatedSolarPower = originalEstimatedSolarPower,
+                    TargetHomeBatteryPower = originalTargetHomeBatteryPower
+                };
 
                 if (splittedExistingChargingSchedules.Any(s => s.ValidTo == dtoChargingSchedule.ValidFrom))
                 {
-                    overlappingExistingChargingSchedule.ValidTo = dtoChargingSchedule.ValidTo.AddHours(-hoursToReduce);
-                    _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidTo to {validTo}", overlappingExistingChargingSchedule.ValidTo);
+                    // Contiguous with previous: Keep High Power at Start
+                    var splitTime = overlappingExistingChargingSchedule.ValidFrom.AddHours(durationHours);
+
+                    lowPowerSchedule.ValidFrom = splitTime;
+                    lowPowerSchedule.ValidTo = overlappingExistingChargingSchedule.ValidTo;
+
+                    overlappingExistingChargingSchedule.ValidTo = splitTime;
+
+                    splittedExistingChargingSchedules.Insert(splittedExistingChargingSchedules.IndexOf(overlappingExistingChargingSchedule) + 1, lowPowerSchedule);
+                    _logger.LogTrace("Split schedule (Start High): HighPower [From {start} To {mid}], LowPower [From {mid} To {end}]", overlappingExistingChargingSchedule.ValidFrom, splitTime, lowPowerSchedule.ValidTo);
                 }
                 else
                 {
-                    overlappingExistingChargingSchedule.ValidFrom = dtoChargingSchedule.ValidFrom.AddHours(hoursToReduce);
-                    _logger.LogTrace("Adjusted overlappingExistingChargingSchedule.ValidFrom to {validFrom}", overlappingExistingChargingSchedule.ValidFrom);
+                    // Not contiguous: Keep High Power at End
+                    var splitTime = overlappingExistingChargingSchedule.ValidTo.AddHours(-durationHours);
+
+                    lowPowerSchedule.ValidFrom = overlappingExistingChargingSchedule.ValidFrom;
+                    lowPowerSchedule.ValidTo = splitTime;
+
+                    overlappingExistingChargingSchedule.ValidFrom = splitTime;
+
+                    splittedExistingChargingSchedules.Insert(splittedExistingChargingSchedules.IndexOf(overlappingExistingChargingSchedule), lowPowerSchedule);
+                    _logger.LogTrace("Split schedule (End High): LowPower [From {start} To {mid}], HighPower [From {mid} To {end}]", lowPowerSchedule.ValidFrom, splitTime, overlappingExistingChargingSchedule.ValidTo);
                 }
-                // Need to reduce the power increase to stay within limit
-                var timeSpan = dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom;
-                var limitedAddedPower = (int)(energyToAdd1 / (timeSpan.TotalHours));
-                overlappingExistingChargingSchedule.TargetMinPower = earlierEstimatedPower + limitedAddedPower;
-                _logger.LogTrace("Limited added power: timeSpan={timeSpan}, limitedAddedPower={limitedAddedPower}, new TargetMinPower={targetMinPower}", timeSpan, limitedAddedPower, overlappingExistingChargingSchedule.TargetMinPower);
             }
 
             additionalScheduledEnergy += energyToAdd1;
