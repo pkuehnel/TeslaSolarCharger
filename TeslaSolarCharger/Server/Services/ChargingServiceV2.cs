@@ -112,7 +112,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
-
+        _logger.LogTrace("Generated charging schedules: {@chargingSchedules}", chargingSchedules);
         _settings.ChargingSchedules = new(chargingSchedules);
         var chargingScheduleChange = new StateUpdateDto
         {
