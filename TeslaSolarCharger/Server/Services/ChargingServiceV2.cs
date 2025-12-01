@@ -514,7 +514,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
+    internal double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
     {
         var d1 = latitude * (Math.PI / 180.0);
         var num1 = longitude * (Math.PI / 180.0);
