@@ -3,18 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac.Extras.Moq;
-using Moq;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 using Xunit.Abstractions;
-using TeslaSolarCharger.Tests;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
@@ -32,7 +27,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
         return dto;
     }
 
-    private DtoCar CreateDefaultDtoCar(int id, CarType carType = CarType.Tesla)
+    private DtoCar CreateDefaultDtoCar(int id)
     {
         return new DtoCar
         {
@@ -44,7 +39,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
             ChargerPhases = CreateTimeStampedValue<int?>(3, DateTimeOffset.UtcNow),
             SoC = CreateTimeStampedValue<int?>(50, DateTimeOffset.UtcNow),
             SocLimit = CreateTimeStampedValue<int?>(80, DateTimeOffset.UtcNow),
-            ChargeModeV2 = ChargeModeV2.Auto
+            ChargeModeV2 = ChargeModeV2.Auto,
         };
     }
 
@@ -60,7 +55,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
             MaximumSoc = 90,
             MinimumSoc = 20,
             CarType = carType,
-            MaximumPhases = 3
+            MaximumPhases = 3,
         };
     }
 
@@ -109,7 +104,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
         Context.Cars.Add(carEntity);
         await Context.SaveChangesAsync();
 
-        var dtoCar = CreateDefaultDtoCar(carId, CarType.Manual);
+        var dtoCar = CreateDefaultDtoCar(carId);
 
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { dtoCar });
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.TimespanUntilSwitchOn()).Returns(TimeSpan.FromMinutes(1));
@@ -139,7 +134,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
             ConnectedPhasesCount = 3,
             AutoSwitchBetween1And3PhasesEnabled = true,
             ChargeMode = ChargeModeV2.Auto,
-            PhaseSwitchCoolDownTimeSeconds = 60
+            PhaseSwitchCoolDownTimeSeconds = 60,
         };
         Context.OcppChargingStationConnectors.Add(connectorEntity);
         await Context.SaveChangesAsync();
@@ -154,7 +149,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
             ShouldStartCharging = CreateTimeStampedValue<bool?>(true, now),
             ShouldStopCharging = CreateTimeStampedValue<bool?>(false, now),
             CanHandlePowerOnOnePhase = CreateTimeStampedValue<bool?>(true, lastChanged),
-            CanHandlePowerOnThreePhase = CreateTimeStampedValue<bool?>(false, lastChanged) // false for Reduction
+            CanHandlePowerOnThreePhase = CreateTimeStampedValue<bool?>(false, lastChanged), // false for Reduction
         };
 
         var ocppStates = new ConcurrentDictionary<int, DtoOcppConnectorState>();
@@ -194,7 +189,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
             MinCurrent = 6,
             MaxCurrent = 32,
             ConnectedPhasesCount = 3,
-            AutoSwitchBetween1And3PhasesEnabled = true
+            AutoSwitchBetween1And3PhasesEnabled = true,
         };
         Context.OcppChargingStationConnectors.Add(connectorEntity);
         await Context.SaveChangesAsync();
@@ -206,7 +201,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
         {
             CanHandlePowerOnOnePhase = CreateTimeStampedValue<bool?>(true, lastChanged),
             CanHandlePowerOnThreePhase = CreateTimeStampedValue<bool?>(false, lastChanged),
-            IsCharging = CreateTimeStampedValue(false, now) // Default
+            IsCharging = CreateTimeStampedValue(false, now), // Default
         };
         var ocppStates = new ConcurrentDictionary<int, DtoOcppConnectorState>();
         ocppStates.TryAdd(connectorId, ocppState);
@@ -255,7 +250,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
         {
             CanHandlePowerOnOnePhase = CreateTimeStampedValue<bool?>(false, lastChanged),
             CanHandlePowerOnThreePhase = CreateTimeStampedValue<bool?>(true, lastChanged),
-            IsCharging = CreateTimeStampedValue(true, now)
+            IsCharging = CreateTimeStampedValue(true, now),
         };
 
         var ocppStates = new ConcurrentDictionary<int, DtoOcppConnectorState>();
@@ -283,7 +278,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
         var connectorEntity = new OcppChargingStationConnector("Test Connector")
         {
             Id = connectorId,
-            MaxCurrent = 32
+            MaxCurrent = 32,
         };
         Context.OcppChargingStationConnectors.Add(connectorEntity);
         await Context.SaveChangesAsync();
@@ -294,7 +289,7 @@ public class TargetChargingValueCalculationServiceTests : TestBase
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
 
-        decimal maxCombined = 16m;
+        var maxCombined = 16m;
         var result = await service.GetConstraintValues(null, connectorId, false, DateTimeOffset.UtcNow, maxCombined, CancellationToken.None);
 
         Assert.Equal(16, result.MaxCurrent);
