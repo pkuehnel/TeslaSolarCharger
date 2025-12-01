@@ -245,7 +245,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return true;
     }
 
-    private async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
+    internal async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
         DateTimeOffset currentDate, CancellationToken cancellationToken, DtoOcppConnectorState ocppState)
     {
         var connectorConfig = await _context.OcppChargingStationConnectors
