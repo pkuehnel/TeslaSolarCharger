@@ -525,7 +525,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 
-    private async Task<List<DtoTimeZonedChargingTarget>> GetRelevantTargets(IEnumerable<int> carIds, DateTimeOffset currentDate,
+    internal async Task<List<DtoTimeZonedChargingTarget>> GetRelevantTargets(IEnumerable<int> carIds, DateTimeOffset currentDate,
     CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@carIds}, {currentDate})", nameof(GetRelevantTargets), carIds, currentDate);
