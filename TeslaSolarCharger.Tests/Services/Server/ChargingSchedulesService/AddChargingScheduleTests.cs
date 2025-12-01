@@ -34,10 +34,27 @@ public class AddChargingScheduleTests : TestBase
         };
     }
 
+    public enum PreviousScheduleType
+    {
+        ExistingMinPower,
+        ExistingMinHomeBatteryPower,
+        ExistingExpectedSolarPower,
+        ExistingNoPower,
+        NoExistingSchedule,
+    }
+
     [Theory]
-    [InlineData(true, "StartHigh")]
-    [InlineData(false, "EndHigh")]
-    public void AddChargingSchedule_PartialOverlapEnergy_ShouldSplitScheduleCorrectly(bool contiguousWithPrevious, string expectedHighPowerPosition)
+    //previous schedule has min power
+    [InlineData(PreviousScheduleType.ExistingMinPower, "StartHigh")]
+    //previous schedule has min home battery power
+    [InlineData(PreviousScheduleType.ExistingMinHomeBatteryPower, "StartHigh")]
+    //previous schedule has expected solar power (should be ignored on scheduling following schedules as not sure if power is really there)
+    [InlineData(PreviousScheduleType.ExistingExpectedSolarPower, "EndHigh")]
+    //previous schedule has no
+    [InlineData(PreviousScheduleType.ExistingNoPower, "EndHigh")]
+    //there is no previous schedule
+    [InlineData(PreviousScheduleType.NoExistingSchedule, "EndHigh")]
+    public void AddChargingSchedule_PartialOverlapEnergy_ShouldSplitScheduleCorrectly(PreviousScheduleType previousScheduleType, string expectedHighPowerPosition)
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -49,14 +66,42 @@ public class AddChargingScheduleTests : TestBase
         var existingSchedules = new List<DtoChargingSchedule>();
 
         // If contiguous, we add a dummy schedule BEFORE the target slot
-        if (contiguousWithPrevious)
+        if (previousScheduleType == 0)
         {
-            existingSchedules.Add(CreateSchedule(start.AddHours(-1), start, 0, MaxPower, ScheduleReason.LatestPossibleTime));
+            
+        }
+
+        DtoChargingSchedule? dtoChargingSchedule = null;
+        switch (previousScheduleType)
+        {
+            case PreviousScheduleType.ExistingMinPower:
+                dtoChargingSchedule = CreateSchedule(start.AddMinutes(-10), start, 1500, MaxPower, ScheduleReason.LatestPossibleTime);
+                break;
+            case PreviousScheduleType.ExistingMinHomeBatteryPower:
+                dtoChargingSchedule = CreateSchedule(start.AddMinutes(-10), start, 0, MaxPower, ScheduleReason.LatestPossibleTime);
+                dtoChargingSchedule.TargetHomeBatteryPower = 5000;
+                break;
+            case PreviousScheduleType.ExistingExpectedSolarPower:
+                dtoChargingSchedule = CreateSchedule(start.AddMinutes(-10), start, 0, MaxPower, ScheduleReason.LatestPossibleTime);
+                dtoChargingSchedule.EstimatedSolarPower = 5000;
+                break;
+            case PreviousScheduleType.ExistingNoPower:
+                dtoChargingSchedule = CreateSchedule(start.AddMinutes(-10), start, 0, MaxPower, ScheduleReason.LatestPossibleTime);
+                break;
+            case PreviousScheduleType.NoExistingSchedule:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(previousScheduleType), previousScheduleType, null);
+        }
+
+        if (dtoChargingSchedule != default)
+        {
+            existingSchedules.Add(dtoChargingSchedule);
         }
 
         // Existing overlapping schedule: HomeBatteryDischarging (4500W)
         var existingSchedule = CreateSchedule(start, end, 0, MaxPower, ScheduleReason.HomeBatteryDischarging);
-        existingSchedule.TargetHomeBatteryPower = HomeBatPower;
+        existingSchedule.EstimatedSolarPower = HomeBatPower;
         existingSchedules.Add(existingSchedule);
 
         // New: CheapGridPrice (11000W) overlapping
