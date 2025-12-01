@@ -200,6 +200,61 @@ public class AppendOptimalGridSchedulesTests : TestBase
         Assert.Contains(result, s => s.ValidFrom == currentDate.AddHours(expectedSecondSlotStartOffset));
     }
 
+    [Fact]
+    public async Task AppendOptimalGridSchedules_PrioritizesRemainingEnergyOverCost()
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var currentDate = CurrentFakeDate;
+        var nextTarget = CreateTarget(currentDate.AddHours(3));
+        var loadpoint = CreateLoadPoint();
+
+        // 3 Slots available in prices
+        var prices = new List<Price>
+        {
+            CreatePrice(currentDate, currentDate.AddHours(1), 0.05m),           // Slot 1: Cheap, but occupied
+            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), 0.10m), // Slot 2: Affordable
+            CreatePrice(currentDate.AddHours(2), currentDate.AddHours(3), 0.20m)  // Slot 3: Expensive
+        };
+
+        Mock.Mock<ITscOnlyChargingCostService>()
+            .Setup(x => x.GetPricesInTimeSpan(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>()))
+            .ReturnsAsync(prices);
+
+        Mock.Mock<IConfigurationWrapper>()
+            .Setup(x => x.ChargingSwitchCosts()).Returns(0m);
+
+        // Pre-fill schedules with Slot 1 occupied
+        var schedules = new List<DtoChargingSchedule>
+        {
+            new DtoChargingSchedule(1, 1, MaxPower, new HashSet<ScheduleReason> { ScheduleReason.CheapGridPrice })
+            {
+                ValidFrom = currentDate,
+                ValidTo = currentDate.AddHours(1),
+                TargetMinPower = MaxPower
+            }
+        };
+
+        // We need to charge 1 hour worth of energy
+        var energyToCharge = MaxPower;
+
+        // Act
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower);
+
+        // Assert
+        // We expect Slot 2 (1h-2h) to be picked.
+        // If bug exists: Slot 2 and 3 might be skipped, leading to 0 cost and overflow schedule (LatestPossibleTime at end).
+
+        // There should be 2 schedules total: the pre-existing one, and the new one.
+        Assert.Equal(2, result.Count);
+
+        var newSchedule = result.Single(s => s.ValidFrom != currentDate); // The one that is not Slot 1
+
+        Assert.Equal(currentDate.AddHours(1), newSchedule.ValidFrom);
+        Assert.Equal(currentDate.AddHours(2), newSchedule.ValidTo);
+        Assert.DoesNotContain(ScheduleReason.LatestPossibleTime, newSchedule.ScheduleReasons);
+    }
+
     // Helper methods
     private DtoLoadPointOverview CreateLoadPoint(int carId = 1)
     {
