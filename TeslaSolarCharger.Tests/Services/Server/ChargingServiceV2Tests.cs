@@ -30,9 +30,9 @@ using DateOnly = System.DateOnly;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
-public class ChargingServiceV2 : TestBase
+public class ChargingServiceV2Tests : TestBase
 {
-    public ChargingServiceV2(ITestOutputHelper outputHelper)
+    public ChargingServiceV2Tests(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
     }

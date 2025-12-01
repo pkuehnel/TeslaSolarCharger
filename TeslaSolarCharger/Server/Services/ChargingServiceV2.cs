@@ -204,7 +204,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
     }
 
-    private void SetManualCarsToAtHome(DateTimeOffset currentDate)
+    internal void SetManualCarsToAtHome(DateTimeOffset currentDate)
     {
         var manualCars = _context.Cars.Where(c => c.CarType == CarType.Manual).ToList();
         foreach (var manualCar in manualCars)
