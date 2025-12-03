@@ -154,7 +154,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 continue;
             }
 
-            if (false && _configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
+            if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
             {
                 _logger.LogTrace("Using predicted solar power generation for charging schedules for target {@target}.", nextTarget);
                 if (minPhases == default || minCurrent == default)
