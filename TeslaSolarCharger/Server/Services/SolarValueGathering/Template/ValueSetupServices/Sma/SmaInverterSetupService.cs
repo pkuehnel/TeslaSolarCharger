@@ -59,12 +59,12 @@ public class SmaInverterSetupService : IRefreshableValueSetupService
 
             var modbusConfig = new DtoModbusConfiguration()
             {
-                Host = smaConfig.Host,
+                Host = smaConfig.Host!,
                 Port = smaConfig.Port,
                 UnitIdentifier = smaConfig.UnitId,
                 Endianess = ModbusEndianess.BigEndian,
                 ConnectDelayMilliseconds = 0,
-                ReadTimeoutMilliseconds = 1000,
+                ReadTimeoutMilliseconds = 10000,
                 Id = config.Id,
             };
             modbusConfigurations.Add(modbusConfig);

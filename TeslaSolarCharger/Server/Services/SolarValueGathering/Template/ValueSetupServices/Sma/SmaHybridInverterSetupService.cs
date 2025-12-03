@@ -66,7 +66,7 @@ public class SmaHybridInverterSetupService : IRefreshableValueSetupService
                 UnitIdentifier = smaConfig.UnitId,
                 Endianess = ModbusEndianess.BigEndian,
                 ConnectDelayMilliseconds = 0,
-                ReadTimeoutMilliseconds = 1000,
+                ReadTimeoutMilliseconds = 10000,
                 Id = config.Id,
             };
             modbusConfigurations.Add(modbusConfig);

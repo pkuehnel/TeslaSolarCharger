@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -91,7 +90,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
-        var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints, _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
+        var powerToControl = _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints);
         if (ShouldSkipPowerUpdatesDueToTooRecentAmpChangesOrPlugin(chargingLoadPoints, currentDate))
         {
             return;
@@ -113,7 +112,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
-
+        _logger.LogTrace("Generated charging schedules: {@chargingSchedules}", chargingSchedules);
         _settings.ChargingSchedules = new(chargingSchedules);
         var chargingScheduleChange = new StateUpdateDto
         {
@@ -205,7 +204,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
     }
 
-    private void SetManualCarsToAtHome(DateTimeOffset currentDate)
+    internal void SetManualCarsToAtHome(DateTimeOffset currentDate)
     {
         var manualCars = _context.Cars.Where(c => c.CarType == CarType.Manual).ToList();
         foreach (var manualCar in manualCars)
@@ -226,7 +225,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <param name="targetChargingValue"></param>
     /// <param name="currentDate"></param>
     /// <returns>Succeeded</returns>
-    private async Task<bool> SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(DtoTargetChargingValues targetChargingValue, DateTimeOffset currentDate, CancellationToken cancellationToken)
+    internal async Task<bool> SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(DtoTargetChargingValues targetChargingValue, DateTimeOffset currentDate, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@targetChargingValue}, {currentDate})", nameof(SetChargingPowerOfOccpConnectorForCarManagedLoadpoint), targetChargingValue, currentDate);
         if (targetChargingValue.LoadPoint.ManageChargingPowerByCar
@@ -246,7 +245,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return true;
     }
 
-    private async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
+    internal async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
         DateTimeOffset currentDate, CancellationToken cancellationToken, DtoOcppConnectorState ocppState)
     {
         var connectorConfig = await _context.OcppChargingStationConnectors
@@ -297,7 +296,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     }
 
 
-    private bool ShouldSkipPowerUpdatesDueToTooRecentAmpChangesOrPlugin(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
+    internal bool ShouldSkipPowerUpdatesDueToTooRecentAmpChangesOrPlugin(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
         DateTimeOffset currentDate)
     {
         var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
@@ -314,7 +313,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return false;
     }
 
-    private async Task AddNoOcppConnectionReason(CancellationToken cancellationToken)
+    internal async Task AddNoOcppConnectionReason(CancellationToken cancellationToken)
     {
         var chargingConnectorIdsToManage = await _context.OcppChargingStationConnectors
             .Where(c => c.ShouldBeManaged)
@@ -331,7 +330,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private void AddNotChargingReasons()
+    internal void AddNotChargingReasons()
     {
         foreach (var dtoCar in _settings.CarsToManage)
         {
@@ -358,7 +357,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
+    internal async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({currentDate})", nameof(SetCarChargingTargetsToFulFilled), currentDate);
         var carIds = _settings.CarsToManage.Select(c => c.Id).ToHashSet();
@@ -419,7 +418,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task SetCurrentOfNonChargingTeslasToMax()
+    internal async Task SetCurrentOfNonChargingTeslasToMax()
     {
         _logger.LogTrace("{method}()", nameof(SetCurrentOfNonChargingTeslasToMax));
         var carsToSetToMaxCurrent = _settings.CarsToManage
@@ -439,7 +438,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private async Task<List<DtoChargingSchedule>> GenerateChargingSchedules(DateTimeOffset currentDate, List<DtoLoadPointOverview> loadPointsToManage,
+    internal async Task<List<DtoChargingSchedule>> GenerateChargingSchedules(DateTimeOffset currentDate, List<DtoLoadPointOverview> loadPointsToManage,
         CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({currentDate}, {loadPointsToManage})", nameof(GenerateChargingSchedules), currentDate, loadPointsToManage.Count);
@@ -477,7 +476,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     
 
-    private async Task CalculateGeofences(DateTimeOffset currentDate)
+    internal async Task CalculateGeofences(DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}()", nameof(CalculateGeofences));
         foreach (var car in _settings.CarsToManage)
@@ -515,7 +514,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
+    internal double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
     {
         var d1 = latitude * (Math.PI / 180.0);
         var num1 = longitude * (Math.PI / 180.0);
@@ -526,7 +525,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 
-    private async Task<List<DtoTimeZonedChargingTarget>> GetRelevantTargets(IEnumerable<int> carIds, DateTimeOffset currentDate,
+    internal async Task<List<DtoTimeZonedChargingTarget>> GetRelevantTargets(IEnumerable<int> carIds, DateTimeOffset currentDate,
     CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@carIds}, {currentDate})", nameof(GetRelevantTargets), carIds, currentDate);

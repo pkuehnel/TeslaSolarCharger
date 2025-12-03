@@ -150,7 +150,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     /// The reduction is applied first to <paramref name="additionalHomeBatteryDischargePower"/> until it reaches zero; 
     /// any remaining power usage is then subtracted from <paramref name="powerToControl"/>.
     /// </returns>
-    private (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
+    internal (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
         int powerToControl,
         int additionalHomeBatteryDischargePower,
         int estimatedPowerUsage)
@@ -179,7 +179,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    private int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
+    internal int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
     {
         _logger.LogTrace("{method}({@loadPointTargetValues}, {estimatedCurrentUsage})", nameof(CalculateEstimatedPowerUsage), loadPointTargetValues, estimatedCurrentUsage);
         var voltage = loadPointTargetValues.LoadPoint.EstimatedVoltageWhileCharging ?? _settings.AverageHomeGridVoltage ?? 230m;
@@ -190,7 +190,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    private decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
+    internal decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
     {
         _logger.LogTrace("{method}({@loadPoint}, {@constraintValues})", nameof(CalculateEstimatedCurrentUsage), loadPoint, constraintValues);
         if (loadPoint.TargetValues == default)
@@ -222,7 +222,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return currentToSet;
     }
 
-    private TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
+    internal TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({@constraintValues}, {@loadpoint}, {powerToSet}, {ignoreTimers}, {currentDate})", nameof(GetTargetValue), constraintValues, loadpoint, powerToSet, ignoreTimers, currentDate);
         if (loadpoint.IsPluggedIn != true || loadpoint.IsHome == false)
@@ -473,7 +473,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return null;
     }
 
-    private async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
+    internal async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
         DateTimeOffset currentDate, decimal maxCombinedCurrent, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({carId}, {connectorId}, {useCarToManageChargingSpeed}, {currentDate}, {maxCombinedCurrent})",
@@ -714,7 +714,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return constraintValues;
     }
 
-    private bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
+    internal bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, T comparator, out DateTimeOffset? relevantAt)
     {
         _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timeSpanUntilIsRelevant}, {comparator})",
