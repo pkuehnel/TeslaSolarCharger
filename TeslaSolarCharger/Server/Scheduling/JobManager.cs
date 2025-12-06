@@ -156,7 +156,7 @@ public class JobManager(
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.HomeBatteryMinSocRefreshIntervalMinutes)).Build();
 
         var refreshableValuesRefreshTrigger = TriggerBuilder.Create().WithIdentity("refreshableValuesRefreshTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(1)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.RefreshableValuesRefreshIntervalSeconds)).Build();
         var manualCarsDataClearingTrigger = TriggerBuilder.Create().WithIdentity("manualCarsDataClearingTrigger")
             .StartAt(currentDate.AddMinutes(constants.ManualCarMinutesUntilForgetSoc + 1))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.ManualCarMinutesUntilForgetSoc)).Build();

@@ -1,0 +1,68 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject IDialogService DialogService
+@inject ITemplateValueConfigurationService TemplateValueConfigurationService
+@inject ISnackbar Snackbar
+@inject IConstants Constants
+
+<GenericValueConfigurationComponent SourceName="Template"
+                                    ConfigurationOverviews="_configurationOverviews"
+                                    OnRefreshClicked="RefreshRequestResults"
+                                    OnConfigureClicked="id => OpenValueConfigurationDialog(id)"
+                                    OnDeleteClicked="id => DeleteValueConfiguration(id)"></GenericValueConfigurationComponent>
+
+@code {
+    private List<DtoValueConfigurationOverview>? _configurationOverviews;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshRequestResults();
+    }
+
+    private async Task RefreshRequestResults()
+    {
+        _configurationOverviews = await TemplateValueConfigurationService.GetOverviews();
+    }
+
+    private async Task OpenValueConfigurationDialog(int? id)
+    {
+        var options = new DialogOptions()
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            BackdropClick = true,
+        };
+        var parameters = new DialogParameters<TemplateValueConfigurationDialog>
+        {
+            { x => x.ValueConfigurationId, id },
+        };
+        var title = id == default ? "Add" : "Edit";
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>($"{title} Template config", parameters, options);
+        var result = await dialog.Result;
+
+        await RefreshRequestResults();
+        if (result?.Canceled == false)
+        {
+            Snackbar.Add("Saved", Severity.Success);
+            var timeToWait = TimeSpan.FromSeconds(Constants.RefreshableValuesRefreshIntervalSeconds);
+            await Task.Delay(timeToWait);
+            await RefreshRequestResults();
+            await Task.Delay(timeToWait);
+            await RefreshRequestResults();
+        }
+    }
+
+    private async Task DeleteValueConfiguration(int id)
+    {
+        var result = await TemplateValueConfigurationService.DeleteAsync(id);
+        if (!result.HasError)
+        {
+            Snackbar.Add("Deleted", Severity.Success);
+        }
+        await RefreshRequestResults();
+    }
+
+}
