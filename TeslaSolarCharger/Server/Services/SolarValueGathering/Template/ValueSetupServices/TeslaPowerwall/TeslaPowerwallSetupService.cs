@@ -87,24 +87,47 @@ public class TeslaPowerwallSetupService : IRefreshableValueSetupService
                         }
                         var restValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IRestValueExecutionService>();
                         var id = 1;
-                        var jsonResultConfiguration = new DtoJsonXmlResultConfiguration()
+                        var values = new ConcurrentDictionary<ValueKey, decimal>();
+
+                        // 1. Inverter Configuration
+                        var inverterConfiguration = new DtoJsonXmlResultConfiguration()
                         {
                             CorrectionFactor = 1m,
                             Operator = ValueOperator.Plus,
                             NodePattern = "$.response.solar_power",
                         };
-                        var values = new ConcurrentDictionary<ValueKey, decimal>();
                         values.TryAdd(new ValueKey(ValueUsage.InverterPower, null, id++),
-                            restValueExecutionService.GetValue(json, NodePatternType.Json, jsonResultConfiguration));
-                        jsonResultConfiguration.NodePattern = "$.response.grid_power";
+                            restValueExecutionService.GetValue(json, NodePatternType.Json, inverterConfiguration));
+
+                        // 2. Grid Configuration
+                        var gridConfiguration = new DtoJsonXmlResultConfiguration()
+                        {
+                            CorrectionFactor = 1m,
+                            Operator = ValueOperator.Minus,
+                            NodePattern = "$.response.grid_power",
+                        };
                         values.TryAdd(new ValueKey(ValueUsage.GridPower, null, id++),
-                            restValueExecutionService.GetValue(json, NodePatternType.Json, jsonResultConfiguration));
-                        jsonResultConfiguration.NodePattern = "$.response.battery_power";
+                            restValueExecutionService.GetValue(json, NodePatternType.Json, gridConfiguration));
+
+                        // 3. Battery Power Configuration
+                        var batteryPowerConfiguration = new DtoJsonXmlResultConfiguration()
+                        {
+                            CorrectionFactor = 1m,
+                            Operator = ValueOperator.Plus,
+                            NodePattern = "$.response.battery_power",
+                        };
                         values.TryAdd(new ValueKey(ValueUsage.HomeBatteryPower, null, id++),
-                            restValueExecutionService.GetValue(json, NodePatternType.Json, jsonResultConfiguration));
-                        jsonResultConfiguration.NodePattern = "$.response.percentage_charged";
+                            restValueExecutionService.GetValue(json, NodePatternType.Json, batteryPowerConfiguration));
+
+                        // 4. Battery SoC Configuration
+                        var batterySocConfiguration = new DtoJsonXmlResultConfiguration()
+                        {
+                            CorrectionFactor = 1m,
+                            Operator = ValueOperator.Plus,
+                            NodePattern = "$.response.percentage_charged",
+                        };
                         values.TryAdd(new ValueKey(ValueUsage.HomeBatterySoc, null, id),
-                            restValueExecutionService.GetValue(json, NodePatternType.Json, jsonResultConfiguration));
+                            restValueExecutionService.GetValue(json, NodePatternType.Json, batterySocConfiguration));
                         return values;
                     },
                     defaultInterval,
