@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using Quartz.Util;
-using System.Diagnostics;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 
@@ -16,13 +15,13 @@ public class TelegramService(ILogger<TelegramService> logger,
         using var httpClient = new HttpClient();
         var botKey = configurationWrapper.TelegramBotKey();
         var channel = configurationWrapper.TelegramChannelId();
-        if (botKey.IsNullOrWhiteSpace())
+        if (string.IsNullOrEmpty(botKey))
         {
             logger.LogInformation("Can not send Telegram Message because botkey is empty.");
             return HttpStatusCode.Unauthorized;
         }
 
-        if (channel.IsNullOrWhiteSpace())
+        if (string.IsNullOrEmpty(channel))
         {
             logger.LogInformation("Can not send Telegram Message because channel is empty.");
             return HttpStatusCode.Unauthorized;
