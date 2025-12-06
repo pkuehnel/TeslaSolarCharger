@@ -113,7 +113,7 @@ public class TeslaPowerwallSetupService : IRefreshableValueSetupService
                         var batteryPowerConfiguration = new DtoJsonXmlResultConfiguration()
                         {
                             CorrectionFactor = 1m,
-                            Operator = ValueOperator.Plus,
+                            Operator = ValueOperator.Minus,
                             NodePattern = "$.response.battery_power",
                         };
                         values.TryAdd(new ValueKey(ValueUsage.HomeBatteryPower, null, id++),
