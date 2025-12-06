@@ -70,8 +70,9 @@ public class GenerateChargingSchedulesTests : TestBase
                 It.IsAny<List<DtoTimeZonedChargingTarget>>(),
                 It.IsAny<Dictionary<DateTimeOffset, int>>(),
                 It.IsAny<DateTimeOffset>(),
+                It.IsAny<List<DtoChargingSchedule>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((DtoLoadPointOverview lp, List<DtoTimeZonedChargingTarget> t, Dictionary<DateTimeOffset, int> p, DateTimeOffset d, CancellationToken c) =>
+            .ReturnsAsync((DtoLoadPointOverview lp, List<DtoTimeZonedChargingTarget> t, Dictionary<DateTimeOffset, int> p, DateTimeOffset d, List<DtoChargingSchedule> o, CancellationToken c) =>
             {
                 // Verify expected relevant targets count if loadpoint has a car
                 if (lp.CarId.HasValue)

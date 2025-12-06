@@ -17,6 +17,8 @@ public class DtoChargingSchedule : ValidFromToBase
 
     public int? CarId { get; set; }
     public int? OcppChargingConnectorId { get; set; }
+    public int? Phases { get; set; }
+    public int? Voltage { get; set; }
     public int TargetMinPower { get; set; }
     public int? TargetHomeBatteryPower { get; set; }
     public int EstimatedSolarPower { get; set; }

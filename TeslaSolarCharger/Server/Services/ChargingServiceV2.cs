@@ -457,8 +457,10 @@ public class ChargingServiceV2 : IChargingServiceV2
                 .GetPredictedSurplusPerSlice(currentFullHour, fullHourAfterNextTarget, TimeSpan.FromHours(_constants.SolarPowerSurplusPredictionIntervalHours), cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        var orderedLoadPoints = loadPointsToManage.OrderBy(l => l.ChargingPriority).ToList();
         
-        foreach (var loadPoint in loadPointsToManage)
+        foreach (var loadPoint in orderedLoadPoints)
         {
             var loadPointRelevantChargingTargets = loadPoint.CarId == default
                 ? new()
@@ -466,7 +468,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     .OrderBy(t => t.NextExecutionTime)
                     .ToList();
             var loadPointChargingTargets = await _chargingScheduleService
-                .GenerateChargingSchedulesForLoadPoint(loadPoint, loadPointRelevantChargingTargets, predictedSurplusSlices, currentDate, cancellationToken);
+                .GenerateChargingSchedulesForLoadPoint(loadPoint, loadPointRelevantChargingTargets, predictedSurplusSlices, currentDate, chargingSchedules, cancellationToken);
             chargingSchedules.AddRange(loadPointChargingTargets);
         }
         return chargingSchedules.OrderBy(c => c.ValidFrom).ToList();

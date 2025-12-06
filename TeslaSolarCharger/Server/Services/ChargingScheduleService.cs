@@ -62,7 +62,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     public async Task<List<DtoChargingSchedule>> GenerateChargingSchedulesForLoadPoint(DtoLoadPointOverview loadpoint,
     List<DtoTimeZonedChargingTarget> nextTargets, Dictionary<DateTimeOffset, int> predictedSurplusSlices, DateTimeOffset currentDate,
-    CancellationToken cancellationToken)
+    List<DtoChargingSchedule> otherLoadPointsSchedules, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@loadpoint}, {currentDate})", nameof(GenerateChargingSchedulesForLoadPoint), loadpoint, currentDate);
         var schedules = new List<DtoChargingSchedule>();
@@ -85,6 +85,7 @@ public class ChargingScheduleService : IChargingScheduleService
             _logger.LogWarning("Can not schedule charging as at least one required value is unknown.");
             return schedules;
         }
+        var minChargingPower = GetPowerAtPhasesAndCurrent(minPhases ?? 0, minCurrent ?? 0, loadpoint.EstimatedVoltageWhileCharging);
 
         foreach (var nextTarget in nextTargets)
         {
@@ -143,8 +144,10 @@ public class ChargingScheduleService : IChargingScheduleService
                         ValidFrom = startDate,
                         ValidTo = validToDate,
                         TargetMinPower = maxPower,
+                        Phases = maxPhases.Value,
+                        Voltage = loadpoint.EstimatedVoltageWhileCharging ?? 230,
                     };
-                    (schedules, var additionalScheduledEnergy) = AddChargingSchedule(schedules, chargingScheduleToAdd, maxPower, minimumEnergyToCharge);
+                    (schedules, var additionalScheduledEnergy) = AddChargingSchedule(schedules, chargingScheduleToAdd, maxPower, minimumEnergyToCharge, otherLoadPointsSchedules, minChargingPower);
                     _logger.LogTrace("Added immediate charging schedule for car {carId}. Additional scheduled energy: {additionalScheduledEnergy}Wh", car.Id, additionalScheduledEnergy);
                     minimumEnergyToCharge -= additionalScheduledEnergy;
                     startDate = new(validToDate.Year, validToDate.Month, validToDate.Day, validToDate.Hour,
@@ -185,8 +188,10 @@ public class ChargingScheduleService : IChargingScheduleService
                             ValidFrom = startDate,
                             ValidTo = endDate,
                             EstimatedSolarPower = maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Value,
+                            Phases = maxPhases.Value,
+                            Voltage = loadpoint.EstimatedVoltageWhileCharging ?? 230,
                         };
-                        (schedules, var additionalScheduledEnergy) = AddChargingSchedule(schedules, chargingScheduleToAdd, maxPower, minimumEnergyToCharge);
+                        (schedules, var additionalScheduledEnergy) = AddChargingSchedule(schedules, chargingScheduleToAdd, maxPower, minimumEnergyToCharge, otherLoadPointsSchedules, minChargingPower);
                         _logger.LogTrace("Added solar-based charging schedule for car {carId}. Additional scheduled energy: {additionalScheduledEnergy}Wh", car.Id, additionalScheduledEnergy);
                         minimumEnergyToCharge -= additionalScheduledEnergy;
                     }
@@ -225,8 +230,10 @@ public class ChargingScheduleService : IChargingScheduleService
                                     ValidFrom = currentDate,
                                     ValidTo = scheduleEnd,
                                     TargetHomeBatteryPower = availableDischargePower,
+                                    Phases = maxPhases.Value,
+                                    Voltage = loadpoint.EstimatedVoltageWhileCharging ?? 230,
                                 };
-                                (schedules, var addedEnergy) = AddChargingSchedule(schedules, homeBatteryChargingSchedule, maxPower, homeBatteryEnergyToCharge);
+                                (schedules, var addedEnergy) = AddChargingSchedule(schedules, homeBatteryChargingSchedule, maxPower, homeBatteryEnergyToCharge, otherLoadPointsSchedules, minChargingPower);
                                 _logger.LogTrace("Added home battery discharge schedule. AddedEnergy={addedEnergy}Wh; Remaining homeBatteryEnergyToCharge before subtract={remainingEnergy}", addedEnergy, homeBatteryEnergyToCharge);
                                 homeBatteryEnergyToCharge -= addedEnergy;
                                 minimumEnergyToCharge -= addedEnergy;
@@ -254,10 +261,9 @@ public class ChargingScheduleService : IChargingScheduleService
                 _logger.LogTrace("No home battery discharge requested or no energy to charge for target {@target}. homeBatteryEnergyToCharge={homeBatteryEnergyToCharge}", nextTarget, homeBatteryEnergyToCharge);
             }
 
-            schedules = await AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, minimumEnergyToCharge, maxPower);
+            schedules = await AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, minimumEnergyToCharge, maxPower, otherLoadPointsSchedules, minChargingPower, maxPhases.Value, loadpoint.EstimatedVoltageWhileCharging ?? 230);
             if (minPhases != default && minCurrent != default)
             {
-                var minChargingPower = GetPowerAtPhasesAndCurrent(minPhases.Value, minCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
                 var isCurrentlyCharging = loadpoint.ChargingPower > 0;
 
                 schedules = OptimizeChargingSchedules(schedules, currentDate, isCurrentlyCharging, minChargingPower);
@@ -270,7 +276,11 @@ public class ChargingScheduleService : IChargingScheduleService
 
     internal async Task<List<DtoChargingSchedule>> AppendOptimalGridSchedules(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget,
         DtoLoadPointOverview loadpoint,
-        List<DtoChargingSchedule> schedules, int energyToCharge, int maxPower)
+        List<DtoChargingSchedule> schedules, int energyToCharge, int maxPower,
+        List<DtoChargingSchedule> otherLoadPointsSchedules,
+        int minChargingPower,
+        int phases,
+        int voltage)
     {
         _logger.LogTrace("AppendOptimalGridSchedules called for loadpoint {carId}_{connectorId}, energyToCharge={energyToCharge}, maxPower={maxPower}, currentDate={currentDate}, nextExecutionTime={nextExecutionTime}", loadpoint.CarId, loadpoint.ChargingConnectorId, energyToCharge, maxPower, currentDate, nextTarget.NextExecutionTime);
         var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
@@ -340,8 +350,10 @@ public class ChargingScheduleService : IChargingScheduleService
                     ValidFrom = cheapestPrice.ValidFrom,
                     ValidTo = cheapestPrice.ValidTo,
                     TargetMinPower = maxPower,
+                    Phases = phases,
+                    Voltage = voltage,
                 };
-                (loopChargingSchedules, var addedEnergy) = AddChargingSchedule(loopChargingSchedules, chargingSchedule, maxPower, remainingEnergyToCoverFromGrid);
+                (loopChargingSchedules, var addedEnergy) = AddChargingSchedule(loopChargingSchedules, chargingSchedule, maxPower, remainingEnergyToCoverFromGrid, otherLoadPointsSchedules, minChargingPower);
                 _logger.LogTrace("Added grid-based charging schedule: AddedEnergy={addedEnergy}Wh, ValidFrom={validFrom}, ValidTo={validTo}", addedEnergy, chargingSchedule.ValidFrom, chargingSchedule.ValidTo);
                 remainingEnergyToCoverFromGrid -= addedEnergy;
                 var additionalCosts = (addedEnergy / 1000m) * cheapestPrice.GridPrice;
@@ -385,9 +397,11 @@ public class ChargingScheduleService : IChargingScheduleService
                     ValidFrom = overflowStartDate,
                     ValidTo = validToDate,
                     TargetMinPower = maxPower,
+                    Phases = phases,
+                    Voltage = voltage,
                 };
 
-                (schedules, var addedEnergy) = AddChargingSchedule(schedules, overflowSchedule, maxPower, finalRemainingEnergy);
+                (schedules, var addedEnergy) = AddChargingSchedule(schedules, overflowSchedule, maxPower, finalRemainingEnergy, otherLoadPointsSchedules, minChargingPower);
 
                 _logger.LogTrace("Added overflow schedule: ValidFrom={validFrom}, ValidTo={validTo}, AddedEnergy={addedEnergy}", overflowStartDate, validToDate, addedEnergy);
 
@@ -603,7 +617,9 @@ public class ChargingScheduleService : IChargingScheduleService
      List<DtoChargingSchedule> existingSchedules,
      DtoChargingSchedule newChargingSchedule,
      int maxChargingPower,
-     int maxEnergyToAdd)
+     int maxEnergyToAdd,
+     List<DtoChargingSchedule> otherLoadPointsSchedules,
+     int minChargingPower)
     {
         _logger.LogTrace("{method}({existingChargingSchedules}, {@newChargingSchedule}, {maxChargingPower}, {maxEnergyToAdd})",
             nameof(AddChargingSchedule), existingSchedules, newChargingSchedule, maxChargingPower, maxEnergyToAdd);
@@ -613,6 +629,13 @@ public class ChargingScheduleService : IChargingScheduleService
         var (splittedNewChedules, splittedExistingChargingSchedules)
             = _validFromToSplitter.SplitByBoundaries(newScheduleDummyList, existingSchedules,
                 newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
+
+        //Split also by other schedules to ensure we can correctly calculate available power
+        (splittedNewChedules, _) = _validFromToSplitter.SplitByBoundaries(splittedNewChedules, otherLoadPointsSchedules,
+            newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, false);
+        (splittedExistingChargingSchedules, _) = _validFromToSplitter.SplitByBoundaries(splittedExistingChargingSchedules, otherLoadPointsSchedules,
+            newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
+
         _logger.LogTrace("After SplitByBoundaries: {newCount} new schedules, {existingCount} existing schedules", splittedNewChedules.Count, splittedExistingChargingSchedules.Count);
 
         foreach (var dtoChargingSchedule in splittedNewChedules)
@@ -622,8 +645,55 @@ public class ChargingScheduleService : IChargingScheduleService
                 .FirstOrDefault(c => c.ValidFrom == dtoChargingSchedule.ValidFrom
                                      && c.ValidTo == dtoChargingSchedule.ValidTo);
             _logger.LogTrace("Overlapping schedule {hasOverlap}", overlappingExistingChargingSchedule == default ? "not found" : "found");
+
+            // Calculate allowed power based on other load points
+            var usedCurrentByOtherLoadPoints = otherLoadPointsSchedules
+                .Where(s => s.ValidFrom < dtoChargingSchedule.ValidTo && s.ValidTo > dtoChargingSchedule.ValidFrom)
+                .Sum(s => (decimal)s.EstimatedChargingPower / (s.Phases ?? 3) / (s.Voltage ?? 230));
+            var maxCombinedCurrent = _configurationWrapper.MaxCombinedCurrent();
+            var remainingCurrent = maxCombinedCurrent - usedCurrentByOtherLoadPoints;
+            var maxAllowedPower = (int)(remainingCurrent * (dtoChargingSchedule.Phases ?? 3) * (dtoChargingSchedule.Voltage ?? 230));
+
+            // Reduce max power of current schedule if needed
+            if (maxAllowedPower < dtoChargingSchedule.TargetMinPower)
+            {
+                if (maxAllowedPower < minChargingPower)
+                {
+                    // If we can't even meet minimum charging power, we can't charge at all in this slot
+                    dtoChargingSchedule.TargetMinPower = 0;
+                }
+                else
+                {
+                    dtoChargingSchedule.TargetMinPower = maxAllowedPower;
+                }
+            }
+            if (dtoChargingSchedule.TargetMinPower == 0)
+            {
+                 // Skip this slot if we can't charge
+                 // But we must add it to existing schedules to fill the gap if it was supposed to be filled?
+                 // Actually, if we skip it, we just don't add energy.
+                 // If there is an overlapping existing schedule, we might need to reduce IT as well?
+                 // Wait, AddChargingSchedule only ADDS energy. It doesn't reduce existing energy (unless we overwrite it).
+                 // But if we are "updating" an existing schedule, we should check constraints too.
+                 // However, AddChargingSchedule is typically used to ADD.
+                 // But if `overlappingExistingChargingSchedule` exists, we are merging.
+                 // If global limit restricts us, we might not be able to add as much as we wanted.
+            }
+
+
             if (overlappingExistingChargingSchedule == default)
             {
+                if (dtoChargingSchedule.TargetMinPower == 0)
+                {
+                    // We can't charge here, so we add a gap (or just don't add anything)
+                    // But we should preserve continuity of existing schedules list.
+                    // If we don't add anything, the gap remains a gap.
+                    // If we add a schedule with 0 power, it's explicitly 0.
+                    // DtoChargingSchedule usually implies non-zero if it's in the list?
+                    // No, 0 power schedules are not usually stored.
+                    continue;
+                }
+
                 var slotEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, dtoChargingSchedule.EstimatedChargingPower);
                 var energyToAdd = Math.Min(slotEnergy, maxEnergyToAdd - additionalScheduledEnergy);
                 _logger.LogTrace("No overlap: slotEnergy={slotEnergy}, energyToAdd={energyToAdd}, additionalScheduledEnergy={additionalScheduledEnergy}, maxEnergyToAdd={maxEnergyToAdd}", slotEnergy, energyToAdd, additionalScheduledEnergy, maxEnergyToAdd);
@@ -658,6 +728,18 @@ public class ChargingScheduleService : IChargingScheduleService
                 continue;
             }
 
+            // OVERLAP Case
+            // We need to check if we can actually ADD power to the existing one.
+            // But first, we should check if the EXISTING one already violates the global limit?
+            // Assuming existing schedules were valid when created (but maybe context changed? No, we rebuild from scratch).
+            // But we already checked `maxAllowedPower` against `dtoChargingSchedule`.
+            // `dtoChargingSchedule` here represents the NEW schedule we want to merge.
+            // But `overlapping` is the existing base.
+            // If `overlapping` has power 1000W, and we want to add to reach 3000W.
+            // `dtoChargingSchedule.TargetMinPower` comes from the caller (e.g. maxPower).
+            // But we capped it at `maxAllowedPower`.
+            // So `newMinTargetPower` calculation below will respect it.
+
             var earlierEstimatedPower = overlappingExistingChargingSchedule.EstimatedChargingPower;
             _logger.LogTrace("Overlap: earlierEstimatedPower={earlierEstimatedPower}", earlierEstimatedPower);
 
@@ -668,6 +750,29 @@ public class ChargingScheduleService : IChargingScheduleService
             var originalScheduleReasons = new HashSet<ScheduleReason>(overlappingExistingChargingSchedule.ScheduleReasons);
 
             var newMinTargetPower = Math.Max(overlappingExistingChargingSchedule.TargetMinPower, dtoChargingSchedule.TargetMinPower);
+            // Ensure even the merged target respects the limit
+            if (newMinTargetPower > maxAllowedPower)
+            {
+                newMinTargetPower = maxAllowedPower;
+            }
+            if (newMinTargetPower < minChargingPower && newMinTargetPower > 0)
+            {
+                 // If capped power is below min, we must drop to 0?
+                 // But wait, if `overlapping` was already valid (e.g. 0), we stay 0.
+                 // If `overlapping` was high, we reduce it?
+                 // But we are supposedly only ADDING.
+                 // If `maxAllowedPower` is low, it means we can't even sustain the existing schedule + new?
+                 // Actually, if `overlapping` is from the SAME car, it contributes to `maxCombinedCurrent` usage?
+                 // No, `maxCombinedCurrent` is Global. `otherLoadPointsSchedules` contains OTHER cars.
+                 // `existingSchedules` is THIS car.
+                 // So `remainingCurrent` is what is available for THIS car (total).
+                 // So `maxAllowedPower` is the total allowed for THIS car.
+                 // So `newMinTargetPower` (which is the new total for this car) must be <= `maxAllowedPower`.
+
+                 // If `newMinTargetPower` < `minChargingPower` -> set to 0.
+                 newMinTargetPower = 0;
+            }
+
             var newEstimatedSolarPower = Math.Max(overlappingExistingChargingSchedule.EstimatedSolarPower, dtoChargingSchedule.EstimatedSolarPower);
             int? newTargetHomeBatteryPower = null;
             if (dtoChargingSchedule.TargetHomeBatteryPower.HasValue || overlappingExistingChargingSchedule.TargetHomeBatteryPower.HasValue)
@@ -682,8 +787,14 @@ public class ChargingScheduleService : IChargingScheduleService
             overlappingExistingChargingSchedule.EstimatedSolarPower = newEstimatedSolarPower;
             overlappingExistingChargingSchedule.TargetHomeBatteryPower = newTargetHomeBatteryPower;
             overlappingExistingChargingSchedule.ScheduleReasons.UnionWith(dtoChargingSchedule.ScheduleReasons);
+            overlappingExistingChargingSchedule.Phases = dtoChargingSchedule.Phases;
+            overlappingExistingChargingSchedule.Voltage = dtoChargingSchedule.Voltage;
 
             var addedPower = overlappingExistingChargingSchedule.EstimatedChargingPower - earlierEstimatedPower;
+            // addedPower could be negative if we were forced to reduce power due to constraints!
+            // But `CalculateChargedEnergy` handles negative?
+            if (addedPower < 0) addedPower = 0; // We don't "refund" energy here, just cap.
+
             var slotAddedEnergy = CalculateChargedEnergy(dtoChargingSchedule.ValidTo - dtoChargingSchedule.ValidFrom, addedPower);
             var energyToAdd1 = Math.Min(slotAddedEnergy, maxEnergyToAdd - additionalScheduledEnergy);
             _logger.LogTrace("Overlap energy: addedPower={addedPower}, slotAddedEnergy={slotAddedEnergy}, energyToAdd1={energyToAdd1}, additionalScheduledEnergy={additionalScheduledEnergy}, maxEnergyToAdd={maxEnergyToAdd}", addedPower, slotAddedEnergy, energyToAdd1, additionalScheduledEnergy, maxEnergyToAdd);
@@ -702,6 +813,8 @@ public class ChargingScheduleService : IChargingScheduleService
                     TargetMinPower = originalTargetMinPower,
                     EstimatedSolarPower = originalEstimatedSolarPower,
                     TargetHomeBatteryPower = originalTargetHomeBatteryPower,
+                    Phases = overlappingExistingChargingSchedule.Phases,
+                    Voltage = overlappingExistingChargingSchedule.Voltage
                 };
 
                 if (ShouldScheduleFromStartInsteadOfUntilEnd(splittedExistingChargingSchedules, dtoChargingSchedule))

@@ -40,7 +40,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
             .ReturnsAsync(new List<Price>());
 
         // Act
-        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, 10000, MaxPower);
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, 10000, MaxPower, new List<DtoChargingSchedule>(), 0, 3, 230);
 
         // Assert
         Assert.Empty(result);
@@ -66,7 +66,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
             .ReturnsAsync(prices);
 
         // Act
-        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, 10000, MaxPower);
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, 10000, MaxPower, new List<DtoChargingSchedule>(), 0, 3, 230);
 
         // Assert
         Assert.Empty(result);
@@ -103,7 +103,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
         var energyToCharge = MaxPower;
 
         // Act
-        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower);
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower, new List<DtoChargingSchedule>(), 0, 3, 230);
 
         // Assert
         Assert.Single(result);
@@ -139,7 +139,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
         var energyToCharge = MaxPower * 2;
 
         // Act
-        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower);
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower, new List<DtoChargingSchedule>(), 0, 3, 230);
 
         // Assert
         // Should have 2 schedules:
@@ -190,7 +190,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
         var energyToCharge = MaxPower * 2; // Need 2 slots
 
         // Act
-        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower);
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower, new List<DtoChargingSchedule>(), 0, 3, 230);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -239,7 +239,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
         var energyToCharge = MaxPower;
 
         // Act
-        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower);
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, energyToCharge, MaxPower, new List<DtoChargingSchedule>(), 0, 3, 230);
 
         // Assert
         // We expect Slot 2 (1h-2h) to be picked.

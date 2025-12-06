@@ -9,6 +9,7 @@ public interface IChargingScheduleService
     Task<List<DtoChargingSchedule>> GenerateChargingSchedulesForLoadPoint(DtoLoadPointOverview loadpoint,
         List<DtoTimeZonedChargingTarget> loadPointRelevantChargingTargets, Dictionary<DateTimeOffset, int> predictedSurplusSlices,
         DateTimeOffset currentDate,
+        List<DtoChargingSchedule> otherLoadPointsSchedules,
         CancellationToken cancellationToken);
 
     /// <summary>
