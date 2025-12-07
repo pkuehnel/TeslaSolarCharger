@@ -118,7 +118,7 @@ public class AddChargingScheduleTests : TestBase
         double expectedDuration = 1000.0 / 6500.0; // 1000Wh / 6500W
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
 
         // Assert
         Assert.Equal(maxEnergyToAdd, addedEnergy);
@@ -170,7 +170,7 @@ public class AddChargingScheduleTests : TestBase
         var newSchedule = CreateSchedule(start, end, MaxPower);
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
 
         // Assert
         Assert.Single(schedules);
@@ -193,7 +193,7 @@ public class AddChargingScheduleTests : TestBase
         var maxEnergyToAdd = MaxPower / 2;
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
 
         // Assert
         Assert.Single(schedules);
@@ -223,7 +223,7 @@ public class AddChargingScheduleTests : TestBase
         var newSchedule = CreateSchedule(start, end, MaxPower);
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
 
         // Assert
         Assert.Single(schedules);
@@ -256,7 +256,7 @@ public class AddChargingScheduleTests : TestBase
         var newSchedule = CreateSchedule(start, end, MaxPower);
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
 
         // Assert
         Assert.Single(schedules);
@@ -291,7 +291,7 @@ public class AddChargingScheduleTests : TestBase
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
 
         // Assert
         // Result should have:
@@ -336,7 +336,7 @@ public class AddChargingScheduleTests : TestBase
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
 
         // Assert
         // Even though power didn't change, the splitter likely physically split the list into two objects
@@ -372,7 +372,7 @@ public class AddChargingScheduleTests : TestBase
         var newSchedule = CreateSchedule(t10_30, t12, MaxPower);
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower * 10, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower * 10, new());
 
         // Assert
         // Expected outcome structure based on Splitter logic + Add logic:
@@ -426,7 +426,7 @@ public class AddChargingScheduleTests : TestBase
         var maxEnergyToAdd = MaxPower / 2;
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
 
         // Assert
         Assert.Equal(2, schedules.Count);
@@ -465,7 +465,7 @@ public class AddChargingScheduleTests : TestBase
         var maxEnergyToAdd = MaxPower / 2;
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
 
         // Assert
         Assert.Equal(2, schedules.Count);
@@ -514,7 +514,7 @@ public class AddChargingScheduleTests : TestBase
         var maxEnergyToAdd = MaxPower;
 
         // Act
-        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, Voltage, Phases);
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
 
         // Assert
         // The splitter breaks the list into:
