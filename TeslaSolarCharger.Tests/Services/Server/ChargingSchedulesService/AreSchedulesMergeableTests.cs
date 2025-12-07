@@ -35,7 +35,7 @@ public class AreSchedulesMergeableTests : TestBase
 
     public static IEnumerable<object[]> GetMergeableScenarios()
     {
-        var baseSchedule = new DtoChargingSchedule(1, 1, 11000, new HashSet<ScheduleReason> { ScheduleReason.ExpectedSolarProduction })
+        var baseSchedule = new DtoChargingSchedule(1, 1, 11000, 230, 3, new HashSet<ScheduleReason> { ScheduleReason.ExpectedSolarProduction })
         {
             TargetMinPower = 5000,
             TargetHomeBatteryPower = 1000,
@@ -116,7 +116,7 @@ public class AreSchedulesMergeableTests : TestBase
 
     private static DtoChargingSchedule Clone(DtoChargingSchedule s)
     {
-        return new DtoChargingSchedule(s.CarId, s.OcppChargingConnectorId, s.MaxPossiblePower, new HashSet<ScheduleReason>(s.ScheduleReasons))
+        return new DtoChargingSchedule(s.CarId, s.OcppChargingConnectorId, s.MaxPossiblePower, 230, 3, new HashSet<ScheduleReason>(s.ScheduleReasons))
         {
             TargetMinPower = s.TargetMinPower,
             TargetHomeBatteryPower = s.TargetHomeBatteryPower,

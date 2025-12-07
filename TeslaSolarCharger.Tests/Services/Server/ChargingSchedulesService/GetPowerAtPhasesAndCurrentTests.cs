@@ -25,14 +25,12 @@ public class GetPowerAtPhasesAndCurrentTests : TestBase
     [InlineData(1, 10, 230, 2300)]      // 1 Phase, 10A, 230V -> 2300W
     [InlineData(3, 10, 230, 6900)]      // 3 Phases, 10A, 230V -> 6900W
     [InlineData(3, 16, 230, 11040)]     // 3 Phases, 16A, 230V -> 11040W (Common 11kW charger)
-    [InlineData(1, 10, null, 2300)]     // Default voltage 230V should be used when null
-    [InlineData(3, 10, null, 6900)]     // Default voltage 230V with 3 phases
     [InlineData(1, 10, 220, 2200)]      // Custom voltage 220V
     [InlineData(3, 32, 230, 22080)]     // 3 Phases, 32A, 230V -> 22kW charger
     [InlineData(0, 10, 230, 0)]         // 0 Phases -> 0W
     [InlineData(3, 0, 230, 0)]          // 0 Current -> 0W
     [InlineData(1, 10.5, 230, 2415)]    // Decimal current is handled
-    public void GetPowerAtPhasesAndCurrent_CalculatesCorrectly(int phases, decimal current, int? voltage, int expectedPower)
+    public void GetPowerAtPhasesAndCurrent_CalculatesCorrectly(int phases, decimal current, int voltage, int expectedPower)
     {
         // Arrange
         // Create an instance of ChargingScheduleService using the AutoMock container from TestBase.

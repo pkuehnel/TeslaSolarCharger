@@ -47,7 +47,7 @@ public class ShouldScheduleFromStartInsteadOfUntilEndTests : TestBase
         // Helper to create schedule
         DtoChargingSchedule CreateSchedule(DateTimeOffset start, DateTimeOffset end, int targetMinPower, int? targetHomeBatteryPower)
         {
-             var s = new DtoChargingSchedule(1, 1, 10000, new HashSet<ScheduleReason>())
+             var s = new DtoChargingSchedule(1, 1, 10000, 230, 3, new HashSet<ScheduleReason>())
              {
                  ValidFrom = start,
                  ValidTo = end,

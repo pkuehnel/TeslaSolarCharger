@@ -109,7 +109,7 @@ public class GetOrderedElectricityPricesTests : TestBase
             false,
             new List<DtoChargingSchedule>
             {
-                new DtoChargingSchedule(1, 1, 10000, new HashSet<ScheduleReason>())
+                new DtoChargingSchedule(1, 1, 10000, 230, 3, new HashSet<ScheduleReason>())
                 {
                     ValidFrom = baseDate.AddHours(2), // 14:00
                     ValidTo = baseDate.AddHours(3), // 15:00
@@ -133,7 +133,7 @@ public class GetOrderedElectricityPricesTests : TestBase
             false,
             new List<DtoChargingSchedule>
             {
-                new DtoChargingSchedule(1, 1, 10000, new HashSet<ScheduleReason>())
+                new DtoChargingSchedule(1, 1, 10000, 230, 3, new HashSet<ScheduleReason>())
                 {
                     ValidFrom = baseDate.AddHours(2), // 14:00
                     ValidTo = baseDate.AddHours(3), // 15:00
@@ -158,7 +158,7 @@ public class GetOrderedElectricityPricesTests : TestBase
             false,
             new List<DtoChargingSchedule>
             {
-                new DtoChargingSchedule(1, 1, 10000, new HashSet<ScheduleReason>())
+                new DtoChargingSchedule(1, 1, 10000, 230, 3, new HashSet<ScheduleReason>())
                 {
                     ValidFrom = baseDate.AddHours(2),
                     ValidTo = baseDate.AddHours(3),
