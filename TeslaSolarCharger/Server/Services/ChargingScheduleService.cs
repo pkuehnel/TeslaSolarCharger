@@ -681,7 +681,8 @@ public class ChargingScheduleService : IChargingScheduleService
 
         _logger.LogTrace("After SplitByBoundaries: {newCount} new schedules, {existingCount} existing schedules", splittedNewChedules.Count, splittedExistingChargingSchedules.Count);
 
-        foreach (var dtoChargingSchedule in splittedNewChedules)
+        //order by ValidTo descending to try to add later slots first (to fill gaps at the end first)
+        foreach (var dtoChargingSchedule in splittedNewChedules.OrderByDescending(s => s.ValidTo))
         {
             _logger.LogTrace("Processing dtoChargingSchedule {@dtoChargingSchedule}", dtoChargingSchedule);
 

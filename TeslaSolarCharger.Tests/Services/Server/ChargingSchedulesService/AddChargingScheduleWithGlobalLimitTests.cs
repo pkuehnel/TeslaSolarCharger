@@ -188,4 +188,62 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         // 1h @ 11040 + 1h @ 6900 = 17940
         Assert.Equal(17940, addedEnergy);
     }
+
+    [Fact]
+    public void AddChargingSchedule_SplitsScheduleCorrectly_WhenOtherCarAlreadyChargingMidway()
+    {
+        // Arrange
+        var service = Mock.Create<ChargingScheduleService>();
+        var configMock = Mock.Mock<IConfigurationWrapper>();
+
+        // Global Limit: 28 Amps
+        var globalCurrentLimit = 28;
+        configMock.Setup(x => x.MaxCombinedCurrent()).Returns(globalCurrentLimit);
+
+        var t0 = CurrentFakeDate;
+        var t1 = CurrentFakeDate.AddHours(1);
+        var t2 = CurrentFakeDate.AddHours(2);
+        var t3 = CurrentFakeDate.AddHours(3);
+
+        // Other Load Point: Starts at t1, runs to t2. Using 10A (3-phase) -> 6900W
+        var otherCurrent = 16;
+        var otherPhases = 1;
+        var otherVoltage = 230;
+        var otherSchedulePower = otherCurrent * otherPhases * 230;
+        var otherSchedule = CreateSchedule(t1, t2, otherSchedulePower, otherSchedulePower, otherPhases, otherVoltage);
+        var otherLoadPointsSchedules = new List<DtoChargingSchedule> { otherSchedule };
+
+        // New Schedule: t0 to t2. Wants 16A (11040W)
+        var thisSchedulePower = 11_040;
+        var newSchedule = CreateSchedule(t0, t3, thisSchedulePower, thisSchedulePower, 3, 230);
+
+        // Act
+        var scheduleEnergy = MaxPower * 2;
+        var (schedules, addedEnergy) = service.AddChargingSchedule(
+            new List<DtoChargingSchedule>(), newSchedule, MaxPower, scheduleEnergy, otherLoadPointsSchedules);
+
+        // Assert
+        // Should have 2 segments
+        Assert.Equal(3, schedules.Count);
+
+        // Segment 1: t0 -> t1. No competition. Full Power (16A -> 11040W)
+        var seg1 = schedules.Single(s => s.ValidTo == t1);
+        Assert.Equal(t1, seg1.ValidTo);
+        Assert.Equal(t1.AddMinutes(-15), seg1.ValidFrom);
+        Assert.Equal(11040, seg1.MaxPossiblePower);
+
+        // Segment 2: t1 -> t2. Competition (10A used). Available 10A. Power -> 6900W.
+        var expectedRestPower = (globalCurrentLimit - otherCurrent) * 3 * 230;
+        var seg2 = schedules.Single(s => s.ValidFrom == t1);
+        Assert.Equal(t2, seg2.ValidTo);
+        Assert.Equal(expectedRestPower, seg2.MaxPossiblePower);
+
+        var seg3 = schedules.Single(s => s.ValidFrom == t2);
+        Assert.Equal(t3, seg3.ValidTo);
+        Assert.Equal(11040, seg3.MaxPossiblePower);
+
+        // Total Energy
+        // 1h @ 11040 + 1h @ 6900 = 17940
+        Assert.Equal(scheduleEnergy, addedEnergy);
+    }
 }
