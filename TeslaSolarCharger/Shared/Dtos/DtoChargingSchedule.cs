@@ -39,6 +39,15 @@ public class DtoChargingSchedule : ValidFromToBase
             return Math.Min(MaxPossiblePower, estimatedPower);
         }
     }
+
+    public int EstimatedEnergy
+    {
+        get
+        {
+            var duration = ValidTo - ValidFrom;
+            return (int) (EstimatedChargingPower * duration.TotalHours);
+        }
+    }
 }
 
 public enum ScheduleReason

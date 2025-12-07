@@ -62,7 +62,8 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(
             existingSchedules, newSchedule, MaxPower, MaxPower, otherLoadPointsSchedules);
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Single(schedules);
         var result = schedules.First();
@@ -98,7 +99,8 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(
             existingSchedules, newSchedule, MaxPower, MaxPower, otherLoadPointsSchedules);
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Should return empty list because MaxPossiblePower <= 0 is skipped?
         // Logic says "if (dtoChargingSchedule.MaxPossiblePower <= 0) continue"
@@ -133,9 +135,11 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         var newSchedule = CreateSchedule(start, end, 11040, 11040, 3, 230);
 
         // Act
+        var existingSchedules = new List<DtoChargingSchedule>();
         var (schedules, addedEnergy) = service.AddChargingSchedule(
-            new List<DtoChargingSchedule>(), newSchedule, MaxPower, MaxPower, otherLoadPointsSchedules);
-
+            existingSchedules, newSchedule, MaxPower, MaxPower, otherLoadPointsSchedules);
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Single(schedules);
         var result = schedules.First();
@@ -167,9 +171,11 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         var newSchedule = CreateSchedule(t0, t2, 11040, 11040, 3, 230);
 
         // Act
+        var existingSchedules = new List<DtoChargingSchedule>();
         var (schedules, addedEnergy) = service.AddChargingSchedule(
-            new List<DtoChargingSchedule>(), newSchedule, MaxPower, MaxPower * 10, otherLoadPointsSchedules);
-
+            existingSchedules, newSchedule, MaxPower, MaxPower * 10, otherLoadPointsSchedules);
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Should have 2 segments
         Assert.Equal(2, schedules.Count);
@@ -219,9 +225,11 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
 
         // Act
         var scheduleEnergy = MaxPower * 2;
+        var existingSchedules = new List<DtoChargingSchedule>();
         var (schedules, addedEnergy) = service.AddChargingSchedule(
-            new List<DtoChargingSchedule>(), newSchedule, MaxPower, scheduleEnergy, otherLoadPointsSchedules);
-
+            existingSchedules, newSchedule, MaxPower, scheduleEnergy, otherLoadPointsSchedules);
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Should have 2 segments
         Assert.Equal(3, schedules.Count);

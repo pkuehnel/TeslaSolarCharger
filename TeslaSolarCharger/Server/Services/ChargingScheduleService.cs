@@ -616,7 +616,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
         var maxCombinedCurrent = _configurationWrapper.MaxCombinedCurrent();
 
-        List<DtoChargingSchedule> splittedNewChedules;
+        List<DtoChargingSchedule> splittedNewSchedules;
         List<DtoChargingSchedule> splittedExistingChargingSchedules;
 
         if (otherLoadPointsSchedules.Any())
@@ -626,7 +626,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 newScheduleDummyList, otherLoadPointsSchedules,
                 newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
 
-            splittedNewChedules = new List<DtoChargingSchedule>();
+            splittedNewSchedules = new List<DtoChargingSchedule>();
 
             // For each pre-split segment, calculate the available power limit based on global constraints
             foreach (var segment in splitAgainstOthers)
@@ -654,7 +654,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 segment.TargetMinPower = Math.Min(segment.TargetMinPower, maxAllowedPower);
 
                 // Since this segment is now constrained, we add it to the list to be processed against existing schedules
-                splittedNewChedules.Add(segment);
+                splittedNewSchedules.Add(segment);
             }
 
             // Now we need to prepare existing schedules split against these new constrained segments
@@ -669,20 +669,22 @@ public class ChargingScheduleService : IChargingScheduleService
 
             // Let's split existing schedules against the newly segmented new schedules
             (_, splittedExistingChargingSchedules) = _validFromToSplitter.SplitByBoundaries(
-                splittedNewChedules, existingSchedules,
+                splittedNewSchedules, existingSchedules,
                 newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
         }
         else
         {
-             (splittedNewChedules, splittedExistingChargingSchedules)
+             (splittedNewSchedules, splittedExistingChargingSchedules)
                 = _validFromToSplitter.SplitByBoundaries(newScheduleDummyList, existingSchedules,
                     newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
         }
 
-        _logger.LogTrace("After SplitByBoundaries: {newCount} new schedules, {existingCount} existing schedules", splittedNewChedules.Count, splittedExistingChargingSchedules.Count);
-
-        //order by ValidTo descending to try to add later slots first (to fill gaps at the end first)
-        foreach (var dtoChargingSchedule in splittedNewChedules.OrderByDescending(s => s.ValidTo))
+        _logger.LogTrace("After SplitByBoundaries: {newCount} new schedules, {existingCount} existing schedules", splittedNewSchedules.Count, splittedExistingChargingSchedules.Count);
+        //order by descending already existing schedule to fill up existing energy, then by ValidTo descending to try to add later slots first (to fill gaps at the end first)
+        var orderedSplittedNewSchedules = splittedNewSchedules.OrderByDescending(s => splittedExistingChargingSchedules
+                .Any(e => s.ValidFrom == e.ValidFrom && s.ValidTo == e.ValidTo))
+            .ThenByDescending(s => s.ValidTo).ToList();
+        foreach (var dtoChargingSchedule in orderedSplittedNewSchedules)
         {
             _logger.LogTrace("Processing dtoChargingSchedule {@dtoChargingSchedule}", dtoChargingSchedule);
 

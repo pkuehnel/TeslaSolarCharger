@@ -120,6 +120,9 @@ public class AddChargingScheduleTests : TestBase
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
 
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
+
         // Assert
         Assert.Equal(maxEnergyToAdd, addedEnergy);
 
@@ -171,7 +174,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Single(schedules);
         Assert.Equal(MaxPower, addedEnergy); // 1 hour @ MaxPower = MaxPower energy
@@ -194,7 +198,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Single(schedules);
         Assert.Equal(maxEnergyToAdd, addedEnergy);
@@ -224,7 +229,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Single(schedules);
         var result = schedules.First();
@@ -257,7 +263,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Single(schedules);
         var result = schedules.First();
@@ -292,7 +299,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Result should have:
         // 1. 10:00-11:00 @ 50% (Untouched existing part)
@@ -337,7 +345,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Even though power didn't change, the splitter likely physically split the list into two objects
         // to accommodate the boundary checks.
@@ -373,7 +382,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, MaxPower * 10, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Expected outcome structure based on Splitter logic + Add logic:
         // 1. 10:00 - 10:30 @ 50% (Remaining existing)
@@ -427,7 +437,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Equal(2, schedules.Count);
 
@@ -466,7 +477,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         Assert.Equal(2, schedules.Count);
 
@@ -515,7 +527,8 @@ public class AddChargingScheduleTests : TestBase
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
-
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // The splitter breaks the list into:
         // 1. 10:00 - 11:00 (Existing 1 - untouched)
@@ -549,6 +562,52 @@ public class AddChargingScheduleTests : TestBase
         var s4 = schedules.Single(s => s.ValidFrom == t3);
         Assert.Equal(t3.AddMinutes(45), s4.ValidTo);
         Assert.Equal(MaxPower, s4.TargetMinPower);
+
+        // Total Added Energy Check
+        Assert.Equal(maxEnergyToAdd, addedEnergy);
+    }
+
+    [Fact]
+    public void AddChargingSchedule_PartialOverlap_WithPriorNeighbor_AndEnoughUpgradablePowerTo_MaintainsContinuity()
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var t1 = CurrentFakeDate;                
+        var t2 = CurrentFakeDate.AddHours(1);
+        var t2_5 = CurrentFakeDate.AddMinutes(90);
+        var t3 = CurrentFakeDate.AddHours(2);
+        var t4 = CurrentFakeDate.AddHours(3);
+
+        var existing1 = CreateSchedule(t1, t2, MaxPower / 2);
+        var existing2 = CreateSchedule(t2, t3, MaxPower / 2);
+        var existingSchedules = new List<DtoChargingSchedule> { existing1, existing2 };
+
+        var newSchedule = CreateSchedule(t2_5, t4, MaxPower);
+        var maxEnergyToAdd = MaxPower / 8;
+
+        // Act
+        var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
+        var expectedDifference = schedules.Sum(s => s.EstimatedEnergy) - existingSchedules.Sum(s => s.EstimatedEnergy);
+        Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
+
+        Assert.Equal(4, schedules.Count);
+
+        // 1. Existing First Hour (10:00 - 11:00)
+        var s1 = schedules.Single(s => s.ValidFrom == t1);
+        Assert.Equal(t2, s1.ValidTo);
+        Assert.Equal(MaxPower / 2, s1.TargetMinPower);
+
+        var s2 = schedules.Single(s => s.ValidFrom == t2);
+        Assert.Equal(t2_5, s2.ValidTo);
+        Assert.Equal(MaxPower / 2, s2.TargetMinPower);
+
+        var s3 = schedules.Single(s => s.ValidFrom == t2_5);
+        Assert.Equal(t2_5.AddMinutes(15), s3.ValidTo);
+        Assert.Equal(MaxPower, s3.TargetMinPower);
+
+        var s4 = schedules.Single(s => s.ValidTo == t3);
+        Assert.Equal(t2_5.AddMinutes(15), s4.ValidFrom);
+        Assert.Equal(MaxPower / 2, s4.TargetMinPower);
 
         // Total Added Energy Check
         Assert.Equal(maxEnergyToAdd, addedEnergy);
