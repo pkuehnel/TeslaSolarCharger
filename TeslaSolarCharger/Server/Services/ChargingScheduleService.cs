@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Migrations;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -63,7 +62,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     public async Task<List<DtoChargingSchedule>> GenerateChargingSchedulesForLoadPoint(DtoLoadPointOverview loadpoint,
     List<DtoTimeZonedChargingTarget> nextTargets, Dictionary<DateTimeOffset, int> predictedSurplusSlices, DateTimeOffset currentDate,
-    CancellationToken cancellationToken, List<DtoChargingSchedule> otherLoadPointsSchedules = null)
+    CancellationToken cancellationToken, List<DtoChargingSchedule> otherLoadPointsSchedules)
     {
         _logger.LogTrace("{method}({@loadpoint}, {currentDate})", nameof(GenerateChargingSchedulesForLoadPoint), loadpoint, currentDate);
         var schedules = new List<DtoChargingSchedule>();
@@ -647,7 +646,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 var availableCurrent = maxCombinedCurrent - (int)Math.Ceiling(usedCurrent);
                 if (availableCurrent < 0) availableCurrent = 0;
 
-                var maxAllowedPower = (int)(availableCurrent * newChargingSchedule.Voltage * newChargingSchedule.Phases);
+                var maxAllowedPower = availableCurrent * newChargingSchedule.Voltage * newChargingSchedule.Phases;
 
                 // Cap the segment's power capabilities
                 segment.MaxPossiblePower = Math.Min(segment.MaxPossiblePower, maxAllowedPower);
@@ -658,10 +657,10 @@ public class ChargingScheduleService : IChargingScheduleService
             }
 
             // Now we need to prepare existing schedules split against these new constrained segments
-            // We can't use SplitByBoundaries easily because splittedNewChedules is already split.
+            // We can't use SplitByBoundaries easily because splittedNewSchedules is already split.
             // However, we still need to ensure existing schedules align with these new boundaries.
 
-            // To reuse the logic below effectively, we treat 'splittedNewChedules' as the input for further processing.
+            // To reuse the logic below effectively, we treat 'splittedNewSchedules' as the input for further processing.
             // But we need 'splittedExistingChargingSchedules' to be split against these new boundaries.
 
             // Hack/Optimization: Use SplitByBoundaries with an empty "Right" list to just get the existing schedules split by the new schedule boundaries?
