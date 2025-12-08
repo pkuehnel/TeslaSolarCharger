@@ -598,7 +598,7 @@ public class ChargingScheduleService : IChargingScheduleService
     /// to the new or updated schedules.</param>
     /// <param name="maxEnergyToAdd">The maximum additional energy, in watt-hours, that can be scheduled by adding the new charging schedule. The
     /// method will not exceed this limit when updating the schedules.</param>
-    /// <param name="otherLoadPointsSchedules"></param>
+    /// <param name="otherLoadPointsSchedules">The list of charging schedules from other load points, used to calculate available current capacity considering global current limits. Can be null or empty if no other load points are active.</param>
     /// <returns>A tuple containing the updated list of charging schedules after adding the new schedule, and the total
     /// additional scheduled energy in watt-hours. The list reflects any adjustments made to comply with power and
     /// energy constraints.</returns>
