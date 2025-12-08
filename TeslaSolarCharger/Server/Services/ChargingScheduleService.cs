@@ -656,17 +656,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 splittedNewSchedules.Add(segment);
             }
 
-            // Now we need to prepare existing schedules split against these new constrained segments
-            // We can't use SplitByBoundaries easily because splittedNewSchedules is already split.
-            // However, we still need to ensure existing schedules align with these new boundaries.
-
-            // To reuse the logic below effectively, we treat 'splittedNewSchedules' as the input for further processing.
-            // But we need 'splittedExistingChargingSchedules' to be split against these new boundaries.
-
-            // Hack/Optimization: Use SplitByBoundaries with an empty "Right" list to just get the existing schedules split by the new schedule boundaries?
-            // No, SplitByBoundaries splits Left and Right against each other.
-
-            // Let's split existing schedules against the newly segmented new schedules
+            
             (_, splittedExistingChargingSchedules) = _validFromToSplitter.SplitByBoundaries(
                 splittedNewSchedules, existingSchedules,
                 newChargingSchedule.ValidFrom, newChargingSchedule.ValidTo, true);
@@ -743,12 +733,6 @@ public class ChargingScheduleService : IChargingScheduleService
             var originalEstimatedSolarPower = overlappingExistingChargingSchedule.EstimatedSolarPower;
             var originalTargetHomeBatteryPower = overlappingExistingChargingSchedule.TargetHomeBatteryPower;
             var originalScheduleReasons = new HashSet<ScheduleReason>(overlappingExistingChargingSchedule.ScheduleReasons);
-
-            // Apply constraints to merge logic
-            // The constraint is already applied to dtoChargingSchedule.TargetMinPower via MaxPossiblePower if valid, but let's be safe.
-            // Also need to cap the EXISTING schedule if global constraints tightened (though usually existing implies it was valid then).
-            // But wait, existing schedules for THIS car were already generated. If we are adding a new schedule, we assume existing ones are valid?
-            // Yes, but if we are adding power, the sum must be valid.
 
             var newMinTargetPower = Math.Max(overlappingExistingChargingSchedule.TargetMinPower, dtoChargingSchedule.TargetMinPower);
             var newEstimatedSolarPower = Math.Max(overlappingExistingChargingSchedule.EstimatedSolarPower, dtoChargingSchedule.EstimatedSolarPower);

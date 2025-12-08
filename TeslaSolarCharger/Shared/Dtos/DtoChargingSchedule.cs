@@ -25,8 +25,9 @@ public class DtoChargingSchedule : ValidFromToBase
     //Needs to be public for ValidFromToSplitter which clones properties
     // ReSharper disable once MemberCanBePrivate.Global
     public int MaxPossiblePower { get; set; }
-    public int Voltage { get; init; }
-    public int Phases { get; init; }
+    //Setter is required for ValidFromToSplitter which clones properties
+    public int Voltage { get; set; }
+    public int Phases { get; set; }
     public HashSet<ScheduleReason> ScheduleReasons { get; set; } = new();
 
     public int EstimatedChargingPower

@@ -15,13 +15,13 @@ public class TelegramService(ILogger<TelegramService> logger,
         using var httpClient = new HttpClient();
         var botKey = configurationWrapper.TelegramBotKey();
         var channel = configurationWrapper.TelegramChannelId();
-        if (string.IsNullOrEmpty(botKey))
+        if (string.IsNullOrWhiteSpace(botKey))
         {
             logger.LogInformation("Can not send Telegram Message because botkey is empty.");
             return HttpStatusCode.Unauthorized;
         }
 
-        if (string.IsNullOrEmpty(channel))
+        if (string.IsNullOrWhiteSpace(channel))
         {
             logger.LogInformation("Can not send Telegram Message because channel is empty.");
             return HttpStatusCode.Unauthorized;
