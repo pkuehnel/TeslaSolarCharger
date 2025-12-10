@@ -35,7 +35,7 @@ public class AreSchedulesMergeableTests : TestBase
 
     public static IEnumerable<object[]> GetMergeableScenarios()
     {
-        var baseSchedule = new DtoChargingSchedule(1, 1, 11000, 230, 3, new HashSet<ScheduleReason> { ScheduleReason.ExpectedSolarProduction })
+        var baseSchedule = new DtoChargingSchedule(1, 1, 11040, 230, 3, new HashSet<ScheduleReason> { ScheduleReason.ExpectedSolarProduction })
         {
             TargetMinPower = 5000,
             TargetHomeBatteryPower = 1000,
@@ -80,7 +80,7 @@ public class AreSchedulesMergeableTests : TestBase
 
         // 7. MaxPossiblePower Mismatch
         var s7 = Clone(baseSchedule);
-        s7.MaxPossiblePower = 11001;
+        s7.MaxPossiblePower = 11041;
         yield return new object[] { Clone(baseSchedule), s7, false, "MaxPossiblePower mismatch should not be mergeable" };
 
         // 8. CarId Mismatch
