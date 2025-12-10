@@ -211,7 +211,7 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         var t2 = CurrentFakeDate.AddHours(2);
         var t3 = CurrentFakeDate.AddHours(3);
 
-        // Other Load Point: Starts at t1, runs to t2. Using 10A (3-phase) -> 6900W
+        // Other Load Point: Starts at t1, runs to t2. Using 16A (1-phase) -> 3680W
         var otherCurrent = 16;
         var otherPhases = 1;
         var otherVoltage = 230;
@@ -240,7 +240,7 @@ public class AddChargingScheduleWithGlobalLimitTests : TestBase
         Assert.Equal(t1.AddMinutes(-15), seg1.ValidFrom);
         Assert.Equal(11040, seg1.MaxPossiblePower);
 
-        // Segment 2: t1 -> t2. Competition (10A used). Available 10A. Power -> 6900W.
+        // Segment 2: t1 -> t2. Competition (16A used). Available 12A. Power -> 12 * 3 * 230 = 8280W.
         var expectedRestPower = (globalCurrentLimit - otherCurrent) * 3 * 230;
         var seg2 = schedules.Single(s => s.ValidFrom == t1);
         Assert.Equal(t2, seg2.ValidTo);

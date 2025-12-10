@@ -180,7 +180,7 @@ public class GetOrderedElectricityPricesTests : TestBase
                 new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m }, // 12-13
                 new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.05m } // 13-14 (Cheap but needs switch)
             },
-            true, // Currently charging at 12:05
+            true, // Currently charging at 12:00
             new List<DtoChargingSchedule>(),
             30m, // 3 per kWh -> 3.0 switch cost
             10000,

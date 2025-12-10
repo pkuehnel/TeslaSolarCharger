@@ -107,15 +107,15 @@ public class AddChargingScheduleTests : TestBase
         existingSchedule.EstimatedSolarPower = HomeBatPower;
         existingSchedules.Add(existingSchedule);
 
-        // New: CheapGridPrice (11000W) overlapping
+        // New: CheapGridPrice (11040W) overlapping
         // We set TargetMinPower to MaxPower.
         var newSchedule = CreateSchedule(start, end, MaxPower, MaxPower, ScheduleReason.CheapGridPrice);
 
         // We want to add only 1000Wh of Grid energy.
-        // Full grid boost would provide (11000 - 4500) * 1h = 6500Wh.
+        // Full grid boost would provide (11040 - 4500) * 1h = 6540Wh.
         // We limit to 1000Wh.
         int maxEnergyToAdd = 1000;
-        double expectedDuration = 1000.0 / 6500.0; // 1000Wh / 6500W
+        double expectedDuration = 1000.0 / 6540.0; // 1000Wh / 6540W
 
         // Act
         var (schedules, addedEnergy) = service.AddChargingSchedule(existingSchedules, newSchedule, MaxPower, maxEnergyToAdd, new());
@@ -282,19 +282,19 @@ public class AddChargingScheduleTests : TestBase
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
 
-        // Time segments: 10:00 -> 11:00 -> 12:00
+        // Time segments: 08:00 -> 09:00 -> 10:00
         var t1 = CurrentFakeDate;
         var t2 = CurrentFakeDate.AddHours(1);
         var t3 = CurrentFakeDate.AddHours(2);
 
-        // Existing: 10:00 - 12:00 @ 50% Power
+        // Existing: 08:00 - 10:00 @ 50% Power
         // Note: The splitter in your service logic is responsible for breaking this up.
         // Assuming the mocked/real splitter functions correctly, it will break the existing schedule 
-        // into 10-11 and 11-12 to match the new schedule boundaries.
+        // into 08:00-09:00 and 09:00-10:00 to match the new schedule boundaries.
         var existingSchedule = CreateSchedule(t1, t3, MaxPower / 2);
         var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
 
-        // New: 11:00 - 12:00 @ 100% Power (Overlaps the second half of existing)
+        // New: 09:00 - 10:00 @ 100% Power (Overlaps the second half of existing)
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
         // Act
@@ -303,12 +303,12 @@ public class AddChargingScheduleTests : TestBase
         Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Result should have:
-        // 1. 10:00-11:00 @ 50% (Untouched existing part)
-        // 2. 11:00-12:00 @ 100% (Merged part)
+        // 1. 08:00-09:00 @ 50% (Untouched existing part)
+        // 2. 09:00-10:00 @ 100% (Merged part)
 
         // Note: Depending on how the Splitter works, this might return 2 items.
-        // Item 1: 10-11 (50%)
-        // Item 2: 11-12 (100%)
+        // Item 1: 08:00-09:00 (50%)
+        // Item 2: 09:00-10:00 (100%)
 
         Assert.Equal(2, schedules.Count);
 
@@ -336,11 +336,11 @@ public class AddChargingScheduleTests : TestBase
         var t2 = CurrentFakeDate.AddHours(1);
         var t3 = CurrentFakeDate.AddHours(2);
 
-        // Existing: 10:00 - 12:00 @ 100% Power
+        // Existing: 08:00 - 10:00 @ 100% Power
         var existingSchedule = CreateSchedule(t1, t3, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existingSchedule };
 
-        // New: 11:00 - 12:00 @ 100% Power
+        // New: 09:00 - 10:00 @ 100% Power
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
         // Act
@@ -366,17 +366,17 @@ public class AddChargingScheduleTests : TestBase
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
 
-        // 10:00 -> 11:00 -> 12:00 -> 13:00
+        // 08:00 -> 09:00 -> 10:00 -> 11:00
         var t10 = CurrentFakeDate;
         var t11 = CurrentFakeDate.AddHours(1);
         var t12 = CurrentFakeDate.AddHours(2);
 
-        // Existing: 10:00 - 11:00 @ 50%
+        // Existing: 08:00 - 09:00 @ 50%
         var existing = CreateSchedule(t10, t11, MaxPower / 2);
         var existingSchedules = new List<DtoChargingSchedule> { existing };
 
-        // New: 10:30 - 12:00 @ 100% (Partial overlap 10:30-11:00, New 11:00-12:00)
-        // Note: This relies on the Splitter handling the 10:30 cut.
+        // New: 08:30 - 10:00 @ 100% (Partial overlap 08:30-09:00, New 09:00-10:00)
+        // Note: This relies on the Splitter handling the 08:30 cut.
         var t10_30 = t10.AddMinutes(30);
         var newSchedule = CreateSchedule(t10_30, t12, MaxPower);
 
@@ -386,9 +386,9 @@ public class AddChargingScheduleTests : TestBase
         Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // Expected outcome structure based on Splitter logic + Add logic:
-        // 1. 10:00 - 10:30 @ 50% (Remaining existing)
-        // 2. 10:30 - 11:00 @ 100% (Merged/Upgraded)
-        // 3. 11:00 - 12:00 @ 100% (Brand New)
+        // 1. 08:00 - 08:30 @ 50% (Remaining existing)
+        // 2. 08:30 - 09:00 @ 100% (Merged/Upgraded)
+        // 3. 09:00 - 10:00 @ 100% (Brand New)
 
         Assert.Equal(3, schedules.Count);
 
@@ -420,12 +420,12 @@ public class AddChargingScheduleTests : TestBase
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
 
-        var tStartExisting = CurrentFakeDate;           // 10:00
-        var tEndExisting = CurrentFakeDate.AddHours(1); // 11:00
+        var tStartExisting = CurrentFakeDate;           // 08:00
+        var tEndExisting = CurrentFakeDate.AddHours(1); // 09:00
 
         // 10 minute gap
-        var tStartNew = tEndExisting.AddMinutes(10);    // 11:10
-        var tEndNew = tStartNew.AddHours(1);            // 12:10
+        var tStartNew = tEndExisting.AddMinutes(10);    // 09:10
+        var tEndNew = tStartNew.AddHours(1);            // 10:10
 
         var existing = CreateSchedule(tStartExisting, tEndExisting, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existing };
@@ -449,7 +449,7 @@ public class AddChargingScheduleTests : TestBase
         // 2. New schedule:
         // Because of the gap, the code shortens from the START (ValidFrom increases).
         // We requested 1h duration but only gave 0.5h energy. 
-        // Start should shift by 30 mins: 11:10 -> 11:40.
+        // Start should shift by 30 mins: 09:10 -> 09:40.
         var s2 = schedules.Single(s => s.ValidTo == tEndNew);
         Assert.Equal(tStartNew.AddMinutes(30), s2.ValidFrom);
 
@@ -462,14 +462,14 @@ public class AddChargingScheduleTests : TestBase
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
 
-        var t1 = CurrentFakeDate;           // 10:00
-        var t2 = CurrentFakeDate.AddHours(1); // 11:00 (Boundary)
-        var t3 = CurrentFakeDate.AddHours(2); // 12:00
+        var t1 = CurrentFakeDate;           // 08:00
+        var t2 = CurrentFakeDate.AddHours(1); // 09:00 (Boundary)
+        var t3 = CurrentFakeDate.AddHours(2); // 10:00
 
         var existing = CreateSchedule(t1, t2, MaxPower);
         var existingSchedules = new List<DtoChargingSchedule> { existing };
 
-        // New schedule starts exactly when existing ends (11:00)
+        // New schedule starts exactly when existing ends (09:00)
         var newSchedule = CreateSchedule(t2, t3, MaxPower);
 
         // Limit energy to 50% (30 mins worth)
@@ -488,7 +488,7 @@ public class AddChargingScheduleTests : TestBase
 
         // 2. New schedule:
         // Because it is contiguous (Any found matching ValidTo), code shortens from the END.
-        // Start remains 11:00. End shifts from 12:00 -> 11:30.
+        // Start remains 09:00. End shifts from 10:00 -> 09:30.
         var s2 = schedules.Single(s => s.ValidFrom == t2);
         Assert.Equal(t2.AddMinutes(30), s2.ValidTo);
 
@@ -500,21 +500,21 @@ public class AddChargingScheduleTests : TestBase
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
-        // Timeline: 10:00 -> 11:00 -> 11:30 -> 12:00 -> 13:00
-        var t1 = CurrentFakeDate;                // 10:00
-        var t2 = CurrentFakeDate.AddHours(1);    // 11:00
-        var t2_5 = CurrentFakeDate.AddMinutes(90); // 11:30
-        var t3 = CurrentFakeDate.AddHours(2);    // 12:00
-        var t4 = CurrentFakeDate.AddHours(3);    // 13:00
+        // Timeline: 08:00 -> 09:00 -> 09:30 -> 10:00 -> 11:00
+        var t1 = CurrentFakeDate;                // 08:00
+        var t2 = CurrentFakeDate.AddHours(1);    // 09:00
+        var t2_5 = CurrentFakeDate.AddMinutes(90); // 09:30
+        var t3 = CurrentFakeDate.AddHours(2);    // 10:00
+        var t4 = CurrentFakeDate.AddHours(3);    // 11:00
 
         // Existing: Two distinct 1-hour blocks at 50% power
-        // 1. 10:00 - 11:00
-        // 2. 11:00 - 12:00
+        // 1. 08:00 - 09:00
+        // 2. 09:00 - 10:00
         var existing1 = CreateSchedule(t1, t2, MaxPower / 2);
         var existing2 = CreateSchedule(t2, t3, MaxPower / 2);
         var existingSchedules = new List<DtoChargingSchedule> { existing1, existing2 };
 
-        // New: 11:30 - 13:00 @ 100% Power 
+        // New: 09:30 - 11:00 @ 100% Power
         // (Overlaps the last 30 mins of existing2, plus 60 mins of new time)
         var newSchedule = CreateSchedule(t2_5, t4, MaxPower);
 
@@ -531,34 +531,34 @@ public class AddChargingScheduleTests : TestBase
         Assert.InRange(addedEnergy, expectedDifference - schedules.Count, expectedDifference + schedules.Count);
         // Assert
         // The splitter breaks the list into:
-        // 1. 10:00 - 11:00 (Existing 1 - untouched)
-        // 2. 11:00 - 11:30 (Existing 2 part A - untouched split)
-        // 3. 11:30 - 12:00 (Existing 2 part B - Overlap/Upgraded)
-        // 4. 12:00 - 12:45 (New Schedule - Shortened from 13:00 due to energy limit)
+        // 1. 08:00 - 09:00 (Existing 1 - untouched)
+        // 2. 09:00 - 09:30 (Existing 2 part A - untouched split)
+        // 3. 09:30 - 10:00 (Existing 2 part B - Overlap/Upgraded)
+        // 4. 10:00 - 10:45 (New Schedule - Shortened from 11:00 due to energy limit)
         Assert.Equal(4, schedules.Count);
 
-        // 1. Existing First Hour (10:00 - 11:00)
+        // 1. Existing First Hour (08:00 - 09:00)
         var s1 = schedules.Single(s => s.ValidFrom == t1);
         Assert.Equal(t2, s1.ValidTo);
         Assert.Equal(MaxPower / 2, s1.TargetMinPower);
 
-        // 2. Existing Second Hour Part A (11:00 - 11:30)
+        // 2. Existing Second Hour Part A (09:00 - 09:30)
         // This part is outside the new schedule's start time, so it remains at 50%
         var s2 = schedules.Single(s => s.ValidFrom == t2);
         Assert.Equal(t2_5, s2.ValidTo);
         Assert.Equal(MaxPower / 2, s2.TargetMinPower);
 
-        // 3. Existing Second Hour Part B (11:30 - 12:00) - The Overlap
+        // 3. Existing Second Hour Part B (09:30 - 10:00) - The Overlap
         // This matches the start of newSchedule. Power is upgraded to Max.
         var s3 = schedules.Single(s => s.ValidFrom == t2_5);
         Assert.Equal(t3, s3.ValidTo);
         Assert.Equal(MaxPower, s3.TargetMinPower);
 
-        // 4. New Schedule Portion (12:00 - 12:45)
-        // Starts at 12:00. 
-        // Continuity Logic: Because there is an existing schedule ending at 12:00 (s3),
+        // 4. New Schedule Portion (10:00 - 10:45)
+        // Starts at 10:00.
+        // Continuity Logic: Because there is an existing schedule ending at 10:00 (s3),
         // the system shortens the ValidTo (end) rather than the ValidFrom (start).
-        // Duration is 0.75h (45m). End time is 12:45.
+        // Duration is 0.75h (45m). End time is 10:45.
         var s4 = schedules.Single(s => s.ValidFrom == t3);
         Assert.Equal(t3.AddMinutes(45), s4.ValidTo);
         Assert.Equal(MaxPower, s4.TargetMinPower);
@@ -592,7 +592,7 @@ public class AddChargingScheduleTests : TestBase
 
         Assert.Equal(4, schedules.Count);
 
-        // 1. Existing First Hour (10:00 - 11:00)
+        // 1. Existing First Hour (08:00 - 09:00)
         var s1 = schedules.Single(s => s.ValidFrom == t1);
         Assert.Equal(t2, s1.ValidTo);
         Assert.Equal(MaxPower / 2, s1.TargetMinPower);
