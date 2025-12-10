@@ -70,8 +70,9 @@ public class GenerateChargingSchedulesTests : TestBase
                 It.IsAny<List<DtoTimeZonedChargingTarget>>(),
                 It.IsAny<Dictionary<DateTimeOffset, int>>(),
                 It.IsAny<DateTimeOffset>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((DtoLoadPointOverview lp, List<DtoTimeZonedChargingTarget> t, Dictionary<DateTimeOffset, int> p, DateTimeOffset d, CancellationToken c) =>
+                It.IsAny<CancellationToken>(),
+                It.IsAny<List<DtoChargingSchedule>>()))
+            .ReturnsAsync((DtoLoadPointOverview lp, List<DtoTimeZonedChargingTarget> t, Dictionary<DateTimeOffset, int> p, DateTimeOffset d, CancellationToken c, List<DtoChargingSchedule> s) =>
             {
                 // Verify expected relevant targets count if loadpoint has a car
                 if (lp.CarId.HasValue)
@@ -126,7 +127,7 @@ public class GenerateChargingSchedulesTests : TestBase
             new List<CarChargingTarget>(),
             new List<DtoCar>(),
             new Dictionary<DateTimeOffset, int>(),
-            new List<DtoChargingSchedule> { new DtoChargingSchedule(1, null, 0, new()) }, // Mock returns 1
+            new List<DtoChargingSchedule> { new DtoChargingSchedule(1, null, 0, 230, 3, new()) }, // Mock returns 1
             1,
             0
         };
@@ -169,7 +170,7 @@ public class GenerateChargingSchedulesTests : TestBase
             new List<CarChargingTarget> { targetFuture },
             new List<DtoCar> { car1 },
             new Dictionary<DateTimeOffset, int>(),
-            new List<DtoChargingSchedule> { new DtoChargingSchedule(1, null, 0, new()) },
+            new List<DtoChargingSchedule> { new DtoChargingSchedule(1, null, 0, 230, 3, new()) },
             1,
             1
         };
@@ -195,7 +196,7 @@ public class GenerateChargingSchedulesTests : TestBase
             new List<CarChargingTarget> { targetFulfilled },
             new List<DtoCar> { car1 },
             new Dictionary<DateTimeOffset, int>(),
-            new List<DtoChargingSchedule> { new DtoChargingSchedule(1, null, 0, new()) },
+            new List<DtoChargingSchedule> { new DtoChargingSchedule(1, null, 0, 230, 3, new()) },
             1,
             0
         };

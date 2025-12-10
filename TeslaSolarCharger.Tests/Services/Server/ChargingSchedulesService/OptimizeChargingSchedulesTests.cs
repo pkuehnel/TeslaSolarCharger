@@ -11,7 +11,10 @@ namespace TeslaSolarCharger.Tests.Services.Server.ChargingSchedulesService;
 public class OptimizeChargingSchedulesTests : TestBase
 {
     private const int MaxPower = 11_040;
-    private const int DefaultMinChargingPower = 1380;
+    private const int DefaultMinChargingPower = 4_140;
+
+    private const int Phases = 3;
+    private const int Voltage = 230;
 
     public OptimizeChargingSchedulesTests(ITestOutputHelper outputHelper)
         : base(outputHelper)
@@ -29,7 +32,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         int? ocppConnectorId = null,
         ScheduleReason reason = ScheduleReason.LatestPossibleTime)
     {
-        return new DtoChargingSchedule(carId, ocppConnectorId, maxPossiblePower, new() { reason })
+        return new DtoChargingSchedule(carId, ocppConnectorId, maxPossiblePower, Voltage, Phases, new() { reason })
         {
             ValidFrom = from,
             ValidTo = to,
@@ -47,7 +50,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule>();
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Empty(result);
@@ -68,7 +71,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { schedule };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, true, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, true, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -98,7 +101,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { schedule };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, true, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, true, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Single(result);
@@ -120,7 +123,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { schedule };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Single(result);
@@ -145,7 +148,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(3, result.Count);
@@ -179,7 +182,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -206,7 +209,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Single(result);
@@ -229,7 +232,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -249,7 +252,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -269,7 +272,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -289,7 +292,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -309,7 +312,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -329,7 +332,7 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -342,17 +345,17 @@ public class OptimizeChargingSchedulesTests : TestBase
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
 
         // Scenario:
-        // Schedule 1: 10:00 - 10:45
-        // Gap: 10:45 - 11:00 (15 min) -> Should be filled
-        // Schedule 2: 11:00 - 12:00
+        // Schedule 1: 08:00 - 08:45
+        // Gap: 08:45 - 09:00 (15 min) -> Should be filled
+        // Schedule 2: 09:00 - 10:00
         //
         // If Schedule 1, Filled Gap, and Schedule 2 have same properties (including target power),
         // they should all merge into one large schedule.
 
         var t1 = CurrentFakeDate;
         var t2 = t1.AddMinutes(45);
-        var t3 = t1.AddHours(1); // 11:00
-        var t4 = t1.AddHours(2); // 12:00
+        var t3 = t1.AddHours(1); // 09:00
+        var t4 = t1.AddHours(2); // 10:00
 
         // Set all to DefaultMinChargingPower so they match the filler
         var s1 = CreateSchedule(t1, t2, DefaultMinChargingPower);
@@ -360,14 +363,14 @@ public class OptimizeChargingSchedulesTests : TestBase
         var schedules = new List<DtoChargingSchedule> { s1, s2 };
 
         // Act
-        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower);
+        var result = service.OptimizeChargingSchedules(schedules, CurrentFakeDate, false, DefaultMinChargingPower, Voltage, Phases);
 
         // Assert
-        // 1. Gap is filled (10:45 - 11:00).
+        // 1. Gap is filled (08:45 - 09:00).
         // 2. Filled gap has DefaultMinChargingPower.
         // 3. s1 and s2 also have DefaultMinChargingPower.
         // 4. They are contiguous.
-        // Result: 1 big schedule from 10:00 to 12:00.
+        // Result: 1 big schedule from 08:00 to 10:00.
 
         Assert.Single(result);
         Assert.Equal(t1, result[0].ValidFrom);

@@ -305,7 +305,7 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<ISettings>().SetupSet(s => s.ChargingSchedules = It.IsAny<ConcurrentBag<DtoChargingSchedule>>());
 
         // Setup schedule generation
-        Mock.Mock<IChargingScheduleService>().Setup(s => s.GenerateChargingSchedulesForLoadPoint(It.IsAny<DtoLoadPointOverview>(), It.IsAny<List<DtoTimeZonedChargingTarget>>(), It.IsAny<Dictionary<DateTimeOffset, int>>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+        Mock.Mock<IChargingScheduleService>().Setup(s => s.GenerateChargingSchedulesForLoadPoint(It.IsAny<DtoLoadPointOverview>(), It.IsAny<List<DtoTimeZonedChargingTarget>>(), It.IsAny<Dictionary<DateTimeOffset, int>>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>(), It.IsAny<List<DtoChargingSchedule>>()))
             .ReturnsAsync(new List<DtoChargingSchedule>
             {
                 new DtoChargingSchedule { ValidFrom = currentDate.AddHours(-1), ValidTo = currentDate.AddHours(1), TargetMinPower = 1000 }
