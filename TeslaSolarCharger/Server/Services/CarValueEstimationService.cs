@@ -163,14 +163,14 @@ public class CarValueEstimationService : ICarValueEstimationService
                 lastPluggedOut = null;
             }
         }
-        if (lastPluggedOut != null && settingsCar?.SoC.Value == null)
+        if (lastPluggedOut != null && settingsCar?.SoC.Value != null)
         {
             var timeDiff = _dateTimeProvider.DateTimeOffSetUtcNow() - lastPluggedOut.Value;
             _logger.LogTrace("Car has been plugged out for {timeDiff}", timeDiff);
             if (timeDiff > maxPluggedOutTime)
             {
                 _logger.LogTrace("Time diff is too long so set soc to null");
-                settingsCar?.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
+                settingsCar.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
                 socSetToNull = true;
             }
         }
