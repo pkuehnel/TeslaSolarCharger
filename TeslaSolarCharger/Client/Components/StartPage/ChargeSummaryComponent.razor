@@ -39,9 +39,7 @@ else
         </TooltipComponent>
     </div>
     <div class="d-flex align-items-center mb-1">
-        <span class="material-symbols-outlined">
-            attach_money
-        </span>
+        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.AttachMoney"></MudIcon>
         <TooltipComponent Text="@T("Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed.")">
             <a href="@($"HandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}")">@_chargeSummary.ChargeCost.ToString("0.00") (@string.Format(T("{0} per kWh"), _chargeSummary.AverageEnergyPrice.ToString("0.000")))</a>
         </TooltipComponent>

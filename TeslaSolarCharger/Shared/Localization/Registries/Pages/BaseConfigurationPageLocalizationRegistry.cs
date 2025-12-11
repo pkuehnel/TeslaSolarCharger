@@ -18,15 +18,23 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "TeslaMate:"),
             new TextLocalizationTranslation(LanguageCodes.German, "TeslaMate:"));
 
+        Register(TranslationKeys.SolarValueSourcesSectionTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar value sources"),
+            new TextLocalizationTranslation(LanguageCodes.German, "PV-Werte Quellen"));
+
         Register(TranslationKeys.BaseConfigurationHomeGeofenceSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Home Geofence"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Home-Geofence"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause Bereich"));
 
         Register(TranslationKeys.LocationUpdateInfoText,
             new TextLocalizationTranslation(LanguageCodes.English, "To update the location, click the save button on the bottom of the page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Um den Standort zu aktualisieren, klicke auf die Schaltfläche zum Speichern am unteren Rand der Seite"));
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "The location is required to detect if an API connected car is at home and to predict the weather."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Standort ist notwendig um zu erkennen, ob Fahrzeuge zu Hause sind und um das Wetter vorherzusagen."));
+
+        Register(TranslationKeys.BaseConfigurationHomeGeofenceMapHandlingHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Click on the map to select your home geofence. Within that area TSC will regulate the charging power."),
             new TextLocalizationTranslation(LanguageCodes.German, "Klicke auf die Karte, um deinen Home-Geofence auszuwählen. Innerhalb dieses Bereichs reguliert TSC die Ladeleistung."));
 

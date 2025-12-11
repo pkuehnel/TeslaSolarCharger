@@ -1,14 +1,18 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
+@using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href=""><span class="material-symbols-outlined">
-            solar_power
-        </span> @T("Tesla Solar Charger")</a>
+        <a class="navbar-brand" href="">
+            <span>
+                <MudIcon Icon="@Constants.SolarPowerIcon" Class="me-1" />
+            </span> @T("Tesla Solar Charger")
+        </a>
         <button title='@T("Navigation menu")' class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -24,7 +28,7 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="ChargingStations">
-                <span class="material-symbols-outlined pr-1" aria-hidden="true">ev_station</span> @T("Charging Stations")
+                <span><MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" /></span> @T("Charging Stations")
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -34,7 +38,7 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="ChargePrices">
-                <span class="material-symbols-outlined" aria-hidden="true">attach_money</span> @T("Charge Prices")
+                <span><MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="me-1" /></span> @T("Charge Prices")
             </NavLink>
         </div>
         <div class="nav-item px-3">

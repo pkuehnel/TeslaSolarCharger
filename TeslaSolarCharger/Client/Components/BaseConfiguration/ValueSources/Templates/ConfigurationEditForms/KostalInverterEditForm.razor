@@ -1,0 +1,34 @@
+﻿@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Kostal
+
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+<TemplateEditFormComponentBase TConfiguration="DtoKostalModbusConfiguration"
+                               Configuration="Configuration"
+                               @ref="TemplateEditForm">
+    <ChildContent Context="wrapped">
+        <GenericInput For="() => wrapped.Item.Host"></GenericInput>
+        <GenericInput For="() => wrapped.Item.Port"></GenericInput>
+        <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
+    </ChildContent>
+</TemplateEditFormComponentBase>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DtoKostalModbusConfiguration? Configuration { get; set; }
+
+    private TemplateEditFormComponentBase<DtoKostalModbusConfiguration>? TemplateEditForm { get; set; }
+
+    public bool Validate()
+    {
+        return TemplateEditForm?.Validate() ?? false;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
+}

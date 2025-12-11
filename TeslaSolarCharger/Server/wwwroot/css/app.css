@@ -44,10 +44,6 @@ a, .btn-link {
     overflow-wrap: break-word;
 }
 
-.material-symbols-outlined {
-    vertical-align: middle !important;
-}
-
 @media (max-width: 640px) {
     .auto-scroll {
         overflow-x: scroll;

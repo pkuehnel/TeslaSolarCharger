@@ -1,0 +1,62 @@
+﻿@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.TeslaPowerwall
+
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+@inject IHttpClientHelper HttpClientHelper
+
+
+
+@if (_errorWhileLoading)
+{
+    <MudAlert Severity="Severity.Error">Could not load energy sites. Check <MudLink Href="/cloudconnection">Cloud Connection</MudLink> if everything is all right with your Tesla Fleet API connection.</MudAlert>
+}
+else if (_energySiteOptions == default)
+{
+    <PlaceholderComponent />
+}
+else
+{
+    <TemplateEditFormComponentBase TConfiguration="DtoTeslaPowerwallTemplateValueConfiguration"
+                                   Configuration="Configuration"
+                                   @ref="TemplateEditForm">
+        <ChildContent Context="wrapped">
+            <GenericInput For="() => wrapped.Item.EnergySiteId"
+                          LongIdDropDownOptions="_energySiteOptions"></GenericInput>
+        </ChildContent>
+    </TemplateEditFormComponentBase>
+}
+
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DtoTeslaPowerwallTemplateValueConfiguration? Configuration { get; set; }
+
+    private TemplateEditFormComponentBase<DtoTeslaPowerwallTemplateValueConfiguration>? TemplateEditForm { get; set; }
+
+    private Dictionary<long, string?>? _energySiteOptions;
+
+    private bool _errorWhileLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var result = await HttpClientHelper.SendGetRequestAsync<Dictionary<long, string?>>("api/FleetApi/GetEnergySites");
+        _errorWhileLoading = result.HasError;
+        _energySiteOptions = result.HasError ? default : result.Data!;
+    }
+
+    public bool Validate()
+    {
+        return TemplateEditForm?.Validate() ?? false;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
+}

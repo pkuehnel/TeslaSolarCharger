@@ -76,10 +76,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
 
 
         foreach (var loadPoint in targetChargingValues
-                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
+                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && (c.TargetMinPower > 0 || c.TargetHomeBatteryPower > 0)))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
         {
-            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
+            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && (c.TargetMinPower > 0 || c.TargetHomeBatteryPower > 0));
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
@@ -89,9 +89,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     new("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
-            var chargingSchedulePower = chargingSchedule.TargetGridPower.HasValue && (chargingSchedule.ChargingPower < (powerToControl + (chargingSchedule.TargetGridPower ?? 0)))
-                                ? (powerToControl + (chargingSchedule.TargetGridPower ?? 0))
-                                : chargingSchedule.ChargingPower;
+            var chargingSchedulePower = chargingSchedule.TargetMinPower;
+            if (chargingSchedule.TargetHomeBatteryPower > chargingSchedulePower)
+            {
+                chargingSchedulePower = chargingSchedule.TargetHomeBatteryPower.Value;
+            }
+
             var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
                 ? chargingSchedulePower
                 : powerToControlIncludingHomeBatteryDischargePower;
@@ -147,7 +150,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     /// The reduction is applied first to <paramref name="additionalHomeBatteryDischargePower"/> until it reaches zero; 
     /// any remaining power usage is then subtracted from <paramref name="powerToControl"/>.
     /// </returns>
-    private (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
+    internal (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
         int powerToControl,
         int additionalHomeBatteryDischargePower,
         int estimatedPowerUsage)
@@ -176,7 +179,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    private int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
+    internal int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
     {
         _logger.LogTrace("{method}({@loadPointTargetValues}, {estimatedCurrentUsage})", nameof(CalculateEstimatedPowerUsage), loadPointTargetValues, estimatedCurrentUsage);
         var voltage = loadPointTargetValues.LoadPoint.EstimatedVoltageWhileCharging ?? _settings.AverageHomeGridVoltage ?? 230m;
@@ -187,7 +190,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    private decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
+    internal decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
     {
         _logger.LogTrace("{method}({@loadPoint}, {@constraintValues})", nameof(CalculateEstimatedCurrentUsage), loadPoint, constraintValues);
         if (loadPoint.TargetValues == default)
@@ -219,7 +222,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return currentToSet;
     }
 
-    private TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
+    internal TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({@constraintValues}, {@loadpoint}, {powerToSet}, {ignoreTimers}, {currentDate})", nameof(GetTargetValue), constraintValues, loadpoint, powerToSet, ignoreTimers, currentDate);
         if (loadpoint.IsPluggedIn != true || loadpoint.IsHome == false)
@@ -470,7 +473,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return null;
     }
 
-    private async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
+    internal async Task<ConstraintValues> GetConstraintValues(int? carId, int? connectorId, bool useCarToManageChargingSpeed,
         DateTimeOffset currentDate, decimal maxCombinedCurrent, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({carId}, {connectorId}, {useCarToManageChargingSpeed}, {currentDate}, {maxCombinedCurrent})",
@@ -711,7 +714,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         return constraintValues;
     }
 
-    private bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
+    internal bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, T comparator, out DateTimeOffset? relevantAt)
     {
         _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timeSpanUntilIsRelevant}, {comparator})",
