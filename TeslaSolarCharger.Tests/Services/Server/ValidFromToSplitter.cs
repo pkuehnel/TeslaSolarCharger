@@ -22,19 +22,19 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -57,7 +57,7 @@ public class ValidFromToSplitter : TestBase
         var validFromToSplitter = Mock.Create<TeslaSolarCharger.Server.Services.ValidFromToSplitter>();
         var result = validFromToSplitter.SplitByBoundaries(chargingSchedules, prices,
             new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
-            new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero));
+            new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero), false);
         Assert.Equal(2, result.SplitLeft.Count);
         Assert.Equal(2, result.SplitRight.Count);
     }
@@ -67,26 +67,26 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 00, 0, TimeSpan.Zero),
-                ChargingPower = 8000,
-                OnlyChargeOnAtLeastSolarPower = 6200,
+                TargetMinPower = 8000,
+                EstimatedSolarPower = 6200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -109,7 +109,7 @@ public class ValidFromToSplitter : TestBase
         var validFromToSplitter = Mock.Create<TeslaSolarCharger.Server.Services.ValidFromToSplitter>();
         var result = validFromToSplitter.SplitByBoundaries(chargingSchedules, prices,
             new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
-            new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero));
+            new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero), false);
         Assert.Equal(3, result.SplitLeft.Count);
         Assert.Equal(3, result.SplitRight.Count);
     }
@@ -119,26 +119,26 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 00, 0, TimeSpan.Zero),
-                ChargingPower = 8000,
-                OnlyChargeOnAtLeastSolarPower = 6200,
+                TargetMinPower = 8000,
+                EstimatedSolarPower = 6200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -175,7 +175,7 @@ public class ValidFromToSplitter : TestBase
         var validFromToSplitter = Mock.Create<TeslaSolarCharger.Server.Services.ValidFromToSplitter>();
         var result = validFromToSplitter.SplitByBoundaries(chargingSchedules, prices,
             new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
-            new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero));
+            new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero), false);
         Assert.Equal(6, result.SplitLeft.Count);
         Assert.Equal(6, result.SplitRight.Count);
     }
@@ -185,26 +185,26 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 00, 0, TimeSpan.Zero),
-                ChargingPower = 8000,
-                OnlyChargeOnAtLeastSolarPower = 6200,
+                TargetMinPower = 8000,
+                EstimatedSolarPower = 6200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -242,7 +242,7 @@ public class ValidFromToSplitter : TestBase
         var startDate = new DateTimeOffset(2025, 5, 26, 12, 12, 0, TimeSpan.Zero);
         var endDate = new DateTimeOffset(2025, 5, 26, 13, 8, 0, TimeSpan.Zero);
         var result = validFromToSplitter.SplitByBoundaries(chargingSchedules, prices,
-            startDate, endDate);
+            startDate, endDate, false);
         Assert.Equal(5, result.SplitLeft.Count);
         Assert.Equal(5, result.SplitRight.Count);
         Assert.Equal(startDate, result.SplitLeft.First().ValidFrom);
@@ -254,19 +254,19 @@ public class ValidFromToSplitter : TestBase
     {
         var chargingSchedules = new List<DtoChargingSchedule>()
         {
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 12, 45, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
-            new DtoChargingSchedule(1, null)
+            new DtoChargingSchedule(1, null, 11_000, 230, 3, new())
             {
                 ValidFrom = new DateTimeOffset(2025, 5, 26, 13, 0, 0, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(2025, 5, 26, 13, 15, 0, TimeSpan.Zero),
-                ChargingPower = 5000,
-                OnlyChargeOnAtLeastSolarPower = 4200,
+                TargetMinPower = 5000,
+                EstimatedSolarPower = 4200,
             },
         };
         var prices = new List<Price>()
@@ -304,7 +304,7 @@ public class ValidFromToSplitter : TestBase
         var startDate = new DateTimeOffset(2025, 5, 26, 12, 12, 0, TimeSpan.Zero);
         var endDate = new DateTimeOffset(2025, 5, 26, 13, 8, 0, TimeSpan.Zero);
         var result = validFromToSplitter.SplitByBoundaries(chargingSchedules, prices,
-            startDate, endDate);
+            startDate, endDate, false);
         Assert.Equal(3, result.SplitLeft.Count);
         Assert.Equal(5, result.SplitRight.Count);
         Assert.Equal(startDate, result.SplitLeft.First().ValidFrom);

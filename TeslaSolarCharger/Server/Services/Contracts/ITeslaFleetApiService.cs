@@ -16,7 +16,6 @@ public interface ITeslaFleetApiService
     Task RefreshFleetApiRequestsAreAllowed();
 
     void ResetApiRequestCounters();
-    Task<Fin<List<DtoTesla>>> GetNewCarsInAccount();
     Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount();
     Task RefreshFleetApiTokenIfNeeded();
     Task<DtoBackendApiTeslaResponse> GetAllProductsFromTeslaAccount();
@@ -24,4 +23,5 @@ public interface ITeslaFleetApiService
 
     Task<TeslaCarFleetApiState?> GetFleetApiState(int carId);
     Task RefreshVehicleOnlineState(DtoCar car);
+    Task<Dictionary<long, string?>> GetEnergySites();
 }

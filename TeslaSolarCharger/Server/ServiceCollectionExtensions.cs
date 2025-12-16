@@ -23,10 +23,26 @@ using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Solax;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.TeslaPowerwall;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
-using TeslaSolarCharger.Services.Services.ValueRefresh;
-using TeslaSolarCharger.Services.Services.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -138,6 +154,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
             .AddScoped<IManualCarHandlingService, ManualCarHandlingService>()
             .AddTransient<IChargingServiceV2, ChargingServiceV2>()
+            .AddTransient<IChargingScheduleService, ChargingScheduleService>()
             .AddTransient<IHomeService, HomeService>()
             .AddTransient<ISunCalculator, SunCalculator>()
             .AddTransient<IHomeBatteryEnergyCalculator, HomeBatteryEnergyCalculator>()
@@ -161,6 +178,44 @@ public static class ServiceCollectionExtensions
             .AddScoped<IStateSnapshotService, StateSnapshotService>()
             .AddSingleton<IAppStateNotifier, AppStateNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
+
+
+            .AddTransient<IRestValueConfigurationService, RestValueConfigurationService>()
+            .AddTransient<IRestValueExecutionService, RestValueExecutionService>()
+            .AddTransient<IValueOverviewService, ValueOverviewService>()
+            .AddSingleton<IModbusClientHandlingService, ModbusClientHandlingService>()
+            .AddTransient<IModbusTcpClient, CustomModbusTcpClient>()
+            .AddTransient<IModbusValueConfigurationService, ModbusValueConfigurationService>()
+            .AddTransient<IModbusValueExecutionService, ModbusValueExecutionService>()
+            .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
+            .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
+            .AddTransient<IGenericValueService, GenericValueService>()
+            .AddSingleton<RefreshableValueHandlingService>()
+            .AddSingleton<AutoRefreshingValueHandlingService>()
+
+            .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
+            .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
+            .AddSingleton<IRefreshableValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
+
+            .AddTransient<IRefreshableValueSetupService, RestValueConfigurationService>()
+            .AddTransient<IRefreshableValueSetupService, ModbusValueConfigurationService>()
+            .AddTransient<IRefreshableValueSetupService, SmaInverterSetupService>()
+            .AddTransient<IRefreshableValueSetupService, SmaHybridInverterSetupService>()
+            .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
+            .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
+            .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
+
+            .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
+            .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()
+
+            .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<AutoRefreshingValueHandlingService>())
+            .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
+
+            .AddHttpClient()
+
+
+
+
             .AddHostedService<DatabaseValueBufferFlushService>()
             .AddSharedBackendDependencies();
         return services;

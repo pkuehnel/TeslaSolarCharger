@@ -3,6 +3,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -18,7 +19,8 @@ public class ChargingCostService(
     IConstants constants,
     ITscOnlyChargingCostService tscOnlyChargingCostService,
     ISettings settings,
-    IConfigurationWrapper configurationWrapper)
+    IConfigurationWrapper configurationWrapper,
+    ISpotPriceService spotPriceService)
     : IChargingCostService
 {
     public async Task ConvertToNewChargingProcessStructure()
@@ -143,8 +145,9 @@ public class ChargingCostService(
         chargePrice.EnergyProviderConfiguration = dtoChargePrice.EnergyProviderConfiguration;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-
+        var spotPriceTask = spotPriceService.UpdateSpotPrices();
         await tscOnlyChargingCostService.UpdateChargePricesOfAllChargingProcesses().ConfigureAwait(false);
+        await spotPriceTask.ConfigureAwait(false);
     }
 
     public async Task AddFirstChargePrice()

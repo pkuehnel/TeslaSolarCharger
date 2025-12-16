@@ -6,8 +6,10 @@ using TeslaSolarCharger.Shared.Localization.Contracts;
 using TeslaSolarCharger.Shared.Localization.Registries;
 using TeslaSolarCharger.Shared.Localization.Registries.Components;
 using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage;
-using TeslaSolarCharger.Shared.Localization.Registries.Server;
 using TeslaSolarCharger.Shared.Localization.Registries.Pages;
+using TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries;
+using TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries.TemplateDtos;
+using TeslaSolarCharger.Shared.Localization.Registries.Server;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -28,6 +30,10 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPropertyLocalizationRegistry, CarChargingTargetPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, ModbusValueResultConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, ChargePricePropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoSmaInverterTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoSolaxTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoTeslaPowerwallTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<ITextLocalizationService, TextLocalizationService>()
             .AddSingleton<ITextLocalizationRegistry, SharedComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BaseConfigurationPageLocalizationRegistry>()

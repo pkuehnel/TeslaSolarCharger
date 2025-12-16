@@ -72,8 +72,6 @@ To edit files with Linux, you can either use your normal Linux desktop environme
 Below you can see the content for your `docker-compose.yml` if you are not using any plugin. Note: I recommend changing as few things as possible on this file as this will increase the effort to set everything up but feel free to change the Timezone.
 
 ```yaml
-version: '3.3'
-
 services:
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -84,11 +82,10 @@ services:
             max-file: "10"
             max-size: "100m"
     restart: always
+    network_mode: host
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
-    ports:
-      - 7190:80
+      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
     volumes:
       - teslasolarcharger-configs:/app/configs
 
@@ -127,8 +124,7 @@ You can also copy the complete content from here:
   <summary>Complete file using SMA plugin</summary>
 
 ```yaml
-version: '3.3'
-services:      
+services:
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
     container_name: teslasolarcharger
@@ -138,11 +134,10 @@ services:
             max-file: "10"
             max-size: "100m"
     restart: always
+    network_mode: host
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
-    ports:
-      - 7190:80
+      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
     volumes:
       - teslasolarcharger-configs:/app/configs
   
@@ -198,8 +193,7 @@ You can also copy the complete content from here:
   <summary>Complete file using SolarEdge plugin</summary>
 
 ```yaml
-version: '3.3'
-services:      
+services:
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
     container_name: teslasolarcharger
@@ -209,11 +203,10 @@ services:
             max-file: "10"
             max-size: "100m"
     restart: always
+    network_mode: host
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
-    ports:
-      - 7190:80
+      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
     volumes:
       - teslasolarcharger-configs:/app/configs
   
@@ -269,7 +262,6 @@ You can also copy the complete content from here:
   <summary>Complete file using Solax plugin</summary>
 
 ```yaml
-version: '3.3'
 services:
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -280,11 +272,10 @@ services:
             max-file: "10"
             max-size: "100m"
     restart: always
+    network_mode: host
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
-    ports:
-      - 7190:80
+      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
     volumes:
       - teslasolarcharger-configs:/app/configs
   
@@ -342,7 +333,6 @@ You can also copy the complete content from here:
   <summary>Complete file using Tesla Powerwall plugin</summary>
 
 ```yaml
-version: '3.3'
 services:
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -353,11 +343,10 @@ services:
             max-file: "10"
             max-size: "100m"
     restart: always
+    network_mode: host
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
-    ports:
-      - 7190:80
+      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
     volumes:
       - teslasolarcharger-configs:/app/configs
   
@@ -552,6 +541,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7210
+#      - BluetoothAdapter=hci0#Optional: If you have multiple Bluetooth adapters, specify the one to use here
     volumes:
       - tscbleapi:/externalFiles
       - /var/run/dbus:/var/run/dbus
@@ -566,8 +556,6 @@ You can also copy the complete content from here:
   <summary>Complete file including BLE API</summary>
 
 ```yaml
-version: '3.3'
-
 services:
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -578,11 +566,10 @@ services:
             max-file: "10"
             max-size: "100m"
     restart: always
+    network_mode: host
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
-    ports:
-      - 7190:80
+      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
     volumes:
       - teslasolarcharger-configs:/app/configs
   
@@ -594,6 +581,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7210
+#      - BluetoothAdapter=hci0#Optional: If you have multiple Bluetooth adapters, specify the one to use here
     volumes:
       - tscbleapi:/externalFiles
       - /var/run/dbus:/var/run/dbus
@@ -618,6 +606,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7210
+#      - BluetoothAdapter=hci0#Optional: If you have multiple Bluetooth adapters, specify the one to use here
     volumes:
       - tscbleapi:/externalFiles
       - /var/run/dbus:/var/run/dbus

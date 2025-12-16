@@ -250,6 +250,15 @@ public class LoadPointManagementService : ILoadPointManagementService
         return loadPoint;
     }
 
+    /// <summary>
+    /// Retrieves a list of load points that are eligible for management, including associated car and charging
+    /// connector information as applicable.
+    /// </summary>
+    /// <remarks>Each load point in the returned list may include data from both a car and a charging
+    /// connector, depending on availability. Non-Tesla cars without a charging connector are included at the end of the
+    /// list. The ordering prioritizes load points with connectors and higher charging priority.</remarks>
+    /// <returns>A list of <see cref="DtoLoadPointOverview"/> objects representing load points available for management. The list
+    /// may be empty if no load points meet the criteria.</returns>
     public async Task<List<DtoLoadPointOverview>> GetLoadPointsToManage()
     {
         _logger.LogTrace("{method}()", nameof(GetLoadPointsToManage));
@@ -337,6 +346,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
             result.Add(loadPoint);
         }
+        //Display cars that are no Teslas (so can not be managed by themselves) without a charging connector at the end
         return result
             .OrderBy(lp => lp.ChargingConnectorId == null && lp.CarType != CarType.Tesla ? 1 : 0)
             .ThenBy(lp => lp.ChargingPriority ?? 99)

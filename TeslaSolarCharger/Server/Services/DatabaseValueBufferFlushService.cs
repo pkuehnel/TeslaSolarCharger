@@ -1,16 +1,16 @@
-using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Scheduling.Jobs;
 namespace TeslaSolarCharger.Server.Services;
 
 public class DatabaseValueBufferFlushService : IHostedService
 {
     private readonly ILogger<DatabaseValueBufferFlushService> _logger;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public DatabaseValueBufferFlushService(ILogger<DatabaseValueBufferFlushService> logger,
-        IServiceProvider serviceProvider)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -24,16 +24,14 @@ public class DatabaseValueBufferFlushService : IHostedService
         _logger.LogInformation("Application is stopping. Flushing buffered meter values to the database.");
         try
         {
-            using var scope = _serviceProvider.CreateScope();
-            var meterValueLogService = scope.ServiceProvider.GetRequiredService<IMeterValueLogService>();
-            await meterValueLogService.SaveBufferedMeterValuesToDatabase().ConfigureAwait(false);
-            var chargerValueLogService = scope.ServiceProvider.GetRequiredService<IChargerValueLogService>();
-            await chargerValueLogService.SaveBufferedChargerValuesToDatabase().ConfigureAwait(false);
-            _logger.LogInformation("Flushed buffered meter values to the database.");
+            using var scope = _serviceScopeFactory.CreateScope();
+            var databaseBufferedValuesSaveJob = scope.ServiceProvider.GetRequiredService<DatabaseBufferedValuesSaveJob>();
+            await databaseBufferedValuesSaveJob.ExecuteWithoutContext(cancellationToken);
+            _logger.LogInformation("Flushed buffered values to the database.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while flushing buffered meter values to the database during shutdown.");
+            _logger.LogError(ex, "An error occurred while flushing buffered values to the database during shutdown.");
         }
     }
 }

@@ -274,7 +274,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
     public async Task<List<Price>> GetPricesInTimeSpan(DateTimeOffset from, DateTimeOffset to)
     {
-        logger.LogTrace("{method}({from}, {to})", nameof(GetGridPricesInTimeSpan), from, to);
+        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
         var prices = await GetGridPricesInTimeSpan(from.ToUniversalTime().DateTime, to.ToUniversalTime().DateTime).ConfigureAwait(false);
         return prices;
     }
@@ -308,16 +308,25 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
     private async Task<List<Price>> AddSpotPrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, ChargePrice chargePrice)
     {
+        logger.LogTrace("{method}({from}, {to}, {chargePriceId})", nameof(AddSpotPrices), from, to, chargePrice.Id);
         var fromUtc = from.UtcDateTime;
         var toUtc = to.UtcDateTime;
 
         //required as if from is within a range the spot price before the range is also relevant
-        var previous = await context.SpotPrices
+        var previouses = await context.SpotPrices
             .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion && p.StartDate < fromUtc)
             .OrderByDescending(p => p.StartDate)
             .Select(p => new { p.StartDate, p.Price })
-            .FirstOrDefaultAsync()
+            .Take(2)
+            .ToListAsync()
             .ConfigureAwait(false);
+        if (previouses.Count < 2)
+        {
+            logger.LogError("Can not add spot prices as slice length is not detectable");
+            prices.Clear();
+            return prices;
+        }
+        var sliceLength = previouses[0].StartDate - previouses[1].StartDate;
 
         var spotPrices = await context.SpotPrices
             .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion &&
@@ -328,32 +337,30 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ToListAsync()
             .ConfigureAwait(false);
 
-        if (previous != default)
-        {
-            spotPrices.Insert(0, previous);
-        }
-
+        logger.LogTrace("Found {count} spot prices", spotPrices.Count);
+        //need the first as it is ordered descending, so first is the last before
+        spotPrices.Insert(0, previouses.First());
         if (spotPrices.Count == 0)
-            return prices;
-
-        // Build implicit (Start, End) slices where End = next.Start (last is capped to 'toUtc')
-        var slices = new List<(DateTimeOffset Start, DateTimeOffset End, decimal Price)>(spotPrices.Count);
-        for (var i = 0; i < spotPrices.Count; i++)
         {
-            var start = new DateTimeOffset(spotPrices[i].StartDate, TimeSpan.Zero);
-            var end = new DateTimeOffset((i < spotPrices.Count - 1) ? spotPrices[i + 1].StartDate : toUtc, TimeSpan.Zero);
-
-            if (end > start) // guard against duplicates/out-of-order
-                slices.Add((start, end, spotPrices[i].Price));
+            logger.LogTrace("No spot prices found in given time range {from} - {to}", from, to);
+            prices.Clear();
+            return prices;
         }
 
-        if (slices.Count == 0)
-            return prices;
+        var slices = new List<(DateTimeOffset Start, DateTimeOffset End, decimal Price)>(spotPrices.Count);
+        foreach (var spotPrice in spotPrices)
+        {
+            var start = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero);
+            var end = start + sliceLength;
+            logger.LogTrace("Add slice with start {start}, end {end} and price {price}", start, end, spotPrice.Price);
+            slices.Add((start, end, spotPrice.Price));
+        }
 
         var updatedPrices = new List<Price>();
 
         foreach (var price in prices.OrderBy(p => p.ValidFrom))
         {
+            logger.LogTrace("Add spot prices for price which is valid from {ValidFrom} to {validTo}", price.ValidFrom, price.ValidTo);
             // Only consider slices that overlap the price window
             var relevant = slices
                 .Where(s => s.End > price.ValidFrom && s.Start < price.ValidTo)
@@ -362,6 +369,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             if (relevant.Count == 0)
             {
+                logger.LogTrace("Did not find any relevant spot price");
                 updatedPrices.Add(price);
                 continue;
             }
@@ -370,6 +378,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             foreach (var (spotStart, spotEnd, price1) in relevant)
             {
+                logger.LogTrace("Handling spot price valid from {from} to {to}, price {price} and cursor {cursor}", spotStart, spotEnd, price1, cursor);
                 if (cursor >= price.ValidTo) break;
 
                 // gap before spot starts
@@ -415,7 +424,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 });
             }
         }
-
+        logger.LogTrace("Return updates prices {@updatedPrices}", updatedPrices);
         return updatedPrices.OrderBy(p => p.ValidFrom).ToList();
     }
 
