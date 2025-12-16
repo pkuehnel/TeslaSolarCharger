@@ -326,7 +326,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             prices.Clear();
             return prices;
         }
-        var sliceLenght = previouses[0].StartDate - previouses[1].StartDate;
+        var sliceLength = previouses[0].StartDate - previouses[1].StartDate;
 
         var spotPrices = await context.SpotPrices
             .Where(p => p.SpotPriceRegion == chargePrice.SpotPriceRegion &&
@@ -351,7 +351,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         foreach (var spotPrice in spotPrices)
         {
             var start = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero);
-            var end = start + sliceLenght;
+            var end = start + sliceLength;
             logger.LogTrace("Add slice with start {start}, end {end} and price {price}", start, end, spotPrice.Price);
             slices.Add((start, end, spotPrice.Price));
         }
@@ -369,7 +369,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
             if (relevant.Count == 0)
             {
-                logger.LogTrace("Did not find andy relevant spot price");
+                logger.LogTrace("Did not find any relevant spot price");
                 updatedPrices.Add(price);
                 continue;
             }

@@ -265,7 +265,7 @@ public class RestValueConfigurationService(
                                 restConfiguration.NodePatternType,
                                 resultConfig);
                             values.TryAdd(valueKey, 0m);
-                            values[valueKey] =+ value;
+                            values[valueKey] += value;
                         }
 
                         return new(values);

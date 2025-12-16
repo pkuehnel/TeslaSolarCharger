@@ -306,8 +306,8 @@ public class ChargingScheduleService : IChargingScheduleService
             var loopChargingSchedules = JsonConvert.DeserializeObject<List<DtoChargingSchedule>>(serializedSchedules);
             if (loopChargingSchedules == default)
             {
-                _logger.LogError("Could not deserialize charging schedules. This is an implentation error");
-                throw new Exception("Could not deserialize charging schedules. This is an implentation error");
+                _logger.LogError("Could not deserialize charging schedules. This is an implementation error");
+                throw new Exception("Could not deserialize charging schedules. This is an implementation error");
             }
             _logger.LogTrace("Deserialized loopChargingSchedules. Count={loopScheduleCount}", loopChargingSchedules.Count);
             var i = 0;
@@ -853,7 +853,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     internal async Task<(int? UsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? minCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
     {
-        _logger.LogTrace("{methdod}({carId}, {connectorId})", nameof(GetChargingScheduleRelevantData), carId, chargingConnectorId);
+        _logger.LogTrace("{method}({carId}, {connectorId})", nameof(GetChargingScheduleRelevantData), carId, chargingConnectorId);
         var connectorData = chargingConnectorId != default
             ? await _context.OcppChargingStationConnectors
                 .Where(c => c.Id == chargingConnectorId)
@@ -938,7 +938,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     internal int GetHomeBatteryEnergyFromSocDifference(int socDifference)
     {
-        _logger.LogTrace("{method}({socDiffernce})", nameof(GetHomeBatteryEnergyFromSocDifference), socDifference);
+        _logger.LogTrace("{method}({socDifference})", nameof(GetHomeBatteryEnergyFromSocDifference), socDifference);
         var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
         if (homeBatteryEnergy == default)
         {

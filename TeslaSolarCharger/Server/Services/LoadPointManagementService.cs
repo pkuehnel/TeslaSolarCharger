@@ -346,7 +346,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
             result.Add(loadPoint);
         }
-        //Display cars that are no Teslas (so can not be manged by themselves) without a charging connector at the end
+        //Display cars that are no Teslas (so can not be managed by themselves) without a charging connector at the end
         return result
             .OrderBy(lp => lp.ChargingConnectorId == null && lp.CarType != CarType.Tesla ? 1 : 0)
             .ThenBy(lp => lp.ChargingPriority ?? 99)

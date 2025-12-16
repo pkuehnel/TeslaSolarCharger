@@ -11,7 +11,6 @@ public interface IRefreshableValue<T> : IGenericValue<T>
     Task RefreshValueAsync(CancellationToken ct);
 
     Task? RunningTask { get; }
-    
 }
 
 public sealed class DelegateRefreshableValue<T> : GenericValueBase<T>, IRefreshableValue<T>

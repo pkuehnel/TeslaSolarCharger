@@ -1143,9 +1143,7 @@ public class TeslaFleetApiService(
                 o[siteNamePropertyName]?.Type == JTokenType.String)
             .ToDictionary(
                 o => (long)o[energySiteIdPropertyName]!,   // we filtered by Type == Integer
-                o => (string)o[siteNamePropertyName]!);
-
-        
+                o => (string?)o[siteNamePropertyName]);
 
         return sites;
     }
