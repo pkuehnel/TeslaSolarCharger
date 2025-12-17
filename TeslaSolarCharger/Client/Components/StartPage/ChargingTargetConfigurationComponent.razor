@@ -1,4 +1,3 @@
-@using MudBlazor
 @using System.Globalization
 @using System.Linq
 @using TeslaSolarCharger.Client.Helper.Contracts
@@ -68,6 +67,17 @@ else
                               ContentAlignment="HorizontalAlignment.Left">
                         <div class="fw-semibold">@T("Saved in different timezone")</div>
                         <div class="small">@T("This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.")</div>
+                    </MudAlert>
+                }
+                @if (chargingTarget.NextExecutionTimeIsAfterLatestKnownChargePrice)
+                {
+                    <MudAlert Severity="Severity.Warning"
+                              Dense="true"
+                              NoIcon="true"
+                              Class="mt-2"
+                              ContentAlignment="HorizontalAlignment.Left">
+                        <div class="fw-semibold">@T("Grid prices unknown")</div>
+                        <div class="small">@T("The target time is further in the future than the grid prices are known. No charging schedules will be created for this target until grid prices are known.")</div>
                     </MudAlert>
                 }
             </div>
