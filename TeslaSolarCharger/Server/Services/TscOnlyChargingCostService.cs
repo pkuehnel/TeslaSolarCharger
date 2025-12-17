@@ -370,33 +370,15 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             if (relevant.Count == 0)
             {
                 logger.LogTrace("Did not find any relevant spot price");
-                updatedPrices.Add(price);
                 continue;
             }
 
-            var cursor = price.ValidFrom;
-
             foreach (var (spotStart, spotEnd, price1) in relevant)
             {
-                logger.LogTrace("Handling spot price valid from {from} to {to}, price {price} and cursor {cursor}", spotStart, spotEnd, price1, cursor);
-                if (cursor >= price.ValidTo) break;
-
-                // gap before spot starts
-                var gapEnd = spotStart < price.ValidTo ? spotStart : price.ValidTo;
-                if (gapEnd > cursor)
-                {
-                    updatedPrices.Add(new Price
-                    {
-                        GridPrice = price.GridPrice,
-                        SolarPrice = price.SolarPrice,
-                        ValidFrom = cursor,
-                        ValidTo = gapEnd,
-                    });
-                    cursor = gapEnd;
-                }
+                logger.LogTrace("Handling spot price valid from {from} to {to}, price {price}", spotStart, spotEnd, price1);
 
                 // overlap with spot slice
-                var overlapStart = cursor > spotStart ? cursor : spotStart;
+                var overlapStart = price.ValidFrom > spotStart ? price.ValidFrom : spotStart;
                 var overlapEnd = spotEnd < price.ValidTo ? spotEnd : price.ValidTo;
                 if (overlapEnd > overlapStart)
                 {
@@ -408,20 +390,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                         ValidFrom = overlapStart,
                         ValidTo = overlapEnd,
                     });
-                    cursor = overlapEnd;
                 }
-            }
-
-            // tail after last spot slice
-            if (cursor < price.ValidTo)
-            {
-                updatedPrices.Add(new Price
-                {
-                    GridPrice = price.GridPrice,
-                    SolarPrice = price.SolarPrice,
-                    ValidFrom = cursor,
-                    ValidTo = price.ValidTo,
-                });
             }
         }
         logger.LogTrace("Return updates prices {@updatedPrices}", updatedPrices);
