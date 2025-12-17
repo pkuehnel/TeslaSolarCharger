@@ -306,7 +306,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return prices;
     }
 
-    private async Task<List<Price>> AddSpotPrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, ChargePrice chargePrice)
+    internal async Task<List<Price>> AddSpotPrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, ChargePrice chargePrice)
     {
         logger.LogTrace("{method}({from}, {to}, {chargePriceId})", nameof(AddSpotPrices), from, to, chargePrice.Id);
         var fromUtc = from.UtcDateTime;
