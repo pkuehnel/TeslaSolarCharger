@@ -1,4 +1,3 @@
-@using MudBlazor
 @using System.Globalization
 @using System.Linq
 @using TeslaSolarCharger.Client.Helper.Contracts
@@ -77,8 +76,8 @@ else
                               NoIcon="true"
                               Class="mt-2"
                               ContentAlignment="HorizontalAlignment.Left">
-                        <div class="fw-semibold">@T("Charge prices unknown")</div>
-                        <div class="small">@T("The target time is further in the future than the charge prices are known. No charging schedules will be created for this target.")</div>
+                        <div class="fw-semibold">@T("Grid prices unknown")</div>
+                        <div class="small">@T("The target time is further in the future than the grid prices are known. No charging schedules will be created for this target until grid prices are known.")</div>
                     </MudAlert>
                 }
             </div>
