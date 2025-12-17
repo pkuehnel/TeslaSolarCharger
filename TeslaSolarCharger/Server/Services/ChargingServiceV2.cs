@@ -579,7 +579,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             .ToList();
     }
 
-    internal DateTimeOffset? GetNextTargetUtc(CarChargingTarget chargingTarget, DateTimeOffset lastPluggedIn)
+    public DateTimeOffset? GetNextTargetUtc(CarChargingTarget chargingTarget, DateTimeOffset lastPluggedIn)
     {
         _logger.LogTrace("{method}({@chargingTarget}, {lastPluggedIn})", nameof(GetNextTargetUtc), chargingTarget, lastPluggedIn);
         var tz = string.IsNullOrWhiteSpace(chargingTarget.ClientTimeZone)

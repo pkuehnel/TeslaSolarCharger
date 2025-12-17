@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
@@ -12,6 +12,9 @@ using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using Microsoft.Extensions.Caching.Memory;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -26,6 +29,9 @@ public class HomeService : IHomeService
     private readonly IValidFromToHelper _validFromToHelper;
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly IManualCarHandlingService _manualCarHandlingService;
+    private readonly IMemoryCache _memoryCache;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IChargingServiceV2 _chargingServiceV2;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
@@ -35,7 +41,10 @@ public class HomeService : IHomeService
         ITscOnlyChargingCostService tscOnlyChargingCostService,
         IValidFromToHelper validFromToHelper,
         ILoadPointManagementService loadPointManagementService,
-        IManualCarHandlingService manualCarHandlingService)
+        IManualCarHandlingService manualCarHandlingService,
+        IMemoryCache memoryCache,
+        IDateTimeProvider dateTimeProvider,
+        IChargingServiceV2 chargingServiceV2)
     {
         _logger = logger;
         _context = context;
@@ -46,26 +55,82 @@ public class HomeService : IHomeService
         _validFromToHelper = validFromToHelper;
         _loadPointManagementService = loadPointManagementService;
         _manualCarHandlingService = manualCarHandlingService;
+        _memoryCache = memoryCache;
+        _dateTimeProvider = dateTimeProvider;
+        _chargingServiceV2 = chargingServiceV2;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
     {
         _logger.LogTrace("{method}({chargingTargetId})", nameof(GetChargingTarget), chargingTargetId);
-        return await _context.CarChargingTargets
+        var target = await _context.CarChargingTargets
             .Where(s => s.Id == chargingTargetId)
-            .Select(ToDto)
             .FirstAsync()
             .ConfigureAwait(false);
+        var dto = ToDto.Compile()(target);
+        await SetNextExecutionTimeWarning([dto], [target], target.CarId);
+        return dto;
     }
     
     public async Task<List<DtoCarChargingTarget>> GetCarChargingTargets(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarChargingTargets), carId);
-        return await _context.CarChargingTargets
+        var entities = await _context.CarChargingTargets
             .Where(s => s.CarId == carId)
-            .Select(ToDto)
             .ToListAsync()
             .ConfigureAwait(false);
+        var dtos = entities.Select(ToDto.Compile()).ToList();
+        await SetNextExecutionTimeWarning(dtos, entities, carId);
+        return dtos;
+    }
+
+    private async Task SetNextExecutionTimeWarning(List<DtoCarChargingTarget> dtos, List<CarChargingTarget> entities, int carId)
+    {
+        var car = _settings.Cars.FirstOrDefault(c => c.Id == carId);
+        if (car == null) return;
+
+        var lastPluggedIn = car.PluggedIn.Value == true ? (car.PluggedIn.LastChanged ?? _dateTimeProvider.DateTimeOffSetUtcNow()) : _dateTimeProvider.DateTimeOffSetUtcNow();
+        var now = _dateTimeProvider.DateTimeOffSetUtcNow();
+        var cacheKey = "LatestKnownPriceTime";
+
+        if (!_memoryCache.TryGetValue(cacheKey, out DateTimeOffset latestKnownPriceTime))
+        {
+            var prices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(now, now.AddDays(8));
+            if (prices != null && prices.Any())
+            {
+                latestKnownPriceTime = prices.Max(p => p.ValidTo);
+            }
+            else
+            {
+                latestKnownPriceTime = DateTimeOffset.MinValue;
+            }
+            _memoryCache.Set(cacheKey, latestKnownPriceTime, TimeSpan.FromHours(_constants.SpotPriceRefreshIntervalHours));
+        }
+
+        for (int i = 0; i < dtos.Count; i++)
+        {
+            var dto = dtos[i];
+            var entity = entities[i];
+
+            if (dto.TargetSoc == null)
+            {
+                dto.NextExecutionTimeIsAfterLatestKnownChargePrice = false;
+                continue;
+            }
+
+            var nextExecutionTime = _chargingServiceV2.GetNextTargetUtc(entity, lastPluggedIn);
+            if (nextExecutionTime.HasValue)
+            {
+                if (nextExecutionTime.Value > now.AddDays(8))
+                {
+                    dto.NextExecutionTimeIsAfterLatestKnownChargePrice = false;
+                }
+                else
+                {
+                    dto.NextExecutionTimeIsAfterLatestKnownChargePrice = nextExecutionTime.Value > latestKnownPriceTime;
+                }
+            }
+        }
     }
 
     public async Task<DtoCarOverviewSettings> GetCarOverview(int carId)
