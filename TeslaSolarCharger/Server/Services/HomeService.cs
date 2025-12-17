@@ -13,7 +13,6 @@ using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using Microsoft.Extensions.Caching.Memory;
-using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -96,18 +95,11 @@ public class HomeService : IHomeService
         if (!_memoryCache.TryGetValue(cacheKey, out DateTimeOffset latestKnownPriceTime))
         {
             var prices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(now, now.AddDays(8));
-            if (prices != null && prices.Any())
-            {
-                latestKnownPriceTime = prices.Max(p => p.ValidTo);
-            }
-            else
-            {
-                latestKnownPriceTime = DateTimeOffset.MinValue;
-            }
-            _memoryCache.Set(cacheKey, latestKnownPriceTime, TimeSpan.FromHours(_constants.SpotPriceRefreshIntervalHours));
+            latestKnownPriceTime = prices.Any() ? prices.Max(p => p.ValidTo) : DateTimeOffset.MinValue;
+            _memoryCache.Set(cacheKey, latestKnownPriceTime, TimeSpan.FromMinutes(5));
         }
 
-        for (int i = 0; i < dtos.Count; i++)
+        for (var i = 0; i < dtos.Count; i++)
         {
             var dto = dtos[i];
             var entity = entities[i];
