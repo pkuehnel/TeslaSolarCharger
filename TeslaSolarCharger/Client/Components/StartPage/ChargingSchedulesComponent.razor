@@ -2,6 +2,7 @@
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -20,7 +21,7 @@
             }
             else
             {
-                @(_elements.Count < 1 ? T("Nothing planned") : string.Format(T("Next planned charge starts at {0}"), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
+                @(_elements.Count < 1 ? T(TranslationKeys.ChargingSchedulesNothingPlanned) : string.Format(T(TranslationKeys.ChargingSchedulesNextStart), _elements.First().ValidFrom.ToLocalTime().ToString("f")))
             }
         </TitleContent>
         <ChildContent>
@@ -34,7 +35,7 @@
                             <div class="d-flex flex-row">
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.ExpectedSolarProduction))
                                 {
-                                    <MudTooltip Text="@T("Enough solar power expected")"
+                                    <MudTooltip Text="@T(TranslationKeys.ChargingSchedulesReasonSolar)"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -43,7 +44,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.HomeBatteryDischarging))
                                 {
-                                    <MudTooltip Text="@T("Discharging home battery")"
+                                    <MudTooltip Text="@T(TranslationKeys.ChargingSchedulesReasonBattery)"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -52,7 +53,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.CheapGridPrice))
                                 {
-                                    <MudTooltip Text="@T("Cheap grid price")"
+                                    <MudTooltip Text="@T(TranslationKeys.ChargingSchedulesReasonGridPrice)"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -61,7 +62,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules))
                                 {
-                                    <MudTooltip Text="@T("Bridge between schedules to reduce charge starts/stops")"
+                                    <MudTooltip Text="@T(TranslationKeys.ChargingSchedulesReasonBridge)"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">
@@ -70,7 +71,7 @@
                                 }
                                 @if (context.Item.ScheduleReasons.Contains(ScheduleReason.LatestPossibleTime))
                                 {
-                                    <MudTooltip Text="@T("Latest possible time")"
+                                    <MudTooltip Text="@T(TranslationKeys.ChargingSchedulesReasonLatestTime)"
                                                 Placement="Placement.Top"
                                                 Arrow="true"
                                                 RootClass="mx-1">

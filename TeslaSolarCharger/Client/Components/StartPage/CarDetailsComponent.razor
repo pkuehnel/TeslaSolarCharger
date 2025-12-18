@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.SignalRClients
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
@@ -28,14 +29,14 @@ else
         <span class="me-1">@CarSettings.Name</span>
         @if (CarState.IsOnline != default)
         {
-            <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText='@T("connected to server")'></CustomIcon>
+            <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText='@T(TranslationKeys.CarDetailsConnectedToServer)'></CustomIcon>
         }
         @if (CarSettings.CarType != CarType.Manual)
         {
-            <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText='@T("at home")'></CustomIcon>
+            <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText='@T(TranslationKeys.CarDetailsAtHome)'></CustomIcon>
         }
-        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText='@T("plugged in")'></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText='@T("charging")'></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText='@T(TranslationKeys.CarDetailsPluggedIn)'></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText='@T(TranslationKeys.CarDetailsCharging)'></CustomIcon>
     </div>
     @if (CarSettings.CarType == CarType.Tesla)
     {
@@ -44,13 +45,13 @@ else
     @if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.NotEnoughTimeSinceReconnect)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-3">
-            @T("Your TSC is connected to the server for less than 10 minutes. As Fleet Telemetry only sends states every 10 minutes the data shown here might not be up-to-date. If any data here is not correct, just wait for 10 minutes without restarting TSC. Note: This is a normal bahavior after a restart of the TSC. If all car data is displayed correctly, you can ignore this message.")
+            @T(TranslationKeys.CarDetailsFleetTelemetryWarningTime)
         </MudAlert>
     }
     else if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.CarNotConnectedAfterEnoughTimeAfterReconnect)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-3">
-            @T("Your car went to sleep within 10 minutes after the TSC connected to the server. If you see wrong data here, please wake up your car via the Tesla app or by opening a door.")
+            @T(TranslationKeys.CarDetailsFleetTelemetryWarningSleep)
         </MudAlert>
     }
 
@@ -62,9 +63,9 @@ else
                                     Value="(double)CarState.Soc"
                                     Buffer="@(CarState.CarSideSocLimit != default)"
                                     BufferValue="@(CarState.CarSideSocLimit == default ? 0 : (double)CarState.CarSideSocLimit.Value)"
-                                    ValueLabelPrefix='@T("SoC: ")'
+                                    ValueLabelPrefix='@T(TranslationKeys.CarDetailsSocLabel)'
                                     ValueLabelSuffix="%"
-                                    BufferLabelPrefix='@T("Car Limit: ")'
+                                    BufferLabelPrefix='@T(TranslationKeys.CarDetailsCarLimitLabel)'
                                     BufferLabelSuffix="%">
         </ProgressWithLabelComponent>
     }
@@ -73,12 +74,12 @@ else
         if (CarState.Soc == default)
         {
             <MudAlert Severity="Severity.Warning" Class="my-3">
-                @T("As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used.")
+                @T(TranslationKeys.CarDetailsManualSocWarning)
             </MudAlert>
         }
         <GenericInput T="int?"
                       For="() => ManualSocToSet"
-                      LabelName='@T("State of Charge")'
+                      LabelName='@T(TranslationKeys.CarDetailsStateOfChargeLabel)'
                       OnValueChanged="SetManualSoc" />
     }
     <div>
@@ -86,7 +87,7 @@ else
             <div class="flex-grow-1">
                 <GenericInput T="ChargeModeV2"
                               For="() => CarSettings.ChargeMode"
-                              LabelName='@T("Charge Mode")'
+                              LabelName='@T(TranslationKeys.CarDetailsChargeModeLabel)'
                               OnValueChanged="ChargeModeUpdated" />
             </div>
             <div class="me-2 flex-grow-0">
@@ -119,18 +120,18 @@ else
             @if (CarSettings.CarType == CarType.Tesla)
             {
                 <MudAlert Severity="Severity.Info" Class="mb-3">
-                    @T("You need to manually wake up the car and start charging via the Tesla app. You can only change the current here.")
+                    @T(TranslationKeys.CarDetailsManualModeTeslaHint)
                 </MudAlert>
                 <GenericInput For="() => CurrentToSet"
-                              LabelName='@T("Current to set")'></GenericInput>
-                <RightAlignedButtonComponent ButtonText='@T("Set Current")'
+                              LabelName='@T(TranslationKeys.CarDetailsCurrentToSetLabel)'></GenericInput>
+                <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarDetailsSetCurrentButton)'
                                              IsLoading="@_isCommandLoading"
                                              OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
             }
             else if (ChargingConnectorId == default)
             {
                 <MudAlert Severity="Severity.Info" Class="mb-3">
-                    @T("Only Teslas or cars connected via an OCPP charging connector can be charged in Manual mode. Please connect this car to an OCPP charging connector.")
+                    @T(TranslationKeys.CarDetailsManualModeNoOcppHint)
                 </MudAlert>
             }
             else
@@ -256,7 +257,7 @@ else
             else
             {
                 _lastKnownMinValue = newSoc;
-                Snackbar.Add(T("Min SOC updated successfully."), Severity.Success);
+                Snackbar.Add(T(TranslationKeys.CarDetailsMinSocUpdated), Severity.Success);
             }
         }
         catch (TaskCanceledException)
@@ -295,7 +296,7 @@ else
             else
             {
                 _lastKnownMaxValue = newSoc;
-                Snackbar.Add(T("Max SOC updated successfully."), Severity.Success);
+                Snackbar.Add(T(TranslationKeys.CarDetailsMaxSocUpdated), Severity.Success);
             }
         }
         catch (TaskCanceledException)
@@ -321,7 +322,7 @@ else
         else
         {
             _lastKnownChargeMode = arg;
-            Snackbar.Add(T("Charge Mode updated successfully."), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.CarDetailsChargeModeUpdated), Severity.Success);
         }
     }
 
@@ -333,7 +334,7 @@ else
         }
         if (CurrentToSet == default || CurrentToSet < 0)
         {
-            Snackbar.Add(T("Please set a valid current."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CarDetailsValidCurrentRequired), Severity.Error);
             return;
         }
         _isCommandLoading = true;
@@ -345,7 +346,7 @@ else
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.CarDetailsCommandSent), Severity.Success);
         }
     }
 
@@ -358,14 +359,14 @@ else
 
         if (ManualSocToSet == default)
         {
-            Snackbar.Add(T("Please set a valid state of charge."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CarDetailsValidSocRequired), Severity.Error);
             return;
         }
 
         var manualSoc = ManualSocToSet.Value;
         if (manualSoc < 0 || manualSoc > 100)
         {
-            Snackbar.Add(T("State of charge must be between 0 and 100%."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CarDetailsSocRangeError), Severity.Error);
             return;
         }
 
@@ -376,7 +377,7 @@ else
             return;
         }
 
-        Snackbar.Add(T("State of charge updated successfully."), Severity.Success);
+        Snackbar.Add(T(TranslationKeys.CarDetailsSocUpdated), Severity.Success);
         ManualSocToSet = null;
         StateHasChanged();
     }

@@ -6,19 +6,19 @@ public class FixedPriceComponentLocalizationRegistry : TextLocalizationRegistry<
 {
     protected override void Configure()
     {
-        Register("From Hour",
+        Register(TranslationKeys.FixedPriceFromHour,
             new TextLocalizationTranslation(LanguageCodes.English, "From Hour"),
             new TextLocalizationTranslation(LanguageCodes.German, "Von Stunde"));
 
-        Register("From Minute",
+        Register(TranslationKeys.FixedPriceFromMinute,
             new TextLocalizationTranslation(LanguageCodes.English, "From Minute"),
             new TextLocalizationTranslation(LanguageCodes.German, "Von Minute"));
 
-        Register("To Hour",
+        Register(TranslationKeys.FixedPriceToHour,
             new TextLocalizationTranslation(LanguageCodes.English, "To Hour"),
             new TextLocalizationTranslation(LanguageCodes.German, "Bis Stunde"));
 
-        Register("To Minute",
+        Register(TranslationKeys.FixedPriceToMinute,
             new TextLocalizationTranslation(LanguageCodes.English, "To Minute"),
             new TextLocalizationTranslation(LanguageCodes.German, "Bis Minute"));
     }

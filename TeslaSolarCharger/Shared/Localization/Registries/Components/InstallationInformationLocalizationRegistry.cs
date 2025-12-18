@@ -14,11 +14,11 @@ public class InstallationInformationLocalizationRegistry : TextLocalizationRegis
             new TextLocalizationTranslation(LanguageCodes.English, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time."),
             new TextLocalizationTranslation(LanguageCodes.German, "Dies wird benötigt, um Ladesitzungen korrekt zu starten. Wenn diese Zeit nicht mit Ihrer aktuellen Zeit übereinstimmt, überprüfen Sie die Serverzeit."));
 
-        Register("Server Timezone",
+        Register(TranslationKeys.InstallationInfoServerTimezone,
             new TextLocalizationTranslation(LanguageCodes.English, "Server Timezone"),
             new TextLocalizationTranslation(LanguageCodes.German, "Server-Zeitzone"));
 
-        Register("Current Server Time",
+        Register(TranslationKeys.InstallationInfoServerTime,
             new TextLocalizationTranslation(LanguageCodes.English, "Current Server Time"),
             new TextLocalizationTranslation(LanguageCodes.German, "Aktuelle Serverzeit"));
 
@@ -26,11 +26,11 @@ public class InstallationInformationLocalizationRegistry : TextLocalizationRegis
             new TextLocalizationTranslation(LanguageCodes.English, "Could not load version"),
             new TextLocalizationTranslation(LanguageCodes.German, "Version konnte nicht geladen werden"));
 
-        Register("Version",
+        Register(TranslationKeys.InstallationInfoVersion,
             new TextLocalizationTranslation(LanguageCodes.English, "Version"),
             new TextLocalizationTranslation(LanguageCodes.German, "Version"));
 
-        Register("Installation ID",
+        Register(TranslationKeys.InstallationInfoInstallationId,
             new TextLocalizationTranslation(LanguageCodes.English, "Installation ID"),
             new TextLocalizationTranslation(LanguageCodes.German, "Installations-ID"));
 
@@ -38,11 +38,11 @@ public class InstallationInformationLocalizationRegistry : TextLocalizationRegis
             new TextLocalizationTranslation(LanguageCodes.English, "Do not share the complete ID with anyone"),
             new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie die vollständige ID nicht an andere weiter"));
 
-        Register("Language settings",
+        Register(TranslationKeys.InstallationInfoLanguageSettings,
             new TextLocalizationTranslation(LanguageCodes.English, "Language settings"),
             new TextLocalizationTranslation(LanguageCodes.German, "Spracheinstellungen"));
 
-        Register("Do not share the ID with anyone",
+        Register(TranslationKeys.InstallationInfoDoNotShareId,
             new TextLocalizationTranslation(LanguageCodes.English, "Do not share the ID with anyone"),
             new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie die ID nicht an andere weiter"));
     }
