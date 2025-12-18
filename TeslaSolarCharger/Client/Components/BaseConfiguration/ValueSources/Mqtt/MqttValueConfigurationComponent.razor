@@ -1,4 +1,8 @@
-﻿@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
@@ -7,6 +11,7 @@
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ITextLocalizationService TextLocalizer
 
 <GenericValueConfigurationComponent SourceName="MQTT"
                                     ConfigurationOverviews="_mqttConfigurationOverviews"
@@ -39,8 +44,8 @@
         {
             { x => x.MqttConfigurationId, id },
         };
-        var title = id == default ? "Add" : "Edit";
-        var dialog = await DialogService.ShowAsync<MqttValueConfigurationDialog>($"{title} MQTT config", parameters, options);
+        var title = id == default ? T(TranslationKeys.ValueSourceConfigAdd) : T(TranslationKeys.ValueSourceConfigEdit);
+        var dialog = await DialogService.ShowAsync<MqttValueConfigurationDialog>(TF(TranslationKeys.ValueSourceConfigTitle, "MQTT"), parameters, options);
         var result = await dialog.Result;
         await Task.Delay(TimeSpan.FromSeconds(3));
         await RefreshRequestResults();
@@ -55,16 +60,23 @@
             };
         var parameters = new DialogParameters<DeleteDialog>
         {
-            { x => x.ElementName, "the MQTT configuration" },
+            { x => x.ElementName, T(TranslationKeys.ValueSourceConfigDeleteConfigurationItem) },
         };
-        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete MQTT config?", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(TF(TranslationKeys.ValueSourceConfigDeleteConfirm, "MQTT"), parameters, options);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
             await HttpClient.DeleteAsync($"api/MqttConfiguration/DeleteConfiguration?id={id}");
-            Snackbar.Add("MQTT configuration deleted.", Severity.Success);
+            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, "MQTT"), Severity.Success);
             await RefreshRequestResults();
         }
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string TF(string key, params object[] args) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), args);
 
 }
