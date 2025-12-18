@@ -4,21 +4,21 @@
 
 @inject ITextLocalizationService TextLocalizer
 
-@if (!string.IsNullOrWhiteSpace(TooltipText))
+@if (!string.IsNullOrWhiteSpace(Description))
 {
-    <MudTooltip Text="@(IsCrossedOut ? $"{GetTooltipPrefix()}{TooltipText}" : TooltipText)"
+    <MudTooltip Text="@Description"
                 Placement="Placement.Top"
                 Arrow="true">
         @if (IsCrossedOut)
         {
             <span class="@Class" style="position: relative; display: inline-block;">
-                <MudIcon Icon="@IconName" />
+                <MudIcon Icon="@IconName" Title="@Description" />
                 <span class="cross-line"></span>
             </span>
         }
         else
         {
-            <MudIcon Icon="@IconName" />
+            <MudIcon Icon="@IconName" Title="@Description" />
         }
     </MudTooltip>
 }
@@ -52,6 +52,11 @@ else
 
     [Parameter]
     public string? IsCrossedOutTooltipPrefix { get; set; }
+
+    private string Description =>
+        string.IsNullOrWhiteSpace(TooltipText)
+            ? string.Empty
+            : (IsCrossedOut ? $"{GetTooltipPrefix()}{TooltipText}" : TooltipText);
 
     private string GetTooltipPrefix() =>
         string.IsNullOrWhiteSpace(IsCrossedOutTooltipPrefix)
