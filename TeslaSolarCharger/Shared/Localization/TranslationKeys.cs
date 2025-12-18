@@ -432,4 +432,55 @@ public static class TranslationKeys
     public static string ChargingTargetsReduceChargingSpeed => nameof(ChargingTargetsReduceChargingSpeed);
     public static string ChargingTargetsDontReduceChargingSpeed => nameof(ChargingTargetsDontReduceChargingSpeed);
     public static string ChargingTargetSavedInDifferentTimezone => nameof(ChargingTargetSavedInDifferentTimezone);
+
+    // CarSelectorComponent
+    public static string CarSelectorComponentConnectedCar => nameof(CarSelectorComponentConnectedCar);
+
+    // RestValueConfiguration
+    public static string RestValueConfigurationUsedFor => nameof(RestValueConfigurationUsedFor);
+    public static string RestValueConfigurationOperator => nameof(RestValueConfigurationOperator);
+    public static string RestValueConfigurationAddResult => nameof(RestValueConfigurationAddResult);
+    public static string RestValueConfigurationSaveSuccess => nameof(RestValueConfigurationSaveSuccess);
+    public static string RestValueConfigurationDeleteSuccess => nameof(RestValueConfigurationDeleteSuccess);
+    public static string RestValueConfigurationHttpMethod => nameof(RestValueConfigurationHttpMethod);
+    public static string RestValueConfigurationHeaders => nameof(RestValueConfigurationHeaders);
+    public static string RestValueConfigurationAddHeader => nameof(RestValueConfigurationAddHeader);
+    public static string RestValueConfigurationTest => nameof(RestValueConfigurationTest);
+    public static string RestValueConfigurationProcessing => nameof(RestValueConfigurationProcessing);
+    public static string RestValueConfigurationNodePatternType => nameof(RestValueConfigurationNodePatternType);
+    public static string RestValueConfigurationCancel => nameof(RestValueConfigurationCancel);
+    public static string RestValueConfigurationSave => nameof(RestValueConfigurationSave);
+    public static string RestValueConfigurationConfigFormNull => nameof(RestValueConfigurationConfigFormNull);
+    public static string RestValueConfigurationConfigNull => nameof(RestValueConfigurationConfigNull);
+    public static string RestValueConfigurationConfigInvalid => nameof(RestValueConfigurationConfigInvalid);
+    public static string RestValueConfigurationResultRequired => nameof(RestValueConfigurationResultRequired);
+    public static string RestValueConfigurationResultInvalid => nameof(RestValueConfigurationResultInvalid);
+    public static string RestValueConfigurationUpdateFailed => nameof(RestValueConfigurationUpdateFailed);
+    public static string RestValueConfigurationResultDeleteFailed => nameof(RestValueConfigurationResultDeleteFailed);
+    public static string RestValueConfigurationRestStringFailed => nameof(RestValueConfigurationRestStringFailed);
+
+    // ModbusConfiguration
+    public static string ModbusConfigurationEndianess => nameof(ModbusConfigurationEndianess);
+    public static string ModbusConfigurationRegisterType => nameof(ModbusConfigurationRegisterType);
+    public static string ModbusConfigurationValueType => nameof(ModbusConfigurationValueType);
+    public static string ModbusConfigurationAddResult => nameof(ModbusConfigurationAddResult);
+    public static string ModbusConfigurationCancel => nameof(ModbusConfigurationCancel);
+    public static string ModbusConfigurationSave => nameof(ModbusConfigurationSave);
+    public static string ModbusConfigurationFormNull => nameof(ModbusConfigurationFormNull);
+    public static string ModbusConfigurationConfigNull => nameof(ModbusConfigurationConfigNull);
+    public static string ModbusConfigurationConfigInvalid => nameof(ModbusConfigurationConfigInvalid);
+    public static string ModbusConfigurationResultRequired => nameof(ModbusConfigurationResultRequired);
+    public static string ModbusConfigurationResultInvalid => nameof(ModbusConfigurationResultInvalid);
+    public static string ModbusConfigurationUpdateFailed => nameof(ModbusConfigurationUpdateFailed);
+    public static string ModbusConfigurationSaveSuccess => nameof(ModbusConfigurationSaveSuccess);
+    public static string ModbusConfigurationDeleteFailed => nameof(ModbusConfigurationDeleteFailed);
+    public static string ModbusConfigurationDeleteSuccess => nameof(ModbusConfigurationDeleteSuccess);
+
+    // RestPvValueComponent
+    public static string RestPvValueComponentUseModbusUrlCreationTool => nameof(RestPvValueComponentUseModbusUrlCreationTool);
+    public static string RestPvValueComponentUseModbusUrlCreationToolHint => nameof(RestPvValueComponentUseModbusUrlCreationToolHint);
+    public static string RestPvValueComponentHeaders => nameof(RestPvValueComponentHeaders);
+    public static string RestPvValueComponentKey => nameof(RestPvValueComponentKey);
+    public static string RestPvValueComponentValue => nameof(RestPvValueComponentValue);
+    public static string RestPvValueComponentAddNewHeader => nameof(RestPvValueComponentAddNewHeader);
 }
