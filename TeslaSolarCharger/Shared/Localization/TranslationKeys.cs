@@ -249,4 +249,187 @@ public static class TranslationKeys
     public static string ValueSourceConfigResultDeleted => nameof(ValueSourceConfigResultDeleted);
     public static string ValueSourceConfigCurrentRestStringFailed => nameof(ValueSourceConfigCurrentRestStringFailed);
     public static string ValueSourceConfigConfigurationValidationFailed => nameof(ValueSourceConfigConfigurationValidationFailed);
+
+    public static string InstallationInfoServerTimezone => nameof(InstallationInfoServerTimezone);
+    public static string InstallationInfoServerTime => nameof(InstallationInfoServerTime);
+    public static string InstallationInfoVersion => nameof(InstallationInfoVersion);
+    public static string InstallationInfoInstallationId => nameof(InstallationInfoInstallationId);
+    public static string InstallationInfoLanguageSettings => nameof(InstallationInfoLanguageSettings);
+    public static string InstallationInfoDoNotShareId => nameof(InstallationInfoDoNotShareId);
+
+    public static string BackupRestorePageTitle => nameof(BackupRestorePageTitle);
+    public static string BackupRestoreInfoText => nameof(BackupRestoreInfoText);
+    public static string BackupSectionTitle => nameof(BackupSectionTitle);
+    public static string BackupWarning => nameof(BackupWarning);
+    public static string BackupProcessingMessage => nameof(BackupProcessingMessage);
+    public static string BackupStartButton => nameof(BackupStartButton);
+    public static string RestoreSectionTitle => nameof(RestoreSectionTitle);
+    public static string RestoreWarning => nameof(RestoreWarning);
+    public static string RestoreSelectFileButton => nameof(RestoreSelectFileButton);
+    public static string RestoreStartButton => nameof(RestoreStartButton);
+    public static string RestoreAutoBackupsTitle => nameof(RestoreAutoBackupsTitle);
+    public static string RestoreDownloadButton => nameof(RestoreDownloadButton);
+    public static string RestoreFileTooBigError => nameof(RestoreFileTooBigError);
+    public static string RestoreNoFileSelectedError => nameof(RestoreNoFileSelectedError);
+    public static string RestoreError => nameof(RestoreError);
+    public static string RestoreSuccessMessage => nameof(RestoreSuccessMessage);
+    public static string RestoreFatalError => nameof(RestoreFatalError);
+    public static string RestoreRefreshError => nameof(RestoreRefreshError);
+    public static string RestoreNoBackupsFound => nameof(RestoreNoBackupsFound);
+
+    public static string ChargingStationConnectorCurrentWarningTitle => nameof(ChargingStationConnectorCurrentWarningTitle);
+    public static string ChargingStationConnectorCurrentWarningContent => nameof(ChargingStationConnectorCurrentWarningContent);
+    public static string ChargingStationConnectorSaved => nameof(ChargingStationConnectorSaved);
+
+    public static string FleetApiTestLoading => nameof(FleetApiTestLoading);
+    public static string FleetApiTestSuccess => nameof(FleetApiTestSuccess);
+    public static string FleetApiTestFailed => nameof(FleetApiTestFailed);
+    public static string FleetApiTestFailedHint => nameof(FleetApiTestFailedHint);
+    public static string FleetApiTestAgainButton => nameof(FleetApiTestAgainButton);
+    public static string FleetApiTestRegisterLink => nameof(FleetApiTestRegisterLink);
+    public static string FleetApiTestNotTested => nameof(FleetApiTestNotTested);
+    public static string FleetApiTestNotConfigured => nameof(FleetApiTestNotConfigured);
+    public static string FleetApiTestRegisteredButNotTested => nameof(FleetApiTestRegisteredButNotTested);
+
+    public static string HiddenErrorsTitle => nameof(HiddenErrorsTitle);
+    public static string HiddenErrorsDescription => nameof(HiddenErrorsDescription);
+    public static string HiddenErrorsUpdateHint => nameof(HiddenErrorsUpdateHint);
+    public static string HiddenErrorsReasonFormat => nameof(HiddenErrorsReasonFormat);
+    public static string HiddenErrorsReasonNotEnoughOccurrences => nameof(HiddenErrorsReasonNotEnoughOccurrences);
+    public static string HiddenErrorsReasonDismissed => nameof(HiddenErrorsReasonDismissed);
+
+    public static string LoggedErrorsTitle => nameof(LoggedErrorsTitle);
+    public static string LoggedErrorsUpdateHint => nameof(LoggedErrorsUpdateHint);
+
+    public static string MerryChristmas => nameof(MerryChristmas);
+    public static string HappyNewYear => nameof(HappyNewYear);
+
+    public static string ChargingTargetDialogTitle => nameof(ChargingTargetDialogTitle);
+    public static string ChargingTargetTimezoneWarningTitle => nameof(ChargingTargetTimezoneWarningTitle);
+    public static string ChargingTargetTimezoneWarningContent => nameof(ChargingTargetTimezoneWarningContent);
+    public static string ChargingTargetRepeatOn => nameof(ChargingTargetRepeatOn);
+    public static string ChargingTargetProcessing => nameof(ChargingTargetProcessing);
+    public static string ChargingTargetSave => nameof(ChargingTargetSave);
+    public static string ChargingTargetCancel => nameof(ChargingTargetCancel);
+    public static string ChargingTargetSaved => nameof(ChargingTargetSaved);
+
+    public static string AddCarDialogTitle => nameof(AddCarDialogTitle);
+    public static string AddCarTokenInvalidTitle => nameof(AddCarTokenInvalidTitle);
+    public static string AddCarTokenInvalidContent => nameof(AddCarTokenInvalidContent);
+    public static string AddCarCloudConnectionLink => nameof(AddCarCloudConnectionLink);
+
+    public static string CarDetailsConnectedToServer => nameof(CarDetailsConnectedToServer);
+    public static string CarDetailsAtHome => nameof(CarDetailsAtHome);
+    public static string CarDetailsPluggedIn => nameof(CarDetailsPluggedIn);
+    public static string CarDetailsCharging => nameof(CarDetailsCharging);
+    public static string CarDetailsFleetTelemetryWarningTime => nameof(CarDetailsFleetTelemetryWarningTime);
+    public static string CarDetailsFleetTelemetryWarningSleep => nameof(CarDetailsFleetTelemetryWarningSleep);
+    public static string CarDetailsSocLabel => nameof(CarDetailsSocLabel);
+    public static string CarDetailsCarLimitLabel => nameof(CarDetailsCarLimitLabel);
+    public static string CarDetailsManualSocWarning => nameof(CarDetailsManualSocWarning);
+    public static string CarDetailsStateOfChargeLabel => nameof(CarDetailsStateOfChargeLabel);
+    public static string CarDetailsChargeModeLabel => nameof(CarDetailsChargeModeLabel);
+    public static string CarDetailsManualModeTeslaHint => nameof(CarDetailsManualModeTeslaHint);
+    public static string CarDetailsCurrentToSetLabel => nameof(CarDetailsCurrentToSetLabel);
+    public static string CarDetailsSetCurrentButton => nameof(CarDetailsSetCurrentButton);
+    public static string CarDetailsManualModeNoOcppHint => nameof(CarDetailsManualModeNoOcppHint);
+    public static string CarDetailsMinSocUpdated => nameof(CarDetailsMinSocUpdated);
+    public static string CarDetailsMaxSocUpdated => nameof(CarDetailsMaxSocUpdated);
+    public static string CarDetailsChargeModeUpdated => nameof(CarDetailsChargeModeUpdated);
+    public static string CarDetailsValidCurrentRequired => nameof(CarDetailsValidCurrentRequired);
+    public static string CarDetailsCommandSent => nameof(CarDetailsCommandSent);
+    public static string CarDetailsValidSocRequired => nameof(CarDetailsValidSocRequired);
+    public static string CarDetailsSocRangeError => nameof(CarDetailsSocRangeError);
+    public static string CarDetailsSocUpdated => nameof(CarDetailsSocUpdated);
+
+    public static string ChargeSummarySolarEnergy => nameof(ChargeSummarySolarEnergy);
+    public static string ChargeSummaryHomeBatteryEnergy => nameof(ChargeSummaryHomeBatteryEnergy);
+    public static string ChargeSummaryGridEnergy => nameof(ChargeSummaryGridEnergy);
+    public static string ChargeSummaryCost => nameof(ChargeSummaryCost);
+    public static string ChargeSummaryPricePerKwh => nameof(ChargeSummaryPricePerKwh);
+
+    public static string ChargingSchedulesChartTitle => nameof(ChargingSchedulesChartTitle);
+    public static string ChargingSchedulesChartSeriesName => nameof(ChargingSchedulesChartSeriesName);
+    public static string ChargingSchedulesChartGridPriceSeriesName => nameof(ChargingSchedulesChartGridPriceSeriesName);
+    public static string ChargingSchedulesChartYAxisPower => nameof(ChargingSchedulesChartYAxisPower);
+    public static string ChargingSchedulesChartYAxisPrice => nameof(ChargingSchedulesChartYAxisPrice);
+
+    public static string ChargingSchedulesNothingPlanned => nameof(ChargingSchedulesNothingPlanned);
+    public static string ChargingSchedulesNextStart => nameof(ChargingSchedulesNextStart);
+    public static string ChargingSchedulesReasonSolar => nameof(ChargingSchedulesReasonSolar);
+    public static string ChargingSchedulesReasonBattery => nameof(ChargingSchedulesReasonBattery);
+    public static string ChargingSchedulesReasonGridPrice => nameof(ChargingSchedulesReasonGridPrice);
+    public static string ChargingSchedulesReasonBridge => nameof(ChargingSchedulesReasonBridge);
+    public static string ChargingSchedulesReasonLatestTime => nameof(ChargingSchedulesReasonLatestTime);
+
+    public static string EnergyPredictionDateLabel => nameof(EnergyPredictionDateLabel);
+    public static string EnergyPredictionBatterySocSeries => nameof(EnergyPredictionBatterySocSeries);
+    public static string EnergyPredictionUnitKwh => nameof(EnergyPredictionUnitKwh);
+    public static string EnergyPredictionUnitPercent => nameof(EnergyPredictionUnitPercent);
+    public static string EnergyPredictionSolarPredictionFromNow => nameof(EnergyPredictionSolarPredictionFromNow);
+    public static string EnergyPredictionSolarPrediction => nameof(EnergyPredictionSolarPrediction);
+    public static string EnergyPredictionSolarActual => nameof(EnergyPredictionSolarActual);
+    public static string EnergyPredictionHousePrediction => nameof(EnergyPredictionHousePrediction);
+    public static string EnergyPredictionHouseActual => nameof(EnergyPredictionHouseActual);
+    public static string EnergyPredictionBatteryCharged => nameof(EnergyPredictionBatteryCharged);
+    public static string EnergyPredictionBatteryDischarged => nameof(EnergyPredictionBatteryDischarged);
+    public static string EnergyPredictionToGrid => nameof(EnergyPredictionToGrid);
+    public static string EnergyPredictionFromGrid => nameof(EnergyPredictionFromGrid);
+    public static string EnergyPredictionDateFutureError => nameof(EnergyPredictionDateFutureError);
+
+    public static string ManualOcppCurrentToSet => nameof(ManualOcppCurrentToSet);
+    public static string ManualOcppPhases => nameof(ManualOcppPhases);
+    public static string ManualOcppPhasesHint => nameof(ManualOcppPhasesHint);
+    public static string ManualOcppStart => nameof(ManualOcppStart);
+    public static string ManualOcppStop => nameof(ManualOcppStop);
+    public static string ManualOcppSetCurrentAndPhases => nameof(ManualOcppSetCurrentAndPhases);
+    public static string ManualOcppConnectorNotSetError => nameof(ManualOcppConnectorNotSetError);
+    public static string ManualOcppCurrentRequiredError => nameof(ManualOcppCurrentRequiredError);
+    public static string ManualOcppCommandSent => nameof(ManualOcppCommandSent);
+
+    public static string ModbusUrlUnitIdentifier => nameof(ModbusUrlUnitIdentifier);
+    public static string ModbusUrlRegisterType => nameof(ModbusUrlRegisterType);
+    public static string ModbusUrlValueType => nameof(ModbusUrlValueType);
+    public static string ModbusUrlRegisterAddress => nameof(ModbusUrlRegisterAddress);
+    public static string ModbusUrlQuantity => nameof(ModbusUrlQuantity);
+    public static string ModbusUrlIpAddress => nameof(ModbusUrlIpAddress);
+    public static string ModbusUrlPort => nameof(ModbusUrlPort);
+    public static string ModbusUrlSwapRegister => nameof(ModbusUrlSwapRegister);
+    public static string ModbusUrlConnectDelay => nameof(ModbusUrlConnectDelay);
+    public static string ModbusUrlReadTimeout => nameof(ModbusUrlReadTimeout);
+
+    public static string NodePatternResultType => nameof(NodePatternResultType);
+    public static string NodePatternJsonPattern => nameof(NodePatternJsonPattern);
+    public static string NodePatternXmlPattern => nameof(NodePatternXmlPattern);
+    public static string NodePatternXmlHeaderName => nameof(NodePatternXmlHeaderName);
+    public static string NodePatternXmlHeaderValue => nameof(NodePatternXmlHeaderValue);
+    public static string NodePatternXmlValueName => nameof(NodePatternXmlValueName);
+
+    public static string FixedPriceFromHour => nameof(FixedPriceFromHour);
+    public static string FixedPriceFromMinute => nameof(FixedPriceFromMinute);
+    public static string FixedPriceToHour => nameof(FixedPriceToHour);
+    public static string FixedPriceToMinute => nameof(FixedPriceToMinute);
+
+    public static string HomePaypalAltText => nameof(HomePaypalAltText);
+
+    public static string ChargingTargetsTitle => nameof(ChargingTargetsTitle);
+    public static string ChargingTargetsAddButton => nameof(ChargingTargetsAddButton);
+    public static string ChargingTargetsNothingPlanned => nameof(ChargingTargetsNothingPlanned);
+    public static string ChargingTargetsSavedInDifferentTimezone => nameof(ChargingTargetsSavedInDifferentTimezone);
+    public static string ChargingTargetsTimezoneMismatchContent => nameof(ChargingTargetsTimezoneMismatchContent);
+    public static string ChargingTargetsGridPricesUnknown => nameof(ChargingTargetsGridPricesUnknown);
+    public static string ChargingTargetsGridPricesUnknownContent => nameof(ChargingTargetsGridPricesUnknownContent);
+    public static string ChargingTargetsDeleted => nameof(ChargingTargetsDeleted);
+    public static string ChargingTargetsTargetSoc => nameof(ChargingTargetsTargetSoc);
+    public static string ChargingTargetsDischargeHomeBattery => nameof(ChargingTargetsDischargeHomeBattery);
+    public static string ChargingTargetsTargetTime => nameof(ChargingTargetsTargetTime);
+    public static string ChargingTargetsNoTimeConfigured => nameof(ChargingTargetsNoTimeConfigured);
+    public static string ChargingTargetsRepeatsOn => nameof(ChargingTargetsRepeatsOn);
+    public static string ChargingTargetsRunsOn => nameof(ChargingTargetsRunsOn);
+    public static string ChargingTargetsNoDateConfigured => nameof(ChargingTargetsNoDateConfigured);
+    public static string ChargingTargetsHomeBattery => nameof(ChargingTargetsHomeBattery);
+    public static string ChargingTargetsDischargeToMinSoc => nameof(ChargingTargetsDischargeToMinSoc);
+    public static string ChargingTargetsReduceChargingSpeed => nameof(ChargingTargetsReduceChargingSpeed);
+    public static string ChargingTargetsDontReduceChargingSpeed => nameof(ChargingTargetsDontReduceChargingSpeed);
+    public static string ChargingTargetSavedInDifferentTimezone => nameof(ChargingTargetSavedInDifferentTimezone);
 }

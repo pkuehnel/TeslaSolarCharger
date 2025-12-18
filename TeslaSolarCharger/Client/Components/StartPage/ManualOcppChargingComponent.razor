@@ -1,6 +1,7 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using System.Globalization
 @using TeslaSolarCharger.Shared.Attributes
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -11,18 +12,18 @@
 
 
 <GenericInput For="() => CurrentToSet"
-              LabelName='@T("Current to set")'></GenericInput>
+              LabelName='@T(TranslationKeys.ManualOcppCurrentToSet)'></GenericInput>
 <GenericInput For="() => Phases"
-              LabelName='@T("Phases")'
-              HelperText='@T("If your Charging station supports phase switching, you can set the number of phases here.")'></GenericInput>
+              LabelName='@T(TranslationKeys.ManualOcppPhases)'
+              HelperText='@T(TranslationKeys.ManualOcppPhasesHint)'></GenericInput>
 <div class="d-flex flex-wrap gap-2">
-    <RightAlignedButtonComponent ButtonText='@T("Start Charging")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.ManualOcppStart)'
                                  IsLoading="@_isCommandLoading"
                                  OnButtonClicked="@(StartCharging)"></RightAlignedButtonComponent>
-    <RightAlignedButtonComponent ButtonText='@T("Stop Charging")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.ManualOcppStop)'
                                  IsLoading="@_isCommandLoading"
                                  OnButtonClicked="@(StopCharging)"></RightAlignedButtonComponent>
-    <RightAlignedButtonComponent ButtonText='@T("Set Current and Phases")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.ManualOcppSetCurrentAndPhases)'
                                  IsLoading="@_isCommandLoading"
                                  OnButtonClicked="@(SetCurrentAndPhases)"></RightAlignedButtonComponent>
 </div>
@@ -43,13 +44,13 @@
     {
         if (ChargingConnectorId == default)
         {
-            Snackbar.Add(T("ChargingConnectorId not set"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ManualOcppConnectorNotSetError), Severity.Error);
             return;
         }
 
         if (CurrentToSet == default)
         {
-            Snackbar.Add(T("Current required"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ManualOcppCurrentRequiredError), Severity.Error);
             return;
         }
 
@@ -61,7 +62,7 @@
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.ManualOcppCommandSent), Severity.Success);
         }
         _isCommandLoading = false;
     }
@@ -70,13 +71,13 @@
     {
         if (ChargingConnectorId == default)
         {
-            Snackbar.Add(T("ChargingConnectorId not set"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ManualOcppConnectorNotSetError), Severity.Error);
             return;
         }
 
         if (CurrentToSet == default)
         {
-            Snackbar.Add(T("Current required."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ManualOcppCurrentRequiredError), Severity.Error);
             return;
         }
 
@@ -88,7 +89,7 @@
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.ManualOcppCommandSent), Severity.Success);
         }
         _isCommandLoading = false;
     }
@@ -97,7 +98,7 @@
     {
         if (ChargingConnectorId == default)
         {
-            Snackbar.Add(T("ChargingConnectorId not set"), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ManualOcppConnectorNotSetError), Severity.Error);
             return;
         }
 
@@ -109,7 +110,7 @@
         }
         else
         {
-            Snackbar.Add(T("Command successfully sent"), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.ManualOcppCommandSent), Severity.Success);
         }
         _isCommandLoading = false;
     }

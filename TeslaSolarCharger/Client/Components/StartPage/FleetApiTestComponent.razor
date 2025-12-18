@@ -1,8 +1,9 @@
-﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using System.Globalization
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -26,7 +27,7 @@
 {
     <div>
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        <span class="sr-only">@T("Testing Fleet API access might take about 30 seconds...")</span>
+        <span class="sr-only">@T(TranslationKeys.FleetApiTestLoading)</span>
     </div>
 }
 else if (_initialLoaded)
@@ -35,18 +36,18 @@ else if (_initialLoaded)
     {
         <MudAlert Severity="Severity.Success" Class="mb-3">
             <div>
-                @T("API access is working.")
+                @T(TranslationKeys.FleetApiTestSuccess)
             </div>
         </MudAlert>
     }
     else if (_testSucceeded == false)
     {
         <MudAlert Severity="Severity.Error" Class="mb-3">
-            <div>@T("API access is not working.")</div>
+            <div>@T(TranslationKeys.FleetApiTestFailed)</div>
             <hr />
             <p>
-                <span>@T("Note: For the test the car needs to be awake. If the car was not awake, wake it up and")</span>&nbsp;
-                <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T("test again")</button>.
+                <span>@T(TranslationKeys.FleetApiTestFailedHint)</span>&nbsp;
+                <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T(TranslationKeys.FleetApiTestAgainButton)</button>.
                 <br />
                 <span>@T("If it still does not work, go to your car and under Controls -> Locks you can check if a key named \"solar4car.com\" is present. If not try adding the key again by clicking")</span>&nbsp;
                 <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage()">@T("here")</button>.
@@ -56,7 +57,7 @@ else if (_initialLoaded)
     else if (_fleetApiState == default)
     {
         <div class="alert alert-danger" role="alert">
-            <span>@T("You did not test the Fleet API connection, yet. Wake up the car by opening a door, wait about 30 seconds and click")</span>&nbsp;
+            <span>@T(TranslationKeys.FleetApiTestNotTested)</span>&nbsp;
             <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T("here")</button>&nbsp;
             <span>@T("to test the connection.")</span>
         </div>
@@ -64,9 +65,9 @@ else if (_initialLoaded)
     else if (_fleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
     {
         <div class="alert alert-danger" role="alert">
-            <span>@T("TSC is not registered in car, click")</span>&nbsp;
+            <span>@T(TranslationKeys.FleetApiTestNotConfigured)</span>&nbsp;
             <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage()">@T("here")</button>&nbsp;
-            <span>@T("to register the car.")</span>
+            <span>@T(TranslationKeys.FleetApiTestRegisterLink)</span>
             <br />
             @T("Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.")
         </div>
@@ -74,7 +75,7 @@ else if (_initialLoaded)
     else if (_fleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
     {
         <div class="alert alert-danger" role="alert">
-            <span>@T("You registered the car but did not test the connection yet. Click")</span>&nbsp;
+            <span>@T(TranslationKeys.FleetApiTestRegisteredButNotTested)</span>&nbsp;
             <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T("here")</button>&nbsp;
             <span>@T("to test the connection.")</span>
         </div>

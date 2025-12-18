@@ -1,11 +1,16 @@
-﻿@using System.Web
+@using System.Web
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
+@inject ITextLocalizationService TextLocalizer
 
 <div class="mb-3">
     <InputComponent ValueId="@($"{IdPrefix}ModbusUnitIdentifier")"
-                    LabelText="Unit Identifier"
+                    LabelText="@T(TranslationKeys.ModbusUrlUnitIdentifier)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -14,7 +19,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}RegisterType")"
-                    LabelText="Register Type"
+                    LabelText="@T(TranslationKeys.ModbusUrlRegisterType)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -28,7 +33,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ValueType")"
-                    LabelText="Value Type"
+                    LabelText="@T(TranslationKeys.ModbusUrlValueType)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -44,7 +49,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusStartingAddress")"
-                    LabelText="Register Address"
+                    LabelText="@T(TranslationKeys.ModbusUrlRegisterAddress)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -53,7 +58,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusQuantity")"
-                    LabelText="Number of Registers"
+                    LabelText="@T(TranslationKeys.ModbusUrlQuantity)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -62,7 +67,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusIpAddress")"
-                    LabelText="IP address"
+                    LabelText="@T(TranslationKeys.ModbusUrlIpAddress)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -71,7 +76,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusPort")"
-                    LabelText="Port"
+                    LabelText="@T(TranslationKeys.ModbusUrlPort)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -82,12 +87,12 @@
     <div class="mb-3 form-check">
         <input class="form-check-input" @bind="@SwapRegisters" type="checkbox" id="@($"{IdPrefix}SwapRegisters")" >
         <label class="form-check-label" for="@($"{IdPrefix}SwapRegisters")">
-            Swap Register (bigEndian / littleEndian):
+            @T(TranslationKeys.ModbusUrlSwapRegister)
         </label>
     </div>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusConnectDelaySeconds")"
-                    LabelText="Connect Delay"
+                    LabelText="@T(TranslationKeys.ModbusUrlConnectDelay)"
                     UnitText="s"
                     HelpText="">
         <InputFragment>
@@ -96,7 +101,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusTimeoutSeconds")"
-                    LabelText="Read Timeout"
+                    LabelText="@T(TranslationKeys.ModbusUrlReadTimeout)"
                     UnitText="s"
                     HelpText="">
         <InputFragment>
@@ -305,4 +310,8 @@
         ModbusUrl = $"http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier={ModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}&modbusValueType={ValueType}&modbusRegisterType={RegisterType}&registerSwap={SwapRegisters}";
         await ModbusUrlChanged.InvokeAsync(ModbusUrl).ConfigureAwait(false);
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }
