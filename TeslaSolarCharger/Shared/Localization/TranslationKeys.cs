@@ -204,4 +204,49 @@ public static class TranslationKeys
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);
     public static string NavMenuOverview => nameof(NavMenuOverview);
     public static string NavMenuBackupAndRestore => nameof(NavMenuBackupAndRestore);
+
+    public static string GenericValueConfigurationSources => nameof(GenericValueConfigurationSources);
+    public static string GenericValueConfigurationRefreshValues => nameof(GenericValueConfigurationRefreshValues);
+    public static string GenericValueConfigurationNotAvailable => nameof(GenericValueConfigurationNotAvailable);
+    public static string GenericValueConfigurationConfigure => nameof(GenericValueConfigurationConfigure);
+    public static string GenericValueConfigurationDelete => nameof(GenericValueConfigurationDelete);
+    public static string GenericValueConfigurationAddNewSource => nameof(GenericValueConfigurationAddNewSource);
+
+    public static string ValueSourceConfigAdd => nameof(ValueSourceConfigAdd);
+    public static string ValueSourceConfigEdit => nameof(ValueSourceConfigEdit);
+    public static string ValueSourceConfigDelete => nameof(ValueSourceConfigDelete);
+    public static string ValueSourceConfigSave => nameof(ValueSourceConfigSave);
+    public static string ValueSourceConfigSaved => nameof(ValueSourceConfigSaved);
+    public static string ValueSourceConfigDeleted => nameof(ValueSourceConfigDeleted);
+    public static string ValueSourceConfigCancel => nameof(ValueSourceConfigCancel);
+    public static string ValueSourceConfigTest => nameof(ValueSourceConfigTest);
+    public static string ValueSourceConfigProcessing => nameof(ValueSourceConfigProcessing);
+    public static string ValueSourceConfigAddResult => nameof(ValueSourceConfigAddResult);
+    public static string ValueSourceConfigAddHeader => nameof(ValueSourceConfigAddHeader);
+    public static string ValueSourceConfigHeaders => nameof(ValueSourceConfigHeaders);
+    public static string ValueSourceConfigTitle => nameof(ValueSourceConfigTitle);
+    public static string ValueSourceConfigDeleteConfirm => nameof(ValueSourceConfigDeleteConfirm);
+    public static string ValueSourceConfigDeleteConfigurationItem => nameof(ValueSourceConfigDeleteConfigurationItem);
+    public static string ValueSourceConfigConfigurationDeleted => nameof(ValueSourceConfigConfigurationDeleted);
+
+    public static string ValueSourceConfigNodePatternType => nameof(ValueSourceConfigNodePatternType);
+    public static string ValueSourceConfigUsedFor => nameof(ValueSourceConfigUsedFor);
+    public static string ValueSourceConfigOperator => nameof(ValueSourceConfigOperator);
+    public static string ValueSourceConfigSolar => nameof(ValueSourceConfigSolar);
+    public static string ValueSourceConfigRegisterType => nameof(ValueSourceConfigRegisterType);
+    public static string ValueSourceConfigValueType => nameof(ValueSourceConfigValueType);
+    public static string ValueSourceConfigEndianess => nameof(ValueSourceConfigEndianess);
+    public static string ValueSourceConfigHttpMethod => nameof(ValueSourceConfigHttpMethod);
+    public static string ValueSourceConfigType => nameof(ValueSourceConfigType);
+
+    public static string ValueSourceConfigFormNull => nameof(ValueSourceConfigFormNull);
+    public static string ValueSourceConfigConfigNull => nameof(ValueSourceConfigConfigNull);
+    public static string ValueSourceConfigConfigInvalid => nameof(ValueSourceConfigConfigInvalid);
+    public static string ValueSourceConfigResultRequired => nameof(ValueSourceConfigResultRequired);
+    public static string ValueSourceConfigResultInvalid => nameof(ValueSourceConfigResultInvalid);
+    public static string ValueSourceConfigUpdateFailed => nameof(ValueSourceConfigUpdateFailed);
+    public static string ValueSourceConfigResultDeleteFailed => nameof(ValueSourceConfigResultDeleteFailed);
+    public static string ValueSourceConfigResultDeleted => nameof(ValueSourceConfigResultDeleted);
+    public static string ValueSourceConfigCurrentRestStringFailed => nameof(ValueSourceConfigCurrentRestStringFailed);
+    public static string ValueSourceConfigConfigurationValidationFailed => nameof(ValueSourceConfigConfigurationValidationFailed);
 }
