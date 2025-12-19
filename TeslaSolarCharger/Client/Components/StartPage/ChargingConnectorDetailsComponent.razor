@@ -3,6 +3,7 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -48,6 +49,7 @@ else
                 <div class="me-2 flex-grow-0">
                     <MudIconButton Icon="@Icons.Material.Outlined.Info"
                                    Color="Color.Primary"
+                                   AriaLabel="@T(TranslationKeys.CarDetailsChargeModeInfoLabel)"
                                    OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
                 </div>
             </div>

@@ -50,6 +50,10 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Mode"),
             new TextLocalizationTranslation(LanguageCodes.German, "Lademodus"));
 
+        Register(TranslationKeys.CarDetailsChargeModeInfoLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge Mode Info"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Lademodus Info"));
+
         Register(TranslationKeys.CarDetailsManualModeTeslaHint,
             new TextLocalizationTranslation(LanguageCodes.English, "You need to manually wake up the car and start charging via the Tesla app. You can only change the current here."),
             new TextLocalizationTranslation(LanguageCodes.German, "Sie müssen das Auto manuell aufwecken und den Ladevorgang über die Tesla-App starten. Sie können hier nur den Strom ändern."));
