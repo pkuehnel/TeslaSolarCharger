@@ -1,4 +1,5 @@
 @page "/HandledCharges"
+@using System.Globalization
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
@@ -110,28 +111,28 @@ else
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-        DisplayFormat = "\u2211: {value}",
     };
 
     private AggregateDefinition<DtoHandledCharge> _pricePerKwhAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Custom,
-        CustomAggregate = x =>
-        {
-            var averagePricePerKwh = x.Average(z => z.PricePerKwh);
-            var resultString = $"\u2300: {averagePricePerKwh:F3}";
-            return resultString;
-        },
     };
 
     private AggregateDefinition<DtoHandledCharge> _usedEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-        DisplayFormat = "\u2211: {value}",
     };
 
     protected override async Task OnParametersSetAsync()
     {
+        _calculatedPriceAggregation.DisplayFormat = T(TranslationKeys.HandledChargesListSumFormat);
+        _usedEnergyAggrregation.DisplayFormat = T(TranslationKeys.HandledChargesListSumFormat);
+        _pricePerKwhAggregation.CustomAggregate = x =>
+        {
+            var averagePricePerKwh = x.Average(z => z.PricePerKwh);
+            var resultString = string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HandledChargesListAverageFormat), averagePricePerKwh);
+            return resultString;
+        };
         await RefreshList();
     }
 
