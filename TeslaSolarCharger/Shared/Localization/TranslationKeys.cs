@@ -445,6 +445,7 @@ public static class TranslationKeys
     public static string ChargingTargetsDontReduceChargingSpeed => nameof(ChargingTargetsDontReduceChargingSpeed);
     public static string ChargingTargetSavedInDifferentTimezone => nameof(ChargingTargetSavedInDifferentTimezone);
 
+
     public static string SpotPriceRegionDELU => nameof(SpotPriceRegionDELU);
     public static string SpotPriceRegionAT => nameof(SpotPriceRegionAT);
     public static string SpotPriceRegionCH => nameof(SpotPriceRegionCH);
@@ -453,4 +454,36 @@ public static class TranslationKeys
     public static string HomeDetectionViaLocatedAtHome => nameof(HomeDetectionViaLocatedAtHome);
     public static string HomeDetectionViaLocatedAtWork => nameof(HomeDetectionViaLocatedAtWork);
     public static string HomeDetectionViaLocatedAtFavorite => nameof(HomeDetectionViaLocatedAtFavorite);
+    public static string PowerBufferUpdated => nameof(PowerBufferUpdated);
+    public static string PowerBufferUpdateFailed => nameof(PowerBufferUpdateFailed);
+    public static string NotChargingReasonsSingular => nameof(NotChargingReasonsSingular);
+    public static string NotChargingReasonsPlural => nameof(NotChargingReasonsPlural);
+    public static string NotChargingRemainingSuffix => nameof(NotChargingRemainingSuffix);
+    public static string HiddenErrorsOccurrenceCount => nameof(HiddenErrorsOccurrenceCount);
+    public static string LoadpointPhaseTooltipFormat => nameof(LoadpointPhaseTooltipFormat);
+    public static string LoggedErrorsOccurrenceCount => nameof(LoggedErrorsOccurrenceCount);
+    public static string ChargingConnectorDetailsConnectedViaOcpp => nameof(ChargingConnectorDetailsConnectedViaOcpp);
+    public static string ChargingConnectorDetailsPluggedIn => nameof(ChargingConnectorDetailsPluggedIn);
+    public static string ChargingConnectorDetailsCharging => nameof(ChargingConnectorDetailsCharging);
+    public static string ChargingConnectorDetailsNotSet => nameof(ChargingConnectorDetailsNotSet);
+    public static string ChargingConnectorDetailsFailedToUpdateChargeMode => nameof(ChargingConnectorDetailsFailedToUpdateChargeMode);
+    public static string ChargingConnectorDetailsChargeModeUpdated => nameof(ChargingConnectorDetailsChargeModeUpdated);
+    public static string CarSelectorConnectedCarLabel => nameof(CarSelectorConnectedCarLabel);
+    public static string ChargingScheduleHeaderScheduleReasons => nameof(ChargingScheduleHeaderScheduleReasons);
+    public static string ChargingScheduleHeaderValidFrom => nameof(ChargingScheduleHeaderValidFrom);
+    public static string ChargingScheduleHeaderValidTo => nameof(ChargingScheduleHeaderValidTo);
+    public static string ChargingScheduleHeaderEstimatedChargingPower => nameof(ChargingScheduleHeaderEstimatedChargingPower);
+    public static string LegendItemUnitKwh => nameof(LegendItemUnitKwh);
+    public static string ManualOcppErrorFormat => nameof(ManualOcppErrorFormat);
+    public static string FleetApiTestKeyCheckHint => nameof(FleetApiTestKeyCheckHint);
+    public static string FleetApiTestHereLink => nameof(FleetApiTestHereLink);
+    public static string FleetApiTestTestConnectionLinkSuffix => nameof(FleetApiTestTestConnectionLinkSuffix);
+    public static string FleetApiTestRegisterCarNote => nameof(FleetApiTestRegisterCarNote);
+    public static string FleetApiTestStateLoadError => nameof(FleetApiTestStateLoadError);
+    public static string ChargingTargetsDeleteFailed => nameof(ChargingTargetsDeleteFailed);
+    public static string CarDetailsFailedToUpdateMinSoc => nameof(CarDetailsFailedToUpdateMinSoc);
+    public static string CarDetailsFailedToUpdateMaxSoc => nameof(CarDetailsFailedToUpdateMaxSoc);
+    public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
+    public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
+
 }

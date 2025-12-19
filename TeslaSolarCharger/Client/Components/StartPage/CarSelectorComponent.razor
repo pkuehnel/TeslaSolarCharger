@@ -1,6 +1,12 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+
 @inject IHomeService HomeService
 @inject ILogger<CarSelectorComponent> Logger
+@inject ITextLocalizationService TextLocalizer
 
 @if (_carOptions == default)
 {
@@ -11,7 +17,7 @@ else
     <GenericInput T="int?"
                   @key="_genericInputKey"
                   For="() => LocalSelectedCarId"
-                  LabelName="Connected car"
+                  LabelName='@T(TranslationKeys.CarSelectorConnectedCarLabel)'
                   DropDownOptions="_carOptions"
                   OnValueChanged="OnLocalCarChanged"></GenericInput>
 }
@@ -57,4 +63,7 @@ else
         await OnCarSelected.InvokeAsync(carIdToInvoke);
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<CarSelectorComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

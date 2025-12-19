@@ -1,10 +1,17 @@
-﻿<MudTooltip Text="@TooltipText"
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudTooltip Text="@TooltipText"
             RootClass="@(string.Empty)"
             Placement="Placement.Left"
             Arrow="true">
     <div class="d-flex align-items-center" @onclick:stopPropagation="true" @ontouchstart:stopPropagation="true">
         <MudIcon Icon="@Icon" Style="@($"color: {Color};")" />
-        <span class="text-nowrap">@($"{Value:F1}") kWh</span>
+        <span class="text-nowrap">@($"{Value:F1}") @T(TranslationKeys.LegendItemUnitKwh)</span>
     </div>
 </MudTooltip>
 @code {
@@ -12,4 +19,8 @@
     [Parameter] public string Color { get; set; } = string.Empty;
     [Parameter] public string Icon { get; set; } = string.Empty;
     [Parameter] public decimal Value { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<LegendItemComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }
