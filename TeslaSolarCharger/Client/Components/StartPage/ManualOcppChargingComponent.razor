@@ -12,7 +12,8 @@
 
 
 <GenericInput For="() => CurrentToSet"
-              LabelName='@T(TranslationKeys.ManualOcppCurrentToSet)'></GenericInput>
+              LabelName='@T(TranslationKeys.ManualOcppCurrentToSet)'
+              PostfixText="@T(TranslationKeys.UnitAmpere)"></GenericInput>
 <GenericInput For="() => Phases"
               LabelName='@T(TranslationKeys.ManualOcppPhases)'
               HelperText='@T(TranslationKeys.ManualOcppPhasesHint)'></GenericInput>
@@ -33,7 +34,6 @@
     [Parameter]
     public int? ChargingConnectorId { get; set; }
 
-    [Postfix("A")]
     private int? CurrentToSet { get; set; }
     private int? Phases { get; set; }
 

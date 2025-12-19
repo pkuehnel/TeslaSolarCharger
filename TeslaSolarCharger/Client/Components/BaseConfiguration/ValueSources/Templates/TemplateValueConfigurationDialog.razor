@@ -11,11 +11,15 @@
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ITemplateValueConfigurationService Service
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
 
 @if (TemplateValueConfiguration == null)
@@ -37,7 +41,7 @@ else
                                        Clearable="true"
                                        AnchorOrigin="Origin.BottomCenter"
                                        Value="@TemplateValueConfiguration.Item.GatherType"
-                                       Label="Type"
+                                       Label="@T(TranslationKeys.ValueSourceConfigType)"
                                        Margin="Constants.InputMargin"
                                        ValueChanged="TypeChanged">
                         @foreach (TemplateValueGatherType item in Enum.GetValues(typeof(TemplateValueGatherType)))
@@ -76,8 +80,8 @@ else
             </EditFormComponent>
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="Cancel">Cancel</MudButton>
-            <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+            <MudButton OnClick="Cancel">@T(TranslationKeys.ValueSourceConfigCancel)</MudButton>
+            <MudButton Color="Color.Primary" OnClick="Submit">@T(TranslationKeys.ValueSourceConfigSave)</MudButton>
         </DialogActions>
     </MudDialog>
 }
@@ -100,31 +104,31 @@ else
     {
         if (TemplateValueConfiguration == default)
         {
-            Snackbar.Add("Configuration value is null", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigConfigNull), Severity.Error);
             return;
         }
         if (ConfigurationComponent == default)
         {
-            Snackbar.Add("Configuration form is null", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigFormNull), Severity.Error);
             return;
         }
         if (!ConfigurationComponent.Validate())
         {
-            Snackbar.Add("Configuration validation failed", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigConfigurationValidationFailed), Severity.Error);
             return;
         }
         TemplateValueConfiguration.Item.Configuration = ConfigurationComponent.GetConfiguration();
 
         if (BaseForm == default)
         {
-            Snackbar.Add("Form is null, can not save values", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigFormNull), Severity.Error);
             return;
         }
 
 
         if (!BaseForm.WrappedElement.EditContext.Validate())
         {
-            Snackbar.Add("Validation failed", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultInvalid), Severity.Error);
             return;
         }
         var result = await Service.SaveAsync(TemplateValueConfiguration.Item);
@@ -163,4 +167,8 @@ else
     {
         return TemplateValueConfiguration?.Item.Configuration?.ToObject<DtoSmaInverterTemplateValueConfiguration>();
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
 }
