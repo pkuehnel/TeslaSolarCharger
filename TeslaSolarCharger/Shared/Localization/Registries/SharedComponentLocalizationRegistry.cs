@@ -6,48 +6,64 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
 {
     protected override void Configure()
     {
-        Register("Base Configuration",
+        Register(TranslationKeys.GeneralBaseConfiguration,
             new TextLocalizationTranslation(LanguageCodes.English, "Base Configuration"),
             new TextLocalizationTranslation(LanguageCodes.German, "Basiskonfiguration"));
 
-        Register("Save",
+        Register(TranslationKeys.GeneralSave,
             new TextLocalizationTranslation(LanguageCodes.English, "Save"),
             new TextLocalizationTranslation(LanguageCodes.German, "Speichern"));
 
-        Register("Cancel",
+        Register(TranslationKeys.GeneralCancel,
             new TextLocalizationTranslation(LanguageCodes.English, "Cancel"),
             new TextLocalizationTranslation(LanguageCodes.German, "Abbrechen"));
 
-        Register("Processing",
+        Register(TranslationKeys.GeneralProcessing,
             new TextLocalizationTranslation(LanguageCodes.English, "Processing"),
             new TextLocalizationTranslation(LanguageCodes.German, "Wird verarbeitet"));
 
-        Register("Saved.",
+        Register(TranslationKeys.GeneralSaved,
             new TextLocalizationTranslation(LanguageCodes.English, "Saved."),
             new TextLocalizationTranslation(LanguageCodes.German, "Gespeichert."));
 
-        Register("Loading...",
+        Register(TranslationKeys.GeneralLoading,
             new TextLocalizationTranslation(LanguageCodes.English, "Loading..."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wird geladen..."));
 
-        Register("Car Settings",
+        Register(TranslationKeys.GeneralCarSettings,
             new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
 
-        Register("Charging Stations",
+        Register(TranslationKeys.GeneralChargingStations,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
 
-        Register("connected via OCPP",
+        Register(TranslationKeys.GeneralConnectedViaOcpp,
             new TextLocalizationTranslation(LanguageCodes.English, "connected via OCPP"),
             new TextLocalizationTranslation(LanguageCodes.German, "über OCPP verbunden"));
 
-        Register("plugged in",
+        Register(TranslationKeys.GeneralPluggedIn,
             new TextLocalizationTranslation(LanguageCodes.English, "plugged in"),
             new TextLocalizationTranslation(LanguageCodes.German, "eingesteckt"));
 
-        Register("charging",
+        Register(TranslationKeys.GeneralCharging,
             new TextLocalizationTranslation(LanguageCodes.English, "charging"),
             new TextLocalizationTranslation(LanguageCodes.German, "lädt"));
+
+        Register(TranslationKeys.UnitWatts,
+            new TextLocalizationTranslation(LanguageCodes.English, "W"),
+            new TextLocalizationTranslation(LanguageCodes.German, "W"));
+
+        Register(TranslationKeys.UnitAmpere,
+            new TextLocalizationTranslation(LanguageCodes.English, "A"),
+            new TextLocalizationTranslation(LanguageCodes.German, "A"));
+
+        Register(TranslationKeys.UnitPercent,
+            new TextLocalizationTranslation(LanguageCodes.English, "%"),
+            new TextLocalizationTranslation(LanguageCodes.German, "%"));
+
+        Register(TranslationKeys.UnitWh,
+            new TextLocalizationTranslation(LanguageCodes.English, "Wh"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wh"));
     }
 }
