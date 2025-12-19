@@ -151,7 +151,7 @@ else
                                        Margin="Constants.InputMargin">
                                 @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
                                 {
-                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(item.ToFriendlyName())</MudSelectItem>
+                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(GetHomeDetectionViaName(item))</MudSelectItem>
                                 }
                             </MudSelect>
                         </div>
@@ -375,6 +375,18 @@ else
     private string GetCarCardElementId(EditableItem<CarBasicConfiguration> carBasicConfiguration)
     {
         return $"car-settings-{carBasicConfiguration.Guid}";
+    }
+
+    private string GetHomeDetectionViaName(HomeDetectionVia homeDetectionVia)
+    {
+        return homeDetectionVia switch
+        {
+            HomeDetectionVia.GpsLocation => T(TranslationKeys.HomeDetectionViaGpsLocation),
+            HomeDetectionVia.LocatedAtHome => T(TranslationKeys.HomeDetectionViaLocatedAtHome),
+            HomeDetectionVia.LocatedAtWork => T(TranslationKeys.HomeDetectionViaLocatedAtWork),
+            HomeDetectionVia.LocatedAtFavorite => T(TranslationKeys.HomeDetectionViaLocatedAtFavorite),
+            _ => homeDetectionVia.ToString()
+        };
     }
 
 }
