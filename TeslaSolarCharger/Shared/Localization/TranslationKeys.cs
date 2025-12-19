@@ -493,4 +493,20 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
 
+    public static string UnitWatts => nameof(UnitWatts);
+    public static string UnitAmpere => nameof(UnitAmpere);
+    public static string UnitPercent => nameof(UnitPercent);
+    public static string UnitWh => nameof(UnitWh);
+
+    public static string GeneralSave => nameof(GeneralSave);
+    public static string GeneralCancel => nameof(GeneralCancel);
+    public static string GeneralProcessing => nameof(GeneralProcessing);
+    public static string GeneralSaved => nameof(GeneralSaved);
+    public static string GeneralLoading => nameof(GeneralLoading);
+    public static string GeneralCarSettings => nameof(GeneralCarSettings);
+    public static string GeneralChargingStations => nameof(GeneralChargingStations);
+    public static string GeneralConnectedViaOcpp => nameof(GeneralConnectedViaOcpp);
+    public static string GeneralPluggedIn => nameof(GeneralPluggedIn);
+    public static string GeneralCharging => nameof(GeneralCharging);
+    public static string GeneralBaseConfiguration => nameof(GeneralBaseConfiguration);
 }

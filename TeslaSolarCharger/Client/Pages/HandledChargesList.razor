@@ -34,6 +34,7 @@ else
                       For="() => MinConsumedEnergy"
                       LabelName='@T(TranslationKeys.HandledChargesListMinConsumedEnergyLabel)'
                       HelperText='@T(TranslationKeys.HandledChargesListMinConsumedEnergyHint)'
+                      PostfixText="@T(TranslationKeys.UnitWh)"
                       OnValueChanged="RefreshList"/>
     </div>
 
@@ -101,7 +102,6 @@ else
 
     private bool HideChargingProcessesWithKnownCars { get; set; }
 
-    [Postfix("Wh")]
     private int MinConsumedEnergy { get; set; } = 100;
 
     private string _datagridHeight = "calc(100vh - 10rem);";
