@@ -109,6 +109,18 @@ public static class TranslationKeys
     public static string HandledChargesListHideKnownCarsLabel => nameof(HandledChargesListHideKnownCarsLabel);
     public static string HandledChargesListMinConsumedEnergyLabel => nameof(HandledChargesListMinConsumedEnergyLabel);
     public static string HandledChargesListMinConsumedEnergyHint => nameof(HandledChargesListMinConsumedEnergyHint);
+    public static string HandledChargesListStartTime => nameof(HandledChargesListStartTime);
+    public static string HandledChargesListEndTime => nameof(HandledChargesListEndTime);
+    public static string HandledChargesListCalculatedPrice => nameof(HandledChargesListCalculatedPrice);
+    public static string HandledChargesListPricePerKwh => nameof(HandledChargesListPricePerKwh);
+    public static string HandledChargesListUsedGridEnergy => nameof(HandledChargesListUsedGridEnergy);
+    public static string HandledChargesListUsedHomeBatteryEnergy => nameof(HandledChargesListUsedHomeBatteryEnergy);
+    public static string HandledChargesListUsedSolarEnergy => nameof(HandledChargesListUsedSolarEnergy);
+
+    public static string TimeSeriesChartModuleTempMin => nameof(TimeSeriesChartModuleTempMin);
+    public static string TimeSeriesChartModuleTempMax => nameof(TimeSeriesChartModuleTempMax);
+    public static string TimeSeriesChartStateOfCharge => nameof(TimeSeriesChartStateOfCharge);
+    public static string TimeSeriesChartStateOfChargeLimit => nameof(TimeSeriesChartStateOfChargeLimit);
 
     public static string CloudConnectionTitle => nameof(CloudConnectionTitle);
     public static string CloudConnectionBackendSectionTitle => nameof(CloudConnectionBackendSectionTitle);
@@ -433,6 +445,15 @@ public static class TranslationKeys
     public static string ChargingTargetsDontReduceChargingSpeed => nameof(ChargingTargetsDontReduceChargingSpeed);
     public static string ChargingTargetSavedInDifferentTimezone => nameof(ChargingTargetSavedInDifferentTimezone);
 
+
+    public static string SpotPriceRegionDELU => nameof(SpotPriceRegionDELU);
+    public static string SpotPriceRegionAT => nameof(SpotPriceRegionAT);
+    public static string SpotPriceRegionCH => nameof(SpotPriceRegionCH);
+
+    public static string HomeDetectionViaGpsLocation => nameof(HomeDetectionViaGpsLocation);
+    public static string HomeDetectionViaLocatedAtHome => nameof(HomeDetectionViaLocatedAtHome);
+    public static string HomeDetectionViaLocatedAtWork => nameof(HomeDetectionViaLocatedAtWork);
+    public static string HomeDetectionViaLocatedAtFavorite => nameof(HomeDetectionViaLocatedAtFavorite);
     public static string PowerBufferUpdated => nameof(PowerBufferUpdated);
     public static string PowerBufferUpdateFailed => nameof(PowerBufferUpdateFailed);
     public static string NotChargingReasonsSingular => nameof(NotChargingReasonsSingular);
@@ -464,4 +485,5 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateMaxSoc => nameof(CarDetailsFailedToUpdateMaxSoc);
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
+
 }

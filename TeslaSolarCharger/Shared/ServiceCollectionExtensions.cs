@@ -73,5 +73,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, PowerBufferComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, InstallationInformationLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, TimeSeriesChartPageLocalizationRegistry>()
         ;
 }

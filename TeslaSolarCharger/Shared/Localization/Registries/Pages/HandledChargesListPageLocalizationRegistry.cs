@@ -21,5 +21,33 @@ public class HandledChargesListPageLocalizationRegistry : TextLocalizationRegist
         Register(TranslationKeys.HandledChargesListMinConsumedEnergyHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Hide charging processes where less energy is consumed"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladevorgänge ausblenden, bei denen weniger Energie verbraucht wurde"));
+
+        Register(TranslationKeys.HandledChargesListStartTime,
+            new TextLocalizationTranslation(LanguageCodes.English, "Start Time"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Startzeit"));
+
+        Register(TranslationKeys.HandledChargesListEndTime,
+            new TextLocalizationTranslation(LanguageCodes.English, "End Time"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Endzeit"));
+
+        Register(TranslationKeys.HandledChargesListCalculatedPrice,
+            new TextLocalizationTranslation(LanguageCodes.English, "Calculated Price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Berechneter Preis"));
+
+        Register(TranslationKeys.HandledChargesListPricePerKwh,
+            new TextLocalizationTranslation(LanguageCodes.English, "Price per kWh"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Preis pro kWh"));
+
+        Register(TranslationKeys.HandledChargesListUsedGridEnergy,
+            new TextLocalizationTranslation(LanguageCodes.English, "Used Grid Energy"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Genutzte Netzenergie"));
+
+        Register(TranslationKeys.HandledChargesListUsedHomeBatteryEnergy,
+            new TextLocalizationTranslation(LanguageCodes.English, "Used Home Battery Energy"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Genutzte Heimbatterie-Energie"));
+
+        Register(TranslationKeys.HandledChargesListUsedSolarEnergy,
+            new TextLocalizationTranslation(LanguageCodes.English, "Used Solar Energy"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Genutzte Solarenergie"));
     }
 }
