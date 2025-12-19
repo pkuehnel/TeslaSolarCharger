@@ -18,6 +18,10 @@ public class ModbusConfigurationPropertyLocalization : PropertyLocalizationRegis
             new PropertyLocalizationTranslation(LanguageCodes.English, "Port", null),
             new PropertyLocalizationTranslation(LanguageCodes.German, "Port", null));
 
+        Register(x => x.Endianess,
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Endianess", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Endianness", null));
+
         Register(x => x.ConnectDelayMilliseconds,
             new PropertyLocalizationTranslation(LanguageCodes.English, "Connect Delay Milliseconds", null),
             new PropertyLocalizationTranslation(LanguageCodes.German, "Verbindungsverzögerung (ms)", null));

@@ -2,6 +2,10 @@
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.TeslaPowerwall
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+@inject ITextLocalizationService TextLocalizer
 
 @implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
 
@@ -11,7 +15,7 @@
 
 @if (_errorWhileLoading)
 {
-    <MudAlert Severity="Severity.Error">Could not load energy sites. Check <MudLink Href="/cloudconnection">Cloud Connection</MudLink> if everything is all right with your Tesla Fleet API connection.</MudAlert>
+    <MudAlert Severity="Severity.Error">@((MarkupString)T(TranslationKeys.TeslaPowerwallLoadError).Replace("Cloud Connection", "<a href=\"/cloudconnection\">Cloud Connection</a>").Replace("Cloud-Verbindung", "<a href=\"/cloudconnection\">Cloud-Verbindung</a>"))</MudAlert>
 }
 else if (_energySiteOptions == default)
 {
@@ -58,5 +62,9 @@ else
     {
         return TemplateEditForm?.GetConfiguration();
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 
 }

@@ -67,7 +67,7 @@
         if (!result.Canceled)
         {
             await HttpClient.DeleteAsync($"api/ModbusValueConfiguration/DeleteModbusConfiguration?id={id}");
-            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, "Modbus value"), Severity.Success);
+            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, T(TranslationKeys.ModbusValue)), Severity.Success);
             await RefreshRequestResults();
         }
     }

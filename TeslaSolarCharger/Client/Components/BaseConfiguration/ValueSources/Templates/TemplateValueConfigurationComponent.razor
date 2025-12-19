@@ -46,7 +46,7 @@
             { x => x.ValueConfigurationId, id },
         };
         var title = id == default ? T(TranslationKeys.ValueSourceConfigAdd) : T(TranslationKeys.ValueSourceConfigEdit);
-        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(TF(TranslationKeys.ValueSourceConfigTitle, "Template"), parameters, options);
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(TF(TranslationKeys.ValueSourceConfigTitle, T(TranslationKeys.TemplateValue)), parameters, options);
         var result = await dialog.Result;
 
         await RefreshRequestResults();

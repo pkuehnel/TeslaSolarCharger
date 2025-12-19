@@ -211,6 +211,9 @@ public static class TranslationKeys
     public static string GenericValueConfigurationConfigure => nameof(GenericValueConfigurationConfigure);
     public static string GenericValueConfigurationDelete => nameof(GenericValueConfigurationDelete);
     public static string GenericValueConfigurationAddNewSource => nameof(GenericValueConfigurationAddNewSource);
+    public static string GenericValueConfigurationLastRefreshedFormat => nameof(GenericValueConfigurationLastRefreshedFormat);
+    public static string GenericValueConfigurationUnitWatts => nameof(GenericValueConfigurationUnitWatts);
+    public static string GenericValueConfigurationUnitPercent => nameof(GenericValueConfigurationUnitPercent);
 
     public static string ValueSourceConfigAdd => nameof(ValueSourceConfigAdd);
     public static string ValueSourceConfigEdit => nameof(ValueSourceConfigEdit);
@@ -397,6 +400,28 @@ public static class TranslationKeys
     public static string ModbusUrlSwapRegister => nameof(ModbusUrlSwapRegister);
     public static string ModbusUrlConnectDelay => nameof(ModbusUrlConnectDelay);
     public static string ModbusUrlReadTimeout => nameof(ModbusUrlReadTimeout);
+    public static string ModbusHost => nameof(ModbusHost);
+    public static string ModbusEndianess => nameof(ModbusEndianess);
+    public static string ModbusInvertedByModbusResultConfigurationId => nameof(ModbusInvertedByModbusResultConfigurationId);
+    public static string ModbusInvertedByModbusResultConfigurationIdHint => nameof(ModbusInvertedByModbusResultConfigurationIdHint);
+    public static string ModbusAddress => nameof(ModbusAddress);
+    public static string ModbusLength => nameof(ModbusLength);
+    public static string ModbusBitStartIndex => nameof(ModbusBitStartIndex);
+    public static string ModbusCorrectionFactor => nameof(ModbusCorrectionFactor);
+    public static string ModbusAddResult => nameof(ModbusAddResult);
+    public static string ModbusValue => nameof(ModbusValue);
+    public static string MqttValue => nameof(MqttValue);
+    public static string MqttUsername => nameof(MqttUsername);
+    public static string MqttPassword => nameof(MqttPassword);
+    public static string MqttTopic => nameof(MqttTopic);
+    public static string MqttNodePattern => nameof(MqttNodePattern);
+    public static string RestValue => nameof(RestValue);
+    public static string RestUrl => nameof(RestUrl);
+    public static string TemplateValue => nameof(TemplateValue);
+    public static string TemplateName => nameof(TemplateName);
+    public static string SerialNumber => nameof(SerialNumber);
+    public static string EnergySiteId => nameof(EnergySiteId);
+    public static string TeslaPowerwallLoadError => nameof(TeslaPowerwallLoadError);
 
     public static string NodePatternResultType => nameof(NodePatternResultType);
     public static string NodePatternJsonPattern => nameof(NodePatternJsonPattern);

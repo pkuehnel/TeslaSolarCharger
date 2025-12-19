@@ -67,7 +67,7 @@
         if (!result.Canceled)
         {
             await HttpClient.DeleteAsync($"api/MqttConfiguration/DeleteConfiguration?id={id}");
-            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, "MQTT"), Severity.Success);
+            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, T(TranslationKeys.MqttValue)), Severity.Success);
             await RefreshRequestResults();
         }
     }

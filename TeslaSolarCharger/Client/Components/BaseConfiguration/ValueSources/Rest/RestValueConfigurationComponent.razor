@@ -68,7 +68,7 @@
         if (!result.Canceled)
         {
             await HttpClient.DeleteAsync($"api/RestValueConfiguration/DeleteRestValueConfiguration?id={id}");
-            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, "Rest value"), Severity.Success);
+            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, T(TranslationKeys.RestValue)), Severity.Success);
             await RefreshRequestResults();
         }
     }

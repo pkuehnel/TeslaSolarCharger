@@ -1,8 +1,8 @@
-using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Kostal;
 
 namespace TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries.TemplateDtos;
 
-public class DtoSmaInverterTemplateValueConfigurationPropertyLocalization : PropertyLocalizationRegistry<DtoSmaInverterTemplateValueConfiguration>
+public class DtoKostalModbusConfigurationPropertyLocalization : PropertyLocalizationRegistry<DtoKostalModbusConfiguration>
 {
     protected override void Configure()
     {

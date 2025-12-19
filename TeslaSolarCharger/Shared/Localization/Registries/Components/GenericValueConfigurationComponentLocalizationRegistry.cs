@@ -29,5 +29,17 @@ public class GenericValueConfigurationComponentLocalizationRegistry : TextLocali
         Register(TranslationKeys.GenericValueConfigurationAddNewSource,
             new TextLocalizationTranslation(LanguageCodes.English, "Add new {0} source"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neue {0}-Quelle hinzufügen"));
+
+        Register(TranslationKeys.GenericValueConfigurationLastRefreshedFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last refreshed at {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuletzt aktualisiert um {0}"));
+
+        Register(TranslationKeys.GenericValueConfigurationUnitWatts,
+            new TextLocalizationTranslation(LanguageCodes.English, "W"),
+            new TextLocalizationTranslation(LanguageCodes.German, "W"));
+
+        Register(TranslationKeys.GenericValueConfigurationUnitPercent,
+            new TextLocalizationTranslation(LanguageCodes.English, "%"),
+            new TextLocalizationTranslation(LanguageCodes.German, "%"));
     }
 }

@@ -71,25 +71,25 @@
                                     {
                                         case ValueUsage.InverterPower:
                                             <MudIcon Icon="@Constants.SolarPowerIcon"></MudIcon>
-                                            suffixString = "W";
+                                            suffixString = T(TranslationKeys.GenericValueConfigurationUnitWatts);
                                             break;
                                         case ValueUsage.GridPower:
                                             <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
-                                            suffixString = "W";
+                                            suffixString = T(TranslationKeys.GenericValueConfigurationUnitWatts);
                                             break;
                                         case ValueUsage.HomeBatteryPower:
                                             <MudIcon Icon="@Constants.HomeBatteryIcon"></MudIcon>
-                                            suffixString = "W";
+                                            suffixString = T(TranslationKeys.GenericValueConfigurationUnitWatts);
                                             break;
                                         case ValueUsage.HomeBatterySoc:
                                             <MudIcon Icon="@Icons.Material.Filled.Battery4Bar"></MudIcon>
-                                            suffixString = "%";
+                                            suffixString = T(TranslationKeys.GenericValueConfigurationUnitPercent);
                                             break;
                                         default:
                                             throw new ArgumentOutOfRangeException();
                                     }
                                 </div>
-                                <MudTooltip Text="@($"Last refreshed at {restValueResult.LastRefreshed.LocalDateTime.ToLongTimeString()}")"
+                                <MudTooltip Text="@TF(TranslationKeys.GenericValueConfigurationLastRefreshedFormat, restValueResult.LastRefreshed.LocalDateTime.ToLongTimeString())"
                                             RootClass="w-100"
                                             Placement="Placement.Left"
                                             Arrow="true">
@@ -119,7 +119,7 @@
                 </MudCardHeader>
                 <MudCardContent>
                     <div class="d-flex justify-content-center">
-                        <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(null)"></MudFab>
+                        <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(null)" aria-label="@T(TranslationKeys.GenericValueConfigurationAddNewSource)"></MudFab>
                     </div>
 
                 </MudCardContent>

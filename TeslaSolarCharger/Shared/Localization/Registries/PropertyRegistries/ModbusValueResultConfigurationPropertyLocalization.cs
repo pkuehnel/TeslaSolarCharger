@@ -13,5 +13,21 @@ public class ModbusValueResultConfigurationPropertyLocalization : PropertyLocali
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Invertiert durch Modbus-Ergebniskonfiguration",
                 "Wenn Ihr Wechselrichter immer positive Werte anzeigt, können Sie hiermit den Wert anhand eines Bits invertieren. Aktuell ist dies nur für die Batterieleistung von Sungrow-Wechselrichtern bekannt."));
+
+        Register(x => x.Address,
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Address", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Adresse", null));
+
+        Register(x => x.Length,
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Length", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Länge", null));
+
+        Register(x => x.BitStartIndex,
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Bit Start Index", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Bit Start Index", null));
+
+        Register(x => x.CorrectionFactor,
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Correction Factor", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Korrekturfaktor", null));
     }
 }

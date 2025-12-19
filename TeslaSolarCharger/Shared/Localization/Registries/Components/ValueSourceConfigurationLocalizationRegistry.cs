@@ -209,5 +209,29 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
         Register(TranslationKeys.NodePatternXmlValueName,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} XML Attribute Value Name"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} XML-Attribut Wertname"));
+
+        Register(TranslationKeys.ModbusValue,
+            new TextLocalizationTranslation(LanguageCodes.English, "Modbus value"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Modbus-Wert"));
+
+        Register(TranslationKeys.MqttValue,
+            new TextLocalizationTranslation(LanguageCodes.English, "MQTT value"),
+            new TextLocalizationTranslation(LanguageCodes.German, "MQTT-Wert"));
+
+        Register(TranslationKeys.RestValue,
+            new TextLocalizationTranslation(LanguageCodes.English, "REST value"),
+            new TextLocalizationTranslation(LanguageCodes.German, "REST-Wert"));
+
+        Register(TranslationKeys.TemplateValue,
+            new TextLocalizationTranslation(LanguageCodes.English, "Template value"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Vorlagenwert"));
+
+        Register(TranslationKeys.TemplateName,
+            new TextLocalizationTranslation(LanguageCodes.English, "Name"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Name"));
+
+        Register(TranslationKeys.TeslaPowerwallLoadError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load energy sites. Check Cloud Connection if everything is all right with your Tesla Fleet API connection."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energieanlagen konnten nicht geladen werden. Überprüfen Sie die Cloud-Verbindung, ob mit Ihrer Tesla Fleet API-Verbindung alles in Ordnung ist."));
     }
 }
