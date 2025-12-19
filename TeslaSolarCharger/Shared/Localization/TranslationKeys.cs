@@ -2,6 +2,11 @@ namespace TeslaSolarCharger.Shared.Localization;
 
 public static class TranslationKeys
 {
+    public static string DeleteDialogContentFormat => nameof(DeleteDialogContentFormat);
+    public static string DeleteDialogCancel => nameof(DeleteDialogCancel);
+    public static string DeleteDialogConfirm => nameof(DeleteDialogConfirm);
+    public static string TextDialogOk => nameof(TextDialogOk);
+
     public static string BaseConfigurationPageTitle => nameof(BaseConfigurationPageTitle);
     public static string BaseConfigurationGeneralSectionTitle => nameof(BaseConfigurationGeneralSectionTitle);
     public static string BaseConfigurationTeslaMateSectionTitle => nameof(BaseConfigurationTeslaMateSectionTitle);
