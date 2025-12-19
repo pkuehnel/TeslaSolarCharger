@@ -41,5 +41,9 @@ public class ManualOcppChargingComponentLocalizationRegistry : TextLocalizationR
         Register(TranslationKeys.ManualOcppCommandSent,
             new TextLocalizationTranslation(LanguageCodes.English, "Command successfully sent"),
             new TextLocalizationTranslation(LanguageCodes.German, "Befehl erfolgreich gesendet"));
+
+        Register(TranslationKeys.ManualOcppErrorFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Error: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fehler: {0}"));
     }
 }

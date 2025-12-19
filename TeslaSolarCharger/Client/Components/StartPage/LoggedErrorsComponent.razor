@@ -121,7 +121,7 @@ else
     private string GetHeadlineText(DtoLoggedError error) =>
         error.HideOccurrenceCount
             ? error.Headline
-            : Format("{0} occured {1} time(s)", error.Headline, error.OccurrenceCount);
+            : Format(TranslationKeys.LoggedErrorsOccurrenceCount, error.Headline, error.OccurrenceCount);
 
     private string T(string key) =>
         TextLocalizer.Get<LoggedErrorsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
