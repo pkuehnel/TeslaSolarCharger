@@ -56,7 +56,7 @@
 @if (_file != default)
 {
     <div class="mb-2">
-        @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00", CultureInfo.CurrentCulture)) MB</code>
+        @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00", CultureInfo.CurrentCulture)) @T(TranslationKeys.UnitMB)</code>
     </div>
 }
 

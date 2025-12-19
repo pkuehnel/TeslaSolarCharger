@@ -1,7 +1,11 @@
 ﻿@inherits LayoutComponentBase
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IConstants Constants
+@inject ITextLocalizationService TextLocalizer
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudPopoverProvider />
@@ -16,7 +20,7 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://github.com/pkuehnel/TeslaSolarCharger/" target="_blank">About</a>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger/" target="_blank">@T(TranslationKeys.MainLayoutAbout)</a>
         </div>
 
         <article class="content px-4">
@@ -26,13 +30,17 @@
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    @T(TranslationKeys.MainLayoutUnhandledError)
+    <a href="." class="reload">@T(TranslationKeys.MainLayoutReload)</a>
     <span class="dismiss">🗙</span>
 </div>
 
 @code
 {
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
+
     private MudThemeProvider? _mudThemeProvider;
 
     private MudTheme? _tscTheme;
