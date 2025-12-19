@@ -69,6 +69,8 @@ public static class TranslationKeys
     public static string SupportGetLatestMeterValuesButton => nameof(SupportGetLatestMeterValuesButton);
     public static string SupportChargingPricesSectionTitle => nameof(SupportChargingPricesSectionTitle);
     public static string SupportGetPriceValuesButton => nameof(SupportGetPriceValuesButton);
+    public static string SupportChargingPricesFrom => nameof(SupportChargingPricesFrom);
+    public static string SupportChargingPricesTo => nameof(SupportChargingPricesTo);
     public static string SupportReloadPageButton => nameof(SupportReloadPageButton);
     public static string SupportVinUnknownError => nameof(SupportVinUnknownError);
     public static string SupportNoError => nameof(SupportNoError);

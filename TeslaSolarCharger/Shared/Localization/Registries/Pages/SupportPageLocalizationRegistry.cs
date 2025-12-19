@@ -186,6 +186,14 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Get latest Meter values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neueste Zählerwerte abrufen"));
 
+        Register(TranslationKeys.SupportChargingPricesFrom,
+            new TextLocalizationTranslation(LanguageCodes.English, "From"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Von"));
+
+        Register(TranslationKeys.SupportChargingPricesTo,
+            new TextLocalizationTranslation(LanguageCodes.English, "To"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bis"));
+
         Register(TranslationKeys.SupportReloadPageButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Reload page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Seite neu laden"));

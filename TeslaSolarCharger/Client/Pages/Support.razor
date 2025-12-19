@@ -250,8 +250,8 @@ else
     }
 
     <h3>@T(TranslationKeys.SupportChargingPricesSectionTitle)</h3>
-    <GenericInput For="() => ChargingPricesFrom"></GenericInput>
-    <GenericInput For="() => ChargingPricesTo"></GenericInput>
+    <GenericInput For="() => ChargingPricesFrom" LabelName="@T(TranslationKeys.SupportChargingPricesFrom)"></GenericInput>
+    <GenericInput For="() => ChargingPricesTo" LabelName="@T(TranslationKeys.SupportChargingPricesTo)"></GenericInput>
     <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetPriceValuesButton)'
                                  IsLoading="@_loadingGridPrices"
                                  OnButtonClicked="GetGridValues"></RightAlignedButtonComponent>
