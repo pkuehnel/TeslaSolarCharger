@@ -1,18 +1,28 @@
-﻿<MudDialog>
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.Dialogs
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudDialog>
     <DialogContent>
         @(Text)
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Submit">OK</MudButton>
+        <MudButton OnClick="Submit">@T(TranslationKeys.TextDialogOk)</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    IMudDialogInstance MudDialog { get; set; }
+    IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public string Text { get; set; } = "";
+
+    private string T(string key) =>
+        TextLocalizer.Get<DialogsLocalizationRegistry>(key)
+        ?? key;
 
     void Submit() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();
