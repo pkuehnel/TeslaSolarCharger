@@ -161,5 +161,21 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
         Register(TranslationKeys.AddCarCloudConnectionLink,
             new TextLocalizationTranslation(LanguageCodes.English, "Cloud Connection"),
             new TextLocalizationTranslation(LanguageCodes.German, "Cloud-Verbindung"));
+
+        Register(TranslationKeys.HomeDetectionViaGpsLocation,
+            new TextLocalizationTranslation(LanguageCodes.English, "GPS Location"),
+            new TextLocalizationTranslation(LanguageCodes.German, "GPS-Standort"));
+
+        Register(TranslationKeys.HomeDetectionViaLocatedAtHome,
+            new TextLocalizationTranslation(LanguageCodes.English, "At Home"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause"));
+
+        Register(TranslationKeys.HomeDetectionViaLocatedAtWork,
+            new TextLocalizationTranslation(LanguageCodes.English, "At Work"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bei der Arbeit"));
+
+        Register(TranslationKeys.HomeDetectionViaLocatedAtFavorite,
+            new TextLocalizationTranslation(LanguageCodes.English, "At Favorite"),
+            new TextLocalizationTranslation(LanguageCodes.German, "An Favoriten"));
     }
 }

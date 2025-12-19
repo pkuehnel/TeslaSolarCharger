@@ -112,7 +112,7 @@ else
     private string GetHeadlineText(DtoHiddenError error) =>
         error.HideOccurrenceCount
             ? error.Headline
-            : Format("{0} occured {1} time(s)", error.Headline, error.OccurrenceCount);
+            : Format(TranslationKeys.HiddenErrorsOccurrenceCount, error.Headline, error.OccurrenceCount);
 
     private string GetHideReasonText(LoggedErrorHideReason hideReason) =>
         hideReason switch

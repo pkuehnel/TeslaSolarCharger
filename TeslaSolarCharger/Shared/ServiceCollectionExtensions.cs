@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, CustomIconLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarDetailsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ValueSourceConfigurationLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, CarSelectorComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, GenericValueConfigurationComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BackendInformationDisplayComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeSummaryComponentLocalizationRegistry>()
@@ -71,6 +72,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, EnergyPredictionComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FleetApiTestComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, HiddenErrorsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, LegendItemComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoggedErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
@@ -79,5 +81,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, PowerBufferComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, InstallationInformationLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, TimeSeriesChartPageLocalizationRegistry>()
         ;
 }

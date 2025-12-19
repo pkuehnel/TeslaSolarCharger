@@ -85,5 +85,17 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
         Register(TranslationKeys.ChargeCostDetailSaveError,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge price is null and can not be saved. Try reloading the page."),
             new TextLocalizationTranslation(LanguageCodes.German, "Der Ladepreis ist leer und kann nicht gespeichert werden. Versuche, die Seite neu zu laden."));
+
+        Register(TranslationKeys.SpotPriceRegionDELU,
+            new TextLocalizationTranslation(LanguageCodes.English, "DE-LU - Germany, Luxembourg"),
+            new TextLocalizationTranslation(LanguageCodes.German, "DE-LU - Deutschland, Luxemburg"));
+
+        Register(TranslationKeys.SpotPriceRegionAT,
+            new TextLocalizationTranslation(LanguageCodes.English, "AT - Austria"),
+            new TextLocalizationTranslation(LanguageCodes.German, "AT - Österreich"));
+
+        Register(TranslationKeys.SpotPriceRegionCH,
+            new TextLocalizationTranslation(LanguageCodes.English, "CH - Switzerland"),
+            new TextLocalizationTranslation(LanguageCodes.German, "CH - Schweiz"));
     }
 }

@@ -172,7 +172,6 @@ else
 
     [Postfix("A")]
     private int? CurrentToSet { get; set; }
-    [DisplayName("State of Charge")]
     [Postfix("%")]
     private int? ManualSocToSet { get; set; }
     private bool _isCommandLoading;
@@ -246,7 +245,7 @@ else
             if (updateResult.HasError)
             {
                 Snackbar.Add(
-                    Format("Failed to update Min SOC: {0}", updateResult.ErrorMessage),
+                    Format(TranslationKeys.CarDetailsFailedToUpdateMinSoc, updateResult.ErrorMessage),
                     Severity.Error);
                 if (_lastKnownMinValue != default)
                 {
@@ -285,7 +284,7 @@ else
             if (updateResult.HasError)
             {
                 Snackbar.Add(
-                    Format("Failed to update Max SOC: {0}", updateResult.ErrorMessage),
+                    Format(TranslationKeys.CarDetailsFailedToUpdateMaxSoc, updateResult.ErrorMessage),
                     Severity.Error);
                 if (_lastKnownMaxValue != default)
                 {
@@ -312,7 +311,7 @@ else
         var result = await HomeService.UpdateCarChargeMode(CarId.Value, arg);
         if (result.HasError)
         {
-            Snackbar.Add(Format("Failed to update Charge Mode: {0}", result.ErrorMessage), Severity.Error);
+            Snackbar.Add(Format(TranslationKeys.CarDetailsFailedToUpdateChargeMode, result.ErrorMessage), Severity.Error);
             if (_lastKnownChargeMode != default)
             {
                 CarSettings.ChargeMode = _lastKnownChargeMode.Value;
@@ -342,7 +341,7 @@ else
         _isCommandLoading = false;
         if (result.HasError)
         {
-            Snackbar.Add(Format("Error: {0}", result.ErrorMessage), Severity.Error);
+            Snackbar.Add(Format(TranslationKeys.CarDetailsErrorFormat, result.ErrorMessage), Severity.Error);
         }
         else
         {
@@ -373,7 +372,7 @@ else
         var result = await HomeService.UpdateManualCarSoc(CarId.Value, manualSoc);
         if (result.HasError)
         {
-            Snackbar.Add(Format("Error: {0}", result.ErrorMessage), Severity.Error);
+            Snackbar.Add(Format(TranslationKeys.CarDetailsErrorFormat, result.ErrorMessage), Severity.Error);
             return;
         }
 

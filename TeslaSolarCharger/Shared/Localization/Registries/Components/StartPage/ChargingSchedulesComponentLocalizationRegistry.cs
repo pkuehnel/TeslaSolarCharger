@@ -33,5 +33,21 @@ public class ChargingSchedulesComponentLocalizationRegistry : TextLocalizationRe
         Register(TranslationKeys.ChargingSchedulesReasonLatestTime,
             new TextLocalizationTranslation(LanguageCodes.English, "Latest possible time"),
             new TextLocalizationTranslation(LanguageCodes.German, "Spätester möglicher Zeitpunkt"));
+
+        Register(TranslationKeys.ChargingScheduleHeaderScheduleReasons,
+            new TextLocalizationTranslation(LanguageCodes.English, "Schedule Reasons"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Planungsgründe"));
+
+        Register(TranslationKeys.ChargingScheduleHeaderValidFrom,
+            new TextLocalizationTranslation(LanguageCodes.English, "Valid From"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gültig Ab"));
+
+        Register(TranslationKeys.ChargingScheduleHeaderValidTo,
+            new TextLocalizationTranslation(LanguageCodes.English, "Valid To"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gültig Bis"));
+
+        Register(TranslationKeys.ChargingScheduleHeaderEstimatedChargingPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Estimated Charging Power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geschätzte Ladeleistung"));
     }
 }
