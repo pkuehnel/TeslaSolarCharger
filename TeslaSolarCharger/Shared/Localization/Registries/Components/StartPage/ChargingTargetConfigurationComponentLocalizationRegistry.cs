@@ -113,5 +113,9 @@ public class ChargingTargetConfigurationComponentLocalizationRegistry : TextLoca
         Register(TranslationKeys.ChargingTargetSaved,
             new TextLocalizationTranslation(LanguageCodes.English, "Saved."),
             new TextLocalizationTranslation(LanguageCodes.German, "Gespeichert."));
+
+        Register(TranslationKeys.ChargingTargetsDeleteFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not delete: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konnte nicht gelöscht werden: {0}"));
     }
 }

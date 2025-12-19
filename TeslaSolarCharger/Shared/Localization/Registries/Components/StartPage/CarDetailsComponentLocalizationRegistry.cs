@@ -97,5 +97,21 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
         Register(TranslationKeys.CarDetailsSocUpdated,
             new TextLocalizationTranslation(LanguageCodes.English, "State of charge updated successfully."),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestand erfolgreich aktualisiert."));
+
+        Register(TranslationKeys.CarDetailsFailedToUpdateMinSoc,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to update Min SOC: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktualisierung des Min-SOC fehlgeschlagen: {0}"));
+
+        Register(TranslationKeys.CarDetailsFailedToUpdateMaxSoc,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to update Max SOC: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktualisierung des Max-SOC fehlgeschlagen: {0}"));
+
+        Register(TranslationKeys.CarDetailsFailedToUpdateChargeMode,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to update Charge Mode: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktualisierung des Lademodus fehlgeschlagen: {0}"));
+
+        Register(TranslationKeys.CarDetailsErrorFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Error: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fehler: {0}"));
     }
 }

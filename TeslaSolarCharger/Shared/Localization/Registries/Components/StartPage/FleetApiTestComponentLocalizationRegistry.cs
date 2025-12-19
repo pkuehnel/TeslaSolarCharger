@@ -26,11 +26,11 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "test again"),
             new TextLocalizationTranslation(LanguageCodes.German, "erneut testen"));
 
-        Register("If it still does not work, go to your car and under Controls -> Locks you can check if a key named \"solar4car.com\" is present. If not try adding the key again by clicking",
+        Register(TranslationKeys.FleetApiTestKeyCheckHint,
             new TextLocalizationTranslation(LanguageCodes.English, "If it still does not work, go to your car and under Controls -> Locks you can check if a key named \"solar4car.com\" is present. If not try adding the key again by clicking"),
             new TextLocalizationTranslation(LanguageCodes.German, "Wenn es immer noch nicht funktioniert, gehen Sie zu Ihrem Auto und überprüfen Sie unter Fahrzeug -> Verriegelungen, ob ein Schlüssel namens \"solar4car.com\" vorhanden ist. Falls nicht, versuchen Sie, den Schlüssel erneut hinzuzufügen, indem Sie auf klicken"));
 
-        Register("here",
+        Register(TranslationKeys.FleetApiTestHereLink,
             new TextLocalizationTranslation(LanguageCodes.English, "here"),
             new TextLocalizationTranslation(LanguageCodes.German, "hier"));
 
@@ -38,7 +38,7 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "You did not test the Fleet API connection, yet. Wake up the car by opening a door, wait about 30 seconds and click"),
             new TextLocalizationTranslation(LanguageCodes.German, "Sie haben die Fleet-API-Verbindung noch nicht getestet. Wecken Sie das Auto auf, indem Sie eine Tür öffnen, warten Sie etwa 30 Sekunden und klicken Sie auf"));
 
-        Register("to test the connection.",
+        Register(TranslationKeys.FleetApiTestTestConnectionLinkSuffix,
             new TextLocalizationTranslation(LanguageCodes.English, "to test the connection."),
             new TextLocalizationTranslation(LanguageCodes.German, "um die Verbindung zu testen."));
 
@@ -50,12 +50,16 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "to register the car."),
             new TextLocalizationTranslation(LanguageCodes.German, "um das Auto zu registrieren."));
 
-        Register("Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.",
+        Register(TranslationKeys.FleetApiTestRegisterCarNote,
             new TextLocalizationTranslation(LanguageCodes.English, "Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button."),
             new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Es ist nicht möglich, das richtige Auto auszuwählen. Um das richtige Auto zu registrieren, müssen Sie das Auto in der Tesla App auswählen, bevor Sie auf die Schaltfläche klicken."));
 
         Register(TranslationKeys.FleetApiTestRegisteredButNotTested,
             new TextLocalizationTranslation(LanguageCodes.English, "You registered the car but did not test the connection yet. Click"),
             new TextLocalizationTranslation(LanguageCodes.German, "Sie haben das Auto registriert, aber die Verbindung noch nicht getestet. Klicken Sie auf"));
+
+        Register(TranslationKeys.FleetApiTestStateLoadError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load Tesla Fleet API state: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Fleet API Status konnte nicht geladen werden: {0}"));
     }
 }
