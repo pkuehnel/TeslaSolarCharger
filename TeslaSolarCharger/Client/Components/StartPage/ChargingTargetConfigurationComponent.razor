@@ -132,7 +132,7 @@ else
             var result = await HomeService.DeleteCarChargingTarget(chargingTarget.Id);
             if (result.HasError)
             {
-                Snackbar.Add(Format("Could not delete: {0}", result.ErrorMessage), Severity.Error);
+                Snackbar.Add(Format(TranslationKeys.ChargingTargetsDeleteFailed, result.ErrorMessage), Severity.Error);
                 return;
             }
         }

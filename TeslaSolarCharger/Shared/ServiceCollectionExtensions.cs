@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, NavMenuComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CustomIconLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarDetailsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, CarSelectorComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, GenericValueConfigurationComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BackendInformationDisplayComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeSummaryComponentLocalizationRegistry>()
@@ -64,6 +65,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, EnergyPredictionComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FleetApiTestComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, HiddenErrorsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, LegendItemComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoggedErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
@@ -73,5 +75,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, InstallationInformationLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, DialogsLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, TimeSeriesChartPageLocalizationRegistry>()
         ;
 }

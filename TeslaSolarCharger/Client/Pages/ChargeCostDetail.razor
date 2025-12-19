@@ -78,9 +78,9 @@ else
                                    Margin="Margin.Dense"
                                    Label="@T(TranslationKeys.ChargeCostDetailSpotPriceRegionLabel)"
                                    Variant="Variant.Outlined">
-                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@SpotPriceRegion.DE_LU.ToFriendlyName()" />
-                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@SpotPriceRegion.AT.ToFriendlyName()" />
-                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@SpotPriceRegion.CH.ToFriendlyName()" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@T(TranslationKeys.SpotPriceRegionDELU)" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@T(TranslationKeys.SpotPriceRegionAT)" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@T(TranslationKeys.SpotPriceRegionCH)" />
                 </MudSelectExtended>
             </div>
             <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"></GenericInput>

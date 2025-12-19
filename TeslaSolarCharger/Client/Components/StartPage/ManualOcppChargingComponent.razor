@@ -58,7 +58,7 @@
         var result = await HomeService.StartChargingConnectorCharging(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
         if (result.HasError)
         {
-            Snackbar.Add(Format("Error: {0}", result.ErrorMessage), Severity.Error);
+            Snackbar.Add(Format(TranslationKeys.ManualOcppErrorFormat, result.ErrorMessage), Severity.Error);
         }
         else
         {
@@ -85,7 +85,7 @@
         var result = await HomeService.SetChargingConnectorCurrent(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
         if (result.HasError)
         {
-            Snackbar.Add(Format("Error: {0}", result.ErrorMessage), Severity.Error);
+            Snackbar.Add(Format(TranslationKeys.ManualOcppErrorFormat, result.ErrorMessage), Severity.Error);
         }
         else
         {
@@ -106,7 +106,7 @@
         var result = await HomeService.StopChargingConnectorCharging(ChargingConnectorId.Value);
         if (result.HasError)
         {
-            Snackbar.Add(Format("Error: {0}", result.ErrorMessage), Severity.Error);
+            Snackbar.Add(Format(TranslationKeys.ManualOcppErrorFormat, result.ErrorMessage), Severity.Error);
         }
         else
         {
