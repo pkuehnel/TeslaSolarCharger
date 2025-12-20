@@ -1002,42 +1002,6 @@
     private string GetMultiSelectionTextWithoutValues(int selectedValues, int? availableOptions)
     {
         var ofText = availableOptions == null ? string.Empty : $"/{availableOptions}";
-        var pluralS = selectedValues == 1 ? "" : "s";
-        var pluralHave = selectedValues == 1 ? " has" : "s have";
-
-        // Fallback for English if translation is missing, matching the old logic for pluralization roughly or just using the key.
-        // But since we want to translate:
-        // "{0}{1} item{2} have been selected" -> "{0}"=selectedValues, "{1}"=ofText, "{2}"=pluralS/pluralHave logic?
-        // Actually, languages handle pluralization differently.
-        // A simple string format might not be enough for complex pluralization, but let's stick to the requested pattern.
-        // Old: $"{selectedValues}{ofText} item{(selectedValues == 1 ? " has" : "s have")} been selected"
-
-        // I'll assume the translation key handles the structure.
-        // But wait, "item(s)" and "have/has" is language specific.
-        // German: "Elemente ausgewählt" (plural usually, or singular).
-
-        // Let's try to map it to the translation key I created: "{0}{1} item{2} have been selected"
-        // I put "{0}{1} item{2} have been selected" in the registry.
-        // {0} = selectedValues
-        // {1} = ofText
-        // {2} = plural suffix?
-
-        // This is tricky without proper pluralization support (like .NET's or a library's).
-        // For now, I will format it using the key and pass arguments.
-        // English: "{0}{1} item{2} have been selected" -> 2 args? No, 3.
-        // Let's just pass the whole string to T? No.
-
-        // Re-reading my registry entry:
-        // English: "{0}{1} item{2} have been selected"
-        // German: "{0}{1} Element{2} ausgewählt"
-
-        // Key: GenericInputMultiSelectionText
-        // EN: "{0}{1} items selected" (Neutral) or "{0}{1} selected"
-        // DE: "{0}{1} ausgewählt"
-
-        // Let's use the registry I added:
-        // EN: "{0}{1} item{2} have been selected"
-        // DE: "{0}{1} Element{2} ausgewählt"
 
         // I will use a simple heuristic for now.
         var suffixEnglish = selectedValues == 1 ? " has" : "s have";
