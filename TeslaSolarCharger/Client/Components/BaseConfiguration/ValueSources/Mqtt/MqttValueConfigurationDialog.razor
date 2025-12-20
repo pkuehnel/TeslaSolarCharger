@@ -317,7 +317,7 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
         ?? key;
 
 }

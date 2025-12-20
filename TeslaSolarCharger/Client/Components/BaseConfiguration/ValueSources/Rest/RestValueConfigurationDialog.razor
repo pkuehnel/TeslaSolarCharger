@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
@@ -420,6 +421,6 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
         ?? key;
 }

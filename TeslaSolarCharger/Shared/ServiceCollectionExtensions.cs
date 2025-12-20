@@ -78,5 +78,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, DialogsLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, TimeSeriesChartPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ValueSourceConfigurationLocalizationRegistry>()
         ;
 }
