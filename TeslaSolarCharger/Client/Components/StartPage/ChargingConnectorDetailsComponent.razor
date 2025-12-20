@@ -3,6 +3,7 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -24,9 +25,9 @@ else
     <div>
         <MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" />
         @ChargingConnectorSettings.Name
-        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="@T("connected via OCPP")"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="@T("plugged in")"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="@T("charging")"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="@T(TranslationKeys.ChargingConnectorDetailsConnectedViaOcpp)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="@T(TranslationKeys.ChargingConnectorDetailsPluggedIn)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="@T(TranslationKeys.ChargingConnectorDetailsCharging)"></CustomIcon>
 
         @if (CarId != default)
         {
@@ -132,14 +133,14 @@ else
     {
         if (ChargingConnectorSettings == default || ChargingConnectorId == default)
         {
-            Snackbar.Add(T("Charging Connector is not set."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ChargingConnectorDetailsNotSet), Severity.Error);
             return;
         }
 
         var result = await HomeService.UpdateChargingConnectorChargeMode(ChargingConnectorId.Value, arg);
         if (result.HasError)
         {
-            Snackbar.Add(string.Format(T("Failed to update Charge Mode: {0}"), result.ErrorMessage), Severity.Error);
+            Snackbar.Add(string.Format(T(TranslationKeys.ChargingConnectorDetailsFailedToUpdateChargeMode), result.ErrorMessage), Severity.Error);
             if (_lastKnownChargeMode != default)
             {
                 ChargingConnectorSettings.ChargeMode = _lastKnownChargeMode.Value;
@@ -149,7 +150,7 @@ else
         else
         {
             _lastKnownChargeMode = arg;
-            Snackbar.Add(T("Charge Mode updated successfully."), Severity.Success);
+            Snackbar.Add(T(TranslationKeys.ChargingConnectorDetailsChargeModeUpdated), Severity.Success);
         }
     }
 

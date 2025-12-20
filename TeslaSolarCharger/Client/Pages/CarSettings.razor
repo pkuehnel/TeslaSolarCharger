@@ -8,6 +8,7 @@
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
@@ -20,8 +21,8 @@
 @inject IJavaScriptWrapper JavaScriptWrapper
 @inject ITextLocalizationService TextLocalizer
 
-<PageTitle>@T("Car Settings")</PageTitle>
-<h1>@T("Car Settings")</h1>
+<PageTitle>@T(TranslationKeys.CarSettingsTitle)</PageTitle>
+<h1>@T(TranslationKeys.CarSettingsTitle)</h1>
 
 <div class="mb-3">
     @if (_fleetApiTokenState != null && _fleetApiTokenState != TokenState.UpToDate)
@@ -29,8 +30,8 @@
         <MudAlert Severity="Severity.Error"
                   NoIcon="true"
                   ContentAlignment="HorizontalAlignment.Left">
-            <h4>@T("Create Token.")</h4>
-            @T("Go to ")<MudLink Href="/cloudconnection">@T("Cloud Connection")</MudLink>@T(", Generate a Tesla Fleet API Token and restart TSC to see cars here.")
+            <h4>@T(TranslationKeys.CarSettingsCreateTokenTitle)</h4>
+            @T(TranslationKeys.CarSettingsGoToPrefix)<MudLink Href="/cloudconnection">@T(TranslationKeys.CloudConnectionTitle)</MudLink>@T(TranslationKeys.CarSettingsGenerateTokenSuffix)
         </MudAlert>
     }
     @if (_fleetApiTokenState == TokenState.UpToDate)
@@ -38,8 +39,8 @@
         <MudAlert Severity="Severity.Info"
                   NoIcon="true"
                   ContentAlignment="HorizontalAlignment.Left">
-            <h5>@T("Restart TSC to add new cars")</h5>
-            @T("If you do not see all cars here that are available in your Tesla account, restart TSC.")
+            <h5>@T(TranslationKeys.CarSettingsRestartTscTitle)</h5>
+            @T(TranslationKeys.CarSettingsRestartTscHint)
         </MudAlert>
     }
 </div>
@@ -51,7 +52,7 @@
 }
 else
 {
-    <RightAlignedButtonComponent ButtonText='@T("Add car (non Tesla)")'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddNonTeslaButton)'
                                  StartIcon="@Icons.Material.Filled.Add"
                                  OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
 
@@ -76,8 +77,8 @@ else
                         <MudAlert Severity="Severity.Warning"
                                   NoIcon="true"
                                   ContentAlignment="HorizontalAlignment.Left">
-                            <h5>@T("Current below 6A not recommended")</h5>
-                            @T("The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result in unexpected behaviour like the car not charging at all.")
+                            <h5>@T(TranslationKeys.CarSettingsCurrentBelow6AWarningTitle)</h5>
+                            @T(TranslationKeys.CarSettingsCurrentBelow6AWarningContent)
                         </MudAlert>
                     }
                     <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
@@ -108,32 +109,32 @@ else
                                 <MudAlert Severity="Severity.Info"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T("GPS Location used for home detection")</h5>
-                                    @T("TSC will manage charging if the car's GPS Location is within the configured Home Geofence set in ")<MudLink Href="/BaseConfiguration">@T("Base Configuration")</MudLink>@T(".")
+                                    <h5>@T(TranslationKeys.CarSettingsGpsHomeDetectionTitle)</h5>
+                                    @T(TranslationKeys.CarSettingsGpsHomeDetectionHintStart)<MudLink Href="/BaseConfiguration">@T(TranslationKeys.BaseConfigurationPageTitle)</MudLink>@T(TranslationKeys.CarSettingsGpsHomeDetectionHintEnd)
                                 </MudAlert>
                                 break;
                             case HomeDetectionVia.LocatedAtHome:
                                 <MudAlert Severity="Severity.Info"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T("Tesla navigation Home used for home detection")</h5>
-                                    @T("TSC will manage charging if the car is at the home location set in the Tesla navigation system. Note: Different driver profiles with different home addresses might mess this up. Make sure that the last driver has the correct home address set in the Tesla navigation system.")
+                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavHomeDetectionTitle)</h5>
+                                    @T(TranslationKeys.CarSettingsTeslaNavHomeDetectionHint)
                                 </MudAlert>
                                 break;
                             case HomeDetectionVia.LocatedAtWork:
                                 <MudAlert Severity="Severity.Info"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T("Tesla navigation Work used for home detection")</h5>
-                                    @T("TSC will manage charging if the car is at the work location set in the Tesla navigation system. Note: Different driver profiles with different work addresses might mess this up. Make sure that the last driver has the correct work address set in the Tesla navigation system.")
+                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavWorkDetectionTitle)</h5>
+                                    @T(TranslationKeys.CarSettingsTeslaNavWorkDetectionHint)
                                 </MudAlert>
                                 break;
                             case HomeDetectionVia.LocatedAtFavorite:
                                 <MudAlert Severity="Severity.Warning"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T("Tesla navigation Favorite used for home detection")</h5>
-                                    @T("TSC will manage charging if the car is at any favorite location set in the Tesla navigation system. Note: TSC is unable to detect at which favorite location the car is, so if you charge at a public charger that is configured as favorite in the Tesla navigation system, TSC tries to manage charging based on your solar production at home and might stop charging if you don't have any solar production at home. Moreover, different driver profiles with different favorite addresses might mess this up. It is HIGHLY recommended to only have one favorite location if this setting is enabled.")
+                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionTitle)</h5>
+                                    @T(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionHint)
                                 </MudAlert>
                                 break;
                             default:
@@ -146,11 +147,11 @@ else
                                        Variant="Variant.Outlined"
                                        Value="@carBasicConfiguration.Item.HomeDetectionVia"
                                        ValueChanged="(newItem) => UpdateHomeDetectionVia(carBasicConfiguration.Item, newItem)"
-                                       Label='@T("Home Detection via")'
+                                       Label='@T(TranslationKeys.CarSettingsHomeDetectionViaLabel)'
                                        Margin="Constants.InputMargin">
                                 @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
                                 {
-                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(item.ToFriendlyName())</MudSelectItem>
+                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(GetHomeDetectionViaName(item))</MudSelectItem>
                                 }
                             </MudSelect>
                         </div>
@@ -171,9 +172,9 @@ else
             @if (_vinsToShowBleTest.Contains(carBasicConfiguration.Item.Vin))
             {
                 <hr />
-                <h3>@T("BLE Pairing and test")</h3>
+                <h3>@T(TranslationKeys.CarSettingsBlePairingTitle)</h3>
                 <div>
-                    @T("To come around rate limits TSC can use BLE instead of the Fleet API. This requires ")<a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">@T("setting up a BLE API")</a>@T(".")
+                    @T(TranslationKeys.CarSettingsBlePairingHintStart)<a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">@T(TranslationKeys.CarSettingsBlePairingLinkText)</a>@T(TranslationKeys.CarSettingsBlePairingHintEnd)
                 </div>
                 @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
                 {
@@ -186,15 +187,15 @@ else
 
                 }
                 <div>
-                    @T("Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.")
+                    @T(TranslationKeys.CarSettingsBlePairingNote)
                 </div>
-                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText='@T("BLE Pair")'></RightAlignedButtonComponent>
-                <h5>@T("Test BLE access")</h5>
+                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText='@T(TranslationKeys.CarSettingsBlePairButton)'></RightAlignedButtonComponent>
+                <h5>@T(TranslationKeys.CarSettingsTestBleAccessTitle)</h5>
                 <div>
-                    @T("Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new \"phone key\" on the car's screen.")
+                    @T(TranslationKeys.CarSettingsTestBleAccessHint1)
                 </div>
                 <div>
-                    @T("After clicking the test button the car 's current should be set to 7A. Note: The car needs to be awake for this test.")
+                    @T(TranslationKeys.CarSettingsTestBleAccessHint2)
                 </div>
                 @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
                 {
@@ -204,12 +205,12 @@ else
                         </p>
                     </div>
                 }
-                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText='@T("Set to 7A")'></RightAlignedButtonComponent>
+                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsSetTo7AButton)'></RightAlignedButtonComponent>
                 @if (carBasicConfiguration.Item.UseBle)
                 {
-                    <h5>@T("Test Wakeup via BLE")</h5>
+                    <h5>@T(TranslationKeys.CarSettingsTestWakeupTitle)</h5>
                     <div>
-                        @T("After this test the car should wake up.")
+                        @T(TranslationKeys.CarSettingsTestWakeupHint)
                     </div>
                     @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
                     {
@@ -220,7 +221,7 @@ else
                         </div>
 
                     }
-                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText='@T("Wake up")'></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsWakeUpButton)'></RightAlignedButtonComponent>
                 }
             }
         </div>
@@ -295,11 +296,11 @@ else
                      ?? new DtoBleCommandResult
                          {
                              Success = false,
-                             ResultMessage = T("Could not deserialize message from TSC."),
+                             ResultMessage = T(TranslationKeys.CarSettingsDeserializationError),
                          };
         if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
-            result.ResultMessage = T("Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.");
+            result.ResultMessage = T(TranslationKeys.CarSettingsBleSuccessMessage);
         }
         _bleTestResults[vin] = result;
         _loadingVins.Remove(vin);
@@ -314,11 +315,11 @@ else
                      ?? new DtoBleCommandResult
                          {
                              Success = false,
-                             ResultMessage = T("Could not deserialize message from TSC."),
+                             ResultMessage = T(TranslationKeys.CarSettingsDeserializationError),
                          };
         if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
-            result.ResultMessage = T("The car accepted the wake call.");
+            result.ResultMessage = T(TranslationKeys.CarSettingsWakeUpSuccessMessage);
         }
         _bleWakeUpTestResults[vin] = result;
         _loadingVins.Remove(vin);
@@ -374,6 +375,18 @@ else
     private string GetCarCardElementId(EditableItem<CarBasicConfiguration> carBasicConfiguration)
     {
         return $"car-settings-{carBasicConfiguration.Guid}";
+    }
+
+    private string GetHomeDetectionViaName(HomeDetectionVia homeDetectionVia)
+    {
+        return homeDetectionVia switch
+        {
+            HomeDetectionVia.GpsLocation => T(TranslationKeys.HomeDetectionViaGpsLocation),
+            HomeDetectionVia.LocatedAtHome => T(TranslationKeys.HomeDetectionViaLocatedAtHome),
+            HomeDetectionVia.LocatedAtWork => T(TranslationKeys.HomeDetectionViaLocatedAtWork),
+            HomeDetectionVia.LocatedAtFavorite => T(TranslationKeys.HomeDetectionViaLocatedAtFavorite),
+            _ => homeDetectionVia.ToString()
+        };
     }
 
 }

@@ -6,6 +6,7 @@ using TeslaSolarCharger.Shared.Localization.Contracts;
 using TeslaSolarCharger.Shared.Localization.Registries;
 using TeslaSolarCharger.Shared.Localization.Registries.Components;
 using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage;
+using TeslaSolarCharger.Shared.Localization.Registries.Components.Dialogs;
 using TeslaSolarCharger.Shared.Localization.Registries.Pages;
 using TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries;
 using TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries.TemplateDtos;
@@ -31,9 +32,11 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPropertyLocalizationRegistry, ModbusValueResultConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, ChargePricePropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization>()
-            .AddSingleton<IPropertyLocalizationRegistry, DtoSmaInverterTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoModbusConfigurationBasePropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSolaxTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoKostalModbusConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoTeslaPowerwallTemplateValueConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, BackendLoginPropertyLocalization>()
             .AddSingleton<ITextLocalizationService, TextLocalizationService>()
             .AddSingleton<ITextLocalizationRegistry, SharedComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BaseConfigurationPageLocalizationRegistry>()
@@ -52,6 +55,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, NavMenuComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CustomIconLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarDetailsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, CarSelectorComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, GenericValueConfigurationComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BackendInformationDisplayComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeSummaryComponentLocalizationRegistry>()
@@ -63,6 +67,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, EnergyPredictionComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FleetApiTestComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, HiddenErrorsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, LegendItemComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoggedErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
@@ -71,5 +76,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, PowerBufferComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, InstallationInformationLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, DialogsLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, TimeSeriesChartPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ValueSourceConfigurationLocalizationRegistry>()
         ;
 }

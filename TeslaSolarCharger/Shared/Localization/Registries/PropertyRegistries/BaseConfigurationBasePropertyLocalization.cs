@@ -309,5 +309,13 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Radius Zuhause",
                 "Erhöhen oder verringern Sie den Radius des Home-Geofences. Hinweis: Werte unter 50 m werden nicht empfohlen."));
+
+        Register(x => x.MaxModbusErrorBackoffDuration,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Max Modbus Error Backoff Duration",
+                "Time to wait before retrying after a modbus error occurred. Note: This backoff duration is increased exponentially."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Maximale Modbus-Fehler-Wartezeit",
+                "Wartezeit vor einem erneuten Versuch nach einem Modbus-Fehler. Hinweis: Diese Wartezeit erhöht sich exponentiell."));
     }
 }

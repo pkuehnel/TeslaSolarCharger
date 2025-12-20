@@ -5,12 +5,17 @@
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using MudExtensions
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
-<h3>Results</h3>
+<h3>@T(TranslationKeys.RestValueResultConfigurationResultsTitle)</h3>
 @foreach(var editableItem in EditableItems)
 {
     <div>
@@ -26,8 +31,8 @@
                                                Variant="Variant.Outlined"
                                                AnchorOrigin="Origin.BottomCenter"
                                                @bind-Value="@editableItem.Item.UsedFor"
-                                               Label="Used for">
-                                <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+                                               Label="@T(TranslationKeys.ValueSourceConfigUsedFor)">
+                                <MudSelectItemGroupExtended T="ValueUsage" Text="@T(TranslationKeys.ValueSourceConfigSolar)" Nested="true" InitiallyExpanded="false">
                                     @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
                                     {
                                         <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
@@ -69,7 +74,7 @@
                                                Variant="Variant.Outlined"
                                                Value="@editableItem.Item.Operator"
                                                ValueChanged="(newItem) => UpdateOperator(editableItem.Item, newItem)"
-                                               Label="Operator">
+                                               Label="@T(TranslationKeys.ValueSourceConfigOperator)">
                                         @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
                                         {
                                             <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
@@ -99,7 +104,7 @@
 }
 @if (NodePatternType != NodePatternType.Direct)
 {
-    <RightAlignedButtonComponent ButtonText="Add Result"
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.ValueSourceConfigAddResult)'
                                  IsDisabled="RestValueResultConfigurations.Any(r => r.Id == default)"
                                  OnButtonClicked="() => RestValueResultConfigurations.Add(new DtoJsonXmlResultConfiguration())"></RightAlignedButtonComponent>
 }
@@ -135,16 +140,16 @@
         var result = await HttpClient.PostAsJsonAsync($"/api/RestValueConfiguration/SaveResultConfiguration?parentId={ParentId}", item);
         if (!result.IsSuccessStatusCode)
         {
-            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigUpdateFailed), Severity.Error);
             return;
         }
         var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
         if (resultContent == default)
         {
-            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigUpdateFailed), Severity.Error);
             return;
         }
-        Snackbar.Add("Result configuration saved.", Severity.Success);
+        Snackbar.Add(T(TranslationKeys.ValueSourceConfigSaved), Severity.Success);
         item.Id = resultContent.Value;
     }
 
@@ -160,13 +165,13 @@
             var result = await HttpClient.DeleteAsync($"/api/RestValueConfiguration/DeleteResultConfiguration?id={editableItemItem.Id}");
             if (!result.IsSuccessStatusCode)
             {
-                Snackbar.Add("Failed to delete result configuration", Severity.Error);
+                Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultDeleteFailed), Severity.Error);
                 return;
             }
             
         }
         RestValueResultConfigurations.Remove(editableItemItem);
-        Snackbar.Add("Result configuration deleted", Severity.Success);
+        Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultDeleted), Severity.Success);
     }
 
     private void UpdateUsedFor(DtoJsonXmlResultConfiguration editableItemItem, ValueUsage newItem)
@@ -174,4 +179,7 @@
         editableItemItem.UsedFor = newItem;
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
 }

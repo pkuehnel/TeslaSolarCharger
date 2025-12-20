@@ -1,3 +1,9 @@
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+
+@inject ITextLocalizationService TextLocalizer
+
 ﻿<MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
     @if (IsDisabled && !string.IsNullOrEmpty(DisabledToolTipText))
     {
@@ -25,7 +31,7 @@
             @if (IsLoading)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
-                <MudText Class="ms-2">Processing</MudText>
+                <MudText Class="ms-2">@T(TranslationKeys.GeneralProcessing)</MudText>
             }
             else
             {
@@ -62,4 +68,7 @@
         await OnButtonClicked.InvokeAsync();
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
 }

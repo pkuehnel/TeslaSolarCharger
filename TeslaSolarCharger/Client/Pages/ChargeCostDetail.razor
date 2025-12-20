@@ -1,4 +1,4 @@
-﻿@page "/ChargePrice/detail/{chargeCostId:int}"
+@page "/ChargePrice/detail/{chargeCostId:int}"
 @page "/ChargePrice/new"
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
@@ -18,8 +19,8 @@
 @inject IChargePriceService ChargePriceService
 @inject ITextLocalizationService TextLocalizer
 
-<button class="btn btn-primary" @onclick="NavigateToList">@T("All Charge costs")</button>
-<h1>@T("ChargePriceDetail")</h1>
+<button class="btn btn-primary" @onclick="NavigateToList">@T(TranslationKeys.ChargeCostDetailAllChargeCostsButton)</button>
+<h1>@T(TranslationKeys.ChargeCostDetailTitle)</h1>
 
 @if (ChargePrice == null)
 {
@@ -45,7 +46,7 @@ else
             <div class="row mt-3">
                 <div class="col-auto">
                     <InputComponent ValueId="price"
-                                    LabelText='@T("Price")'
+                                    LabelText='@T(TranslationKeys.ChargeCostDetailPriceLabel)'
                                     UnitText=""
                                     HelpText="">
                         <InputFragment>
@@ -61,7 +62,7 @@ else
             <hr />
         }
         <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
-                                     ButtonText="@T("Add time based price")"
+                                     ButtonText="@T(TranslationKeys.ChargeCostDetailAddTimeBasedPriceButton)"
                                      OnButtonClicked="AddFixedPrice"></RightAlignedButtonComponent>
 
         <GenericInput T="bool"
@@ -75,11 +76,11 @@ else
                                    For="() => ChargePrice.Item.SpotPriceRegion"
                                    @bind-Value="ChargePrice.Item.SpotPriceRegion"
                                    Margin="Margin.Dense"
-                                   Label="@T("Spot Price Region")"
+                                   Label="@T(TranslationKeys.ChargeCostDetailSpotPriceRegionLabel)"
                                    Variant="Variant.Outlined">
-                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@SpotPriceRegion.DE_LU.ToFriendlyName()" />
-                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@SpotPriceRegion.AT.ToFriendlyName()" />
-                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@SpotPriceRegion.CH.ToFriendlyName()" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@T(TranslationKeys.SpotPriceRegionDELU)" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@T(TranslationKeys.SpotPriceRegionAT)" />
+                    <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@T(TranslationKeys.SpotPriceRegionCH)" />
                 </MudSelectExtended>
             </div>
             <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"></GenericInput>
@@ -100,7 +101,7 @@ else
         {
             <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
                 <MudAlert Severity="Severity.Info">
-                    @T("Updating charge prices can take a significant amount of time as the prices of all previous charges are updated")
+                    @T(TranslationKeys.ChargeCostDetailUpdateWarning)
                 </MudAlert>
             </MudPaper>
         }
@@ -166,7 +167,7 @@ else
     {
         if (ChargePrice == null)
         {
-            Snackbar.Add(T("Charge price is null and can not be saved. Try reloading the page."), Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ChargeCostDetailSaveError), Severity.Error);
             return;
         }
         SubmitIsLoading = true;

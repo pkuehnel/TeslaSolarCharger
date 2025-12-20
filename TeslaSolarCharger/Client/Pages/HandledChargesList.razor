@@ -1,7 +1,9 @@
-﻿@page "/HandledCharges"
+@page "/HandledCharges"
+@using System.Globalization
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
@@ -11,9 +13,9 @@
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
 
-<PageTitle>@T("Handled Charges")</PageTitle>
+<PageTitle>@T(TranslationKeys.HandledChargesListTitle)</PageTitle>
 
-<h1>@T("Handled Charges")</h1>
+<h1>@T(TranslationKeys.HandledChargesListTitle)</h1>
 
 @if (_handledCharges == null)
 {
@@ -26,13 +28,14 @@ else
         {
             <GenericInput T="bool"
                           For="() => HideChargingProcessesWithKnownCars"
-                          LabelName='@T("Hide charging processes with known cars")'
+                          LabelName='@T(TranslationKeys.HandledChargesListHideKnownCarsLabel)'
                           OnValueChanged="RefreshList"/>
         }
         <GenericInput T="int"
                       For="() => MinConsumedEnergy"
-                      LabelName='@T("Minimum consumed energy")'
-                      HelperText='@T("Hide charging processes where less energy is consumed")'
+                      LabelName='@T(TranslationKeys.HandledChargesListMinConsumedEnergyLabel)'
+                      HelperText='@T(TranslationKeys.HandledChargesListMinConsumedEnergyHint)'
+                      PostfixText="@T(TranslationKeys.UnitWh)"
                       OnValueChanged="RefreshList"/>
     </div>
 
@@ -43,7 +46,7 @@ else
                  Height="@_datagridHeight" Breakpoint="Breakpoint.None">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
+                            Title="@T(TranslationKeys.HandledChargesListStartTime)">
                 <CellTemplate>
                     @if (context.Item.EndTime.HasValue && false)
                     {
@@ -56,7 +59,7 @@ else
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.EndTime"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.EndTime))">
+                            Title="@T(TranslationKeys.HandledChargesListEndTime)">
                 <CellTemplate>
                     @if (context.Item.EndTime.HasValue)
                     {
@@ -69,20 +72,20 @@ else
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.CalculatedPrice"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice))"
+                            Title="@T(TranslationKeys.HandledChargesListCalculatedPrice)"
                             AggregateDefinition="_calculatedPriceAggregation">
             </PropertyColumn>
             <PropertyColumn Property="x => x.PricePerKwh"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.PricePerKwh))"
+                            Title="@T(TranslationKeys.HandledChargesListPricePerKwh)"
                             AggregateDefinition="_pricePerKwhAggregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedGridEnergy"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedGridEnergy))"
+                            Title="@T(TranslationKeys.HandledChargesListUsedGridEnergy)"
                             AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedHomeBatteryEnergy"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedHomeBatteryEnergy))"
+                            Title="@T(TranslationKeys.HandledChargesListUsedHomeBatteryEnergy)"
                             AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedSolarEnergy"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedSolarEnergy))"
+                            Title="@T(TranslationKeys.HandledChargesListUsedSolarEnergy)"
                             AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
         </Columns>
     </MudDataGrid>
@@ -100,7 +103,6 @@ else
 
     private bool HideChargingProcessesWithKnownCars { get; set; }
 
-    [Postfix("Wh")]
     private int MinConsumedEnergy { get; set; } = 100;
 
     private string _datagridHeight = "calc(100vh - 10rem);";
@@ -109,28 +111,28 @@ else
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-        DisplayFormat = "\u2211: {value}",
     };
 
     private AggregateDefinition<DtoHandledCharge> _pricePerKwhAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Custom,
-        CustomAggregate = x =>
-        {
-            var averagePricePerKwh = x.Average(z => z.PricePerKwh);
-            var resultString = $"\u2300: {averagePricePerKwh:F3}";
-            return resultString;
-        },
     };
 
     private AggregateDefinition<DtoHandledCharge> _usedEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-        DisplayFormat = "\u2211: {value}",
     };
 
     protected override async Task OnParametersSetAsync()
     {
+        _calculatedPriceAggregation.DisplayFormat = T(TranslationKeys.HandledChargesListSumFormat);
+        _usedEnergyAggrregation.DisplayFormat = T(TranslationKeys.HandledChargesListSumFormat);
+        _pricePerKwhAggregation.CustomAggregate = x =>
+        {
+            var averagePricePerKwh = x.Average(z => z.PricePerKwh);
+            var resultString = string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HandledChargesListAverageFormat), averagePricePerKwh);
+            return resultString;
+        };
         await RefreshList();
     }
 

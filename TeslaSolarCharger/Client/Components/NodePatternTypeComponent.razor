@@ -1,11 +1,16 @@
-﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.SharedModel.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
+@inject ITextLocalizationService TextLocalizer
 
 <InputComponent ValueId="@($"{IdPrefix}nodePatternType")"
-                LabelText="Result Type"
+                LabelText="@T(TranslationKeys.NodePatternResultType)"
                 UnitText=""
                 HelpText="">
     <InputFragment>
@@ -21,7 +26,7 @@
 @if (NodePatternType == TeslaSolarCharger.SharedModel.Enums.NodePatternType.Json)
 {
     <InputComponent ValueId="@($"{IdPrefix}JsonPattern")"
-                    LabelText="@($"{Purpose} Json Pattern")"
+                    LabelText="@Format(TranslationKeys.NodePatternJsonPattern, Purpose)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -32,7 +37,7 @@
 @if (NodePatternType == TeslaSolarCharger.SharedModel.Enums.NodePatternType.Xml)
 {
     <InputComponent ValueId="@($"{IdPrefix}XmlPattern")"
-                    LabelText="@($"{Purpose} XML Pattern")"
+                    LabelText="@Format(TranslationKeys.NodePatternXmlPattern, Purpose)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -41,7 +46,7 @@
     </InputComponent>
 
     <InputComponent ValueId="@($"{IdPrefix}XmlAttributeHeaderName")"
-                    LabelText="@($"{Purpose} XML Attribute Header Name")"
+                    LabelText="@Format(TranslationKeys.NodePatternXmlHeaderName, Purpose)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -50,7 +55,7 @@
     </InputComponent>
 
     <InputComponent ValueId="@($"{IdPrefix}XmlAttributeHeaderValue")"
-                LabelText="@($"{Purpose} XML Attribute Header Value")"
+                LabelText="@Format(TranslationKeys.NodePatternXmlHeaderValue, Purpose)"
                 UnitText=""
                 HelpText="">
         <InputFragment>
@@ -59,7 +64,7 @@
     </InputComponent>
 
     <InputComponent ValueId="@($"{IdPrefix}XmlAttributeValueName")"
-                LabelText="@($"{Purpose} XML Attribute Value Name")"
+                LabelText="@Format(TranslationKeys.NodePatternXmlValueName, Purpose)"
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -175,4 +180,11 @@
     private string? _xmlAttributeHeaderName;
     private string? _xmlAttributeHeaderValue;
     private string? _xmlAttributeValueName;
+
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
 }

@@ -1,5 +1,6 @@
-﻿@using System.Globalization
+@using System.Globalization
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
@@ -9,7 +10,7 @@
 @inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
 
-<h4>@TF("{0} sources", SourceName)</h4>
+<h4>@TF(TranslationKeys.GenericValueConfigurationSources, SourceName)</h4>
 <div class="d-flex flex-wrap justify-content-evenly">
     @if (ConfigurationOverviews == null)
     {
@@ -54,7 +55,7 @@
                                 </ChildContent>
                                 <TooltipContent>
                                     <div>
-                                        @T("Refresh values")
+                                        @T(TranslationKeys.GenericValueConfigurationRefreshValues)
                                     </div>
                                 </TooltipContent>
                             </MudTooltip>
@@ -93,7 +94,7 @@
                                             Placement="Placement.Left"
                                             Arrow="true">
                                     <div class="flex-grow-1">
-                                        <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T("Not available") : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
+                                        <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T(TranslationKeys.GenericValueConfigurationNotAvailable) : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
                                     </div>
                                 </MudTooltip>
                                 
@@ -101,8 +102,8 @@
                         }
                     </MudCardContent>
                     <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">@T("Configure")</MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">@T("Delete")</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">@T(TranslationKeys.GenericValueConfigurationConfigure)</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">@T(TranslationKeys.GenericValueConfigurationDelete)</MudButton>
                     </MudCardActions>
                 </MudCard>
             </div>
@@ -112,7 +113,7 @@
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            @TF("Add new {0} source", SourceName)
+                            @TF(TranslationKeys.GenericValueConfigurationAddNewSource, SourceName)
                         </MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
