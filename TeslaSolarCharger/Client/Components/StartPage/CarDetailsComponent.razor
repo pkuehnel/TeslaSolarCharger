@@ -64,9 +64,9 @@ else
                                     Buffer="@(CarState.CarSideSocLimit != default)"
                                     BufferValue="@(CarState.CarSideSocLimit == default ? 0 : (double)CarState.CarSideSocLimit.Value)"
                                     ValueLabelPrefix='@T(TranslationKeys.CarDetailsSocLabel)'
-                                    ValueLabelSuffix="%"
+                                    ValueLabelSuffix="@T(TranslationKeys.UnitPercent)"
                                     BufferLabelPrefix='@T(TranslationKeys.CarDetailsCarLimitLabel)'
-                                    BufferLabelSuffix="%">
+                                    BufferLabelSuffix="@T(TranslationKeys.UnitPercent)">
         </ProgressWithLabelComponent>
     }
     @if (CarSettings.CarType == CarType.Manual)
@@ -80,6 +80,7 @@ else
         <GenericInput T="int?"
                       For="() => ManualSocToSet"
                       LabelName='@T(TranslationKeys.CarDetailsStateOfChargeLabel)'
+                      PostfixText="@T(TranslationKeys.UnitPercent)"
                       OnValueChanged="SetManualSoc" />
     }
     <div>
@@ -123,7 +124,8 @@ else
                     @T(TranslationKeys.CarDetailsManualModeTeslaHint)
                 </MudAlert>
                 <GenericInput For="() => CurrentToSet"
-                              LabelName='@T(TranslationKeys.CarDetailsCurrentToSetLabel)'></GenericInput>
+                              LabelName='@T(TranslationKeys.CarDetailsCurrentToSetLabel)'
+                              PostfixText="@T(TranslationKeys.UnitAmpere)"></GenericInput>
                 <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarDetailsSetCurrentButton)'
                                              IsLoading="@_isCommandLoading"
                                              OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
@@ -170,9 +172,7 @@ else
     private ChargeModeV2? _lastKnownChargeMode;
     private const int LimitChangeDelayMilliseconds = 1000;
 
-    [Postfix("A")]
     private int? CurrentToSet { get; set; }
-    [Postfix("%")]
     private int? ManualSocToSet { get; set; }
     private bool _isCommandLoading;
 

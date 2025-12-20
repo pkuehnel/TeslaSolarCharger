@@ -1,5 +1,3 @@
-using TeslaSolarCharger.Shared.Localization;
-
 namespace TeslaSolarCharger.Shared.Localization.Registries.Components;
 
 public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<NavMenuComponentLocalizationRegistry>

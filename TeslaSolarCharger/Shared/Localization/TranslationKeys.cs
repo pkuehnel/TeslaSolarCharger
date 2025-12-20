@@ -69,6 +69,8 @@ public static class TranslationKeys
     public static string SupportGetLatestMeterValuesButton => nameof(SupportGetLatestMeterValuesButton);
     public static string SupportChargingPricesSectionTitle => nameof(SupportChargingPricesSectionTitle);
     public static string SupportGetPriceValuesButton => nameof(SupportGetPriceValuesButton);
+    public static string SupportChargingPricesFrom => nameof(SupportChargingPricesFrom);
+    public static string SupportChargingPricesTo => nameof(SupportChargingPricesTo);
     public static string SupportReloadPageButton => nameof(SupportReloadPageButton);
     public static string SupportVinUnknownError => nameof(SupportVinUnknownError);
     public static string SupportNoError => nameof(SupportNoError);
@@ -121,6 +123,8 @@ public static class TranslationKeys
     public static string HandledChargesListUsedGridEnergy => nameof(HandledChargesListUsedGridEnergy);
     public static string HandledChargesListUsedHomeBatteryEnergy => nameof(HandledChargesListUsedHomeBatteryEnergy);
     public static string HandledChargesListUsedSolarEnergy => nameof(HandledChargesListUsedSolarEnergy);
+    public static string HandledChargesListSumFormat => nameof(HandledChargesListSumFormat);
+    public static string HandledChargesListAverageFormat => nameof(HandledChargesListAverageFormat);
 
     public static string TimeSeriesChartModuleTempMin => nameof(TimeSeriesChartModuleTempMin);
     public static string TimeSeriesChartModuleTempMax => nameof(TimeSeriesChartModuleTempMax);
@@ -266,6 +270,9 @@ public static class TranslationKeys
     public static string ValueSourceConfigResultDeleted => nameof(ValueSourceConfigResultDeleted);
     public static string ValueSourceConfigCurrentRestStringFailed => nameof(ValueSourceConfigCurrentRestStringFailed);
     public static string ValueSourceConfigConfigurationValidationFailed => nameof(ValueSourceConfigConfigurationValidationFailed);
+    public static string TeslaPowerwallEditFormError => nameof(TeslaPowerwallEditFormError);
+    public static string TeslaPowerwallEditFormCloudConnectionLink => nameof(TeslaPowerwallEditFormCloudConnectionLink);
+    public static string TeslaPowerwallEditFormErrorSuffix => nameof(TeslaPowerwallEditFormErrorSuffix);
 
     public static string InstallationInfoServerTimezone => nameof(InstallationInfoServerTimezone);
     public static string InstallationInfoServerTime => nameof(InstallationInfoServerTime);
@@ -491,4 +498,34 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
 
+    public static string UnitWatts => nameof(UnitWatts);
+    public static string UnitAmpere => nameof(UnitAmpere);
+    public static string UnitPercent => nameof(UnitPercent);
+    public static string UnitWh => nameof(UnitWh);
+    public static string UnitMB => nameof(UnitMB);
+    public static string UnitSeconds => nameof(UnitSeconds);
+
+    public static string GeneralSave => nameof(GeneralSave);
+    public static string GeneralCancel => nameof(GeneralCancel);
+    public static string GeneralProcessing => nameof(GeneralProcessing);
+    public static string GeneralSaved => nameof(GeneralSaved);
+    public static string GeneralLoading => nameof(GeneralLoading);
+    public static string GeneralCarSettings => nameof(GeneralCarSettings);
+    public static string GeneralChargingStations => nameof(GeneralChargingStations);
+    public static string GeneralConnectedViaOcpp => nameof(GeneralConnectedViaOcpp);
+    public static string GeneralPluggedIn => nameof(GeneralPluggedIn);
+    public static string GeneralCharging => nameof(GeneralCharging);
+    public static string GeneralBaseConfiguration => nameof(GeneralBaseConfiguration);
+
+    public static string MainLayoutAbout => nameof(MainLayoutAbout);
+    public static string MainLayoutUnhandledError => nameof(MainLayoutUnhandledError);
+    public static string MainLayoutReload => nameof(MainLayoutReload);
+
+    public static string GenericInputMultiSelectionText => nameof(GenericInputMultiSelectionText);
+
+    public static string RestValueResultConfigurationResultsTitle => nameof(RestValueResultConfigurationResultsTitle);
+    public static string RestPvValueUseModbusUrlCreationTool => nameof(RestPvValueUseModbusUrlCreationTool);
+    public static string RestPvValueModbusUrlCreationToolHint => nameof(RestPvValueModbusUrlCreationToolHint);
+    public static string RestPvValueHeadersTitle => nameof(RestPvValueHeadersTitle);
+    public static string RestPvValueAddNewHeaderButton => nameof(RestPvValueAddNewHeaderButton);
 }

@@ -93,7 +93,7 @@
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusConnectDelaySeconds")"
                     LabelText="@T(TranslationKeys.ModbusUrlConnectDelay)"
-                    UnitText="s"
+                    UnitText="@T(TranslationKeys.UnitSeconds)"
                     HelpText="">
         <InputFragment>
             <input class="form-control" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusConnectDelaySeconds")" placeholder=" ">
@@ -102,7 +102,7 @@
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusTimeoutSeconds")"
                     LabelText="@T(TranslationKeys.ModbusUrlReadTimeout)"
-                    UnitText="s"
+                    UnitText="@T(TranslationKeys.UnitSeconds)"
                     HelpText="">
         <InputFragment>
             <input class="form-control" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusTimeoutSeconds")" placeholder=" ">
@@ -312,6 +312,6 @@
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
         ?? key;
 }

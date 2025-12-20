@@ -49,5 +49,13 @@ public class HandledChargesListPageLocalizationRegistry : TextLocalizationRegist
         Register(TranslationKeys.HandledChargesListUsedSolarEnergy,
             new TextLocalizationTranslation(LanguageCodes.English, "Used Solar Energy"),
             new TextLocalizationTranslation(LanguageCodes.German, "Genutzte Solarenergie"));
+
+        Register(TranslationKeys.HandledChargesListSumFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "\u2211: {value}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "\u2211: {value}"));
+
+        Register(TranslationKeys.HandledChargesListAverageFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "\u2300: {0:F3}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "\u2300: {0:F3}"));
     }
 }
