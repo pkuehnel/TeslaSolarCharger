@@ -1,8 +1,9 @@
-﻿using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
+﻿using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
 
 namespace TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries.TemplateDtos;
 
-public class DtoSmaInverterTemplateValueConfigurationPropertyLocalization : PropertyLocalizationRegistry<DtoSmaInverterTemplateValueConfiguration>
+public class DtoModbusConfigurationBasePropertyLocalization : PropertyLocalizationRegistry<DtoModbusConfigurationBase>
 {
     protected override void Configure()
     {
