@@ -506,6 +506,7 @@ public static class TranslationKeys
     public static string UnitSeconds => nameof(UnitSeconds);
 
     public static string GeneralSave => nameof(GeneralSave);
+    public static string GeneralDelete => nameof(GeneralDelete);
     public static string GeneralCancel => nameof(GeneralCancel);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
