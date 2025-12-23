@@ -67,6 +67,9 @@ public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfigur
                     .Must(config => config.SwitchOnAtCurrent >= config.SwitchOffAtCurrent)
                     .WithMessage("Switch On At Current must be greater than or equal to Switch Off At Current.");
             });
+            RuleFor(x => x.BleApiBaseUrl)
+                .Must(uri => string.IsNullOrEmpty(uri) || (Uri.TryCreate(uri, UriKind.Absolute, out var outUri) && (outUri.Scheme == Uri.UriSchemeHttp || outUri.Scheme == Uri.UriSchemeHttps)))
+                .WithMessage("BLE API Base URL must be a valid HTTP or HTTPS URL.");
         });
         
     }
