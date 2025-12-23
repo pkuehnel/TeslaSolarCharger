@@ -35,6 +35,7 @@
                                    ReadOnly="IsReadOnly"
                                    Variant="Variant.Outlined"
                                    Margin="InputMargin"
+                                   HelperText="@HelperText"
                                    Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
                                    @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
                                                 {
@@ -53,6 +54,7 @@
                                    ReadOnly="IsReadOnly"
                                    Variant="Variant.Outlined"
                                    Margin="InputMargin"
+                                   HelperText="@HelperText"
                                    Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
                                    @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
                                                 {
@@ -73,6 +75,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<T, string>(GetEnumDisplayName))"
                                        ItemCollection="Enum.GetValues(typeof(T)).Cast<T>().ToList()"
@@ -99,6 +102,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<int?, string>(x => DropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
                                        ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()"
@@ -126,6 +130,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        MultiSelectionTextFunc="@GetIntMultiSelectionText"
                                        ToStringFunc="@(new Func<int, string>(x => DropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
@@ -154,6 +159,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<long?, string>(x => LongIdDropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
                                        ItemCollection="@LongIdDropDownOptions.Keys.Select(k => (long?)k).ToList()"
@@ -181,6 +187,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        MultiSelectionTextFunc="@GetLongMultiSelectionText"
                                        ToStringFunc="@(new Func<long, string>(x => LongIdDropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
@@ -210,6 +217,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
                                        ItemCollection="@StringIdDropDownOptions.Keys.ToList()"
@@ -239,6 +247,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
+                                       HelperText="@HelperText"
                                        SearchBoxAutoFocus="@DropDownSearchBox"
                                        MultiSelectionTextFunc="@(GetMultiSelectionText)"
                                        ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
@@ -277,6 +286,7 @@
                                      Adornment="@Adornment"
                                      AdornmentText="@AdornmentText"
                                      Margin="InputMargin"
+                                     HelperText="@HelperText"
                                      Immediate="@ImmediateValueUpdate"
                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
                                      @attributes="@(NumericFieldAttributes())" />
@@ -299,6 +309,7 @@
                                      Adornment="@Adornment"
                                      AdornmentText="@AdornmentText"
                                      Margin="InputMargin"
+                                     HelperText="@HelperText"
                                      Immediate="@ImmediateValueUpdate"
                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
                                      Format="0.0#########"
@@ -318,6 +329,7 @@
                                       ReadOnly="IsReadOnly"
                                       Variant="Variant.Outlined"
                                       Margin="InputMargin"
+                                      HelperText="@HelperText"
                                       Immediate="@ImmediateValueUpdate"
                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
@@ -337,6 +349,7 @@
                                       ReadOnly="IsReadOnly"
                                       Variant="Variant.Outlined"
                                       Margin="InputMargin"
+                                      HelperText="@HelperText"
                                       Immediate="@ImmediateValueUpdate"
                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
@@ -363,18 +376,18 @@
                                                   { "ErrorText", ErrorMessage ?? string.Empty },
                                               } :new())">
                     </MudCheckBox>
+                    @if (!string.IsNullOrEmpty(HelperText))
+                    {
+                        <div class="ms-4 mt-n1">
+                            <MudText Typo="Typo.caption" Class="mud-input-helper-text">@HelperText</MudText>
+                        </div>
+                    }
                 }
                 else
                 {
                     throw new ArgumentOutOfRangeException();
                 }
             </div>
-            @if (!string.IsNullOrEmpty(HelperText))
-            {
-                <div>
-                    <small class="form-text text-muted">@HelperText</small>
-                </div>
-            }
         </div>
         @if (!string.IsNullOrEmpty(PostfixButtonStartIcon))
         {
