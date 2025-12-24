@@ -26,6 +26,10 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, "Saved."),
             new TextLocalizationTranslation(LanguageCodes.German, "Gespeichert."));
 
+        Register(TranslationKeys.GeneralDelete,
+            new TextLocalizationTranslation(LanguageCodes.English, "Delete"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Löschen"));
+
         Register(TranslationKeys.GeneralLoading,
             new TextLocalizationTranslation(LanguageCodes.English, "Loading..."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wird geladen..."));

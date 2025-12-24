@@ -36,7 +36,7 @@ else
                     <td>@(chargePrice.SolarPrice != null ? ((decimal)chargePrice.SolarPrice).ToString("0.00") : "")</td>
                     <td>@(chargePrice.GridPrice != null ? ((decimal)chargePrice.GridPrice).ToString("0.00") : "")</td>
                 <td>
-                    <button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))">
+                    <button class="btn btn-danger" aria-label="@T(TranslationKeys.GeneralDelete)" @onclick="(_ => Delete(chargePrice.Id))">
                         @if (_deletingChargePriceIds.Any(i => i == chargePrice.Id))
                         {
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
