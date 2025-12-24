@@ -509,6 +509,7 @@ public static class TranslationKeys
     public static string GeneralCancel => nameof(GeneralCancel);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
+    public static string GeneralDelete => nameof(GeneralDelete);
     public static string GeneralLoading => nameof(GeneralLoading);
     public static string GeneralCarSettings => nameof(GeneralCarSettings);
     public static string GeneralChargingStations => nameof(GeneralChargingStations);
