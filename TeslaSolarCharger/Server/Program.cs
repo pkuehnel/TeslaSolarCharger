@@ -90,6 +90,8 @@ var app = builder.Build();
 
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()// overall minimum
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
