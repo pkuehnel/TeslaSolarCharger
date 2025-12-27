@@ -138,6 +138,7 @@ if (configurationWrapper.AllowCors())
 
 app.UseAntiforgery();
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<StartupCheckMiddleware>();
 
 app.MapStaticAssets();
