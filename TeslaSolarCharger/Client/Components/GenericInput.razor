@@ -381,6 +381,7 @@
             <div class="@($"p-{Padding}")">
                 <MudFab Disabled="@ButtonDisplayedAsDisabled"
                         StartIcon="@PostfixButtonStartIcon"
+                        AriaLabel="@PostfixButtonAriaLabel"
                         ButtonType="ButtonType.Button"
                         Color="Color.Primary"
                         @onclick="InvokeOnButtonClicked"
@@ -574,6 +575,9 @@
 
     [Parameter]
     public string? PostfixButtonStartIcon { get; set; }
+
+    [Parameter]
+    public string? PostfixButtonAriaLabel { get; set; }
 
     [Parameter]
     public bool? IsButtonDisabled { get; set; }
