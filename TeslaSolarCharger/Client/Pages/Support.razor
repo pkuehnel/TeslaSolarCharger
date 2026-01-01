@@ -52,6 +52,7 @@
                           ErrorMessage="@_inMemoryLogLevelSetErrorMessage"
                           OnButtonClicked="@(UpdateInMemoryLogLevel)"
                           StringIdDropDownOptions="LogLevelOptions"
+                          PostfixButtonAriaLabel="@T(TranslationKeys.GeneralSave)"
                           PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
         </div>
         <div class="col">
@@ -60,6 +61,7 @@
                           ShouldBeInErrorState="@(_inMemoryLogCapacitySetErrorMessage != default)"
                           ErrorMessage="@_inMemoryLogCapacitySetErrorMessage"
                           OnButtonClicked="@(UpdateInMemoryLogCapacity)"
+                          PostfixButtonAriaLabel="@T(TranslationKeys.GeneralSave)"
                           PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
         </div>
     }
@@ -78,6 +80,7 @@
                           ErrorMessage="@_fileLogLevelSetErrorMessage"
                           OnButtonClicked="@(UpdateFileLogLevel)"
                           StringIdDropDownOptions="LogLevelOptions"
+                          PostfixButtonAriaLabel="@T(TranslationKeys.GeneralSave)"
                           PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
         </div>
         <div class="col">
