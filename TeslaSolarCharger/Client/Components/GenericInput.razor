@@ -384,6 +384,7 @@
                         ButtonType="ButtonType.Button"
                         Color="Color.Primary"
                         @onclick="InvokeOnButtonClicked"
+                        AriaLabel="@PostfixButtonAriaLabel"
                         Size="@(InputMargin == Margin.Dense ? Size.Small : Size.Medium)">
                 </MudFab>
             </div>
@@ -574,6 +575,9 @@
 
     [Parameter]
     public string? PostfixButtonStartIcon { get; set; }
+
+    [Parameter]
+    public string? PostfixButtonAriaLabel { get; set; }
 
     [Parameter]
     public bool? IsButtonDisabled { get; set; }
