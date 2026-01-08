@@ -51,11 +51,14 @@ else
                         }
                     </div>
                     <div @onclick:stopPropagation="true">
-                        <MudIconButton Color="Color.Error"
-                                   Variant="Variant.Outlined"
-                                   Icon="@Icons.Material.Filled.Delete"
-                                   OnClick="() => DeleteItem(chargingTarget)">
-                        </MudIconButton>
+                        <MudTooltip Text="@T(TranslationKeys.GeneralDelete)">
+                            <MudIconButton Color="Color.Error"
+                                           Variant="Variant.Outlined"
+                                           Icon="@Icons.Material.Filled.Delete"
+                                           OnClick="() => DeleteItem(chargingTarget)"
+                                           aria-label="@T(TranslationKeys.GeneralDelete)">
+                            </MudIconButton>
+                        </MudTooltip>
                     </div>
                     
                 </div>
