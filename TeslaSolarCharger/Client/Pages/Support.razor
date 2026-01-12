@@ -52,7 +52,8 @@
                           ErrorMessage="@_inMemoryLogLevelSetErrorMessage"
                           OnButtonClicked="@(UpdateInMemoryLogLevel)"
                           StringIdDropDownOptions="LogLevelOptions"
-                          PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                          PostfixButtonAriaLabel="@($"{T(TranslationKeys.GeneralSave)} {T(TranslationKeys.SupportInMemoryLogLevelLabel)}")" />
         </div>
         <div class="col">
             <GenericInput For="() => _inMemoryLogCapacity.Value"
@@ -60,7 +61,8 @@
                           ShouldBeInErrorState="@(_inMemoryLogCapacitySetErrorMessage != default)"
                           ErrorMessage="@_inMemoryLogCapacitySetErrorMessage"
                           OnButtonClicked="@(UpdateInMemoryLogCapacity)"
-                          PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                          PostfixButtonAriaLabel="@($"{T(TranslationKeys.GeneralSave)} {T(TranslationKeys.SupportInMemoryLogCapacityLabel)}")" />
         </div>
     }
 </div>
@@ -78,7 +80,8 @@
                           ErrorMessage="@_fileLogLevelSetErrorMessage"
                           OnButtonClicked="@(UpdateFileLogLevel)"
                           StringIdDropDownOptions="LogLevelOptions"
-                          PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                          PostfixButtonAriaLabel="@($"{T(TranslationKeys.GeneralSave)} {T(TranslationKeys.SupportFileLogLevelLabel)}")" />
         </div>
         <div class="col">
             <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportDownloadServerFileLogsButton)'

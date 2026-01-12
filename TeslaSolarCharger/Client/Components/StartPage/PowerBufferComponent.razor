@@ -1,4 +1,4 @@
-﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
@@ -15,6 +15,7 @@
         <GenericInput T="int?"
                       For="() => PowerBuffer"
                       PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                      PostfixButtonAriaLabel="@($"{T(TranslationKeys.GeneralSave)} Power Buffer")"
                       OnButtonClicked="UpdatePowerBuffer"></GenericInput>
     </div>
 
