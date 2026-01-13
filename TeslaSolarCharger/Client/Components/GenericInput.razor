@@ -379,13 +379,29 @@
         @if (!string.IsNullOrEmpty(PostfixButtonStartIcon))
         {
             <div class="@($"p-{Padding}")">
-                <MudFab Disabled="@ButtonDisplayedAsDisabled"
-                        StartIcon="@PostfixButtonStartIcon"
-                        ButtonType="ButtonType.Button"
-                        Color="Color.Primary"
-                        @onclick="InvokeOnButtonClicked"
-                        Size="@(InputMargin == Margin.Dense ? Size.Small : Size.Medium)">
-                </MudFab>
+                @if (!string.IsNullOrEmpty(PostfixButtonLabel))
+                {
+                    <MudTooltip Text="@PostfixButtonLabel">
+                        <MudFab Disabled="@ButtonDisplayedAsDisabled"
+                                StartIcon="@PostfixButtonStartIcon"
+                                ButtonType="ButtonType.Button"
+                                Color="Color.Primary"
+                                aria-label="@PostfixButtonLabel"
+                                @onclick="InvokeOnButtonClicked"
+                                Size="@(InputMargin == Margin.Dense ? Size.Small : Size.Medium)">
+                        </MudFab>
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudFab Disabled="@ButtonDisplayedAsDisabled"
+                            StartIcon="@PostfixButtonStartIcon"
+                            ButtonType="ButtonType.Button"
+                            Color="Color.Primary"
+                            @onclick="InvokeOnButtonClicked"
+                            Size="@(InputMargin == Margin.Dense ? Size.Small : Size.Medium)">
+                    </MudFab>
+                }
             </div>
         }
     </div>
@@ -574,6 +590,9 @@
 
     [Parameter]
     public string? PostfixButtonStartIcon { get; set; }
+
+    [Parameter]
+    public string? PostfixButtonLabel { get; set; }
 
     [Parameter]
     public bool? IsButtonDisabled { get; set; }
