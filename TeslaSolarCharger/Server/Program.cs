@@ -136,6 +136,8 @@ if (configurationWrapper.AllowCors())
         .AllowCredentials()); // allow credentials
 }
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 app.UseAntiforgery();
 
 app.UseMiddleware<StartupCheckMiddleware>();
