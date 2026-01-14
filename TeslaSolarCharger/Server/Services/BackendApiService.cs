@@ -175,7 +175,6 @@ public class BackendApiService(
             var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
             
             using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
             if (tokenState == TokenState.UpToDate)
             {
                 var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
