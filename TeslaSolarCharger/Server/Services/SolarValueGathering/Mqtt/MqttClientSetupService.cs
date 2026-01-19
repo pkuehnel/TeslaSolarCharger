@@ -153,7 +153,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     await using (ct.Register(() => tcs.TrySetResult(null)).ConfigureAwait(false))
                     {
                         await tcs.Task.ConfigureAwait(false);
-                        logger.LogTrace("MQTT connection to  {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
+                        logger.LogTrace("MQTT connection to {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
                 }
                 finally
@@ -165,19 +165,19 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     {
                         if (client.IsConnected)
                         {
-                            _logger.LogTrace("Disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                            logger.LogTrace("Disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                             // ReSharper disable once MethodSupportsCancellation
                             await client.DisconnectAsync().ConfigureAwait(false);
-                            _logger.LogTrace("MQTT client disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                            logger.LogTrace("MQTT client disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                         }
                         else
                         {
-                            _logger.LogTrace("MQTT client already disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                            logger.LogTrace("MQTT client already disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                         }
                     }
                     catch(Exception ex)
                     {
-                        _logger.LogError(ex, "Error while disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                        logger.LogError(ex, "Error while disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
 
                     client.Dispose();
