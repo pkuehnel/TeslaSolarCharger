@@ -40,11 +40,13 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
         _logger.LogTrace("{method}({@configurationIds}", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
         Expression<Func<MqttConfiguration, bool>> predicate = configurationIds.Count == 0 ? x => true : x => configurationIds.Contains(x.Id);
         var mqttConfigurations = await _mqttConfigurationService.GetMqttConfigurationsByPredicate(predicate);
-
+        _logger.LogTrace("Found {cound} MQTT configurations", mqttConfigurations.Count);
         var result = new List<IAutoRefreshingValue<decimal>>();
         foreach (var dtoMqttConfiguration in mqttConfigurations)
         {
+            _logger.LogTrace("Get MQTT result configurations for MQTT configuration with ID {id}", dtoMqttConfiguration.Id);
             var resultConfigurations = await _mqttConfigurationService.GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == dtoMqttConfiguration.Id);
+            _logger.LogTrace("Found {count} result configurations", resultConfigurations.Count);
             var value = CreateMqttAutoValueAsync(dtoMqttConfiguration, resultConfigurations);
             result.Add(value);
         }
