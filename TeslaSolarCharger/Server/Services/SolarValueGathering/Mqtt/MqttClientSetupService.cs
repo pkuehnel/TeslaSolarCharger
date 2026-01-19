@@ -56,6 +56,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
     DtoMqttConfiguration mqttConfiguration,
     List<DtoMqttResultConfiguration> resultConfigurations)
     {
+        _logger.LogTrace("{method}({@mqttConfiguration}, {@resultConfigurations})", nameof(CreateMqttAutoValueAsync), mqttConfiguration, resultConfigurations);
         var sourceKey = new SourceValueKey(mqttConfiguration.Id, ConfigurationType.MqttSolarValue);
 
         var autoValue = new AutoRefreshingValue<decimal>(
@@ -63,7 +64,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
             async (sp, self, ct) =>
             {
                 // everything MQTT-related lives here:
-                var logger = sp.GetRequiredService<ILogger<AutoRefreshingValueHandlingService>>();
+                var logger = sp.GetRequiredService<ILogger<MqttClientSetupService>>();
                 var dateTimeProvider = sp.GetRequiredService<IDateTimeProvider>();
                 var restValueExecutionService = sp.GetRequiredService<IRestValueExecutionService>();
                 var mqttClientFactory = sp.GetRequiredService<MqttClientFactory>();
@@ -134,13 +135,17 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
 
                 try
                 {
+                    logger.LogTrace("Connecting MQTT client to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                     await client.ConnectAsync(options, ct).ConfigureAwait(false);
+                    logger.LogTrace("MQTT client connected to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
 
                     if (resultConfigurations.Count > 0)
                     {
                         var subscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder().Build();
                         subscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
+                        logger.LogTrace("Subscribing to {count} topics", subscribeOptions.TopicFilters.Count);
                         await client.SubscribeAsync(subscribeOptions, ct).ConfigureAwait(false);
+                        logger.LogTrace("Subscribed to {count} topics", subscribeOptions.TopicFilters.Count);
                     }
 
                     // Stay alive until cancellation
@@ -148,6 +153,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     await using (ct.Register(() => tcs.TrySetResult(null)).ConfigureAwait(false))
                     {
                         await tcs.Task.ConfigureAwait(false);
+                        logger.LogTrace("MQTT connection to  {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
                 }
                 finally
@@ -158,12 +164,20 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     try
                     {
                         if (client.IsConnected)
+                        {
+                            _logger.LogTrace("Disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                             // ReSharper disable once MethodSupportsCancellation
                             await client.DisconnectAsync().ConfigureAwait(false);
+                            _logger.LogTrace("MQTT client disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                        }
+                        else
+                        {
+                            _logger.LogTrace("MQTT client already disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                        }
                     }
-                    catch
+                    catch(Exception ex)
                     {
-                        // ignored
+                        _logger.LogError(ex, "Error while disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
 
                     client.Dispose();
@@ -177,6 +191,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
 
     private List<MqttTopicFilter> GetMqttTopicFilters(List<DtoMqttResultConfiguration> resultConfigurations)
     {
+        _logger.LogTrace("{method}({@resultConfigurations})", nameof(GetMqttTopicFilters), resultConfigurations);
         var topicFilters = new List<MqttTopicFilter>();
         foreach (var resultConfiguration in resultConfigurations)
         {
