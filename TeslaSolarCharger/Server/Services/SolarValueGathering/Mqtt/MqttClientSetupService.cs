@@ -74,7 +74,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                 var configurationWrapper = sp.GetRequiredService<IConfigurationWrapper>();
 
                 var client = sp.GetRequiredService<IMqttClient>();
-                var mqttClientId = GenerateClientId(configurationWrapper.MqqtClientIdPrefix());
+                var mqttClientId = GenerateClientId(configurationWrapper.MqttClientIdPrefix());
 
                 var optionsBuilder = new MqttClientOptionsBuilder()
                     .WithClientId(mqttClientId)
@@ -202,15 +202,15 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
 
     public string GenerateClientId(string prefix)
     {
-        //Limit length as MQTT spec allows only 23 characters for client id, random part of at least 4 characters should be forced
+        //Limit length as MQTT spec allows only 23 characters for client id, enforce random part
         if (prefix.Length >= StaticConstants.MaxMqttPrefixLength)
         {
             prefix = prefix.Substring(0, StaticConstants.MaxMqttPrefixLength);
         }
         const int mqttClientIdLength = 23;
         var shortGuid = Guid.NewGuid().ToString().Substring(0, mqttClientIdLength - prefix.Length);
-        var mqqtClientId = $"{prefix}{shortGuid}";
-        return mqqtClientId;
+        var mqttClientId = $"{prefix}{shortGuid}";
+        return mqttClientId;
     }
 
     private List<MqttTopicFilter> GetMqttTopicFilters(List<DtoMqttResultConfiguration> resultConfigurations)

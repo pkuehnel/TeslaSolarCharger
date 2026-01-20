@@ -366,7 +366,7 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public string MqqtClientIdPrefix()
+    public string MqttClientIdPrefix()
     {
         return GetBaseConfiguration().MqttClientIdPrefix;
     }

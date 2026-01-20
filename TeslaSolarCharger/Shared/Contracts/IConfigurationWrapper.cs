@@ -7,7 +7,7 @@ public interface IConfigurationWrapper
     string CarConfigFileFullName();
     TimeSpan ChargingValueJobUpdateIntervall();
     TimeSpan PvValueJobUpdateIntervall();
-    string MqqtClientIdPrefix();
+    string MqttClientIdPrefix();
     string? MosquitoServer();
     string? CurrentPowerToGridUrl();
     string? CurrentInverterPowerUrl();
