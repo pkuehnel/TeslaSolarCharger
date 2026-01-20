@@ -11,6 +11,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
@@ -40,7 +41,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
         _logger.LogTrace("{method}({@configurationIds})", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
         Expression<Func<MqttConfiguration, bool>> predicate = configurationIds.Count == 0 ? x => true : x => configurationIds.Contains(x.Id);
         var mqttConfigurations = await _mqttConfigurationService.GetMqttConfigurationsByPredicate(predicate);
-        _logger.LogTrace("Found {cound} MQTT configurations", mqttConfigurations.Count);
+        _logger.LogTrace("Found {count} MQTT configurations", mqttConfigurations.Count);
         var result = new List<IAutoRefreshingValue<decimal>>();
         foreach (var dtoMqttConfiguration in mqttConfigurations)
         {
@@ -73,10 +74,10 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                 var configurationWrapper = sp.GetRequiredService<IConfigurationWrapper>();
 
                 var client = sp.GetRequiredService<IMqttClient>();
-                var mqqtClientId = GenerateClientId(configurationWrapper.MqqtClientIdPrefix());
+                var mqttClientId = GenerateClientId(configurationWrapper.MqqtClientIdPrefix());
 
                 var optionsBuilder = new MqttClientOptionsBuilder()
-                    .WithClientId(mqqtClientId)
+                    .WithClientId(mqttClientId)
                     .WithTimeout(TimeSpan.FromSeconds(5))
                     .WithTcpServer(mqttConfiguration.Host, mqttConfiguration.Port)
                     .WithProtocolVersion(MqttProtocolVersion.V311);
@@ -201,13 +202,13 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
 
     public string GenerateClientId(string prefix)
     {
-        //Limit length as MQTT spec allows only 23 characters for client id
-        const int maxStringLength = 23;
-        if (prefix.Length >= maxStringLength)
+        //Limit length as MQTT spec allows only 23 characters for client id, random part of at least 4 characters should be forced
+        if (prefix.Length >= StaticConstants.MaxMqttPrefixLength)
         {
-            prefix = prefix.Substring(0, maxStringLength - 1);
+            prefix = prefix.Substring(0, StaticConstants.MaxMqttPrefixLength);
         }
-        var shortGuid = Guid.NewGuid().ToString().Substring(0, maxStringLength - prefix.Length);
+        const int mqttClientIdLength = 23;
+        var shortGuid = Guid.NewGuid().ToString().Substring(0, mqttClientIdLength - prefix.Length);
         var mqqtClientId = $"{prefix}{shortGuid}";
         return mqqtClientId;
     }

@@ -65,10 +65,10 @@ public class TeslaMateMqttService(
     public async Task ConnectMqttClient()
     {
         logger.LogTrace("{method}()", nameof(ConnectMqttClient));
-        var mqqtClientId = mqttClientSetupService.GenerateClientId(configurationWrapper.MqqtClientIdPrefix());
+        var mqttClientId = mqttClientSetupService.GenerateClientId(configurationWrapper.MqqtClientIdPrefix());
         var mosquitoServer = configurationWrapper.MosquitoServer();
         var mqttClientOptions = new MqttClientOptionsBuilder()
-            .WithClientId(mqqtClientId)
+            .WithClientId(mqttClientId)
             .WithTcpServer(mosquitoServer)
             .Build();
 
