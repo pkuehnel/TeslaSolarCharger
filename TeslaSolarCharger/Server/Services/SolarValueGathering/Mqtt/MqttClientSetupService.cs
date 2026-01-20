@@ -37,7 +37,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
 
     public async Task<List<IAutoRefreshingValue<decimal>>> GetDecimalAutoRefreshingValuesAsync(List<int> configurationIds)
     {
-        _logger.LogTrace("{method}({@configurationIds}", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
+        _logger.LogTrace("{method}({@configurationIds})", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
         Expression<Func<MqttConfiguration, bool>> predicate = configurationIds.Count == 0 ? x => true : x => configurationIds.Contains(x.Id);
         var mqttConfigurations = await _mqttConfigurationService.GetMqttConfigurationsByPredicate(predicate);
         _logger.LogTrace("Found {cound} MQTT configurations", mqttConfigurations.Count);
@@ -157,6 +157,10 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                         await tcs.Task.ConfigureAwait(false);
                         logger.LogTrace("MQTT connection to {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in MQTT client connection to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                 }
                 finally
                 {
