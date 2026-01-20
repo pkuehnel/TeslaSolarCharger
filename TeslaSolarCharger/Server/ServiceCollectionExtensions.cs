@@ -168,6 +168,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITimestampHelper, TimestampHelper>()
             .AddTransient<IChargerValueLogService, ChargerValueLogService>()
             .AddTransient<ICarValueEstimationService, CarValueEstimationService>()
+            .AddTransient<IMqttClientSetupService, MqttClientSetupService>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
