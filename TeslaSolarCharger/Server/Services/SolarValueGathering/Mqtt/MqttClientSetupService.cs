@@ -70,9 +70,10 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                 var dateTimeProvider = sp.GetRequiredService<IDateTimeProvider>();
                 var restValueExecutionService = sp.GetRequiredService<IRestValueExecutionService>();
                 var mqttClientFactory = sp.GetRequiredService<MqttClientFactory>();
+                var configurationWrapper = sp.GetRequiredService<IConfigurationWrapper>();
 
                 var client = sp.GetRequiredService<IMqttClient>();
-                var mqqtClientId = GenerateClientId("TSC_");
+                var mqqtClientId = GenerateClientId(configurationWrapper.MqqtClientIdPrefix());
 
                 var optionsBuilder = new MqttClientOptionsBuilder()
                     .WithClientId(mqqtClientId)

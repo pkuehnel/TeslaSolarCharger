@@ -34,7 +34,7 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
                 .NotEmpty();
         });
 
-        RuleFor(x => x.MqqtClientId)
+        RuleFor(x => x.MqttClientIdPrefix)
             .MaximumLength(20);
 
         RuleFor(x => x.HomeGeofenceRadius)

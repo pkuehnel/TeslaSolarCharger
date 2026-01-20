@@ -366,9 +366,9 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public string MqqtClientId()
+    public string MqqtClientIdPrefix()
     {
-        return GetBaseConfiguration().MqqtClientId;
+        return GetBaseConfiguration().MqttClientIdPrefix;
     }
 
     public string? MosquitoServer()

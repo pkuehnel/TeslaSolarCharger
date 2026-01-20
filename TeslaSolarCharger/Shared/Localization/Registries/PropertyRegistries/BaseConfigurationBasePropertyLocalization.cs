@@ -166,13 +166,13 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Mosquitto-Servername",
                 null));
 
-        Register(x => x.MqqtClientId,
+        Register(x => x.MqttClientIdPrefix,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                "Mqqt ClientId",
-                null),
+                "MQTT Client ID Prefix",
+                "For each MQTT client connection this is used as prefix for a randomized client ID"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "MQTT-Client-ID",
-                null));
+                "MQTT-Client-ID Präfix",
+                "Wird als Präfix einer zufälligen Client ID für jede MQTT Client Verbindung verwendet"));
 
         Register(x => x.DynamicHomeBatteryMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
