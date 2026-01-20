@@ -8,6 +8,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using Microsoft.Extensions.DependencyInjection;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,7 +20,8 @@ public class TeslaMateMqttService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    IServiceScopeFactory serviceScopeFactory)
+    IServiceScopeFactory serviceScopeFactory,
+    IMqttClientSetupService mqttClientSetupService)
     : ITeslaMateMqttService
 {
 
@@ -63,8 +65,7 @@ public class TeslaMateMqttService(
     public async Task ConnectMqttClient()
     {
         logger.LogTrace("{method}()", nameof(ConnectMqttClient));
-        var guid = Guid.NewGuid();
-        var mqqtClientId = configurationWrapper.MqqtClientId() + guid;
+        var mqqtClientId = mqttClientSetupService.GenerateClientId(configurationWrapper.MqqtClientId());
         var mosquitoServer = configurationWrapper.MosquitoServer();
         var mqttClientOptions = new MqttClientOptionsBuilder()
             .WithClientId(mqqtClientId)

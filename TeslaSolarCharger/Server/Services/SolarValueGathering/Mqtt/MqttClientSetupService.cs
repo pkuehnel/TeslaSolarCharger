@@ -15,7 +15,7 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
 
-public class MqttClientSetupService : IAutoRefreshingValueSetupService
+public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttClientSetupService
 {
     private readonly ILogger<MqttClientSetupService> _logger;
     private readonly IMqttConfigurationService _mqttConfigurationService;
@@ -72,9 +72,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                 var mqttClientFactory = sp.GetRequiredService<MqttClientFactory>();
 
                 var client = sp.GetRequiredService<IMqttClient>();
-                //Limit length as MQTT spec allows only 23 characters for client id
-                var shortGuid = Guid.NewGuid().ToString().Substring(0, 15);
-                var mqqtClientId = $"TSC_{shortGuid}";
+                var mqqtClientId = GenerateClientId("TSC_");
 
                 var optionsBuilder = new MqttClientOptionsBuilder()
                     .WithClientId(mqqtClientId)
@@ -198,6 +196,19 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
             sourceKey);
 
         return autoValue;
+    }
+
+    public string GenerateClientId(string prefix)
+    {
+        //Limit length as MQTT spec allows only 23 characters for client id
+        const int maxStringLength = 23;
+        if (prefix.Length >= maxStringLength)
+        {
+            prefix = prefix.Substring(0, maxStringLength - 1);
+        }
+        var shortGuid = Guid.NewGuid().ToString().Substring(0, maxStringLength - prefix.Length);
+        var mqqtClientId = $"{prefix}{shortGuid}";
+        return mqqtClientId;
     }
 
     private List<MqttTopicFilter> GetMqttTopicFilters(List<DtoMqttResultConfiguration> resultConfigurations)

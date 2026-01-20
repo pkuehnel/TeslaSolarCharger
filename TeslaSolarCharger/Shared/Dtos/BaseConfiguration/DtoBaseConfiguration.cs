@@ -34,6 +34,9 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
                 .NotEmpty();
         });
 
+        RuleFor(x => x.MqqtClientId)
+            .MaximumLength(20);
+
         RuleFor(x => x.HomeGeofenceRadius)
             .GreaterThan(0);
 
