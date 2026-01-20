@@ -72,8 +72,9 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                 var mqttClientFactory = sp.GetRequiredService<MqttClientFactory>();
 
                 var client = sp.GetRequiredService<IMqttClient>();
-                var guid = Guid.NewGuid();
-                var mqqtClientId = $"TeslaSolarCharger{guid}";
+                //Limit length as MQTT spec allows only 23 characters for client id
+                var shortGuid = Guid.NewGuid().ToString().Substring(0, 15);
+                var mqqtClientId = $"TSC_{shortGuid}";
 
                 var optionsBuilder = new MqttClientOptionsBuilder()
                     .WithClientId(mqqtClientId)
