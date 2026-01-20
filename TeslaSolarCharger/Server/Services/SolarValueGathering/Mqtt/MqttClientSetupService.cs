@@ -158,6 +158,15 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                         logger.LogTrace("MQTT connection to {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
                 }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in MQTT client loop for {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                    throw;
+                }
                 finally
                 {
                     // cleanup: detach handler & dispose client
