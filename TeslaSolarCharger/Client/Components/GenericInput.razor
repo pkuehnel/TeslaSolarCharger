@@ -8,9 +8,14 @@
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Shared.Localization.Contracts
 
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using System.Globalization
+
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject IPropertyLocalizationService PropertyLocalizationService
+@inject ITextLocalizationService TextLocalizer
 
 @typeparam T
 
@@ -997,8 +1002,22 @@
     private string GetMultiSelectionTextWithoutValues(int selectedValues, int? availableOptions)
     {
         var ofText = availableOptions == null ? string.Empty : $"/{availableOptions}";
-        return $"{selectedValues}{ofText} item{(selectedValues == 1 ? " has" : "s have")} been selected";
+
+        // I will use a simple heuristic for now.
+        var suffixEnglish = selectedValues == 1 ? " has" : "s have";
+        var suffixGerman = selectedValues == 1 ? "" : "e";
+
+        var suffixToUse = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "de" ? suffixGerman : suffixEnglish;
+
+        return Format(TranslationKeys.GenericInputMultiSelectionText, selectedValues, ofText, suffixToUse);
     }
+
+    private string Loc(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, Loc(key), arguments);
 
     private void InvokeOnButtonClicked()
     {

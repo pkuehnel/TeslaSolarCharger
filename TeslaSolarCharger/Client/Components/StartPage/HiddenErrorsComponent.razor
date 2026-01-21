@@ -1,8 +1,9 @@
-﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper
 @using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.LoggedError
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -30,15 +31,15 @@ else
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-0">
                             <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
-                                <MudText Class="mt-1">@T("Hidden errors")</MudText>
+                                <MudText Class="mt-1">@T(TranslationKeys.HiddenErrorsTitle)</MudText>
                             </MudBadge>
 
                         </div>
                         <div class="mt-1 ml-2 flex-grow-1 text-center">
-                            @T("These errors are currently not resolved but hidden.")
+                            @T(TranslationKeys.HiddenErrorsDescription)
                         </div>
                         <div class="mt-1 ml-2 flex-grow-0">
-                            <small>@T("The list is only updated once per minute")</small>
+                            <small>@T(TranslationKeys.HiddenErrorsUpdateHint)</small>
                         </div>
                     </div>
                 </TitleContent>
@@ -52,7 +53,7 @@ else
                                       ShowCloseIcon="false">
                                 <h4>@GetHeadlineText(error)</h4>
                                 <div>
-                                    @Format("Hidden reason: {0}", GetHideReasonText(error.HideReason))
+                                    @Format(TranslationKeys.HiddenErrorsReasonFormat, GetHideReasonText(error.HideReason))
                                 </div>
                                 <div style="word-break: break-word;">
                                     @((MarkupString)error.Message)
@@ -111,13 +112,13 @@ else
     private string GetHeadlineText(DtoHiddenError error) =>
         error.HideOccurrenceCount
             ? error.Headline
-            : Format("{0} occured {1} time(s)", error.Headline, error.OccurrenceCount);
+            : Format(TranslationKeys.HiddenErrorsOccurrenceCount, error.Headline, error.OccurrenceCount);
 
     private string GetHideReasonText(LoggedErrorHideReason hideReason) =>
         hideReason switch
         {
-            LoggedErrorHideReason.NotEnoughOccurrences => T("Not Enough occurrences"),
-            LoggedErrorHideReason.Dismissed => T("Dismissed"),
+            LoggedErrorHideReason.NotEnoughOccurrences => T(TranslationKeys.HiddenErrorsReasonNotEnoughOccurrences),
+            LoggedErrorHideReason.Dismissed => T(TranslationKeys.HiddenErrorsReasonDismissed),
             _ => hideReason.ToString(),
         };
 

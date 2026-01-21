@@ -1246,6 +1246,7 @@ public class TeslaFleetApiService(
 
             // Convert TeslaVehicle to DtoTesla
             var dtos = vehicles.Response.Select(v => new DtoTesla { Name = v.DisplayName, Vin = v.Vin }).ToList();
+            logger.LogTrace("Found {count} cars in Tesla account", dtos.Count);
             return Fin<List<DtoTesla>>.Succ(dtos);
         }
         catch (HttpRequestException e)

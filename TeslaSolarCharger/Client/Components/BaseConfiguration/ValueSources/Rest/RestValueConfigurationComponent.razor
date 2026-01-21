@@ -1,12 +1,17 @@
-﻿@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Client.Dialogs
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ITextLocalizationService TextLocalizer
 
 <GenericValueConfigurationComponent
     SourceName="REST"
@@ -40,8 +45,8 @@
         {
             { x => x.RestValueConfigurationId, id },
         };
-        var title = id == default ? "Add" : "Edit";
-        var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>($"{title} REST config", parameters, options);
+        var title = id == default ? T(TranslationKeys.ValueSourceConfigAdd) : T(TranslationKeys.ValueSourceConfigEdit);
+        var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>(TF(TranslationKeys.ValueSourceConfigTitle, "REST"), parameters, options);
         var result = await dialog.Result;
 
         await RefreshRequestResults();
@@ -56,16 +61,23 @@
         };
         var parameters = new DialogParameters<DeleteDialog>
         {
-            { x => x.ElementName, "the REST configuration" },
+            { x => x.ElementName, T(TranslationKeys.ValueSourceConfigDeleteConfigurationItem) },
         };
-        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete REST config?", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(TF(TranslationKeys.ValueSourceConfigDeleteConfirm, "REST"), parameters, options);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
             await HttpClient.DeleteAsync($"api/RestValueConfiguration/DeleteRestValueConfiguration?id={id}");
-            Snackbar.Add("Rest value configuration deleted.", Severity.Success);
+            Snackbar.Add(TF(TranslationKeys.ValueSourceConfigConfigurationDeleted, "Rest value"), Severity.Success);
             await RefreshRequestResults();
         }
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string TF(string key, params object[] args) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), args);
 
 }

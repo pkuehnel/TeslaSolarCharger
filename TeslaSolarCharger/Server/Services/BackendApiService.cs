@@ -173,9 +173,6 @@ public class BackendApiService(
             var tokenState = await tokenHelper.GetBackendTokenState(true);
             var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
             var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
-            
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
             if (tokenState == TokenState.UpToDate)
             {
                 var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
@@ -323,7 +320,7 @@ public class BackendApiService(
         try
         {
             using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
+            httpClient.Timeout = TimeSpan.FromSeconds(20);
             if (httpMethod == HttpMethod.Get)
             {
                 request.Method = HttpMethod.Get;

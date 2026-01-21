@@ -6,32 +6,36 @@ public class ChargeCostsListPageLocalizationRegistry : TextLocalizationRegistry<
 {
     protected override void Configure()
     {
-        Register("Charge Prices",
+        Register(TranslationKeys.ChargeCostsListTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladepreise"));
 
-        Register("New",
+        Register(TranslationKeys.ChargeCostsListNewButton,
             new TextLocalizationTranslation(LanguageCodes.English, "New"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neu"));
 
-        Register("Id",
+        Register(TranslationKeys.ChargeCostsListIdHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Id"),
             new TextLocalizationTranslation(LanguageCodes.German, "ID"));
 
-        Register("Valid since",
+        Register(TranslationKeys.ChargeCostsListValidSinceHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Valid since"),
             new TextLocalizationTranslation(LanguageCodes.German, "Gültig seit"));
 
-        Register("Solar price per kWh",
+        Register(TranslationKeys.ChargeCostsListSolarPriceHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar price per kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Solarpreis pro kWh"));
 
-        Register("Grid price per kWh",
+        Register(TranslationKeys.ChargeCostsListGridPriceHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Grid price per kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis pro kWh"));
 
-        Register("Delete",
+        Register(TranslationKeys.ChargeCostsListDeleteHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete"),
             new TextLocalizationTranslation(LanguageCodes.German, "Löschen"));
+
+        Register(TranslationKeys.ChargeCostsListLoading,
+            new TextLocalizationTranslation(LanguageCodes.English, "Loading..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Laden..."));
     }
 }

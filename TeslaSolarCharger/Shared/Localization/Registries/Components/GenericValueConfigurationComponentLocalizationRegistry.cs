@@ -6,27 +6,27 @@ public class GenericValueConfigurationComponentLocalizationRegistry : TextLocali
 {
     protected override void Configure()
     {
-        Register("{0} sources",
+        Register(TranslationKeys.GenericValueConfigurationSources,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} sources"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} Quellen"));
 
-        Register("Refresh values",
+        Register(TranslationKeys.GenericValueConfigurationRefreshValues,
             new TextLocalizationTranslation(LanguageCodes.English, "Refresh values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Werte aktualisieren"));
 
-        Register("Not available",
+        Register(TranslationKeys.GenericValueConfigurationNotAvailable,
             new TextLocalizationTranslation(LanguageCodes.English, "Not available"),
             new TextLocalizationTranslation(LanguageCodes.German, "Nicht verfügbar"));
 
-        Register("Configure",
+        Register(TranslationKeys.GenericValueConfigurationConfigure,
             new TextLocalizationTranslation(LanguageCodes.English, "Configure"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurieren"));
 
-        Register("Delete",
+        Register(TranslationKeys.GenericValueConfigurationDelete,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete"),
             new TextLocalizationTranslation(LanguageCodes.German, "Löschen"));
 
-        Register("Add new {0} source",
+        Register(TranslationKeys.GenericValueConfigurationAddNewSource,
             new TextLocalizationTranslation(LanguageCodes.English, "Add new {0} source"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neue {0}-Quelle hinzufügen"));
     }

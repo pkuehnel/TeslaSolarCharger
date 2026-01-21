@@ -3,8 +3,14 @@
 @using TeslaSolarCharger.Shared.Dtos.TimeSeries
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
 @inject HttpClient Http
 @inject IStringHelper StringHelper
+@inject ITextLocalizationService TextLocalizer
 
 <div>
     <MudTimeSeriesChart ChartSeries="@_series"
@@ -57,7 +63,7 @@
             var chartSeries = new TimeSeriesChartSeries
             {
                 Index = 0,
-                    Name = StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString()),
+                    Name = GetSeriesName(carValueType),
                 Data = response.Select(d => new TimeSeriesChartSeries.TimeValue(d.Timestamp, d.Value ?? 0)).ToList(),
                 IsVisible = true,
                 LineDisplayType = LineDisplayType.Line,
@@ -65,4 +71,20 @@
             _series.Add(chartSeries);
         }
     }
+
+    private string GetSeriesName(CarValueType carValueType)
+    {
+        return carValueType switch
+        {
+            CarValueType.ModuleTempMin => T(TranslationKeys.TimeSeriesChartModuleTempMin),
+            CarValueType.ModuleTempMax => T(TranslationKeys.TimeSeriesChartModuleTempMax),
+            CarValueType.StateOfCharge => T(TranslationKeys.TimeSeriesChartStateOfCharge),
+            CarValueType.StateOfChargeLimit => T(TranslationKeys.TimeSeriesChartStateOfChargeLimit),
+            _ => StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString())
+        };
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<TimeSeriesChartPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

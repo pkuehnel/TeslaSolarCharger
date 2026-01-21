@@ -134,7 +134,7 @@ public class BaseConfigurationService(
                 Directory.CreateDirectory(pendingRestoreDirectory);
             }
 
-            var tempFilePath = Path.Combine(pendingRestoreDirectory, $"{fileName}.part");
+            var tempFilePath = Path.Combine(pendingRestoreDirectory, $"{Path.GetFileName(fileName)}.part");
 
             var fs = new FileStream(tempFilePath, FileMode.Append, FileAccess.Write);
             await using (fs.ConfigureAwait(false))
@@ -262,7 +262,7 @@ public class BaseConfigurationService(
     public async Task<byte[]> DownloadAutoBackup(string fileName)
     {
         var directory = configurationWrapper.AutoBackupsZipDirectory();
-        var path = Path.Combine(directory, fileName);
+        var path = Path.Combine(directory, Path.GetFileName(fileName));
         var bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
         return bytes;
     }

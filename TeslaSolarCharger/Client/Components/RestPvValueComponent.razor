@@ -1,7 +1,12 @@
 ﻿@using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+
 @inject INodePatternTypeHelper NodePatternTypeHelper
+@inject ITextLocalizationService TextLocalizer
 
 
 <InputComponent ValueId="@($"{IdPrefix}Url")"
@@ -17,9 +22,9 @@
 {
     <div class="form-group mb-3">
         <InputCheckbox id="@($"{IdPrefix}IsModbusUrl")" @bind-Value="IsModbusUrl" class="form-check-input" />
-        <label for="@($"{IdPrefix}IsModbusUrl")">Use Modbus Url Creation Tool</label>
+        <label for="@($"{IdPrefix}IsModbusUrl")">@T(TranslationKeys.RestPvValueUseModbusUrlCreationTool)</label>
         <div>
-            <small class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+            <small class="form-text text-muted">@T(TranslationKeys.RestPvValueModbusUrlCreationToolHint)</small>
         </div>
     </div>
     @if (IsModbusUrl)
@@ -35,7 +40,7 @@ else
     <div class="mb-3">
         @if (Headers.Count > 0)
         {
-            <h4>Headers</h4>
+            <h4>@T(TranslationKeys.RestPvValueHeadersTitle)</h4>
         }
         @for (var i = 0; i < Headers.Count; i++)
         {
@@ -54,7 +59,7 @@ else
         }
     </div>
 
-    <div><button type="button" class="btn btn-secondary mb-3" @onclick="AddNewHeader">Add new header</button></div>
+    <div><button type="button" class="btn btn-secondary mb-3" @onclick="AddNewHeader">@T(TranslationKeys.RestPvValueAddNewHeaderButton)</button></div>
 
 }
 
@@ -127,6 +132,10 @@ else
         Headers.Remove(key);
         HeadersChanged.InvokeAsync(Headers);
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
 
     private string? _url;
     private bool _isModbusUrl;

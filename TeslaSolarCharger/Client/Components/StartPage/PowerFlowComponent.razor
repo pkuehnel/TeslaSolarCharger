@@ -2,11 +2,15 @@
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.SignalRClients
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject ISignalRStateService SignalRStateService
+@inject ITextLocalizationService TextLocalizer
 
 @if (_pvValues == default)
 {
@@ -129,7 +133,7 @@ else
                 <foreignObject x="@(GridLocation.X - CircleContentLocationDifference)" y="@(GridLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
                         <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
-                        <div>@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) W</div>
+                        <div>@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</div>
                     </div>
                 </foreignObject>
             }
@@ -138,7 +142,7 @@ else
                 <foreignObject x="@(InverterLocation.X - CircleContentLocationDifference)" y="@(InverterLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
                         <MudIcon Icon="@Constants.SolarPowerIcon" Size="Size.Large" />
-                        <div>@(_pvValues.InverterPower?.ToString("N0")) W</div>
+                        <div>@(_pvValues.InverterPower?.ToString("N0")) @T(TranslationKeys.UnitWatts)</div>
                     </div>
                 </foreignObject>
             }
@@ -147,7 +151,7 @@ else
                 <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
                     <div style="text-align: center;">
                         <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
-                        <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0") W</div>
+                        <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0") @T(TranslationKeys.UnitWatts)</div>
                     </div>
                 </foreignObject>
             }
@@ -156,7 +160,7 @@ else
                 <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
                         <MudIcon Icon="@Constants.HomePowerIcon" Size="Size.Large" />
-                        <div>@CalculateHomePower()?.ToString("N0") W</div>
+                        <div>@CalculateHomePower()?.ToString("N0") @T(TranslationKeys.UnitWatts)</div>
                     </div>
                 </foreignObject>
             }
@@ -165,7 +169,7 @@ else
                 <foreignObject x="@(EvChargerLocation.X - CircleContentLocationDifference)" y="@(EvChargerLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
                         <MudIcon Icon="@Constants.EvPowerIcon" Size="Size.Large" />
-                        <div>@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") W</div>
+                        <div>@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") @T(TranslationKeys.UnitWatts)</div>
                     </div>
                 </foreignObject>
             }
@@ -630,4 +634,8 @@ else
         var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
         return homePower;
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }

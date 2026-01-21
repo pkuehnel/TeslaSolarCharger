@@ -166,13 +166,13 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Mosquitto-Servername",
                 null));
 
-        Register(x => x.MqqtClientId,
+        Register(x => x.MqttClientIdPrefix,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                "Mqqt ClientId",
-                null),
+                "MQTT Client ID Prefix",
+                "For each MQTT client connection this is used as prefix for a randomized client ID"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "MQTT-Client-ID",
-                null));
+                "MQTT-Client-ID Präfix",
+                "Wird als Präfix einer zufälligen Client ID für jede MQTT Client Verbindung verwendet"));
 
         Register(x => x.DynamicHomeBatteryMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -309,5 +309,13 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Radius Zuhause",
                 "Erhöhen oder verringern Sie den Radius des Home-Geofences. Hinweis: Werte unter 50 m werden nicht empfohlen."));
+
+        Register(x => x.MaxModbusErrorBackoffDuration,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Max Modbus Error Backoff Duration",
+                "Time to wait before retrying after a modbus error occurred. Note: This backoff duration is increased exponentially."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Maximale Modbus-Fehler-Wartezeit",
+                "Wartezeit vor einem erneuten Versuch nach einem Modbus-Fehler. Hinweis: Diese Wartezeit erhöht sich exponentiell."));
     }
 }

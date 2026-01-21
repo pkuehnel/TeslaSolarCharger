@@ -2,6 +2,7 @@
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using System.Globalization
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -21,7 +22,7 @@
             var i1 = i;
             var actualCurrentOnPhase = (double)(i1 <= LoadPoint.ActualPhases ? LoadPoint.ActualCurrent ?? 0 : 0);
             var maxCurrentOnPhase = LoadPoint.MaxCurrent ?? 16;
-            <MudTooltip Text='@Format("Phase {0}: {1}/{2} A", i1, actualCurrentOnPhase.ToString("N1"), maxCurrentOnPhase.ToString("N0"))'
+            <MudTooltip Text='@Format(TranslationKeys.LoadpointPhaseTooltipFormat, i1, actualCurrentOnPhase.ToString("N1"), maxCurrentOnPhase.ToString("N0"))'
                         RootClass="mt-1 mb-3 mx-1 w-100"
                         Placement="Placement.Left"
                         Arrow="true">

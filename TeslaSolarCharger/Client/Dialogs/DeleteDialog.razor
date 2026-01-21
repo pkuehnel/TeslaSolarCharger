@@ -1,19 +1,29 @@
-﻿<MudDialog>
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.Dialogs
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudDialog>
     <DialogContent>
-        Are you sure you want to delete @(ElementName)?
+        @string.Format(T(TranslationKeys.DeleteDialogContentFormat), ElementName)
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Error" OnClick="Submit">Yes</MudButton>
+        <MudButton OnClick="Cancel">@T(TranslationKeys.DeleteDialogCancel)</MudButton>
+        <MudButton Color="Color.Error" OnClick="Submit">@T(TranslationKeys.DeleteDialogConfirm)</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    IMudDialogInstance MudDialog { get; set; }
+    IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public string ElementName { get; set; } = "";
+
+    private string T(string key) =>
+        TextLocalizer.Get<DialogsLocalizationRegistry>(key)
+        ?? key;
 
     void Submit() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();

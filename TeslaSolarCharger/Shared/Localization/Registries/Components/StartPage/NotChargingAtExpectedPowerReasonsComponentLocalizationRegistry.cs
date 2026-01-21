@@ -6,15 +6,15 @@ public class NotChargingAtExpectedPowerReasonsComponentLocalizationRegistry : Te
 {
     protected override void Configure()
     {
-        Register("{0} reason why loadpoint charges with different power than you might expect",
+        Register(TranslationKeys.NotChargingReasonsSingular,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} reason why loadpoint charges with different power than you might expect"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} Grund, warum der Ladepunkt mit einer anderen Leistung lädt als erwartet"));
 
-        Register("{0} reasons why loadpoint charges with different power than you might expect",
+        Register(TranslationKeys.NotChargingReasonsPlural,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} reasons why loadpoint charges with different power than you might expect"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} Gründe, warum der Ladepunkt mit einer anderen Leistung lädt als erwartet"));
 
-        Register("remaining)",
+        Register(TranslationKeys.NotChargingRemainingSuffix,
             new TextLocalizationTranslation(LanguageCodes.English, "remaining)"),
             new TextLocalizationTranslation(LanguageCodes.German, "verbleibend)"));
     }

@@ -19,6 +19,7 @@ public class DtoCarChargingTarget
     public bool RepeatOnSaturdays { get; set; }
     public bool RepeatOnSundays { get; set; }
     public string? ClientTimeZone { get; set; }
+    public bool NextExecutionTimeIsAfterLatestKnownChargePrice { get; set; }
 }
 
 public class CarChargingTargetValidator : AbstractValidator<DtoCarChargingTarget>

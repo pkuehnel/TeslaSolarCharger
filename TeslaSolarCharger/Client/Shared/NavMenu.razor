@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
@@ -10,10 +11,10 @@
     <div class="container-fluid">
         <a class="navbar-brand" href="">
             <span>
-                <MudIcon Icon="@Constants.SolarPowerIcon" Class="me-1" />
-            </span> @T("Tesla Solar Charger")
+                <MudIcon Icon="@Icons.Material.Filled.SolarPower" Class="me-1" />
+            </span> @T(TranslationKeys.NavMenuTitle)
         </a>
-        <button title='@T("Navigation menu")' class="navbar-toggler" @onclick="ToggleNavMenu">
+        <button title='@T(TranslationKeys.NavMenuToggleLabel)' class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
@@ -23,42 +24,42 @@
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> @T("Overview")
+                <span class="oi oi-home" aria-hidden="true"></span> @T(TranslationKeys.NavMenuOverview)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="ChargingStations">
-                <span><MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" /></span> @T("Charging Stations")
+                <span><MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" /></span> @T(TranslationKeys.ChargingStationsTitle)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="CarSettings">
-                <span class="oi oi-wrench" aria-hidden="true"></span> @T("Car Settings")
+                <span class="oi oi-wrench" aria-hidden="true"></span> @T(TranslationKeys.CarSettingsTitle)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="ChargePrices">
-                <span><MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="me-1" /></span> @T("Charge Prices")
+                <span><MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="me-1" /></span> @T(TranslationKeys.ChargeCostsListTitle)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="cloudconnection">
-                <span class="oi oi-cloud" aria-hidden="true"></span> @T("Cloud Connection")
+                <span class="oi oi-cloud" aria-hidden="true"></span> @T(TranslationKeys.CloudConnectionTitle)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="BaseConfiguration">
-                <span class="oi oi-cog" aria-hidden="true"></span> @T("Base Configuration")
+                <span class="oi oi-cog" aria-hidden="true"></span> @T(TranslationKeys.BaseConfigurationPageTitle)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="support">
-                <span class="oi oi-code" aria-hidden="true"></span> @T("Support")
+                <span class="oi oi-code" aria-hidden="true"></span> @T(TranslationKeys.SupportPageTitle)
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link px-3" href="backupAndRestore">
-                <span class="oi oi-data-transfer-download" aria-hidden="true"></span> @T("Backup and Restore")
+                <span class="oi oi-data-transfer-download" aria-hidden="true"></span> @T(TranslationKeys.NavMenuBackupAndRestore)
             </NavLink>
         </div>
     </nav>

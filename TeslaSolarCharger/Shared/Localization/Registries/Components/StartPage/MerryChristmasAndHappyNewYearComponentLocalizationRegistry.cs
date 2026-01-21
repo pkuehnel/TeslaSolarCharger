@@ -6,12 +6,12 @@ public class MerryChristmasAndHappyNewYearComponentLocalizationRegistry : TextLo
 {
     protected override void Configure()
     {
-        Register("Merry Christmas! &#127876; &#127877; &#127873;",
+        Register(TranslationKeys.MerryChristmas,
             new TextLocalizationTranslation(LanguageCodes.English, "Merry Christmas! &#127876; &#127877; &#127873;"),
             new TextLocalizationTranslation(LanguageCodes.German, "Frohe Weihnachten! &#127876; &#127877; &#127873;"));
 
-        Register("Happy New Year! &#127878; &#127881; &#127882;",
+        Register(TranslationKeys.HappyNewYear,
             new TextLocalizationTranslation(LanguageCodes.English, "Happy New Year! &#127878; &#127881; &#127882;"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Frohes neues Jahr! &#127878; &#127881; &#127882;"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Frohes Neues Jahr! &#127878; &#127881; &#127882;"));
     }
 }

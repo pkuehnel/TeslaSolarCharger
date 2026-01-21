@@ -11,11 +11,12 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
 
-public class MqttClientSetupService : IAutoRefreshingValueSetupService
+public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttClientSetupService
 {
     private readonly ILogger<MqttClientSetupService> _logger;
     private readonly IMqttConfigurationService _mqttConfigurationService;
@@ -37,14 +38,16 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
 
     public async Task<List<IAutoRefreshingValue<decimal>>> GetDecimalAutoRefreshingValuesAsync(List<int> configurationIds)
     {
-        _logger.LogTrace("{method}({@configurationIds}", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
+        _logger.LogTrace("{method}({@configurationIds})", nameof(GetDecimalAutoRefreshingValuesAsync), configurationIds);
         Expression<Func<MqttConfiguration, bool>> predicate = configurationIds.Count == 0 ? x => true : x => configurationIds.Contains(x.Id);
         var mqttConfigurations = await _mqttConfigurationService.GetMqttConfigurationsByPredicate(predicate);
-
+        _logger.LogTrace("Found {count} MQTT configurations", mqttConfigurations.Count);
         var result = new List<IAutoRefreshingValue<decimal>>();
         foreach (var dtoMqttConfiguration in mqttConfigurations)
         {
+            _logger.LogTrace("Get MQTT result configurations for MQTT configuration with ID {id}", dtoMqttConfiguration.Id);
             var resultConfigurations = await _mqttConfigurationService.GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == dtoMqttConfiguration.Id);
+            _logger.LogTrace("Found {count} result configurations", resultConfigurations.Count);
             var value = CreateMqttAutoValueAsync(dtoMqttConfiguration, resultConfigurations);
             result.Add(value);
         }
@@ -56,6 +59,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
     DtoMqttConfiguration mqttConfiguration,
     List<DtoMqttResultConfiguration> resultConfigurations)
     {
+        _logger.LogTrace("{method}({@mqttConfiguration}, {@resultConfigurations})", nameof(CreateMqttAutoValueAsync), mqttConfiguration, resultConfigurations);
         var sourceKey = new SourceValueKey(mqttConfiguration.Id, ConfigurationType.MqttSolarValue);
 
         var autoValue = new AutoRefreshingValue<decimal>(
@@ -63,17 +67,17 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
             async (sp, self, ct) =>
             {
                 // everything MQTT-related lives here:
-                var logger = sp.GetRequiredService<ILogger<AutoRefreshingValueHandlingService>>();
+                var logger = sp.GetRequiredService<ILogger<MqttClientSetupService>>();
                 var dateTimeProvider = sp.GetRequiredService<IDateTimeProvider>();
                 var restValueExecutionService = sp.GetRequiredService<IRestValueExecutionService>();
                 var mqttClientFactory = sp.GetRequiredService<MqttClientFactory>();
+                var configurationWrapper = sp.GetRequiredService<IConfigurationWrapper>();
 
                 var client = sp.GetRequiredService<IMqttClient>();
-                var guid = Guid.NewGuid();
-                var mqqtClientId = $"TeslaSolarCharger{guid}";
+                var mqttClientId = GenerateClientId(configurationWrapper.MqttClientIdPrefix());
 
                 var optionsBuilder = new MqttClientOptionsBuilder()
-                    .WithClientId(mqqtClientId)
+                    .WithClientId(mqttClientId)
                     .WithTimeout(TimeSpan.FromSeconds(5))
                     .WithTcpServer(mqttConfiguration.Host, mqttConfiguration.Port)
                     .WithProtocolVersion(MqttProtocolVersion.V311);
@@ -134,13 +138,17 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
 
                 try
                 {
+                    logger.LogTrace("Connecting MQTT client to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                     await client.ConnectAsync(options, ct).ConfigureAwait(false);
+                    logger.LogTrace("MQTT client connected to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
 
                     if (resultConfigurations.Count > 0)
                     {
                         var subscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder().Build();
                         subscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
+                        logger.LogTrace("Subscribing to {count} topics", subscribeOptions.TopicFilters.Count);
                         await client.SubscribeAsync(subscribeOptions, ct).ConfigureAwait(false);
+                        logger.LogTrace("Subscribed to {count} topics", subscribeOptions.TopicFilters.Count);
                     }
 
                     // Stay alive until cancellation
@@ -148,7 +156,16 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     await using (ct.Register(() => tcs.TrySetResult(null)).ConfigureAwait(false))
                     {
                         await tcs.Task.ConfigureAwait(false);
+                        logger.LogTrace("MQTT connection to {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in MQTT client connection to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                 }
                 finally
                 {
@@ -158,12 +175,20 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
                     try
                     {
                         if (client.IsConnected)
+                        {
+                            logger.LogTrace("Disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                             // ReSharper disable once MethodSupportsCancellation
                             await client.DisconnectAsync().ConfigureAwait(false);
+                            logger.LogTrace("MQTT client disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                        }
+                        else
+                        {
+                            logger.LogTrace("MQTT client already disconnected from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                        }
                     }
-                    catch
+                    catch(Exception ex)
                     {
-                        // ignored
+                        logger.LogError(ex, "Error while disconnecting MQTT client from {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                     }
 
                     client.Dispose();
@@ -175,8 +200,22 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService
         return autoValue;
     }
 
+    public string GenerateClientId(string prefix)
+    {
+        //Limit length as MQTT spec allows only 23 characters for client id, enforce random part
+        if (prefix.Length >= StaticConstants.MaxMqttPrefixLength)
+        {
+            prefix = prefix.Substring(0, StaticConstants.MaxMqttPrefixLength);
+        }
+        const int mqttClientIdLength = 23;
+        var shortGuid = Guid.NewGuid().ToString().Substring(0, mqttClientIdLength - prefix.Length);
+        var mqttClientId = $"{prefix}{shortGuid}";
+        return mqttClientId;
+    }
+
     private List<MqttTopicFilter> GetMqttTopicFilters(List<DtoMqttResultConfiguration> resultConfigurations)
     {
+        _logger.LogTrace("{method}({@resultConfigurations})", nameof(GetMqttTopicFilters), resultConfigurations);
         var topicFilters = new List<MqttTopicFilter>();
         foreach (var resultConfiguration in resultConfigurations)
         {

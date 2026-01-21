@@ -7,11 +7,16 @@
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.SharedModel.Enums
 @using MudExtensions
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
 
 @if (EditableValueConfiguration == null)
 {
@@ -35,7 +40,7 @@ else
                                    Variant="Variant.Outlined"
                                    Value="@EditableValueConfiguration.Item.Endianess"
                                    ValueChanged="(newItem) => UpdateEndianess(EditableValueConfiguration.Item, newItem)"
-                                   Label="Endianess"
+                                   Label="@T(TranslationKeys.ValueSourceConfigEndianess)"
                                    Margin="Constants.InputMargin">
                             @foreach (ModbusEndianess item in Enum.GetValues(typeof(ModbusEndianess)))
                             {
@@ -63,9 +68,9 @@ else
                                                                Variant="Variant.Outlined"
                                                                AnchorOrigin="Origin.BottomCenter"
                                                                @bind-Value="@editableResultConfig.Item.UsedFor"
-                                                               Label="Used for"
+                                                               Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
                                                                Margin="Constants.InputMargin">
-                                                <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+                                                <MudSelectItemGroupExtended T="ValueUsage" Text="@T(TranslationKeys.ValueSourceConfigSolar)" Nested="true" InitiallyExpanded="false">
                                                     @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
                                                     {
                                                         <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
@@ -79,7 +84,7 @@ else
                                                        Variant="Variant.Outlined"
                                                        Value="@editableResultConfig.Item.RegisterType"
                                                        ValueChanged="(newItem) => UpdateRegisterType(editableResultConfig.Item, newItem)"
-                                                       Label="Register Type"
+                                                       Label="@T(TranslationKeys.ValueSourceConfigRegisterType)"
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
                                                 {
@@ -93,7 +98,7 @@ else
                                                        Variant="Variant.Outlined"
                                                        Value="@editableResultConfig.Item.ValueType"
                                                        ValueChanged="(newItem) => UpdateValueType(editableResultConfig.Item, newItem)"
-                                                       Label="Value Type"
+                                                       Label="@T(TranslationKeys.ValueSourceConfigValueType)"
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
                                                 {
@@ -119,7 +124,7 @@ else
                                                                Variant="Variant.Outlined"
                                                                Value="@editableResultConfig.Item.Operator"
                                                                ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
-                                                               Label="Operator"
+                                                               Label="@T(TranslationKeys.ValueSourceConfigOperator)"
                                                                Margin="Constants.InputMargin">
                                                         @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
                                                         {
@@ -144,12 +149,12 @@ else
                     }
                     <div class="p-2">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="_ => EditableResultConfigurations.Add(new EditableItem<DtoModbusValueResultConfiguration>(new()))">Add Result</MudButton>
+                                   OnClick="_ => EditableResultConfigurations.Add(new EditableItem<DtoModbusValueResultConfiguration>(new()))">@T(TranslationKeys.ValueSourceConfigAddResult)</MudButton>
                     </div>
                 </DialogContent>
                 <DialogActions>
-                    <MudButton OnClick="Cancel">Cancel</MudButton>
-                    <MudButton Color="Color.Primary" OnClick="SubmitAllForms">Save</MudButton>
+                    <MudButton OnClick="Cancel">@T(TranslationKeys.ValueSourceConfigCancel)</MudButton>
+                    <MudButton Color="Color.Primary" OnClick="SubmitAllForms">@T(TranslationKeys.ValueSourceConfigSave)</MudButton>
                 </DialogActions>
             </MudDialog>
         </ChildContent>
@@ -196,45 +201,45 @@ else
     {
         if (ValueConfigurationForm == default)
         {
-            Snackbar.Add("Config form is null, can not save values", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigFormNull), Severity.Error);
             return;
         }
 
         if (ValueConfiguration == default)
         {
-            Snackbar.Add("Modbus value configuration is null", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigConfigNull), Severity.Error);
             return;
         }
 
         if (!ValueConfigurationForm.WrappedElement.EditContext.Validate())
         {
-            Snackbar.Add("Modbus configuration is not valid", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigConfigurationValidationFailed), Severity.Error);
             return;
         }
 
         if (ResultConfigEditForms.Count < 1)
         {
-            Snackbar.Add("At least one result configuration is required", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultRequired), Severity.Error);
             return;
         }
 
         if (ResultConfigEditForms.Any(r => r.Value.WrappedElement.EditContext.Validate() != true))
         {
             StateHasChanged();
-            Snackbar.Add("At least one result configuration is not valid");
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultInvalid));
             return;
         }
 
         var result = await HttpClient.PostAsJsonAsync("/api/ModbusValueConfiguration/UpdateModbusValueConfiguration", ValueConfiguration);
         if (!result.IsSuccessStatusCode)
         {
-            Snackbar.Add("Failed to update Modbus value configuration", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigUpdateFailed), Severity.Error);
             return;
         }
         var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
         if (resultContent == default)
         {
-            Snackbar.Add("Failed to update Modbus value configuration", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigUpdateFailed), Severity.Error);
             return;
         }
 
@@ -247,18 +252,18 @@ else
             var resultConfigResult = await HttpClient.PostAsJsonAsync($"/api/ModbusValueConfiguration/SaveResultConfiguration?parentId={parentId}", resultConfig);
             if (!result.IsSuccessStatusCode)
             {
-                Snackbar.Add("Failed to update Modbus value configuration", Severity.Error);
+                Snackbar.Add(T(TranslationKeys.ValueSourceConfigUpdateFailed), Severity.Error);
                 return;
             }
             var resultConfigResultContent = await resultConfigResult.Content.ReadFromJsonAsync<DtoValue<int>>();
             if (resultConfigResultContent == default)
             {
-                Snackbar.Add("Failed to update Modbus value configuration", Severity.Error);
+                Snackbar.Add(T(TranslationKeys.ValueSourceConfigUpdateFailed), Severity.Error);
                 return;
             }
             resultConfig.Id = resultContent.Value;
         }
-        Snackbar.Add("Modbus value configuration saved.", Severity.Success);
+        Snackbar.Add(T(TranslationKeys.ValueSourceConfigSaved), Severity.Success);
         MudDialog.Close(DialogResult.Ok(parentId));
     }
 
@@ -318,14 +323,17 @@ else
             var result = await HttpClient.DeleteAsync($"/api/ModbusValueConfiguration/DeleteResultConfiguration?id={item.Id}");
             if (!result.IsSuccessStatusCode)
             {
-                Snackbar.Add("Failed to delete result configuration", Severity.Error);
+                Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultDeleteFailed), Severity.Error);
                 return;
             }
 
         }
         EditableResultConfigurations.RemoveAll(r => r.Guid == guid);
         ResultConfigEditForms.Remove(guid);
-        Snackbar.Add("Result configuration deleted", Severity.Success);
+        Snackbar.Add(T(TranslationKeys.ValueSourceConfigResultDeleted), Severity.Success);
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
+        ?? key;
 }

@@ -1,9 +1,10 @@
-﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.LoggedError
 @using System.Globalization
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
@@ -30,14 +31,14 @@ else
                         <div class="d-flex">
                             <div class="flex-grow-0">
                                 <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
-                                    <MudText Class="mt-1">@T("Errors")</MudText>
+                                    <MudText Class="mt-1">@T(TranslationKeys.LoggedErrorsTitle)</MudText>
                                 </MudBadge>
 
                             </div>
                             <div class="mt-1 ml-2 flex-grow-1">
                             </div>
                             <div class="mt-1 ml-2 flex-grow-0">
-                                <small>@T("The list is only updated once per minute")</small>
+                                <small>@T(TranslationKeys.LoggedErrorsUpdateHint)</small>
                             </div>
                         </div>
                     </TitleContent>
@@ -120,7 +121,7 @@ else
     private string GetHeadlineText(DtoLoggedError error) =>
         error.HideOccurrenceCount
             ? error.Headline
-            : Format("{0} occured {1} time(s)", error.Headline, error.OccurrenceCount);
+            : Format(TranslationKeys.LoggedErrorsOccurrenceCount, error.Headline, error.OccurrenceCount);
 
     private string T(string key) =>
         TextLocalizer.Get<LoggedErrorsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))

@@ -1,11 +1,17 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject IDialogService DialogService
 @inject ITemplateValueConfigurationService TemplateValueConfigurationService
 @inject ISnackbar Snackbar
 @inject IConstants Constants
+@inject ITextLocalizationService TextLocalizer
 
 <GenericValueConfigurationComponent SourceName="Template"
                                     ConfigurationOverviews="_configurationOverviews"
@@ -39,14 +45,14 @@
         {
             { x => x.ValueConfigurationId, id },
         };
-        var title = id == default ? "Add" : "Edit";
-        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>($"{title} Template config", parameters, options);
+        var title = id == default ? T(TranslationKeys.ValueSourceConfigAdd) : T(TranslationKeys.ValueSourceConfigEdit);
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(TF(TranslationKeys.ValueSourceConfigTitle, "Template"), parameters, options);
         var result = await dialog.Result;
 
         await RefreshRequestResults();
         if (result?.Canceled == false)
         {
-            Snackbar.Add("Saved", Severity.Success);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigSaved), Severity.Success);
             var timeToWait = TimeSpan.FromSeconds(Constants.RefreshableValuesRefreshIntervalSeconds);
             await Task.Delay(timeToWait);
             await RefreshRequestResults();
@@ -60,9 +66,16 @@
         var result = await TemplateValueConfigurationService.DeleteAsync(id);
         if (!result.HasError)
         {
-            Snackbar.Add("Deleted", Severity.Success);
+            Snackbar.Add(T(TranslationKeys.ValueSourceConfigDeleted), Severity.Success);
         }
         await RefreshRequestResults();
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string TF(string key, params object[] args) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), args);
 
 }

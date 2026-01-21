@@ -78,7 +78,7 @@ public class BaseConfigurationBase
     public string? TeslaMateDbPassword { get; set; }
     public string? MosquitoServer { get; set; }
     [Required]
-    public string MqqtClientId { get; set; } = "TeslaSolarCharger";
+    public string MqttClientIdPrefix { get; set; } = "TSC-";
     public string? CurrentPowerToGridXmlPattern { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderName { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderValue { get; set; }

@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -33,6 +34,9 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
             RuleFor(x => x.MosquitoServer)
                 .NotEmpty();
         });
+
+        RuleFor(x => x.MqttClientIdPrefix)
+            .MaximumLength(StaticConstants.MaxMqttPrefixLength);
 
         RuleFor(x => x.HomeGeofenceRadius)
             .GreaterThan(0);

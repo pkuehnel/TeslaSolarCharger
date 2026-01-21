@@ -3,6 +3,7 @@
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
@@ -14,7 +15,7 @@
 @inject ISignalRStateService SignalRStateService
 @inject ITextLocalizationService TextLocalizer
 
-<PageTitle>@T("Solar 4 Car")</PageTitle>
+<PageTitle>@T(TranslationKeys.HomePageTitle)</PageTitle>
 
 <MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
 
@@ -43,15 +44,15 @@ else
     {
         <MudAlert Severity="Severity.Info" Class="mb-3">
             <MudText Typo="Typo.body2">
-                @T("No cars and no charging stations should be managed. Check out")
+                @T(TranslationKeys.HomePageNoCarsOrStationsHintStart)
                 @(" ")
-                <MudLink Href="CarSettings">@T("Car Settings")</MudLink>
+                <MudLink Href="CarSettings">@T(TranslationKeys.CarSettingsTitle)</MudLink>
                 @(" ")
-                @T("to add a car or")
+                @T(TranslationKeys.HomePageNoCarsOrStationsHintMiddle)
                 @(" ")
-                <MudLink Href="ChargingStations">@T("Charging Stations")</MudLink>
+                <MudLink Href="ChargingStations">@T(TranslationKeys.ChargingStationsTitle)</MudLink>
                 @(" ")
-                @T("to add a charging station.")
+                @T(TranslationKeys.HomePageNoCarsOrStationsHintEnd)
             </MudText>
         </MudAlert>
     }
@@ -59,13 +60,13 @@ else
 
 
 <div style="text-align:center">
-    @T("Use my referral code for ordering any Tesla product or schedule a Demo Drive:") <a href="https://ts.la/patrick63887" target="_blank">https://ts.la/patrick63887</a>
+    @T(TranslationKeys.HomePageReferralLinkText) <a href="https://ts.la/patrick63887" target="_blank">https://ts.la/patrick63887</a>
 </div>
 
 <form action="https://www.paypal.com/donate" method="post" target="_blank">
     <div style="text-align:center">
         <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
-        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T("PayPal - The safer, easier way to pay online!")' alt='@T("Donate with PayPal button")' />
+        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T(TranslationKeys.HomePagePaypalTitle)' alt='@T(TranslationKeys.HomePaypalAltText)' />
         <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
     </div>
 </form>

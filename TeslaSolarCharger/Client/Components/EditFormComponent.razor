@@ -1,6 +1,7 @@
 @using Blazored.FluentValidation
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
@@ -25,11 +26,11 @@
                     @if (_isSubmitting || SubmittingParameter)
                     {
                         <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                        <MudText Class="ms-2">@L("Processing")</MudText>
+                        <MudText Class="ms-2">@L(TranslationKeys.GeneralProcessing)</MudText>
                     }
                     else
                     {
-                        <MudText>@L("Save")</MudText>
+                        <MudText>@L(TranslationKeys.GeneralSave)</MudText>
                     }
                 </MudButton>
             </MudPaper>
