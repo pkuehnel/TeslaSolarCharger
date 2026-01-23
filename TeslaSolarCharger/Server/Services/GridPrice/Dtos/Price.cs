@@ -6,5 +6,6 @@ public class Price : ValidFromToBase
 {
     public decimal GridPrice { get; set; }
     public decimal SolarPrice { get; set; }
+    public bool IsSpotPriceBased { get; set; }
 }
 

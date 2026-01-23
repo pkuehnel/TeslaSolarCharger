@@ -538,8 +538,12 @@ public class ChargingScheduleService : IChargingScheduleService
                 gridPricesIncludingCorrections.Add(gridPriceCopy);
                 continue;
             }
-            var switchCostsPerKwh = (chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours)) * 1000m;
-            gridPriceCopy.GridPrice += switchCostsPerKwh;
+
+            if (gridPrice.IsSpotPriceBased)
+            {
+                var switchCostsPerKwh = (chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours)) * 1000m;
+                gridPriceCopy.GridPrice += switchCostsPerKwh;
+            }
             gridPricesIncludingCorrections.Add(gridPriceCopy);
         }
 
