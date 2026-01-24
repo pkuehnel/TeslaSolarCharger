@@ -104,10 +104,7 @@ public class SunCalculator : ISunCalculator
                                       - (SunTimeFactor * approximateTimeSunset)
                                       - SunTimeOffset;
             var utcSunsetHour = localMeanTimeSunset - longitudeHour;
-            if (utcSunsetHour < 0)
-            {
-                utcSunsetHour += 24.0;
-            }
+            utcSunsetHour = (utcSunsetHour % 24 + 24) % 24;
             return new DateTimeOffset(dateOnly.AddHours(utcSunsetHour));
         }
     }
