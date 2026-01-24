@@ -6,7 +6,6 @@ using TeslaSolarCharger.Shared.Localization.Contracts;
 using TeslaSolarCharger.Shared.Localization.Registries;
 using TeslaSolarCharger.Shared.Localization.Registries.Components;
 using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage;
-using TeslaSolarCharger.Shared.Localization.Registries.Components.Dialogs;
 using TeslaSolarCharger.Shared.Localization.Registries.Pages;
 using TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries;
 using TeslaSolarCharger.Shared.Localization.Registries.PropertyRegistries.TemplateDtos;

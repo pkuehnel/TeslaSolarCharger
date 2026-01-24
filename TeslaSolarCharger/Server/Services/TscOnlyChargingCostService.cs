@@ -301,7 +301,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
         if (chargePrice.AddSpotPriceToGridPrice)
         {
-            prices = await AddSpotPrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice).ConfigureAwait(false);
+            var pricesIncludingSpotPrices = await AddSpotPrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice).ConfigureAwait(false);
+            foreach (var price in pricesIncludingSpotPrices)
+            {
+                price.IsSpotPriceBased = true;
+            }
+            prices = pricesIncludingSpotPrices;
         }
         return prices;
     }

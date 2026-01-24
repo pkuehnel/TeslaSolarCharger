@@ -48,8 +48,10 @@ public class AppendOptimalGridSchedulesTests : TestBase
         Assert.Empty(result);
     }
 
-    [Fact]
-    public async Task AppendOptimalGridSchedules_ReturnsOriginalSchedules_WhenLastPriceEndsBeforeTarget()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AppendOptimalGridSchedules_ReturnsOriginalSchedules_WhenLastPriceEndsBeforeTarget(bool isSpotPriceBased)
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -60,7 +62,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
 
         var prices = new List<Price>
         {
-            CreatePrice(currentDate, currentDate.AddHours(4), 0.30m) // Ends 1 hour before target
+            CreatePrice(currentDate, currentDate.AddHours(4), 0.30m, isSpotPriceBased), // Ends 1 hour before target
         };
 
         Mock.Mock<ITscOnlyChargingCostService>()
@@ -75,9 +77,11 @@ public class AppendOptimalGridSchedulesTests : TestBase
     }
 
     [Theory]
-    [InlineData(0.10, 0.20, 0)] // Cheapest first
-    [InlineData(0.20, 0.10, 1)] // Cheapest second
-    public async Task AppendOptimalGridSchedules_SelectsCheapestSlots(decimal price1, decimal price2, int expectedStartOffsetHours)
+    [InlineData(0.10, 0.20, 0, true)] // Cheapest first
+    [InlineData(0.10, 0.20, 0, false)] // Cheapest first
+    [InlineData(0.20, 0.10, 1, true)] // Cheapest first
+    [InlineData(0.20, 0.10, 1, false)] // Cheapest second
+    public async Task AppendOptimalGridSchedules_SelectsCheapestSlots(decimal price1, decimal price2, int expectedStartOffsetHours, bool isSpotPriceBased)
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -89,8 +93,8 @@ public class AppendOptimalGridSchedulesTests : TestBase
         // Two 1-hour slots
         var prices = new List<Price>
         {
-            CreatePrice(currentDate, currentDate.AddHours(1), price1),
-            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), price2)
+            CreatePrice(currentDate, currentDate.AddHours(1), price1, isSpotPriceBased),
+            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), price2, isSpotPriceBased)
         };
 
         Mock.Mock<ITscOnlyChargingCostService>()
@@ -115,8 +119,10 @@ public class AppendOptimalGridSchedulesTests : TestBase
         Assert.Contains(ScheduleReason.CheapGridPrice, schedule.ScheduleReasons);
     }
 
-    [Fact]
-    public async Task AppendOptimalGridSchedules_Overflows_WhenEnergyExceedsGridSlots()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AppendOptimalGridSchedules_Overflows_WhenEnergyExceedsGridSlots(bool isSpotPriceBased)
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -127,7 +133,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
 
         var prices = new List<Price>
         {
-            CreatePrice(currentDate, currentDate.AddHours(1), 0.10m)
+            CreatePrice(currentDate, currentDate.AddHours(1), 0.10m, isSpotPriceBased)
         };
 
         Mock.Mock<ITscOnlyChargingCostService>()
@@ -160,9 +166,11 @@ public class AppendOptimalGridSchedulesTests : TestBase
     }
 
     [Theory]
-    [InlineData(0, 2)] // No switch cost: Pick cheapest (Slot 3, gap)
-    [InlineData(1.0, 1)] // High switch cost: Pick contiguous (Slot 2)
-    public async Task AppendOptimalGridSchedules_RespectsSwitchCosts(decimal switchCost, int expectedSecondSlotStartOffset)
+    [InlineData(0, 2, true)] // No switch cost: Pick cheapest (Slot 3, gap)
+    [InlineData(0, 2, false)] // No switch cost: Pick cheapest (Slot 3, gap)
+    [InlineData(1.0, 1, true)] // High switch cost: Pick contiguous (Slot 2)
+    [InlineData(1.0, 2, false)] // No switch cost: Pick cheapest (Slot 3, gap)
+    public async Task AppendOptimalGridSchedules_RespectsSwitchCosts(decimal switchCost, int expectedSecondSlotStartOffset, bool isSpotPriceBased)
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -177,9 +185,9 @@ public class AppendOptimalGridSchedulesTests : TestBase
         // 3. 0.12 (Cheap-ish, Gap from 1)
         var prices = new List<Price>
         {
-            CreatePrice(currentDate, currentDate.AddHours(1), 0.10m),
-            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), 0.15m),
-            CreatePrice(currentDate.AddHours(2), currentDate.AddHours(3), 0.12m)
+            CreatePrice(currentDate, currentDate.AddHours(1), 0.10m, isSpotPriceBased),
+            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), 0.15m, isSpotPriceBased),
+            CreatePrice(currentDate.AddHours(2), currentDate.AddHours(3), 0.12m, isSpotPriceBased),
         };
 
         Mock.Mock<ITscOnlyChargingCostService>()
@@ -202,8 +210,10 @@ public class AppendOptimalGridSchedulesTests : TestBase
         Assert.Contains(result, s => s.ValidFrom == currentDate.AddHours(expectedSecondSlotStartOffset));
     }
 
-    [Fact]
-    public async Task AppendOptimalGridSchedules_PrioritizesRemainingEnergyOverCost()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AppendOptimalGridSchedules_PrioritizesRemainingEnergyOverCost(bool isSpotPriceBased)
     {
         // Arrange
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
@@ -214,9 +224,9 @@ public class AppendOptimalGridSchedulesTests : TestBase
         // 3 Slots available in prices
         var prices = new List<Price>
         {
-            CreatePrice(currentDate, currentDate.AddHours(1), 0.05m),           // Slot 1: Cheap, but occupied
-            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), 0.10m), // Slot 2: Affordable
-            CreatePrice(currentDate.AddHours(2), currentDate.AddHours(3), 0.20m)  // Slot 3: Expensive
+            CreatePrice(currentDate, currentDate.AddHours(1), 0.05m, isSpotPriceBased),           // Slot 1: Cheap, but occupied
+            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), 0.10m, isSpotPriceBased), // Slot 2: Affordable
+            CreatePrice(currentDate.AddHours(2), currentDate.AddHours(3), 0.20m, isSpotPriceBased),  // Slot 3: Expensive
         };
 
         Mock.Mock<ITscOnlyChargingCostService>()
@@ -278,14 +288,15 @@ public class AppendOptimalGridSchedulesTests : TestBase
         };
     }
 
-    private Price CreatePrice(DateTimeOffset from, DateTimeOffset to, decimal price)
+    private Price CreatePrice(DateTimeOffset from, DateTimeOffset to, decimal price, bool isSpotPriceBased)
     {
         return new Price
         {
             ValidFrom = from,
             ValidTo = to,
             GridPrice = price,
-            SolarPrice = 0
+            SolarPrice = 0,
+            IsSpotPriceBased = isSpotPriceBased,
         };
     }
 }
