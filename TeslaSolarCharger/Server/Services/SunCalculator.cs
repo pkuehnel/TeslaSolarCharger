@@ -162,8 +162,8 @@ public class SunCalculator : ISunCalculator
                                    + sunRightAscensionSunrise
                                    - (SunTimeFactor * approximateTimeSunrise)
                                    - SunTimeOffset;
-        localMeanTimeSunrise %= 24;
         var utcSunriseHour = localMeanTimeSunrise - longitudeHour;
+        utcSunriseHour = (utcSunriseHour % 24 + 24) % 24;
         return new DateTimeOffset(dateOnly.AddHours(utcSunriseHour), TimeSpan.Zero);
     }
 
