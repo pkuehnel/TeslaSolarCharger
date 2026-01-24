@@ -556,13 +556,7 @@ public class ChargingScheduleService : IChargingScheduleService
 
     internal Price GetCopy(Price oldPrice)
     {
-        return new Price()
-        {
-            GridPrice = oldPrice.GridPrice,
-            SolarPrice = oldPrice.SolarPrice,
-            ValidFrom = new DateTimeOffset(oldPrice.ValidFrom.UtcDateTime, TimeSpan.Zero),
-            ValidTo = new DateTimeOffset(oldPrice.ValidTo.UtcDateTime, TimeSpan.Zero),
-        };
+        return new Price(new(oldPrice.ValidFrom.UtcDateTime, TimeSpan.Zero), new(oldPrice.ValidTo.UtcDateTime, TimeSpan.Zero), oldPrice.GridPrice, oldPrice.SolarPrice, oldPrice.IsSpotPriceBased);
     }
 
     internal int GetMinimumEnergyToCharge(DateTimeOffset currentDate, DtoTimeZonedChargingTarget nextTarget, DtoCar car,
