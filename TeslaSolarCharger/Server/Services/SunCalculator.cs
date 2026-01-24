@@ -4,6 +4,8 @@ namespace TeslaSolarCharger.Server.Services;
 
 public class SunCalculator : ISunCalculator
 {
+    private readonly ILogger<SunCalculator> _logger;
+
     // Official zenith angle for sunrise/sunset
     private const double ZenithOfficial = 90.83333333333333;
     // Coefficients for the Sun’s mean anomaly and time correction
@@ -14,12 +16,19 @@ public class SunCalculator : ISunCalculator
     private const double SunTimeOffset = 6.622;              // hours
     private const double EarthTiltFactor = 0.91764;          // unitless
 
+    public SunCalculator(ILogger<SunCalculator> logger)
+    {
+        _logger = logger;
+    }
+
 
     public DateTimeOffset? NextSunrise(double latitude, double longitude, DateTimeOffset from, int maxFutureDays)
     {
+        _logger.LogTrace("{method}({latitude}, {longitude}, {from}, {maxFutureDays})", nameof(NextSunrise), latitude, longitude, from, maxFutureDays);
         var utcNow = from.ToOffset(TimeSpan.Zero);
+        _logger.LogTrace("Zero hour offset time: {time}", utcNow);
         var d = utcNow.Date;
-
+        _logger.LogTrace("Date: {date}", d);
         for (var i = 0; i < 400; i++) // safety cap for extreme latitudes
         {
             var sunrise = CalculateSunrise(latitude, longitude, new(d, TimeSpan.Zero));
@@ -34,8 +43,11 @@ public class SunCalculator : ISunCalculator
 
     public DateTimeOffset? NextSunset(double latitude, double longitude, DateTimeOffset from, int maxFutureDays)
     {
+        _logger.LogTrace("{method}({latitude}, {longitude}, {from}, {maxFutureDays})", nameof(NextSunrise), latitude, longitude, from, maxFutureDays);
         var utcNow = from.ToOffset(TimeSpan.Zero);
+        _logger.LogTrace("Zero hour offset time: {time}", utcNow);
         var d = utcNow.Date;
+        _logger.LogTrace("Date: {date}", d);
 
         for (var i = 0; i < 400; i++)
         {
@@ -52,6 +64,7 @@ public class SunCalculator : ISunCalculator
 
     private DateTimeOffset? CalculateSunset(double latitude, double longitude, DateTimeOffset date)
     {
+        _logger.LogTrace("{method}({latitude}, {longitude}, {date})", nameof(CalculateSunset), latitude, longitude, date);
         var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayOfYear = dateOnly.DayOfYear;
         var longitudeHour = longitude / 15.0;
@@ -101,6 +114,7 @@ public class SunCalculator : ISunCalculator
 
     private DateTimeOffset? CalculateSunrise(double latitude, double longitude, DateTimeOffset date)
     {
+        _logger.LogTrace("{method}({latitude}, {longitude}, {date})", nameof(CalculateSunrise), latitude, longitude, date);
         var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayOfYear = dateOnly.DayOfYear;
         var longitudeHour = longitude / 15.0;
