@@ -9,7 +9,7 @@ public class Price : ValidFromToBase
         
     }
 
-    //This constructor is required to the GetCopy method throws an exception as soon as any property is added
+    // Using this constructor in the `GetCopy` method ensures that adding new properties to this class will cause a compile error there, reminding the developer to update the copy logic.
     public Price(DateTimeOffset validFrom, DateTimeOffset validTo, decimal gridPrice, decimal solarPrice, bool isSpotPriceBased)
     {
         ValidFrom = validFrom;
