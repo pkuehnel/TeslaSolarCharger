@@ -12,6 +12,12 @@ public class SunCalculatorTests : TestBase
     {
     }
 
+    private const double StandardLatitude = 48.653180;
+    private const double StandardLongitude = 9.449150;
+
+    private const double PolarLatitude = 69.6492;
+    private const double PolarLongitude = 18.9553;
+
     private SunCalculator CreateSut()
     {
         return Mock.Create<SunCalculator>();
@@ -43,13 +49,11 @@ public class SunCalculatorTests : TestBase
     {
         // Arrange
         var sut = CreateSut();
-        var latitude = 48.653180;
-        var longitude = 9.449150;
         var expectedTime = GetExpectedTime(from, expectedHour, expectedMinute);
         var tolerance = TimeSpan.FromMinutes(10);
 
         // Act
-        var result = sut.NextSunrise(latitude, longitude, from, 10);
+        var result = sut.NextSunrise(StandardLatitude, StandardLongitude, from, 10);
 
         // Assert
         Assert.NotNull(result);
@@ -64,13 +68,11 @@ public class SunCalculatorTests : TestBase
     {
         // Arrange
         var sut = CreateSut();
-        var latitude = 48.653180;
-        var longitude = 9.449150;
         var expectedTime = GetExpectedTime(from, expectedHour, expectedMinute);
         var tolerance = TimeSpan.FromMinutes(10);
 
         // Act
-        var result = sut.NextSunset(latitude, longitude, from, 10);
+        var result = sut.NextSunset(StandardLatitude, StandardLongitude, from, 10);
 
         // Assert
         Assert.NotNull(result);
@@ -89,10 +91,8 @@ public class SunCalculatorTests : TestBase
     {
         var sut = CreateSut();
         var from = new DateTimeOffset(2023, 6, 21, 0, 0, 0, TimeSpan.Zero);
-        var latitude = 69.6492;
-        var longitude = 18.9553;
 
-        var result = sut.NextSunset(latitude, longitude, from, 400);
+        var result = sut.NextSunset(PolarLatitude, PolarLongitude, from, 400);
 
         Assert.NotNull(result);
         Assert.True((result.Value - from).TotalDays > 20, "Sunset should be weeks away during polar day");
@@ -104,10 +104,8 @@ public class SunCalculatorTests : TestBase
     {
         var sut = CreateSut();
         var from = new DateTimeOffset(2023, 12, 21, 0, 0, 0, TimeSpan.Zero);
-        var latitude = 69.6492;
-        var longitude = 18.9553;
 
-        var result = sut.NextSunrise(latitude, longitude, from, 400);
+        var result = sut.NextSunrise(PolarLatitude, PolarLongitude, from, 400);
 
         Assert.NotNull(result);
         Assert.True((result.Value - from).TotalDays > 10, "Sunrise should be weeks away during polar night");
@@ -120,11 +118,9 @@ public class SunCalculatorTests : TestBase
     {
         var sut = CreateSut();
         var from = new DateTimeOffset(2023, 12, 21, 0, 0, 0, TimeSpan.Zero);
-        var latitude = 69.6492;
-        var longitude = 18.9553;
         var maxFutureDays = 5;
 
-        var result = sut.NextSunrise(latitude, longitude, from, maxFutureDays);
+        var result = sut.NextSunrise(PolarLatitude, PolarLongitude, from, maxFutureDays);
 
         Assert.Null(result);
     }
