@@ -139,7 +139,7 @@ public class SunCalculatorTests : TestBase
     }
 
     [Fact]
-    public void NextSunrise_RespectsMaxFutureDays_FailsIntentionally()
+    public void NextSunrise_RespectsMaxFutureDays()
     {
         var sut = CreateSut();
         var from = new DateTimeOffset(2023, 12, 21, 0, 0, 0, TimeSpan.Zero);
