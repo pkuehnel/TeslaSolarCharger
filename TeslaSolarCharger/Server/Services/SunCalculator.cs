@@ -43,7 +43,7 @@ public class SunCalculator : ISunCalculator
 
     public DateTimeOffset? NextSunset(double latitude, double longitude, DateTimeOffset from, int maxFutureDays)
     {
-        _logger.LogTrace("{method}({latitude}, {longitude}, {from}, {maxFutureDays})", nameof(NextSunrise), latitude, longitude, from, maxFutureDays);
+        _logger.LogTrace("{method}({latitude}, {longitude}, {from}, {maxFutureDays})", nameof(NextSunset), latitude, longitude, from, maxFutureDays);
         var utcNow = from.ToOffset(TimeSpan.Zero);
         _logger.LogTrace("Zero hour offset time: {time}", utcNow);
         var d = utcNow.Date;
