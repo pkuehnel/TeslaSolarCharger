@@ -66,8 +66,8 @@ public class GetOrderedElectricityPricesTests : TestBase
             baseDate,
             new List<Price>
             {
-                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m },
-                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m }
+                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m, IsSpotPriceBased = true },
+                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m, IsSpotPriceBased = true },
             },
             false,
             new List<DtoChargingSchedule>(),
@@ -84,8 +84,8 @@ public class GetOrderedElectricityPricesTests : TestBase
             baseDate.AddMinutes(5),
             new List<Price>
             {
-                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m },
-                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m }
+                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m, IsSpotPriceBased = true },
+                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m, IsSpotPriceBased = true },
             },
             true,
             new List<DtoChargingSchedule>(),
@@ -103,8 +103,8 @@ public class GetOrderedElectricityPricesTests : TestBase
             baseDate,
             new List<Price>
             {
-                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m }, // 12-13
-                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m } // 13-14
+                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m, IsSpotPriceBased = true }, // 12-13
+                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m, IsSpotPriceBased = true }, // 13-14
             },
             false,
             new List<DtoChargingSchedule>
@@ -113,12 +113,12 @@ public class GetOrderedElectricityPricesTests : TestBase
                 {
                     ValidFrom = baseDate.AddHours(2), // 14:00
                     ValidTo = baseDate.AddHours(3), // 15:00
-                    TargetMinPower = 10000 // Charging
+                    TargetMinPower = 10000, // Charging
                 }
             },
             10m,
             10000,
-            new List<decimal> { 0.15m, 1.20m }
+            new List<decimal> { 0.15m, 1.20m },
         };
 
         // Scenario 4: Overlapping existing schedule
@@ -128,7 +128,7 @@ public class GetOrderedElectricityPricesTests : TestBase
             baseDate,
             new List<Price>
             {
-                 new Price { ValidFrom = baseDate.AddHours(2), ValidTo = baseDate.AddHours(3), GridPrice = 0.10m } // 14-15
+                 new Price { ValidFrom = baseDate.AddHours(2), ValidTo = baseDate.AddHours(3), GridPrice = 0.10m, IsSpotPriceBased = true }, // 14-15
             },
             false,
             new List<DtoChargingSchedule>
@@ -153,7 +153,7 @@ public class GetOrderedElectricityPricesTests : TestBase
             baseDate,
             new List<Price>
             {
-                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m } // 13-14
+                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.15m, IsSpotPriceBased = true }, // 13-14
             },
             false,
             new List<DtoChargingSchedule>
@@ -177,8 +177,8 @@ public class GetOrderedElectricityPricesTests : TestBase
             baseDate,
             new List<Price>
             {
-                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m }, // 12-13
-                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.05m } // 13-14 (Cheap but needs switch)
+                new Price { ValidFrom = baseDate, ValidTo = baseDate.AddHours(1), GridPrice = 0.20m, IsSpotPriceBased = true }, // 12-13
+                new Price { ValidFrom = baseDate.AddHours(1), ValidTo = baseDate.AddHours(2), GridPrice = 0.05m, IsSpotPriceBased = true }, // 13-14 (Cheap but needs switch)
             },
             true, // Currently charging at 12:00
             new List<DtoChargingSchedule>(),

@@ -40,7 +40,7 @@ public class TscOnlyChargingCostServiceTests : TestBase
             Id = 1,
             SpotPriceRegion = SpotPriceRegion.DE_LU,
             SpotPriceCorrectionFactor = 0,
-            AddSpotPriceToGridPrice = true
+            AddSpotPriceToGridPrice = true,
         };
 
         // Populate Spot Prices in InMemory DB
@@ -50,7 +50,7 @@ public class TscOnlyChargingCostServiceTests : TestBase
             {
                 SpotPriceRegion = SpotPriceRegion.DE_LU,
                 StartDate = sp.Start.UtcDateTime,
-                Price = sp.Price
+                Price = sp.Price,
             });
         }
         await Context.SaveChangesAsync();
