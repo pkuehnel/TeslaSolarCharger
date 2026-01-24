@@ -29,7 +29,7 @@ public class SunCalculator : ISunCalculator
         _logger.LogTrace("Zero hour offset time: {time}", utcNow);
         var d = utcNow.Date;
         _logger.LogTrace("Date: {date}", d);
-        for (var i = 0; i < 400; i++) // safety cap for extreme latitudes
+        for (var i = 0; i < maxFutureDays; i++) // safety cap for extreme latitudes
         {
             var sunrise = CalculateSunrise(latitude, longitude, new(d, TimeSpan.Zero));
             if (sunrise.HasValue && sunrise.Value > utcNow)
@@ -49,7 +49,7 @@ public class SunCalculator : ISunCalculator
         var d = utcNow.Date;
         _logger.LogTrace("Date: {date}", d);
 
-        for (var i = 0; i < 400; i++)
+        for (var i = 0; i < maxFutureDays; i++)
         {
             var sunset = CalculateSunset(latitude, longitude, new(d, TimeSpan.Zero));
             if (sunset.HasValue && sunset.Value > utcNow)
