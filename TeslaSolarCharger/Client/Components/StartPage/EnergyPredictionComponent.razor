@@ -48,26 +48,22 @@
                             Disabled="IsNextDisabled" />
                 </div>                
             }
-            else
-            {
-                <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
-                    @if (_dataLoaded)
+            <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
+                @if (_dataLoaded)
+                {
+                    @foreach (var item in GetLegendItems())
                     {
-                        @foreach (var item in GetLegendItems())
-                        {
-                            <LegendItemComponent TooltipText="@item.TooltipText"
-                                                 Color="@item.Color"
-                                                 Icon="@item.Icon"
-                                                 Value="@item.Value" />
-                        }
+                        <LegendItemComponent TooltipText="@item.TooltipText"
+                                             Color="@item.Color"
+                                             Icon="@item.Icon"
+                                             Value="@item.Value" />
                     }
-                    else
-                    {
-                        <MudSkeleton Width="100%" Height="24px" />
-                    }
-                </div>
-
-            }
+                }
+                else
+                {
+                    <MudSkeleton Width="100%" Height="24px" />
+                }
+            </div>
             
         </TitleContent>
         <ChildContent>
@@ -234,7 +230,7 @@
 
     private ApexChartOptions<DtoChartValue<int, decimal?>> GetChartOptions()
     {
-        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal?>>(true);
+        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal?>>(false);
         options.Chart.Stacked = false;
         options.Chart.Height = ChartHeightValue;
         options.Yaxis = new List<YAxis>
