@@ -541,7 +541,8 @@ public class ChargingScheduleService : IChargingScheduleService
 
             if (gridPrice.IsSpotPriceBased)
             {
-                var switchCostsPerKwh = (chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours)) * 1000m;
+                const decimal wattsToKilowattsPriceFactor = 1000m;
+                var switchCostsPerKwh = (chargingSwitchCosts / (decimal)(maxPower * (gridPriceCopy.ValidTo - gridPrice.ValidFrom).TotalHours)) * wattsToKilowattsPriceFactor;
                 gridPriceCopy.GridPrice += switchCostsPerKwh;
             }
             gridPricesIncludingCorrections.Add(gridPriceCopy);
