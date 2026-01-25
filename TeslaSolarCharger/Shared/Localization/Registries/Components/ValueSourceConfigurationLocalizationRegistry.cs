@@ -1,4 +1,4 @@
-namespace TeslaSolarCharger.Shared.Localization.Registries.Components;
+﻿namespace TeslaSolarCharger.Shared.Localization.Registries.Components;
 
 public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegistry<ValueSourceConfigurationLocalizationRegistry>
 {
@@ -209,3 +209,4 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "{0} XML-Attribut Wertname"));
     }
 }
+

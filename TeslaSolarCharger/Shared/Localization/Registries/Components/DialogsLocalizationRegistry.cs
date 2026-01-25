@@ -1,6 +1,4 @@
-using TeslaSolarCharger.Shared.Localization;
-
-namespace TeslaSolarCharger.Shared.Localization.Registries.Components.Dialogs;
+﻿namespace TeslaSolarCharger.Shared.Localization.Registries.Components;
 
 public class DialogsLocalizationRegistry : TextLocalizationRegistry<DialogsLocalizationRegistry>
 {
@@ -23,3 +21,4 @@ public class DialogsLocalizationRegistry : TextLocalizationRegistry<DialogsLocal
             new TextLocalizationTranslation(LanguageCodes.German, "OK"));
     }
 }
+
