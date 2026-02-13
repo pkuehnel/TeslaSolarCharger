@@ -11,6 +11,7 @@
 @inject IConstants Constants
 @inject ISignalRStateService SignalRStateService
 @inject ITextLocalizationService TextLocalizer
+@inject ILogger<PowerFlowComponent> Logger
 
 @if (_pvValues == default)
 {
@@ -200,12 +201,18 @@ else
 
         // Subscribe to PV value changes
         await SignalRStateService.Subscribe<DtoPvValues>(
-            DataTypeConstants.PvValues,
-            pvValues =>
+            DataTypeConstants.PvValues, async void (pvValues) =>
             {
-                _pvValues = pvValues;
-                UpdateBalls();
-                InvokeAsync(StateHasChanged);
+                try
+                {
+                    _pvValues = pvValues;
+                    UpdateBalls();
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "Could not update PV value changes");
+                }
             });
 
         // Get initial state
