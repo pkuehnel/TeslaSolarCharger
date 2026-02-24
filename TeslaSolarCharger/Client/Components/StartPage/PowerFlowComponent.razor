@@ -184,7 +184,6 @@ else
     private List<Ball> Balls { get; set; } = new();
 
     private DtoPvValues? _pvValues;
-    private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private int _widthInPixel = 420;
 
@@ -196,7 +195,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
-        _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         await SignalRStateService.InitializeAsync();
 
         // Subscribe to PV value changes
