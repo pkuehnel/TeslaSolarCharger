@@ -169,7 +169,7 @@ public class AppendOptimalGridSchedulesTests : TestBase
     [InlineData(0, 2, true)] // No switch cost: Pick cheapest (Slot 3, gap)
     [InlineData(0, 2, false)] // No switch cost: Pick cheapest (Slot 3, gap)
     [InlineData(1.0, 1, true)] // High switch cost: Pick contiguous (Slot 2)
-    [InlineData(1.0, 2, false)] // No switch cost: Pick cheapest (Slot 3, gap)
+    [InlineData(1.0, 2, false)] // isSpotPriceBased=false: switch cost is ignored, pick cheapest (Slot 3, gap)
     public async Task AppendOptimalGridSchedules_RespectsSwitchCosts(decimal switchCost, int expectedSecondSlotStartOffset, bool isSpotPriceBased)
     {
         // Arrange

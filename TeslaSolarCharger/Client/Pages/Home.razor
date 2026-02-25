@@ -104,6 +104,7 @@ else
         Logger.LogTrace("{method}()", nameof(RefreshLoadPoints));
         _loadPoints = null;
         _loadPoints = await HomeService.GetLoadPointsToManage();
+        StateHasChanged();
     }
 
     private string T(string key) =>
