@@ -99,13 +99,15 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class
     {
+        _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(GetStateAsync), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
         if (_stateStore.TryGetValue(key, out var state) && state is T typedState)
         {
+            _logger.LogTrace("Found state directly in store");
             return typedState;
         }
-
+        _logger.LogInformation("Did not find state in store, ensure subscription");
         // Subscribe to this data type if not already subscribed
         await EnsureSubscribedToDataType(dataType);
         await GetState(dataType, entityId);
@@ -169,9 +171,11 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private async Task EnsureSubscribedToDataType(string dataType)
     {
+        _logger.LogTrace("{methdod}({dataType})", nameof(EnsureSubscribedToDataType), dataType);
         // Check if we've already subscribed to this data type
         if (_subscribedDataTypes.ContainsKey(dataType))
         {
+            _logger.LogTrace("Already subscribed to {type}", dataType);
             return;
         }
 
@@ -181,14 +185,21 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             // Double-check after acquiring the lock
             if (_subscribedDataTypes.ContainsKey(dataType))
             {
+                _logger.LogTrace("Already subscribed to {type} after double check", dataType);
                 return;
             }
 
+            _logger.LogTrace("Not subscribed to {type} after double check", dataType);
             // Subscribe to the data type
             await SubscribeToDataTypeAsync(dataType);
 
             // Mark as subscribed
             _subscribedDataTypes[dataType] = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could EnsureSubscribedToDataType to {dataType}", dataType);
+            throw;
         }
         finally
         {
@@ -219,6 +230,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private async Task SubscribeToDataTypeAsync(string dataType)
     {
+        _logger.LogTrace("{method}({dataType})", nameof(SubscribeToDataTypeAsync), dataType);
         if (_hubConnection?.State == HubConnectionState.Connected)
         {
             try
@@ -235,6 +247,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         else
         {
             _logger.LogWarning("Cannot subscribe to {DataType} - SignalR connection not established", dataType);
+            throw new Exception($"Could not subscribe to {dataType} as hub connection is not established");
         }
     }
 
