@@ -204,7 +204,7 @@ else
                 try
                 {
                     _pvValues = pvValues;
-                    await UpdateBalls();
+                    UpdateBalls();
                     await InvokeAsync(StateHasChanged);
                 }
                 catch (Exception e)
@@ -215,10 +215,10 @@ else
 
         // Get initial state
         _pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
-        await UpdateBalls();
+        UpdateBalls();
     }
 
-    private async Task UpdateBalls()
+    private void UpdateBalls()
     {
         if (_pvValues == default)
         {
@@ -392,7 +392,7 @@ else
                 }
             }
         }
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
     }
 
     private float CalculateDuration(Location start, Location end)
