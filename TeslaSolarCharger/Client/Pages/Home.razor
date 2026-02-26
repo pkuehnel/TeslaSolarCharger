@@ -24,7 +24,7 @@
 
 <PowerFlowComponent></PowerFlowComponent>
 <PowerBufferComponent></PowerBufferComponent>
-@if (_showEnergyData)
+@if (_showEnergyData != false)
 {
     <EnergyPredictionComponent></EnergyPredictionComponent>
 }
@@ -72,14 +72,12 @@ else
 </form>
 
 @code {
-    private bool _showEnergyData;
+    private bool? _showEnergyData;
     private List<DtoLoadPointOverview>? _loadPoints;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
-
         await SignalRStateService.InitializeAsync();
         await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.LoadPointMatchesChangeTrigger,
@@ -97,6 +95,7 @@ else
             });
 
         await RefreshLoadPoints();
+        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
     }
 
     private async Task RefreshLoadPoints()
