@@ -76,7 +76,7 @@ else
 
     protected override void OnInitialized()
     {
-        Logger.LogTrace("{method}()", nameof(RefreshErrors));
+        Logger.LogTrace("{method}()", nameof(OnInitialized));
         base.OnInitialized();
         _periodicTaskHelper = new();
         _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromSeconds(15));

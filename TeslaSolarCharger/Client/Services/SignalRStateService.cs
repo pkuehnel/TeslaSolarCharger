@@ -171,7 +171,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private async Task EnsureSubscribedToDataType(string dataType)
     {
-        _logger.LogTrace("{methdod}({dataType})", nameof(EnsureSubscribedToDataType), dataType);
+        _logger.LogTrace("{method}({dataType})", nameof(EnsureSubscribedToDataType), dataType);
         // Check if we've already subscribed to this data type
         if (_subscribedDataTypes.ContainsKey(dataType))
         {
@@ -198,7 +198,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could EnsureSubscribedToDataType to {dataType}", dataType);
+            _logger.LogError(ex, "Could not EnsureSubscribedToDataType to {dataType}", dataType);
             throw;
         }
         finally
