@@ -1,4 +1,4 @@
-﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
@@ -204,8 +204,7 @@ else
                 try
                 {
                     _pvValues = pvValues;
-                    UpdateBalls();
-                    await InvokeAsync(StateHasChanged);
+                    await UpdateBalls();
                 }
                 catch (Exception e)
                 {
@@ -215,10 +214,10 @@ else
 
         // Get initial state
         _pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
-        UpdateBalls();
+        await UpdateBalls();
     }
 
-    private void UpdateBalls()
+    private async Task UpdateBalls()
     {
         if (_pvValues == default)
         {
@@ -392,7 +391,8 @@ else
                 }
             }
         }
-        StateHasChanged();
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private float CalculateDuration(Location start, Location end)

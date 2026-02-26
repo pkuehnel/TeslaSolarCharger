@@ -96,6 +96,7 @@ else
 
         await RefreshLoadPoints();
         _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+        StateHasChanged();
     }
 
     private async Task RefreshLoadPoints()
