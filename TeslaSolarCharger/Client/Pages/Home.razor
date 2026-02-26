@@ -86,7 +86,6 @@ else
                 try
                 {
                     await RefreshLoadPoints();
-                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -96,6 +95,7 @@ else
 
         await RefreshLoadPoints();
         _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RefreshLoadPoints()
@@ -103,7 +103,7 @@ else
         Logger.LogTrace("{method}()", nameof(RefreshLoadPoints));
         _loadPoints = null;
         _loadPoints = await HomeService.GetLoadPointsToManage();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private string T(string key) =>
