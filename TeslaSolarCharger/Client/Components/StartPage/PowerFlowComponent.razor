@@ -1,5 +1,4 @@
-@using TeslaSolarCharger.Shared.Dtos
-@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
+﻿@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Localization
@@ -7,7 +6,6 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.SignalRClients
 
-@inject HttpClient HttpClient
 @inject IConstants Constants
 @inject ISignalRStateService SignalRStateService
 @inject ITextLocalizationService TextLocalizer
@@ -184,8 +182,7 @@ else
     private List<Ball> Balls { get; set; } = new();
 
     private DtoPvValues? _pvValues;
-    private bool? _couldNotRefreshStates;
-    private int _widthInPixel = 420;
+    private readonly int _widthInPixel = 420;
 
 
 
@@ -194,7 +191,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
+        await base.OnInitializedAsync();
         await SignalRStateService.InitializeAsync();
 
         // Subscribe to PV value changes
@@ -231,38 +228,35 @@ else
             {
                 if (GridLocation != default && _pvValues.GridPower > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                        CalculateDuration(InverterLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = InverterLocation.X,
                             StartY = InverterLocation.Y,
                             EndX = GridLocation.X,
                             EndY = GridLocation.Y,
-                        Color = Constants.SolarPowerColor,
-                            Duration = CalculateDuration(InverterLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
                 if (HomeLocation != default)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                        CalculateDuration(InverterLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = InverterLocation.X,
                             StartY = InverterLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                        Color = Constants.SolarPowerColor,
-                            Duration = CalculateDuration(InverterLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                        CalculateDuration(InverterLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = InverterLocation.X,
                             StartY = InverterLocation.Y,
                             EndX = BatteryLocation.X,
                             EndY = BatteryLocation.Y,
-                        Color = Constants.SolarPowerColor,
-                            Duration = CalculateDuration(InverterLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
             }
@@ -275,27 +269,25 @@ else
             {
                 if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.GridColor,
+                        CalculateDuration(GridLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = GridLocation.X,
                             StartY = GridLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                            Color = Constants.GridColor,
-                            Duration = CalculateDuration(GridLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.GridColor,
+                        CalculateDuration(GridLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = GridLocation.X,
                             StartY = GridLocation.Y,
                             EndX = BatteryLocation.X,
                             EndY = BatteryLocation.Y,
-                        Color = Constants.GridColor,
-                            Duration = CalculateDuration(GridLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
             }
@@ -308,26 +300,24 @@ else
             {
                 if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.BatteryColor,
+                        CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = BatteryLocation.X,
                             StartY = BatteryLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                            Color = Constants.BatteryColor,
-                            Duration = CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
                 if (GridLocation != default && _pvValues.GridPower > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.BatteryColor,
+                        CalculateDuration(BatteryLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                         {
                             StartX = BatteryLocation.X,
                             StartY = BatteryLocation.Y,
                             EndX = GridLocation.X,
                             EndY = GridLocation.Y,
-                            Color = Constants.BatteryColor,
-                            Duration = CalculateDuration(BatteryLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
             }
@@ -339,54 +329,50 @@ else
             var homeLocation = HomeLocation;
             if (homeLocation != default)
             {
-                Balls.Add(new Ball
+                Balls.Add(new Ball(Constants.HomeConsumptionColor,
+                    CalculateDuration(homeLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = homeLocation.X,
                         StartY = homeLocation.Y,
                         EndX = EvChargerLocation.X,
                         EndY = EvChargerLocation.Y,
-                        Color = Constants.HomeConsumptionColor,
-                        Duration = CalculateDuration(homeLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
             }
             else
             {
                 if (InverterLocation != default && _pvValues.InverterPower > 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.SolarPowerColor, 
+                        CalculateDuration(InverterLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = InverterLocation.X,
                         StartY = InverterLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = Constants.SolarPowerColor,
-                            Duration = CalculateDuration(InverterLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }
 
                 if (GridLocation != default && _pvValues.GridPower < 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.GridColor,
+                        CalculateDuration(GridLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = GridLocation.X,
                         StartY = GridLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = Constants.GridColor,
-                            Duration = CalculateDuration(GridLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower < 0)
                 {
-                    Balls.Add(new Ball
+                    Balls.Add(new Ball(Constants.BatteryColor,
+                        CalculateDuration(BatteryLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = BatteryLocation.X,
                         StartY = BatteryLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = Constants.BatteryColor,
-                            Duration = CalculateDuration(BatteryLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }
             }
@@ -608,6 +594,12 @@ else
 
     public class Ball
     {
+        public Ball(string color, string duration)
+        {
+            Color = color;
+            Duration = duration;
+        }
+
         public int StartX { get; set; }
         public int StartY { get; set; }
         public int EndX { get; set; }
