@@ -22,6 +22,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
 
+    public event Action? OnConnectionStateChanged;
+
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     public SignalRStateService(NavigationManager navigationManager,
@@ -45,7 +47,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
-                .WithAutomaticReconnect()
+                .WithAutomaticReconnect(new InfiniteRetryPolicy(5))
                 .Build();
 
             _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
@@ -54,6 +56,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             _hubConnection.Reconnecting += (error) =>
             {
                 _logger.LogWarning(error, "SignalR connection lost, reconnecting...");
+                OnConnectionStateChanged?.Invoke();
                 return Task.CompletedTask;
             };
 
@@ -63,10 +66,19 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
                 await ResubscribeToAllDataTypes();
                 await RefreshAllStates();
+                OnConnectionStateChanged?.Invoke();
+            };
+
+            _hubConnection.Closed += (error) =>
+            {
+                _logger.LogWarning(error, "SignalR connection closed");
+                OnConnectionStateChanged?.Invoke();
+                return Task.CompletedTask;
             };
 
             await _hubConnection.StartAsync();
             _logger.LogInformation("SignalR connection established");
+            OnConnectionStateChanged?.Invoke();
         }
         finally
         {
@@ -171,7 +183,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private async Task EnsureSubscribedToDataType(string dataType)
     {
-        _logger.LogTrace("{methdod}({dataType})", nameof(EnsureSubscribedToDataType), dataType);
+        _logger.LogTrace("{method}({dataType})", nameof(EnsureSubscribedToDataType), dataType);
         // Check if we've already subscribed to this data type
         if (_subscribedDataTypes.ContainsKey(dataType))
         {
@@ -198,7 +210,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could EnsureSubscribedToDataType to {dataType}", dataType);
+            _logger.LogError(ex, "Could not EnsureSubscribedToDataType to {dataType}", dataType);
             throw;
         }
         finally
@@ -394,5 +406,20 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
         _connectionLock.Dispose();
         _subscriptionLock.Dispose();
+    }
+}
+
+public class InfiniteRetryPolicy : IRetryPolicy
+{
+    private readonly TimeSpan _retryDelay;
+
+    public InfiniteRetryPolicy(int delayInSeconds)
+    {
+        _retryDelay = TimeSpan.FromSeconds(delayInSeconds);
+    }
+
+    public TimeSpan? NextRetryDelay(RetryContext retryContext)
+    {
+        return _retryDelay;
     }
 }
