@@ -87,7 +87,7 @@
             }
 
             // Wait the remaining time for the hint
-            await Task.Delay(HintDelayMilliseconds - AlertDelayMilliseconds, token);
+            await Task.Delay(Math.Max(0, HintDelayMilliseconds - AlertDelayMilliseconds), token);
 
             if (!token.IsCancellationRequested)
             {
