@@ -17,7 +17,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly NavigationManager _navigationManager;
     private readonly ILogger<SignalRStateService> _logger;
     private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
-    private readonly IJavaScriptWrapper _javaScriptWrapper;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ConcurrentDictionary<string, object> _stateStore = new();
     private readonly ConcurrentDictionary<string, List<Action<object>>> _subscribers = new();
     private readonly ConcurrentDictionary<string, List<Action>> _triggerSubscribers = new();
@@ -33,12 +33,12 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     public SignalRStateService(NavigationManager navigationManager,
         ILogger<SignalRStateService> logger,
         IEntityKeyGenerationHelper entityKeyGenerationHelper,
-        IJavaScriptWrapper javaScriptWrapper)
+        IServiceProvider serviceProvider)
     {
         _navigationManager = navigationManager;
         _logger = logger;
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
-        _javaScriptWrapper = javaScriptWrapper;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task InitializeAsync()
@@ -52,7 +52,11 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             }
 
             _dotNetRef = DotNetObjectReference.Create<object>(this);
-            await _javaScriptWrapper.RegisterVisibilityChangeCallback(_dotNetRef);
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var javaScriptWrapper = scope.ServiceProvider.GetRequiredService<IJavaScriptWrapper>();
+                await javaScriptWrapper.RegisterVisibilityChangeCallback(_dotNetRef);
+            }
 
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
