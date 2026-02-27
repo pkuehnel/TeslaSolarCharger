@@ -9,12 +9,15 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ILogger<SignalRConnectionStateComponent> Logger
 
-@if (!SignalRStateService.IsConnected)
+@if (SignalRStateService.IsConnected)
 {
     <div class="my-2">
-        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="d-flex align-center">
+        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="d-flex align-center" NoIcon="true">
             <div class="d-flex align-center">
-                <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" Class="mr-3" />
+                <div class="mr-3">
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+                </div>
+                
                 <div>
                     <MudText Typo="Typo.body1">@T(TranslationKeys.SignalRReconnecting)</MudText>
                     @if (_showDelayHint)
