@@ -1,0 +1,81 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@implements IDisposable
+@inject ISignalRStateService SignalRStateService
+@inject ITextLocalizationService TextLocalizer
+
+@if (!SignalRStateService.IsConnected)
+{
+    <div class="my-2">
+        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="d-flex align-center">
+            <div class="d-flex align-center">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body1">@T(TranslationKeys.SignalRReconnecting)</MudText>
+                    @if (_showDelayHint)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-1">@T(TranslationKeys.SignalRReconnectionDelayHint)</MudText>
+                    }
+                </div>
+            </div>
+        </MudAlert>
+    </div>
+}
+
+@code {
+    private CancellationTokenSource? _delayCts;
+    private bool _showDelayHint;
+
+    protected override void OnInitialized()
+    {
+        SignalRStateService.OnConnectionStateChanged += HandleConnectionStateChanged;
+        UpdateHintTimer();
+    }
+
+    private void HandleConnectionStateChanged()
+    {
+        UpdateHintTimer();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateHintTimer()
+    {
+        _delayCts?.Cancel();
+        _showDelayHint = false;
+
+        if (!SignalRStateService.IsConnected)
+        {
+            _delayCts = new CancellationTokenSource();
+            _ = ShowHintAfterDelay(_delayCts.Token);
+        }
+    }
+
+    private async Task ShowHintAfterDelay(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(5000, token);
+            _showDelayHint = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // This is expected when the timer is cancelled, so we'll just ignore it.
+        }
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    public void Dispose()
+    {
+        SignalRStateService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+        _delayCts?.Cancel();
+        _delayCts?.Dispose();
+    }
+}
