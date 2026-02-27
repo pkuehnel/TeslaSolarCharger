@@ -140,13 +140,11 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         Action<object> wrappedCallback = obj => { if (obj is T typedObj) callback(typedObj); };
 
         // Add the callback
-        _subscribers.AddOrUpdate(key,
-            _ => new List<Action<object>> { wrappedCallback },
-            (_, list) =>
-            {
-                list.Add(wrappedCallback);
-                return list;
-            });
+        var subscribersList = _subscribers.GetOrAdd(key, _ => new List<Action<object>>());
+        lock (subscribersList)
+        {
+            subscribersList.Add(wrappedCallback);
+        }
 
         // Subscribe to the data type if not already subscribed
         await EnsureSubscribedToDataType(dataType);
