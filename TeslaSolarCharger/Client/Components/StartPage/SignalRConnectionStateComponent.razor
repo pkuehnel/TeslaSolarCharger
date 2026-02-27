@@ -29,14 +29,31 @@
         </MudAlert>
     </div>
 }
+else if (SignalRStateService.IsConnected && _showSuccess)
+{
+    <div class="my-2">
+        <MudAlert Severity="Severity.Success" ContentAlignment="HorizontalAlignment.Left" Class="d-flex align-center" NoIcon="true">
+            <div class="d-flex align-center">
+                <div class="mr-3">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="zoom-in" />
+                </div>
+                <div>
+                    <MudText Typo="Typo.body1">@T(TranslationKeys.SignalRConnected)</MudText>
+                </div>
+            </div>
+        </MudAlert>
+    </div>
+}
 
 @code {
     private const int HintDelayMilliseconds = 5000;
     private const int AlertDelayMilliseconds = 1000;
+    private const int SuccessMessageDurationMilliseconds = 3000;
 
     private CancellationTokenSource? _delayCts;
     private bool _showDelayHint;
     private bool _showAlert;
+    private bool _showSuccess;
 
     protected override void OnInitialized()
     {
@@ -52,6 +69,13 @@
 
     private void UpdateVisibilityState()
     {
+        // Check if we are transitioning from a disconnected state with an alert shown to a connected state
+        if (SignalRStateService.IsConnected && _showAlert)
+        {
+            _showSuccess = true;
+            _ = HideSuccessAfterDelay();
+        }
+
         CancelAndDisposeDelayToken();
 
         _showDelayHint = false;
@@ -108,6 +132,16 @@
         {
             Logger.LogError(ex, "Error in ShowAlertAndHintAfterDelay");
         }
+    }
+
+    private async Task HideSuccessAfterDelay()
+    {
+        await Task.Delay(SuccessMessageDurationMilliseconds);
+        await InvokeAsync(() =>
+        {
+            _showSuccess = false;
+            StateHasChanged();
+        });
     }
 
     private string T(string key) =>
