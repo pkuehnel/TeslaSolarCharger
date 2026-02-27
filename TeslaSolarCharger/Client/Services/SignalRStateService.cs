@@ -47,7 +47,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
-                .WithAutomaticReconnect()
+                .WithAutomaticReconnect(new InfiniteRetryPolicy(5))
                 .Build();
 
             _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
@@ -406,5 +406,20 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
         _connectionLock.Dispose();
         _subscriptionLock.Dispose();
+    }
+}
+
+public class InfiniteRetryPolicy : IRetryPolicy
+{
+    private readonly TimeSpan _retryDelay;
+
+    public InfiniteRetryPolicy(int delayInSeconds)
+    {
+        _retryDelay = TimeSpan.FromSeconds(delayInSeconds);
+    }
+
+    public TimeSpan? NextRetryDelay(RetryContext retryContext)
+    {
+        return _retryDelay;
     }
 }
