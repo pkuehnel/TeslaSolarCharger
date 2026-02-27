@@ -6,6 +6,8 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+@implements IDisposable
+
 @inject IHomeService HomerService
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<ChargingSchedulesComponent> Logger
@@ -123,13 +125,13 @@
     private List<DtoChargingSchedule>? _elements;
 
     private bool _showChart;
+    private IDisposable? _subscription;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        await SignalRStateService.InitializeAsync();
-        await SignalRStateService.SubscribeToTrigger(
+        _subscription = await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.ChargingSchedulesChangeTrigger,
             async void () =>
             {
@@ -183,4 +185,8 @@
                ?? key;
     }
 
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }

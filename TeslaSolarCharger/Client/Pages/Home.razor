@@ -8,6 +8,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @using TeslaSolarCharger.Shared.SignalRClients
+@implements IDisposable
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
@@ -75,12 +76,13 @@ else
 @code {
     private bool? _showEnergyData;
     private List<DtoLoadPointOverview>? _loadPoints;
+    private IDisposable? _subscription;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await SignalRStateService.InitializeAsync();
-        await SignalRStateService.SubscribeToTrigger(
+
+        _subscription = await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.LoadPointMatchesChangeTrigger,
             async void () =>
             {
@@ -110,4 +112,9 @@ else
     private string T(string key) =>
         TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }

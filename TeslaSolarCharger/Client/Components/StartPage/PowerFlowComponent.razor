@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.SignalRClients
+@implements IDisposable
 
 @inject IConstants Constants
 @inject ISignalRStateService SignalRStateService
@@ -189,13 +190,14 @@ else
 
 
 
+    private IDisposable? _subscription;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await SignalRStateService.InitializeAsync();
 
         // Subscribe to PV value changes
-        await SignalRStateService.Subscribe<DtoPvValues>(
+        _subscription = await SignalRStateService.Subscribe<DtoPvValues>(
             DataTypeConstants.PvValues, async void (pvValues) =>
             {
                 try
@@ -635,4 +637,9 @@ else
     private string T(string key) =>
         TextLocalizer.Get<SharedComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }

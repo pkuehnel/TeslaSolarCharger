@@ -7,6 +7,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using TeslaSolarCharger.Shared.SignalRClients
+@implements IDisposable
 
 @inject ILogger<LoadpointComponent> Logger
 @inject IHomeService HomeService
@@ -60,15 +61,16 @@
     [Parameter]
     public DtoLoadPointOverview LoadPoint { get; set; } = default!;
 
+    private IDisposable? _subscription;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await SignalRStateService.InitializeAsync();
         var entityKey = EntityKeyGenerationHelper.GetLoadPointEntityKey(LoadPoint.CarId, LoadPoint.ChargingConnectorId);
         Logger.LogTrace("Generated entity key: {entityKey}", entityKey);
 
         // Subscribe to updates
-        await SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
+        _subscription = await SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
             DataTypeConstants.LoadPointOverviewValues,
             async void (loadpointValues) =>
             {
@@ -113,4 +115,9 @@
 
     private string Format(string key, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }
