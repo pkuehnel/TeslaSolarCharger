@@ -51,6 +51,7 @@ else if (SignalRStateService.IsConnected && _showSuccess)
     private const int SuccessMessageDurationMilliseconds = 3000;
 
     private CancellationTokenSource? _delayCts;
+    private CancellationTokenSource? _successCts;
     private bool _showDelayHint;
     private bool _showAlert;
     private bool _showSuccess;
@@ -72,8 +73,10 @@ else if (SignalRStateService.IsConnected && _showSuccess)
         // Check if we are transitioning from a disconnected state with an alert shown to a connected state
         if (SignalRStateService.IsConnected && _showAlert)
         {
+            CancelAndDisposeSuccessToken();
+            _successCts = new CancellationTokenSource();
             _showSuccess = true;
-            _ = HideSuccessAfterDelay();
+            _ = HideSuccessAfterDelay(_successCts.Token);
         }
 
         CancelAndDisposeDelayToken();
@@ -83,6 +86,9 @@ else if (SignalRStateService.IsConnected && _showSuccess)
 
         if (!SignalRStateService.IsConnected)
         {
+            CancelAndDisposeSuccessToken();
+            _showSuccess = false;
+
             _delayCts = new CancellationTokenSource();
             var token = _delayCts.Token; // Capture the token locally
         
@@ -97,6 +103,16 @@ else if (SignalRStateService.IsConnected && _showSuccess)
             _delayCts.Cancel();
             _delayCts.Dispose();
             _delayCts = null;
+        }
+    }
+
+    private void CancelAndDisposeSuccessToken()
+    {
+        if (_successCts != null)
+        {
+            _successCts.Cancel();
+            _successCts.Dispose();
+            _successCts = null;
         }
     }
 
@@ -134,14 +150,25 @@ else if (SignalRStateService.IsConnected && _showSuccess)
         }
     }
 
-    private async Task HideSuccessAfterDelay()
+    private async Task HideSuccessAfterDelay(CancellationToken token)
     {
-        await Task.Delay(SuccessMessageDurationMilliseconds);
-        await InvokeAsync(() =>
+        try
         {
-            _showSuccess = false;
-            StateHasChanged();
-        });
+            await Task.Delay(SuccessMessageDurationMilliseconds, token);
+            if (!token.IsCancellationRequested)
+            {
+                await InvokeAsync(() =>
+                {
+                    _showSuccess = false;
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* Normal */ }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HideSuccessAfterDelay");
+        }
     }
 
     private string T(string key) =>
@@ -152,5 +179,6 @@ else if (SignalRStateService.IsConnected && _showSuccess)
     {
         SignalRStateService.OnConnectionStateChanged -= HandleConnectionStateChanged;
         CancelAndDisposeDelayToken();
+        CancelAndDisposeSuccessToken();
     }
 }
