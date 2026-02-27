@@ -7,6 +7,7 @@
 @implements IDisposable
 @inject ISignalRStateService SignalRStateService
 @inject ITextLocalizationService TextLocalizer
+@inject ILogger<SignalRConnectionStateComponent> Logger
 
 @if (!SignalRStateService.IsConnected)
 {
@@ -44,13 +45,21 @@
 
     private void UpdateHintTimer()
     {
-        _delayCts?.Cancel();
+        if (_delayCts != null)
+        {
+            _delayCts.Cancel();
+            _delayCts.Dispose();
+            _delayCts = null;
+        }
+
         _showDelayHint = false;
 
         if (!SignalRStateService.IsConnected)
         {
             _delayCts = new CancellationTokenSource();
-            _ = ShowHintAfterDelay(_delayCts.Token);
+            var token = _delayCts.Token; // Capture the token locally
+        
+            _ = ShowHintAfterDelay(token);
         }
     }
 
@@ -59,13 +68,22 @@
         try
         {
             await Task.Delay(5000, token);
-            _showDelayHint = true;
-            await InvokeAsync(StateHasChanged);
+        
+            if (!token.IsCancellationRequested)
+            {
+                await InvokeAsync(() => 
+                {
+                    _showDelayHint = true;
+                    StateHasChanged();
+                });
+            }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) { /* Normal */ }
+        catch (Exception ex)
         {
-            // This is expected when the timer is cancelled, so we'll just ignore it.
+            Logger.LogError(ex, "Error in ShowHintAfterDelay");
         }
+
     }
 
     private string T(string key) =>
