@@ -35,8 +35,8 @@ public class HomePageLocalizationRegistry : TextLocalizationRegistry<HomePageLoc
             new TextLocalizationTranslation(LanguageCodes.German, "Spenden mit PayPal-Button"));
 
         Register(TranslationKeys.SignalRReconnecting,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connection lost. The system is automatically trying to reconnect..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung verloren. Das System versucht automatisch die Verbindung wiederherzustellen..."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Not connected. The system is automatically trying to reconnect..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Keine Verbindung. Das System versucht automatisch die Verbindung wiederherzustellen..."));
 
         Register(TranslationKeys.SignalRReconnectionDelayHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Possible causes: poor WiFi connection, or device is outside of home network and cannot reconnect."),
