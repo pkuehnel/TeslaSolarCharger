@@ -135,4 +135,9 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime, ISnackbar snackbar) : IJava
             return null;
         }
     }
+
+    public async Task RegisterVisibilityChangeCallback(DotNetObjectReference<object> dotNetObjectReference)
+    {
+        await jsRuntime.InvokeVoidAsync("registerVisibilityChangeCallback", dotNetObjectReference);
+    }
 }

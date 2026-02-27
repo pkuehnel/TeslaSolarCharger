@@ -81,3 +81,9 @@ function readFromLocalStorage(key) {
         return null;
     }
 }
+
+function registerVisibilityChangeCallback(dotnetHelper) {
+    document.addEventListener("visibilitychange", () => {
+        dotnetHelper.invokeMethodAsync('OnVisibilityChange', document.visibilityState === 'visible');
+    });
+}

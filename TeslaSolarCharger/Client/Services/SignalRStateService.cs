@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -6,6 +6,8 @@ using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
+using Microsoft.JSInterop;
+using TeslaSolarCharger.Client.Helper.Contracts;
 
 namespace TeslaSolarCharger.Client.Services;
 
@@ -15,12 +17,14 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly NavigationManager _navigationManager;
     private readonly ILogger<SignalRStateService> _logger;
     private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
+    private readonly IJavaScriptWrapper _javaScriptWrapper;
     private readonly ConcurrentDictionary<string, object> _stateStore = new();
     private readonly ConcurrentDictionary<string, List<Action<object>>> _subscribers = new();
     private readonly ConcurrentDictionary<string, List<Action>> _triggerSubscribers = new();
     private readonly ConcurrentDictionary<string, bool> _subscribedDataTypes = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
+    private DotNetObjectReference<object>? _dotNetRef;
 
     public event Action? OnConnectionStateChanged;
 
@@ -28,11 +32,13 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public SignalRStateService(NavigationManager navigationManager,
         ILogger<SignalRStateService> logger,
-        IEntityKeyGenerationHelper entityKeyGenerationHelper)
+        IEntityKeyGenerationHelper entityKeyGenerationHelper,
+        IJavaScriptWrapper javaScriptWrapper)
     {
         _navigationManager = navigationManager;
         _logger = logger;
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
+        _javaScriptWrapper = javaScriptWrapper;
     }
 
     public async Task InitializeAsync()
@@ -44,6 +50,9 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             {
                 return;
             }
+
+            _dotNetRef = DotNetObjectReference.Create<object>(this);
+            await _javaScriptWrapper.RegisterVisibilityChangeCallback(_dotNetRef);
 
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
@@ -398,12 +407,58 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
     }
 
+    [JSInvokable]
+    public async Task OnVisibilityChange(bool isVisible)
+    {
+        _logger.LogInformation("Visibility changed to {IsVisible}", isVisible);
+
+        if (!isVisible)
+        {
+            return;
+        }
+        await _connectionLock.WaitAsync();
+        try
+        {
+            if (_hubConnection == null)
+            {
+                return;
+            }
+
+            if (_hubConnection.State == HubConnectionState.Disconnected)
+            {
+                _logger.LogInformation("Reconnecting SignalR due to visibility change");
+                await _hubConnection.StartAsync();
+                await ResubscribeToAllDataTypes();
+                await RefreshAllStates();
+                OnConnectionStateChanged?.Invoke();
+            }
+            else if (_hubConnection.State == HubConnectionState.Reconnecting)
+            {
+                _logger.LogInformation("Restarting SignalR due to visibility change (stuck in reconnecting)");
+                await _hubConnection.StopAsync();
+                await _hubConnection.StartAsync();
+                await ResubscribeToAllDataTypes();
+                await RefreshAllStates();
+                OnConnectionStateChanged?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reconnect SignalR on visibility change");
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_hubConnection != null)
         {
             await _hubConnection.DisposeAsync();
         }
+        _dotNetRef?.Dispose();
         _connectionLock.Dispose();
         _subscriptionLock.Dispose();
     }

@@ -28,4 +28,6 @@ public interface IJavaScriptWrapper
     /// <param name="key">The key to retrieve the value for</param>
     /// <returns>The stored string value, or null if not found</returns>
     Task<string?> ReadFromLocalStorage(string key);
+
+    Task RegisterVisibilityChangeCallback(Microsoft.JSInterop.DotNetObjectReference<object> dotNetObjectReference);
 }
