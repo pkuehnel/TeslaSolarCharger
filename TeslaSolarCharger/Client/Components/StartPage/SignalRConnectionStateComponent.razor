@@ -9,33 +9,38 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ILogger<SignalRConnectionStateComponent> Logger
 
-<div class="@($"connection-state-wrapper {(_isVisible ? "visible" : "")}")">
-    <MudAlert Severity="@(_uiState == ConnectionUiState.Connected ? Severity.Success : Severity.Info)"
-              ContentAlignment="HorizontalAlignment.Left"
-              Class="d-flex align-center"
-              NoIcon="true">
-        <div class="d-flex align-center">
-            <div class="mr-3">
-                @if (_uiState == ConnectionUiState.Reconnecting)
-                {
-                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="zoom-in" />
-                }
-            </div>
+@if (_uiState != ConnectionUiState.Hidden)
+{
+    <div class="@($"connection-state-wrapper {(_isVisible ? "visible" : "")}")">
+        <MudAlert Severity="@(_uiState == ConnectionUiState.Connected ? Severity.Success : Severity.Info)"
+                  ContentAlignment="HorizontalAlignment.Left"
+                  Class="d-flex align-center"
+                  NoIcon="true">
+            <div class="d-flex align-center">
+                <div class="mr-3">
+                    @if (_uiState == ConnectionUiState.Reconnecting)
+                    {
+                        <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="zoom-in" />
+                    }
+                </div>
 
-            <div>
-                <MudText Typo="Typo.body1">@(_uiState == ConnectionUiState.Connected ? T(TranslationKeys.SignalRConnected) : T(TranslationKeys.SignalRReconnecting))</MudText>
-                @if (_showDelayHint && _uiState == ConnectionUiState.Reconnecting)
-                {
-                    <MudText Typo="Typo.body2" Class="mt-1">@T(TranslationKeys.SignalRReconnectionDelayHint)</MudText>
-                }
+                <div>
+                    <MudText Typo="Typo.body1">@(_uiState == ConnectionUiState.Connected ? T(TranslationKeys.SignalRConnected) : T(TranslationKeys.SignalRReconnecting))</MudText>
+                    <div class="delay-hint-wrapper @(_showDelayHint && _uiState == ConnectionUiState.Reconnecting ? "expanded" : "")">
+                        <div class="delay-hint-inner">
+                            <MudText Typo="Typo.body2" Class="mt-1">@T(TranslationKeys.SignalRReconnectionDelayHint)</MudText>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </MudAlert>
-</div>
+        </MudAlert>
+    </div>
+}
+
 
 @code {
     private const int HintDelayMilliseconds = 5000;
@@ -46,6 +51,10 @@
 
     private CancellationTokenSource? _delayCts;
     private CancellationTokenSource? _successCts;
+
+    // The "Fence": ensures only the latest async task can modify the UI
+    private int _currentOperationId = 0;
+
     private ConnectionUiState _uiState = ConnectionUiState.Hidden;
     private bool _isVisible;
     private bool _showDelayHint;
@@ -58,132 +67,131 @@
 
     private void HandleConnectionStateChanged()
     {
-        UpdateVisibilityState();
-        InvokeAsync(StateHasChanged);
+        // We use InvokeAsync here because SignalR events often fire on background threads
+        InvokeAsync(() =>
+        {
+            UpdateVisibilityState();
+            StateHasChanged();
+        });
     }
 
     private void UpdateVisibilityState()
     {
-        // Transitioning to Connected
+        var operationId = System.Threading.Interlocked.Increment(ref _currentOperationId);
+
         if (SignalRStateService.IsConnected)
         {
-            // If we were showing an alert (visible or reconnecting), transition to success
             if (_isVisible || _uiState == ConnectionUiState.Reconnecting)
             {
-                CancelAndDisposeSuccessToken();
-                CancelAndDisposeDelayToken();
+                CancelAndDisposeTokens();
 
-                _uiState = ConnectionUiState.Connected;
-                _isVisible = true; // Ensure it stays visible
                 _showDelayHint = false;
-
                 _successCts = new CancellationTokenSource();
-                _ = HideSuccessAfterDelay(_successCts.Token);
+                
+                // Fire and forget the connected animation sequence
+                _ = ShowSuccessSequence(_successCts.Token, operationId);
             }
-            // If it was hidden, we just stay hidden (normal connected state)
         }
-        else // Transitioning to Disconnected (or already disconnected)
+        else
         {
-            // Only start the delay sequence if we aren't already showing the reconnecting state
             if (_uiState != ConnectionUiState.Reconnecting)
             {
-                CancelAndDisposeSuccessToken();
-                CancelAndDisposeDelayToken();
-
-                // We don't set _uiState to Reconnecting immediately because of the delay
-                // But we ensure success message is cancelled.
+                CancelAndDisposeTokens();
 
                 _delayCts = new CancellationTokenSource();
-                var token = _delayCts.Token;
-
-                _ = ShowAlertAndHintAfterDelay(token);
+                _ = ShowAlertAndHintAfterDelay(_delayCts.Token, operationId);
             }
         }
     }
 
-    private void CancelAndDisposeDelayToken()
+    private async Task ShowSuccessSequence(CancellationToken token, int opId)
     {
-        if (_delayCts != null)
-        {
-            _delayCts.Cancel();
-            _delayCts.Dispose();
-            _delayCts = null;
-        }
+        _uiState = ConnectionUiState.Connected;
+        StateHasChanged(); // Injects HTML into DOM without the .visible class
+
+        await Task.Delay(50, token); // Brief pause to let browser calculate layout
+        if (opId != _currentOperationId) return;
+
+        _isVisible = true;
+        StateHasChanged(); // Triggers the CSS expand/fade-in
+
+        // Proceed to hide it after the standard delay
+        await HideSuccessAfterDelay(token, opId);
     }
 
-    private void CancelAndDisposeSuccessToken()
+    private void CancelAndDisposeTokens()
     {
-        if (_successCts != null)
-        {
-            _successCts.Cancel();
-            _successCts.Dispose();
-            _successCts = null;
-        }
+        _delayCts?.Cancel();
+        _delayCts?.Dispose();
+        _delayCts = null;
+
+        _successCts?.Cancel();
+        _successCts?.Dispose();
+        _successCts = null;
     }
 
-    private async Task ShowAlertAndHintAfterDelay(CancellationToken token)
+    private async Task ShowAlertAndHintAfterDelay(CancellationToken token, int opId)
     {
         try
         {
             await Task.Delay(AlertDelayMilliseconds, token);
-        
-            if (!token.IsCancellationRequested)
-            {
-                await InvokeAsync(() =>
-                {
-                    _uiState = ConnectionUiState.Reconnecting;
-                    _isVisible = true;
-                    StateHasChanged();
-                });
-            }
+            if (opId != _currentOperationId) return;
 
-            // Wait the remaining time for the hint
+            await InvokeAsync(async () =>
+            {
+                _uiState = ConnectionUiState.Reconnecting;
+                StateHasChanged(); // Inject into DOM
+                
+                await Task.Delay(50, token); // Let browser catch up
+                if (opId != _currentOperationId) return;
+
+                _isVisible = true;
+                StateHasChanged(); // Trigger expansion animation
+            });
+
             await Task.Delay(Math.Max(0, HintDelayMilliseconds - AlertDelayMilliseconds), token);
+            if (opId != _currentOperationId) return;
 
-            if (!token.IsCancellationRequested)
+            await InvokeAsync(() =>
             {
-                await InvokeAsync(() => 
-                {
-                    _showDelayHint = true;
-                    StateHasChanged();
-                });
-            }
+                _showDelayHint = true;
+                StateHasChanged();
+            });
         }
-        catch (OperationCanceledException) { /* Normal */ }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in ShowAlertAndHintAfterDelay");
         }
     }
 
-    private async Task HideSuccessAfterDelay(CancellationToken token)
+    private async Task HideSuccessAfterDelay(CancellationToken token, int opId)
     {
         try
         {
+            // Phase 1: Show "Connected" for a few seconds
             await Task.Delay(SuccessMessageDurationMilliseconds, token);
 
-            if (!token.IsCancellationRequested)
+            if (opId != _currentOperationId) return;
+
+            await InvokeAsync(() =>
             {
-                await InvokeAsync(() =>
-                {
-                    _isVisible = false; // Fade out
-                    StateHasChanged();
-                });
+                _isVisible = false; // Trigger CSS fade out
+                StateHasChanged();
+            });
 
-                // Wait for CSS transition to finish before hiding logically (optional, but cleaner)
-                await Task.Delay(500, token);
+            // Phase 2: Wait for CSS transition (0.5s) then hide logically
+            await Task.Delay(500, token);
 
-                if (!token.IsCancellationRequested)
-                {
-                    await InvokeAsync(() =>
-                    {
-                        _uiState = ConnectionUiState.Hidden;
-                        StateHasChanged();
-                    });
-                }
-            }
+            if (opId != _currentOperationId) return;
+
+            await InvokeAsync(() =>
+            {
+                _uiState = ConnectionUiState.Hidden;
+                StateHasChanged();
+            });
         }
-        catch (OperationCanceledException) { /* Normal */ }
+        catch (OperationCanceledException) { /* Task was cancelled by a newer state change */ }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in HideSuccessAfterDelay");
@@ -197,7 +205,6 @@
     public void Dispose()
     {
         SignalRStateService.OnConnectionStateChanged -= HandleConnectionStateChanged;
-        CancelAndDisposeDelayToken();
-        CancelAndDisposeSuccessToken();
+        CancelAndDisposeTokens();
     }
 }

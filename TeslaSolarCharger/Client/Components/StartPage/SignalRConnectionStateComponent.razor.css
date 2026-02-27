@@ -7,6 +7,7 @@
         transform: scale(0);
         opacity: 0;
     }
+
     100% {
         transform: scale(1);
         opacity: 1;
@@ -14,20 +15,45 @@
 }
 
 .connection-state-wrapper {
-    max-height: 0;
+    display: grid;
+    grid-template-rows: 0fr; /* Start collapsed */
     opacity: 0;
-    overflow: hidden;
     margin: 0;
-    transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out, margin 0.5s ease-in-out;
+    overflow: hidden;
+    transition: grid-template-rows 0.5s ease-in-out, opacity 0.5s ease-in-out, margin 0.5s ease-in-out;
 }
 
 .connection-state-wrapper.visible {
-    max-height: 100px; /* Adjust if needed, but safe enough for single line alerts */
+    grid-template-rows: 1fr; /* Expand naturally to content height */
     opacity: 1;
-    margin-bottom: 8px; /* Equivalent to my-2 (0.5rem) */
+    margin-bottom: 8px;
     margin-top: 8px;
 }
 
+.connection-state-wrapper > * {
+    min-height: 0;
+    overflow: hidden;
+}
+
 ::deep .mud-alert {
-    transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+    /* The !important ensures MudBlazor's dynamic severity classes don't bypass the transition */
+    transition: background-color 0.5s ease-in-out, background 0.5s ease-in-out, color 0.5s ease-in-out !important;
+}
+
+/* Smooth height morphing for the delay hint */
+.delay-hint-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    opacity: 0;
+}
+
+    .delay-hint-wrapper.expanded {
+        grid-template-rows: 1fr;
+        opacity: 1;
+    }
+
+.delay-hint-inner {
+    min-height: 0; /* <-- Crucial: Forces the browser to allow shrinking below content height */
+    overflow: hidden; /* Prevents text from spilling out while grid row is 0fr */
 }
