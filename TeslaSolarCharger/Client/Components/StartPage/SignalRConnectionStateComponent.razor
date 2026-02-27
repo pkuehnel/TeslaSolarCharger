@@ -9,7 +9,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ILogger<SignalRConnectionStateComponent> Logger
 
-@if (SignalRStateService.IsConnected)
+@if (!SignalRStateService.IsConnected)
 {
     <div class="my-2">
         <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="d-flex align-center" NoIcon="true">
