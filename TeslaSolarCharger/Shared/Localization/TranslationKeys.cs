@@ -184,6 +184,8 @@ public static class TranslationKeys
     public static string HomePageReferralLinkText => nameof(HomePageReferralLinkText);
     public static string HomePagePaypalTitle => nameof(HomePagePaypalTitle);
     public static string HomePagePaypalAltText => nameof(HomePagePaypalAltText);
+    public static string SignalRReconnecting => nameof(SignalRReconnecting);
+    public static string SignalRReconnectionDelayHint => nameof(SignalRReconnectionDelayHint);
 
     public static string CarSettingsTitle => nameof(CarSettingsTitle);
     public static string CarSettingsCreateTokenTitle => nameof(CarSettingsCreateTokenTitle);

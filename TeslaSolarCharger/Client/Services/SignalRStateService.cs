@@ -22,6 +22,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
 
+    public event Action? OnConnectionStateChanged;
+
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     public SignalRStateService(NavigationManager navigationManager,
@@ -54,6 +56,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             _hubConnection.Reconnecting += (error) =>
             {
                 _logger.LogWarning(error, "SignalR connection lost, reconnecting...");
+                OnConnectionStateChanged?.Invoke();
                 return Task.CompletedTask;
             };
 
@@ -63,10 +66,19 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
                 await ResubscribeToAllDataTypes();
                 await RefreshAllStates();
+                OnConnectionStateChanged?.Invoke();
+            };
+
+            _hubConnection.Closed += (error) =>
+            {
+                _logger.LogWarning(error, "SignalR connection closed");
+                OnConnectionStateChanged?.Invoke();
+                return Task.CompletedTask;
             };
 
             await _hubConnection.StartAsync();
             _logger.LogInformation("SignalR connection established");
+            OnConnectionStateChanged?.Invoke();
         }
         finally
         {
