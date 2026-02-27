@@ -52,12 +52,7 @@
 
     private void UpdateVisibilityState()
     {
-        if (_delayCts != null)
-        {
-            _delayCts.Cancel();
-            _delayCts.Dispose();
-            _delayCts = null;
-        }
+        CancelAndDisposeDelayToken();
 
         _showDelayHint = false;
         _showAlert = false;
@@ -68,6 +63,16 @@
             var token = _delayCts.Token; // Capture the token locally
         
             _ = ShowAlertAndHintAfterDelay(token);
+        }
+    }
+
+    private void CancelAndDisposeDelayToken()
+    {
+        if (_delayCts != null)
+        {
+            _delayCts.Cancel();
+            _delayCts.Dispose();
+            _delayCts = null;
         }
     }
 
@@ -112,7 +117,6 @@
     public void Dispose()
     {
         SignalRStateService.OnConnectionStateChanged -= HandleConnectionStateChanged;
-        _delayCts?.Cancel();
-        _delayCts?.Dispose();
+        CancelAndDisposeDelayToken();
     }
 }
