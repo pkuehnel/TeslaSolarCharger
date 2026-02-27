@@ -9,7 +9,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ILogger<SignalRConnectionStateComponent> Logger
 
-@if (!SignalRStateService.IsConnected)
+@if (!SignalRStateService.IsConnected && _showAlert)
 {
     <div class="my-2">
         <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="d-flex align-center" NoIcon="true">
@@ -32,23 +32,25 @@
 
 @code {
     private const int HintDelayMilliseconds = 5000;
+    private const int AlertDelayMilliseconds = 1000;
 
     private CancellationTokenSource? _delayCts;
     private bool _showDelayHint;
+    private bool _showAlert;
 
     protected override void OnInitialized()
     {
         SignalRStateService.OnConnectionStateChanged += HandleConnectionStateChanged;
-        UpdateHintTimer();
+        UpdateVisibilityState();
     }
 
     private void HandleConnectionStateChanged()
     {
-        UpdateHintTimer();
+        UpdateVisibilityState();
         InvokeAsync(StateHasChanged);
     }
 
-    private void UpdateHintTimer()
+    private void UpdateVisibilityState()
     {
         if (_delayCts != null)
         {
@@ -58,22 +60,35 @@
         }
 
         _showDelayHint = false;
+        _showAlert = false;
 
         if (!SignalRStateService.IsConnected)
         {
             _delayCts = new CancellationTokenSource();
             var token = _delayCts.Token; // Capture the token locally
         
-            _ = ShowHintAfterDelay(token);
+            _ = ShowAlertAndHintAfterDelay(token);
         }
     }
 
-    private async Task ShowHintAfterDelay(CancellationToken token)
+    private async Task ShowAlertAndHintAfterDelay(CancellationToken token)
     {
         try
         {
-            await Task.Delay(HintDelayMilliseconds, token);
+            await Task.Delay(AlertDelayMilliseconds, token);
         
+            if (!token.IsCancellationRequested)
+            {
+                await InvokeAsync(() =>
+                {
+                    _showAlert = true;
+                    StateHasChanged();
+                });
+            }
+
+            // Wait the remaining time for the hint
+            await Task.Delay(Math.Max(0, HintDelayMilliseconds - AlertDelayMilliseconds), token);
+
             if (!token.IsCancellationRequested)
             {
                 await InvokeAsync(() => 
@@ -86,9 +101,8 @@
         catch (OperationCanceledException) { /* Normal */ }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error in ShowHintAfterDelay");
+            Logger.LogError(ex, "Error in ShowAlertAndHintAfterDelay");
         }
-
     }
 
     private string T(string key) =>
