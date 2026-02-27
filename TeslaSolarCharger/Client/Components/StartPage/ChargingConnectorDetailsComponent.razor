@@ -8,6 +8,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using TeslaSolarCharger.Shared.SignalRClients
+@implements IDisposable
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
@@ -80,6 +81,8 @@ else
     private DtoChargingConnectorOverviewState? ChargingConnectorState { get; set; }
 
     private ChargeModeV2? _lastKnownChargeMode;
+    private IDisposable? _subscription;
+    private int? _lastSubscribedChargingConnectorId;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -92,22 +95,28 @@ else
         {
             return;
         }
-        await SignalRStateService.InitializeAsync();
-        await SignalRStateService.Subscribe<DtoChargingConnectorOverviewState>(
-            DataTypeConstants.ChargingConnectorOverviewState,
-            async void (state) =>
-            {
-                try
+
+        if (_lastSubscribedChargingConnectorId != ChargingConnectorId)
+        {
+            _subscription?.Dispose();
+            _lastSubscribedChargingConnectorId = ChargingConnectorId;
+
+            _subscription = await SignalRStateService.Subscribe<DtoChargingConnectorOverviewState>(
+                DataTypeConstants.ChargingConnectorOverviewState,
+                async void (state) =>
+                {
+                    try
                 {
                     ChargingConnectorState = state;
                     await InvokeAsync(StateHasChanged);
                 }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Failed to update car state for CarId: {CarId}", CarId);
-                }
-            },
-            ChargingConnectorId.Value.ToString());
+                    catch (Exception e)
+                    {
+                        Logger.LogError(e, "Failed to update car state for CarId: {CarId}", CarId);
+                    }
+                },
+                ChargingConnectorId.Value.ToString());
+        }
 
         ChargingConnectorState = await SignalRStateService.GetStateAsync<DtoChargingConnectorOverviewState>(
             DataTypeConstants.ChargingConnectorOverviewState,
@@ -162,5 +171,10 @@ else
                    typeof(CarDetailsComponentLocalizationRegistry),
                    typeof(SharedComponentLocalizationRegistry))
                ?? key;
+    }
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
     }
 }

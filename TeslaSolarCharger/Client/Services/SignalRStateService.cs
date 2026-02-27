@@ -111,6 +111,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class
     {
+        await InitializeAsync();
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(GetStateAsync), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
@@ -130,16 +131,20 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         return default;
     }
 
-    public async Task Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
+    public async Task<IDisposable> Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
+        await InitializeAsync();
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(Subscribe), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
+
+        Action<object> wrappedCallback = obj => { if (obj is T typedObj) callback(typedObj); };
+
         // Add the callback
         _subscribers.AddOrUpdate(key,
-            _ => new List<Action<object>> { obj => { if (obj is T typedObj) callback(typedObj); } },
+            _ => new List<Action<object>> { wrappedCallback },
             (_, list) =>
             {
-                list.Add(obj => { if (obj is T typedObj) callback(typedObj); });
+                list.Add(wrappedCallback);
                 return list;
             });
 
@@ -158,10 +163,19 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 _logger.LogError(ex, "Error invoking initial callback for {Key}", key);
             }
         }
+
+        return new SubscriptionDisposable(() =>
+        {
+            if (_subscribers.TryGetValue(key, out var list))
+            {
+                list.Remove(wrappedCallback);
+            }
+        });
     }
 
-    public async Task SubscribeToTrigger(string dataType, Action callback, string entityId = "")
+    public async Task<IDisposable> SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
+        await InitializeAsync();
         _logger.LogTrace("{method}({dataType}, callback, {entityId})", nameof(SubscribeToTrigger), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
@@ -179,6 +193,14 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
         // For triggers, we might want to invoke immediately if we've seen this trigger before
         // This depends on your business logic - you might not want this behavior for triggers
+
+        return new SubscriptionDisposable(() =>
+        {
+            if (_triggerSubscribers.TryGetValue(key, out var list))
+            {
+                list.Remove(callback);
+            }
+        });
     }
 
     private async Task EnsureSubscribedToDataType(string dataType)

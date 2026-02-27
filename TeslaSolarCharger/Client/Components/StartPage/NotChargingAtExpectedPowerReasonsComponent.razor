@@ -112,14 +112,13 @@ else
     private Timer? _countdownTimer;
 
     private bool _isExpanded = false;
+    private IDisposable? _subscription;
 
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
         
-
-        await SignalRStateService.InitializeAsync();
-        await SignalRStateService.SubscribeToTrigger(
+        _subscription = await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.NotChargingAsExpectedChangeTrigger,
             async void () =>
             {
@@ -201,5 +200,6 @@ else
     public void Dispose()
     {
         _countdownTimer?.Dispose();
+        _subscription?.Dispose();
     }
 }
