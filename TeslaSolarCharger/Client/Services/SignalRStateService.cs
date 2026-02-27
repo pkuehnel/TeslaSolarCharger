@@ -407,19 +407,21 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         _connectionLock.Dispose();
         _subscriptionLock.Dispose();
     }
-}
 
-public class InfiniteRetryPolicy : IRetryPolicy
-{
-    private readonly TimeSpan _retryDelay;
-
-    public InfiniteRetryPolicy(int delayInSeconds)
+    private class InfiniteRetryPolicy : IRetryPolicy
     {
-        _retryDelay = TimeSpan.FromSeconds(delayInSeconds);
+        private readonly TimeSpan _retryDelay;
+
+        public InfiniteRetryPolicy(int delayInSeconds)
+        {
+            _retryDelay = TimeSpan.FromSeconds(delayInSeconds);
+        }
+
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            return _retryDelay;
+        }
     }
 
-    public TimeSpan? NextRetryDelay(RetryContext retryContext)
-    {
-        return _retryDelay;
-    }
 }
+

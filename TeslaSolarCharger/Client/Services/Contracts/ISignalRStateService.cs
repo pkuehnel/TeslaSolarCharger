@@ -2,7 +2,7 @@
 
 public interface ISignalRStateService
 {
-    event Action OnConnectionStateChanged;
+    event Action? OnConnectionStateChanged;
     bool IsConnected { get; }
     Task InitializeAsync();
     Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class;

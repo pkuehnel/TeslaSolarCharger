@@ -92,7 +92,7 @@ else
         {
             return;
         }
-
+        await SignalRStateService.InitializeAsync();
         await SignalRStateService.Subscribe<DtoChargingConnectorOverviewState>(
             DataTypeConstants.ChargingConnectorOverviewState,
             async void (state) =>

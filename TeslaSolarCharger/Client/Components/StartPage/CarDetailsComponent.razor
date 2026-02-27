@@ -185,6 +185,7 @@ else
         {
             return;
         }
+        await SignalRStateService.InitializeAsync();
         await SignalRStateService.Subscribe<DtoCarOverviewState>(
             DataTypeConstants.CarOverviewState,
             async void (state) =>
