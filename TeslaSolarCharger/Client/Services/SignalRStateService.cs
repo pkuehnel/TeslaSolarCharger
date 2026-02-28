@@ -111,7 +111,10 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class
     {
-        await InitializeAsync();
+        if (!IsConnected)
+        {
+            await InitializeAsync();
+        }
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(GetStateAsync), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
@@ -166,7 +169,10 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         {
             if (_subscribers.TryGetValue(key, out var list))
             {
-                list.Remove(wrappedCallback);
+                lock (list)
+                {
+                    list.Remove(wrappedCallback);
+                }
             }
         });
     }
@@ -196,7 +202,10 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         {
             if (_triggerSubscribers.TryGetValue(key, out var list))
             {
-                list.Remove(callback);
+                lock (list)
+                {
+                    list.Remove(callback);
+                }
             }
         });
     }
