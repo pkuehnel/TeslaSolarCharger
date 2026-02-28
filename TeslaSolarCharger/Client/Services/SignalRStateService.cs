@@ -187,20 +187,14 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         _logger.LogTrace("{method}({dataType}, callback, {entityId})", nameof(SubscribeToTrigger), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
-        // Add the callback
-        _triggerSubscribers.AddOrUpdate(key,
-            _ => new List<Action> { callback },
-            (_, list) =>
-            {
-                list.Add(callback);
-                return list;
-            });
+        var subscribersList = _triggerSubscribers.GetOrAdd(key, _ => new List<Action>());
+        lock (subscribersList)
+        {
+            subscribersList.Add(callback);
+        }
 
         // Subscribe to the data type if not already subscribed
         await EnsureSubscribedToDataType(dataType);
-
-        // For triggers, we might want to invoke immediately if we've seen this trigger before
-        // This depends on your business logic - you might not want this behavior for triggers
 
         return new SubscriptionDisposable(() =>
         {
@@ -397,9 +391,16 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void NotifySubscribers(string key, object state)
     {
-        if (_subscribers.TryGetValue(key, out var callbacks))
+        if (_subscribers.TryGetValue(key, out var list))
         {
-            foreach (var callback in callbacks.ToList()) // ToList to avoid modification during enumeration
+            List<Action<object>> callbacksToInvoke;
+
+            lock (list)
+            {
+                callbacksToInvoke = list.ToList();
+            }
+
+            foreach (var callback in callbacksToInvoke)
             {
                 try
                 {
@@ -415,9 +416,16 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void NotifyTriggerSubscribers(string key)
     {
-        if (_triggerSubscribers.TryGetValue(key, out var callbacks))
+        if (_triggerSubscribers.TryGetValue(key, out var list))
         {
-            foreach (var callback in callbacks.ToList()) // ToList to avoid modification during enumeration
+            List<Action> callbacksToInvoke;
+
+            lock (list)
+            {
+                callbacksToInvoke = list.ToList();
+            }
+
+            foreach (var callback in callbacksToInvoke)
             {
                 try
                 {
