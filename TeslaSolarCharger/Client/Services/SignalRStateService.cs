@@ -21,6 +21,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly ConcurrentDictionary<string, bool> _subscribedDataTypes = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
+    private Task? _connectionTask;
 
     public event Action? OnConnectionStateChanged;
 
@@ -37,6 +38,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
+        Task? taskToAwait;
+
         await _connectionLock.WaitAsync();
         try
         {
@@ -61,7 +64,6 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 _hubConnection.Reconnected += async (connectionId) =>
                 {
                     _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
-
                     await ResubscribeToAllDataTypes();
                     await RefreshAllStates();
                     OnConnectionStateChanged?.Invoke();
@@ -76,17 +78,46 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             }
 
             // 2. Start the connection ONLY if it is completely disconnected.
-            // If it is Connecting or Reconnecting, we let SignalR handle its own process.
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                await _hubConnection.StartAsync();
-                _logger.LogInformation("SignalR connection established");
-                OnConnectionStateChanged?.Invoke();
+                // Assign the running task to our tracking variable
+                _connectionTask = StartConnectionInternalAsync();
             }
+
+            // 3. Capture the task locally so we can await it outside the lock
+            taskToAwait = _connectionTask;
         }
         finally
         {
             _connectionLock.Release();
+        }
+
+        // 4. Await the connection process if it is currently in flight
+        if (taskToAwait != null)
+        {
+            await taskToAwait;
+        }
+
+        // 5. Throw a clear error if the connection is Reconnecting or failed, 
+        // satisfying the requirement that it only returns when fully usable.
+        if (_hubConnection?.State != HubConnectionState.Connected)
+        {
+            throw new InvalidOperationException($"SignalR is not usable. Current state: {_hubConnection?.State}");
+        }
+    }
+
+    private async Task StartConnectionInternalAsync()
+    {
+        try
+        {
+            await _hubConnection!.StartAsync();
+            _logger.LogInformation("SignalR connection established");
+            OnConnectionStateChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to establish SignalR connection.");
+            throw;
         }
     }
 
