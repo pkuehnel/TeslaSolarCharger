@@ -38,12 +38,16 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
-        Task? taskToAwait;
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            return;
+        }
+
+        Task? taskToAwait = null;
 
         await _connectionLock.WaitAsync();
         try
         {
-            // 1. Create the hub connection object if it doesn't exist yet
             if (_hubConnection == null)
             {
                 _hubConnection = new HubConnectionBuilder()
@@ -77,14 +81,14 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 };
             }
 
-            // 2. Start the connection ONLY if it is completely disconnected.
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                // Assign the running task to our tracking variable
-                _connectionTask = StartConnectionInternalAsync();
+                if (_connectionTask == null || _connectionTask.IsFaulted || _connectionTask.IsCanceled)
+                {
+                    _connectionTask = StartConnectionInternalAsync();
+                }
             }
 
-            // 3. Capture the task locally so we can await it outside the lock
             taskToAwait = _connectionTask;
         }
         finally
@@ -92,14 +96,11 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             _connectionLock.Release();
         }
 
-        // 4. Await the connection process if it is currently in flight
         if (taskToAwait != null)
         {
             await taskToAwait;
         }
 
-        // 5. Throw a clear error if the connection is Reconnecting or failed, 
-        // satisfying the requirement that it only returns when fully usable.
         if (_hubConnection?.State != HubConnectionState.Connected)
         {
             throw new InvalidOperationException($"SignalR is not usable. Current state: {_hubConnection?.State}");
