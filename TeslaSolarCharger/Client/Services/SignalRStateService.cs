@@ -21,7 +21,6 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly ConcurrentDictionary<string, bool> _subscribedDataTypes = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
-    private Task? _connectionTask;
 
     public event Action? OnConnectionStateChanged;
 
@@ -38,12 +37,24 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
-        Task? taskToAwait;
+        // 1. Fast path (Lock-free): If already connected, skip the lock entirely
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            return;
+        }
 
+        // Enter the lock so only ONE thread can perform the initialization
         await _connectionLock.WaitAsync();
         try
         {
-            // 1. Create the hub connection object if it doesn't exist yet
+            // 2. Double-check inside the lock: Another thread might have connected 
+            // while this thread was waiting for the lock
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                return;
+            }
+
+            // 3. Create the hub connection object if it doesn't exist yet
             if (_hubConnection == null)
             {
                 _hubConnection = new HubConnectionBuilder()
@@ -77,29 +88,20 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 };
             }
 
-            // 2. Start the connection ONLY if it is completely disconnected.
+            // 4. Start the connection while STILL INSIDE the lock. 
+            // This forces other threads to wait nicely until the connection is fully established.
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                // Assign the running task to our tracking variable
-                _connectionTask = StartConnectionInternalAsync();
+                await StartConnectionInternalAsync();
             }
-
-            // 3. Capture the task locally so we can await it outside the lock
-            taskToAwait = _connectionTask;
         }
         finally
         {
+            // 5. Release the lock only when the connection task has fully completed
             _connectionLock.Release();
         }
 
-        // 4. Await the connection process if it is currently in flight
-        if (taskToAwait != null)
-        {
-            await taskToAwait;
-        }
-
-        // 5. Throw a clear error if the connection is Reconnecting or failed, 
-        // satisfying the requirement that it only returns when fully usable.
+        // 6. Final validation
         if (_hubConnection?.State != HubConnectionState.Connected)
         {
             throw new InvalidOperationException($"SignalR is not usable. Current state: {_hubConnection?.State}");
