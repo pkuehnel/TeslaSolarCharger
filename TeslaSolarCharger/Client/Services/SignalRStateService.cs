@@ -21,6 +21,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly ConcurrentDictionary<string, bool> _subscribedDataTypes = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
+    private const int ConnectionRetryIntervallMilliseconds = 5000;
 
     public event Action? OnConnectionStateChanged;
 
@@ -59,7 +60,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             {
                 _hubConnection = new HubConnectionBuilder()
                     .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
-                    .WithAutomaticReconnect(new InfiniteRetryPolicy(5))
+                    .WithAutomaticReconnect(new InfiniteRetryPolicy(ConnectionRetryIntervallMilliseconds))
                     .Build();
 
                 _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
@@ -110,16 +111,22 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private async Task StartConnectionInternalAsync()
     {
-        try
+        // Loop until connected or disposed
+        while (_hubConnection!.State == HubConnectionState.Disconnected)
         {
-            await _hubConnection!.StartAsync();
-            _logger.LogInformation("SignalR connection established");
-            OnConnectionStateChanged?.Invoke();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to establish SignalR connection.");
-            throw;
+            try
+            {
+                await _hubConnection.StartAsync();
+                _logger.LogInformation("SignalR connection established");
+                OnConnectionStateChanged?.Invoke();
+                return; // Success, exit the loop
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to establish initial SignalR connection. Retrying in 5 seconds...");
+                // Wait a bit before trying again so we don't spam the network
+                await Task.Delay(5000);
+            }
         }
     }
 
@@ -319,7 +326,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         else
         {
             _logger.LogWarning("Cannot subscribe to {DataType} - SignalR connection not established", dataType);
-            throw new Exception($"Could not subscribe to {dataType} as hub connection is not established");
+            // Don't throw. The local dictionary (_subscribedDataTypes) already recorded the intent.
+            // ResubscribeToAllDataTypes() will handle this when the connection comes back.
         }
     }
 
@@ -486,9 +494,9 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     {
         private readonly TimeSpan _retryDelay;
 
-        public InfiniteRetryPolicy(int delayInSeconds)
+        public InfiniteRetryPolicy(int delayInMilliSeconds)
         {
-            _retryDelay = TimeSpan.FromSeconds(delayInSeconds);
+            _retryDelay = TimeSpan.FromMilliseconds(delayInMilliSeconds);
         }
 
         public TimeSpan? NextRetryDelay(RetryContext retryContext)
