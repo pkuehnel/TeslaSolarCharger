@@ -40,45 +40,49 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         await _connectionLock.WaitAsync();
         try
         {
-            if (_hubConnection != null)
+            // 1. Create the hub connection object if it doesn't exist yet
+            if (_hubConnection == null)
             {
-                return;
+                _hubConnection = new HubConnectionBuilder()
+                    .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
+                    .WithAutomaticReconnect(new InfiniteRetryPolicy(5))
+                    .Build();
+
+                _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
+                _hubConnection.On<string, string>(nameof(IAppStateClient.ReceiveInitialState), HandleInitialState);
+
+                _hubConnection.Reconnecting += (error) =>
+                {
+                    _logger.LogWarning(error, "SignalR connection lost, reconnecting...");
+                    OnConnectionStateChanged?.Invoke();
+                    return Task.CompletedTask;
+                };
+
+                _hubConnection.Reconnected += async (connectionId) =>
+                {
+                    _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
+
+                    await ResubscribeToAllDataTypes();
+                    await RefreshAllStates();
+                    OnConnectionStateChanged?.Invoke();
+                };
+
+                _hubConnection.Closed += (error) =>
+                {
+                    _logger.LogWarning(error, "SignalR connection closed");
+                    OnConnectionStateChanged?.Invoke();
+                    return Task.CompletedTask;
+                };
             }
 
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
-                .WithAutomaticReconnect(new InfiniteRetryPolicy(5))
-                .Build();
-
-            _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
-            _hubConnection.On<string, string>(nameof(IAppStateClient.ReceiveInitialState), HandleInitialState);
-
-            _hubConnection.Reconnecting += (error) =>
+            // 2. Start the connection ONLY if it is completely disconnected.
+            // If it is Connecting or Reconnecting, we let SignalR handle its own process.
+            if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                _logger.LogWarning(error, "SignalR connection lost, reconnecting...");
+                await _hubConnection.StartAsync();
+                _logger.LogInformation("SignalR connection established");
                 OnConnectionStateChanged?.Invoke();
-                return Task.CompletedTask;
-            };
-
-            _hubConnection.Reconnected += async (connectionId) =>
-            {
-                _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
-
-                await ResubscribeToAllDataTypes();
-                await RefreshAllStates();
-                OnConnectionStateChanged?.Invoke();
-            };
-
-            _hubConnection.Closed += (error) =>
-            {
-                _logger.LogWarning(error, "SignalR connection closed");
-                OnConnectionStateChanged?.Invoke();
-                return Task.CompletedTask;
-            };
-
-            await _hubConnection.StartAsync();
-            _logger.LogInformation("SignalR connection established");
-            OnConnectionStateChanged?.Invoke();
+            }
         }
         finally
         {
