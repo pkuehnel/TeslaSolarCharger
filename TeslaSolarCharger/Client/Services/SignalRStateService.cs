@@ -22,6 +22,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
     private const int ConnectionRetryIntervallMilliseconds = 5000;
+    private bool _isRetryingInitialConnection = false;
 
     public event Action? OnConnectionStateChanged;
 
@@ -38,24 +39,22 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
-        // 1. Fast path (Lock-free): If already connected, skip the lock entirely
+        // 1. Fast path (Lock-free)
         if (_hubConnection?.State == HubConnectionState.Connected)
         {
             return;
         }
 
-        // Enter the lock so only ONE thread can perform the initialization
         await _connectionLock.WaitAsync();
         try
         {
-            // 2. Double-check inside the lock: Another thread might have connected 
-            // while this thread was waiting for the lock
+            // 2. Double-check inside the lock
             if (_hubConnection?.State == HubConnectionState.Connected)
             {
                 return;
             }
 
-            // 3. Create the hub connection object if it doesn't exist yet
+            // 3. Create the hub connection object
             if (_hubConnection == null)
             {
                 _hubConnection = new HubConnectionBuilder()
@@ -89,8 +88,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 };
             }
 
-            // 4. Start the connection while STILL INSIDE the lock. 
-            // This forces other threads to wait nicely until the connection is fully established.
+            // 4. Try to start the connection ONCE inside the lock
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
                 await StartConnectionInternalAsync();
@@ -98,35 +96,74 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
         finally
         {
-            // 5. Release the lock only when the connection task has fully completed
+            // 5. Release the lock immediately, whether connected or not!
             _connectionLock.Release();
-        }
-
-        // 6. Final validation
-        if (_hubConnection?.State != HubConnectionState.Connected)
-        {
-            throw new InvalidOperationException($"SignalR is not usable. Current state: {_hubConnection?.State}");
         }
     }
 
     private async Task StartConnectionInternalAsync()
     {
-        // Loop until connected or disposed
-        while (_hubConnection!.State == HubConnectionState.Disconnected)
+        try
         {
-            try
+            // Try exactly once
+            await _hubConnection!.StartAsync();
+            _logger.LogInformation("SignalR connection established");
+            OnConnectionStateChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to establish initial SignalR connection. Starting background retry...");
+
+            // Fire-and-forget the retry task. Notice the discard (_) 
+            // We do NOT await this, so the lock in InitializeAsync is released immediately.
+            _ = StartBackgroundRetryAsync();
+        }
+    }
+
+    private async Task StartBackgroundRetryAsync()
+    {
+        // Prevent multiple background loops if components aggressively call InitializeAsync
+        if (_isRetryingInitialConnection) return;
+        _isRetryingInitialConnection = true;
+
+        try
+        {
+            while (_hubConnection?.State == HubConnectionState.Disconnected)
             {
-                await _hubConnection.StartAsync();
-                _logger.LogInformation("SignalR connection established");
-                OnConnectionStateChanged?.Invoke();
-                return; // Success, exit the loop
+                await Task.Delay(ConnectionRetryIntervallMilliseconds);
+
+                // We use the lock here to prevent race conditions if a component 
+                // manually triggers InitializeAsync at the exact same time
+                await _connectionLock.WaitAsync();
+                try
+                {
+                    if (_hubConnection.State == HubConnectionState.Disconnected)
+                    {
+                        await _hubConnection.StartAsync();
+                        _logger.LogInformation("SignalR background connection established");
+
+                        // Because we connected late, we need to push data to components 
+                        // that rendered while we were offline
+                        await ResubscribeToAllDataTypes();
+                        await RefreshAllStates();
+                        OnConnectionStateChanged?.Invoke();
+
+                        break; // Success! Exit the infinite loop.
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogTrace(ex, "Background connection retry failed. Will try again.");
+                }
+                finally
+                {
+                    _connectionLock.Release();
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to establish initial SignalR connection. Retrying in 5 seconds...");
-                // Wait a bit before trying again so we don't spam the network
-                await Task.Delay(5000);
-            }
+        }
+        finally
+        {
+            _isRetryingInitialConnection = false;
         }
     }
 
