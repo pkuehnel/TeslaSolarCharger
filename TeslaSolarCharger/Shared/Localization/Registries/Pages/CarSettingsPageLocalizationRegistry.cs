@@ -23,12 +23,12 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, " und generiere ein Tesla Fleet API Token."));
 
         Register(TranslationKeys.CarSettingsRestartTscTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Restart TSC"),
-            new TextLocalizationTranslation(LanguageCodes.German, "TSC neu starten"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Restart TSC to add new Teslas"),
+            new TextLocalizationTranslation(LanguageCodes.German, "TSC neu starten um neue Teslas hinzuzufügen"));
 
         Register(TranslationKeys.CarSettingsRestartTscHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "The Fleet API token has been updated. Please restart the TSC container to apply the changes."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Das Fleet-API-Token wurde aktualisiert. Bitte starten Sie den TSC-Container neu, um die Änderungen zu übernehmen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Restart TSC to add new Teslas. To add any other car use the button below."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Um neue Teslas hinzuzufügen, TSC neu starten. Um ein anderes Fahrzeug hinzuzufügen, nachfolgenden Button benutzten."));
 
         Register(TranslationKeys.CarSettingsAddNonTeslaButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add non Tesla"),
