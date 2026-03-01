@@ -22,7 +22,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
     private const int ConnectionRetryIntervallMilliseconds = 5000;
-    private bool _isRetryingInitialConnection = false;
+    private readonly Lock _isRetryingBlockObject = new Lock();
+    private bool _isRetryingInitialConnection;
 
     public event Action? OnConnectionStateChanged;
 
@@ -123,8 +124,15 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private async Task StartBackgroundRetryAsync()
     {
         // Prevent multiple background loops if components aggressively call InitializeAsync
-        if (_isRetryingInitialConnection) return;
-        _isRetryingInitialConnection = true;
+        lock (_isRetryingBlockObject)
+        {
+            if (_isRetryingInitialConnection)
+            {
+                return;
+            }
+            _isRetryingInitialConnection = true;
+        }
+        
 
         try
         {
@@ -163,7 +171,10 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
         finally
         {
-            _isRetryingInitialConnection = false;
+            lock (_isRetryingBlockObject)
+            {
+                _isRetryingInitialConnection = false;
+            }
         }
     }
 
