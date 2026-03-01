@@ -76,12 +76,15 @@ else
 
     protected override void OnInitialized()
     {
+        Logger.LogTrace("{method}()", nameof(OnInitialized));
+        base.OnInitialized();
         _periodicTaskHelper = new();
         _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromSeconds(15));
     }
 
     private async Task RefreshErrors()
     {
+        Logger.LogTrace("{method}()", nameof(RefreshErrors));
         var result = await HttpClientHelper.SendGetRequestAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors");
         if (result.HasError)
         {
@@ -90,6 +93,7 @@ else
             return;
         }
         _errors = result.Data;
+        Logger.LogTrace("Errors == default: {isDefault}", _errors == default);
         await InvokeAsync(StateHasChanged);
     }
 

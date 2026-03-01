@@ -33,5 +33,17 @@ public class HomePageLocalizationRegistry : TextLocalizationRegistry<HomePageLoc
         Register(TranslationKeys.HomePagePaypalAltText,
             new TextLocalizationTranslation(LanguageCodes.English, "Donate with PayPal button"),
             new TextLocalizationTranslation(LanguageCodes.German, "Spenden mit PayPal-Button"));
+
+        Register(TranslationKeys.SignalRReconnecting,
+            new TextLocalizationTranslation(LanguageCodes.English, "Not connected. The system is automatically trying to reconnect..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Keine Verbindung. Das System versucht automatisch die Verbindung wiederherzustellen..."));
+
+        Register(TranslationKeys.SignalRReconnectionDelayHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Possible causes: poor WiFi connection, or device is outside of home network and cannot reconnect."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mögliche Ursachen: schwache WLAN-Verbindung oder das Gerät befindet sich außerhalb des Heimnetzwerks und kann keine Verbindung herstellen."));
+
+        Register(TranslationKeys.SignalRConnected,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connection established."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung wiederhergestellt."));
     }
 }

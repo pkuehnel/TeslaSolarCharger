@@ -8,6 +8,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @using TeslaSolarCharger.Shared.SignalRClients
+@implements IDisposable
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
@@ -20,11 +21,12 @@
 <MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
 
 <BackendInformationDisplayComponent></BackendInformationDisplayComponent>
+<SignalRConnectionStateComponent />
 <LoggedErrorsComponent></LoggedErrorsComponent>
 
 <PowerFlowComponent></PowerFlowComponent>
 <PowerBufferComponent></PowerBufferComponent>
-@if (_showEnergyData)
+@if (_showEnergyData != false)
 {
     <EnergyPredictionComponent></EnergyPredictionComponent>
 }
@@ -72,23 +74,21 @@ else
 </form>
 
 @code {
-    private bool _showEnergyData;
+    private bool? _showEnergyData;
     private List<DtoLoadPointOverview>? _loadPoints;
+    private IDisposable? _subscription;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
 
-        await SignalRStateService.InitializeAsync();
-        await SignalRStateService.SubscribeToTrigger(
+        _subscription = await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.LoadPointMatchesChangeTrigger,
             async void () =>
             {
                 try
                 {
                     await RefreshLoadPoints();
-                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -97,6 +97,8 @@ else
             });
 
         await RefreshLoadPoints();
+        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RefreshLoadPoints()
@@ -104,9 +106,15 @@ else
         Logger.LogTrace("{method}()", nameof(RefreshLoadPoints));
         _loadPoints = null;
         _loadPoints = await HomeService.GetLoadPointsToManage();
+        await InvokeAsync(StateHasChanged);
     }
 
     private string T(string key) =>
         TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }
