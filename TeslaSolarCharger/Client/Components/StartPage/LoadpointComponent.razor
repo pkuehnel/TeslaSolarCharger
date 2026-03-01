@@ -7,6 +7,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using TeslaSolarCharger.Shared.SignalRClients
+@implements IDisposable
 
 @inject ILogger<LoadpointComponent> Logger
 @inject IHomeService HomeService
@@ -60,44 +61,53 @@
     [Parameter]
     public DtoLoadPointOverview LoadPoint { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    private IDisposable? _subscription;
+    private string? _lastSubscribedKey;
+
+    protected override async Task OnParametersSetAsync()
     {
-        await base.OnInitializedAsync();
-        await SignalRStateService.InitializeAsync();
+        await base.OnParametersSetAsync();
         var entityKey = EntityKeyGenerationHelper.GetLoadPointEntityKey(LoadPoint.CarId, LoadPoint.ChargingConnectorId);
-        Logger.LogTrace("Generated entity key: {entityKey}", entityKey);
 
-        // Subscribe to updates
-        await SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
-            DataTypeConstants.LoadPointOverviewValues,
-            async void (loadpointValues) =>
-            {
-                try
-                {
-                    Logger.LogTrace("Received new LoadpointOverviewValues: {@values})", loadpointValues);
-                    LoadPoint.ChargingPower = loadpointValues.ChargingPower;
-                    LoadPoint.ActualCurrent = loadpointValues.ChargingCurrent;
-                    LoadPoint.ActualPhases = loadpointValues.ChargingPhases;
-                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Failed to update loadpoint values");
-                }
-            },
-            entityKey
-        );
-
-        // Get initial state
-        var initialValues = await SignalRStateService.GetStateAsync<DtoLoadPointWithCurrentChargingValues>(
-            DataTypeConstants.LoadPointOverviewValues,
-            entityKey);
-
-        if (initialValues != null)
+        if (entityKey != _lastSubscribedKey)
         {
-            LoadPoint.ChargingPower = initialValues.ChargingPower;
-            LoadPoint.ActualCurrent = initialValues.ChargingCurrent;
-            LoadPoint.ActualPhases = initialValues.ChargingPhases;
+            _subscription?.Dispose();
+            _lastSubscribedKey = entityKey;
+
+            Logger.LogTrace("Generated entity key: {entityKey}", entityKey);
+
+            // Subscribe to updates
+            _subscription = await SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
+                DataTypeConstants.LoadPointOverviewValues,
+                async void (loadpointValues) =>
+                {
+                    try
+                    {
+                        Logger.LogTrace("Received new LoadpointOverviewValues: {@values}", loadpointValues);
+                        LoadPoint.ChargingPower = loadpointValues.ChargingPower;
+                        LoadPoint.ActualCurrent = loadpointValues.ChargingCurrent;
+                        LoadPoint.ActualPhases = loadpointValues.ChargingPhases;
+                        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError(e, "Failed to update loadpoint values");
+                    }
+                },
+                entityKey
+            );
+
+            // Get initial state
+            var initialValues = await SignalRStateService.GetStateAsync<DtoLoadPointWithCurrentChargingValues>(
+                DataTypeConstants.LoadPointOverviewValues,
+                entityKey);
+
+            if (initialValues != null)
+            {
+                LoadPoint.ChargingPower = initialValues.ChargingPower;
+                LoadPoint.ActualCurrent = initialValues.ChargingCurrent;
+                LoadPoint.ActualPhases = initialValues.ChargingPhases;
+            }
         }
     }
 
@@ -113,4 +123,9 @@
 
     private string Format(string key, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }

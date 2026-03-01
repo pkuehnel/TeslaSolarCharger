@@ -21,6 +21,9 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly ConcurrentDictionary<string, bool> _subscribedDataTypes = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
+    private const int ConnectionRetryIntervallMilliseconds = 5000;
+    private readonly Lock _isRetryingBlockObject = new Lock();
+    private bool _isRetryingInitialConnection;
 
     public event Action? OnConnectionStateChanged;
 
@@ -37,52 +40,141 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
+        // 1. Fast path (Lock-free)
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            return;
+        }
+
         await _connectionLock.WaitAsync();
         try
         {
-            if (_hubConnection != null)
+            // 2. Double-check inside the lock
+            if (_hubConnection?.State == HubConnectionState.Connected)
             {
                 return;
             }
 
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
-                .WithAutomaticReconnect(new InfiniteRetryPolicy(5))
-                .Build();
-
-            _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
-            _hubConnection.On<string, string>(nameof(IAppStateClient.ReceiveInitialState), HandleInitialState);
-
-            _hubConnection.Reconnecting += (error) =>
+            // 3. Create the hub connection object
+            if (_hubConnection == null)
             {
-                _logger.LogWarning(error, "SignalR connection lost, reconnecting...");
-                OnConnectionStateChanged?.Invoke();
-                return Task.CompletedTask;
-            };
+                _hubConnection = new HubConnectionBuilder()
+                    .WithUrl(_navigationManager.ToAbsoluteUri("/appStateHub"))
+                    .WithAutomaticReconnect(new InfiniteRetryPolicy(ConnectionRetryIntervallMilliseconds))
+                    .Build();
 
-            _hubConnection.Reconnected += async (connectionId) =>
+                _hubConnection.On<StateUpdateDto>(nameof(IAppStateClient.ReceiveStateUpdate), HandleStateUpdate);
+                _hubConnection.On<string, string>(nameof(IAppStateClient.ReceiveInitialState), HandleInitialState);
+
+                _hubConnection.Reconnecting += (error) =>
+                {
+                    _logger.LogWarning(error, "SignalR connection lost, reconnecting...");
+                    OnConnectionStateChanged?.Invoke();
+                    return Task.CompletedTask;
+                };
+
+                _hubConnection.Reconnected += async (connectionId) =>
+                {
+                    _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
+                    await ResubscribeToAllDataTypes();
+                    await RefreshAllStates();
+                    OnConnectionStateChanged?.Invoke();
+                };
+
+                _hubConnection.Closed += (error) =>
+                {
+                    _logger.LogWarning(error, "SignalR connection closed");
+                    OnConnectionStateChanged?.Invoke();
+                    return Task.CompletedTask;
+                };
+            }
+
+            // 4. Try to start the connection ONCE inside the lock
+            if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
-
-                await ResubscribeToAllDataTypes();
-                await RefreshAllStates();
-                OnConnectionStateChanged?.Invoke();
-            };
-
-            _hubConnection.Closed += (error) =>
-            {
-                _logger.LogWarning(error, "SignalR connection closed");
-                OnConnectionStateChanged?.Invoke();
-                return Task.CompletedTask;
-            };
-
-            await _hubConnection.StartAsync();
-            _logger.LogInformation("SignalR connection established");
-            OnConnectionStateChanged?.Invoke();
+                await StartConnectionInternalAsync();
+            }
         }
         finally
         {
+            // 5. Release the lock immediately, whether connected or not!
             _connectionLock.Release();
+        }
+    }
+
+    private async Task StartConnectionInternalAsync()
+    {
+        try
+        {
+            // Try exactly once
+            await _hubConnection!.StartAsync();
+            _logger.LogInformation("SignalR connection established");
+            OnConnectionStateChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to establish initial SignalR connection. Starting background retry...");
+
+            // Fire-and-forget the retry task. Notice the discard (_) 
+            // We do NOT await this, so the lock in InitializeAsync is released immediately.
+            _ = StartBackgroundRetryAsync();
+        }
+    }
+
+    private async Task StartBackgroundRetryAsync()
+    {
+        // Prevent multiple background loops if components aggressively call InitializeAsync
+        lock (_isRetryingBlockObject)
+        {
+            if (_isRetryingInitialConnection)
+            {
+                return;
+            }
+            _isRetryingInitialConnection = true;
+        }
+        
+
+        try
+        {
+            while (_hubConnection?.State == HubConnectionState.Disconnected)
+            {
+                await Task.Delay(ConnectionRetryIntervallMilliseconds);
+
+                // We use the lock here to prevent race conditions if a component 
+                // manually triggers InitializeAsync at the exact same time
+                await _connectionLock.WaitAsync();
+                try
+                {
+                    if (_hubConnection.State == HubConnectionState.Disconnected)
+                    {
+                        await _hubConnection.StartAsync();
+                        _logger.LogInformation("SignalR background connection established");
+
+                        // Because we connected late, we need to push data to components 
+                        // that rendered while we were offline
+                        await ResubscribeToAllDataTypes();
+                        await RefreshAllStates();
+                        OnConnectionStateChanged?.Invoke();
+
+                        break; // Success! Exit the infinite loop.
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogTrace(ex, "Background connection retry failed. Will try again.");
+                }
+                finally
+                {
+                    _connectionLock.Release();
+                }
+            }
+        }
+        finally
+        {
+            lock (_isRetryingBlockObject)
+            {
+                _isRetryingInitialConnection = false;
+            }
         }
     }
 
@@ -111,6 +203,10 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class
     {
+        if (!IsConnected)
+        {
+            await InitializeAsync();
+        }
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(GetStateAsync), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
@@ -130,18 +226,20 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         return default;
     }
 
-    public async Task Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
+    public async Task<IDisposable> Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
+        await InitializeAsync();
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(Subscribe), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
+
+        Action<object> wrappedCallback = obj => { if (obj is T typedObj) callback(typedObj); };
+
         // Add the callback
-        _subscribers.AddOrUpdate(key,
-            _ => new List<Action<object>> { obj => { if (obj is T typedObj) callback(typedObj); } },
-            (_, list) =>
-            {
-                list.Add(obj => { if (obj is T typedObj) callback(typedObj); });
-                return list;
-            });
+        var subscribersList = _subscribers.GetOrAdd(key, _ => new List<Action<object>>());
+        lock (subscribersList)
+        {
+            subscribersList.Add(wrappedCallback);
+        }
 
         // Subscribe to the data type if not already subscribed
         await EnsureSubscribedToDataType(dataType);
@@ -158,27 +256,44 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 _logger.LogError(ex, "Error invoking initial callback for {Key}", key);
             }
         }
+
+        return new SubscriptionDisposable(() =>
+        {
+            if (_subscribers.TryGetValue(key, out var list))
+            {
+                lock (list)
+                {
+                    list.Remove(wrappedCallback);
+                }
+            }
+        });
     }
 
-    public async Task SubscribeToTrigger(string dataType, Action callback, string entityId = "")
+    public async Task<IDisposable> SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
+        await InitializeAsync();
         _logger.LogTrace("{method}({dataType}, callback, {entityId})", nameof(SubscribeToTrigger), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
-        // Add the callback
-        _triggerSubscribers.AddOrUpdate(key,
-            _ => new List<Action> { callback },
-            (_, list) =>
-            {
-                list.Add(callback);
-                return list;
-            });
+        var subscribersList = _triggerSubscribers.GetOrAdd(key, _ => new List<Action>());
+        lock (subscribersList)
+        {
+            subscribersList.Add(callback);
+        }
 
         // Subscribe to the data type if not already subscribed
         await EnsureSubscribedToDataType(dataType);
 
-        // For triggers, we might want to invoke immediately if we've seen this trigger before
-        // This depends on your business logic - you might not want this behavior for triggers
+        return new SubscriptionDisposable(() =>
+        {
+            if (_triggerSubscribers.TryGetValue(key, out var list))
+            {
+                lock (list)
+                {
+                    list.Remove(callback);
+                }
+            }
+        });
     }
 
     private async Task EnsureSubscribedToDataType(string dataType)
@@ -259,7 +374,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         else
         {
             _logger.LogWarning("Cannot subscribe to {DataType} - SignalR connection not established", dataType);
-            throw new Exception($"Could not subscribe to {dataType} as hub connection is not established");
+            // Don't throw. The local dictionary (_subscribedDataTypes) already recorded the intent.
+            // ResubscribeToAllDataTypes() will handle this when the connection comes back.
         }
     }
 
@@ -364,9 +480,16 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void NotifySubscribers(string key, object state)
     {
-        if (_subscribers.TryGetValue(key, out var callbacks))
+        if (_subscribers.TryGetValue(key, out var list))
         {
-            foreach (var callback in callbacks.ToList()) // ToList to avoid modification during enumeration
+            List<Action<object>> callbacksToInvoke;
+
+            lock (list)
+            {
+                callbacksToInvoke = list.ToList();
+            }
+
+            foreach (var callback in callbacksToInvoke)
             {
                 try
                 {
@@ -382,9 +505,16 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void NotifyTriggerSubscribers(string key)
     {
-        if (_triggerSubscribers.TryGetValue(key, out var callbacks))
+        if (_triggerSubscribers.TryGetValue(key, out var list))
         {
-            foreach (var callback in callbacks.ToList()) // ToList to avoid modification during enumeration
+            List<Action> callbacksToInvoke;
+
+            lock (list)
+            {
+                callbacksToInvoke = list.ToList();
+            }
+
+            foreach (var callback in callbacksToInvoke)
             {
                 try
                 {
@@ -407,19 +537,21 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         _connectionLock.Dispose();
         _subscriptionLock.Dispose();
     }
-}
 
-public class InfiniteRetryPolicy : IRetryPolicy
-{
-    private readonly TimeSpan _retryDelay;
-
-    public InfiniteRetryPolicy(int delayInSeconds)
+    private class InfiniteRetryPolicy : IRetryPolicy
     {
-        _retryDelay = TimeSpan.FromSeconds(delayInSeconds);
+        private readonly TimeSpan _retryDelay;
+
+        public InfiniteRetryPolicy(int delayInMilliSeconds)
+        {
+            _retryDelay = TimeSpan.FromMilliseconds(delayInMilliSeconds);
+        }
+
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            return _retryDelay;
+        }
     }
 
-    public TimeSpan? NextRetryDelay(RetryContext retryContext)
-    {
-        return _retryDelay;
-    }
 }
+
