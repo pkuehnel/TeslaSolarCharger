@@ -26,39 +26,39 @@ else
             <!-- Grid to Solar -->
             @if (GridLocation != default && InverterLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" stroke="black" />
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
             <!-- Grid to House -->
             @if (GridLocation != default && HomeLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
             <!-- Solar to House -->
             @if (InverterLocation != default && HomeLocation != default)
             {
-                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
+                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
 
             <!-- Solar to Home Battery -->
             @if (InverterLocation != default && BatteryLocation != default)
             {
-                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
             <!-- Home Battery to House -->
             @if (HomeLocation != default && BatteryLocation != default)
             {
-                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
             <!-- Grid to Home Battery -->
             @if (GridLocation != default && BatteryLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
 
             <!-- Home to Charger -->
             @if (HomeLocation != default && EvChargerLocation != default)
             {
-                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="var(--mud-palette-text-primary)" />
             }
 
             @if (HomeLocation == default)
@@ -66,17 +66,17 @@ else
                 <!-- Grid to EvCharger -->
                 @if (GridLocation != default && EvChargerLocation != default)
                 {
-                    <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                    <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="var(--mud-palette-text-primary)" />
                 }
                 <!-- Solar to EVCharger -->
                 @if (InverterLocation != default && EvChargerLocation != default)
                 {
-                    <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                    <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="var(--mud-palette-text-primary)" />
                 }
                 <!-- Home Battery to EVCharger -->
                 @if (EvChargerLocation != default && BatteryLocation != default)
                 {
-                    <line x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+                    <line x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="var(--mud-palette-text-primary)" />
                 }
             }
 
@@ -95,35 +95,35 @@ else
             @if (GridLocation != default)
             {
                 <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
-                        fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
+                        fill="@(_pvValues.GridPower == 0 ? "var(--mud-palette-background)" : (_pvValues.GridPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
                         stroke="@Constants.GridColor" stroke-width="4" />
             }
             <!-- Solar -->
             @if (InverterLocation != default)
             {
                 <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
-                        fill="@(_pvValues.InverterPower == 0 ? "white" : Constants.SolarPowerColor)"
+                        fill="@(_pvValues.InverterPower == 0 ? "var(--mud-palette-background)" : Constants.SolarPowerColor)"
                         stroke="@Constants.SolarPowerColor" stroke-width="4" />
             }
             <!-- Home Battery -->
             @if (BatteryLocation != default)
             {
                 <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
-                        fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
+                        fill="@(_pvValues.HomeBatteryPower == 0 ? "var(--mud-palette-background)" : (_pvValues.HomeBatteryPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
                         stroke="@Constants.BatteryColor" stroke-width="4" />
             }
             <!-- House -->
             @if (HomeLocation != default)
             {
                 <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
-                        fill="@(CalculateHomePower() == 0 ? "white" : Constants.HomeConsumptionColor)"
+                        fill="@(CalculateHomePower() == 0 ? "var(--mud-palette-background)" : Constants.HomeConsumptionColor)"
                         stroke="@Constants.HomeConsumptionColor" stroke-width="4" />
             }
             <!-- EVCharger -->
             @if (EvChargerLocation != default)
             {
                 <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
-                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "white" : Constants.EvChargingColor)"
+                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "var(--mud-palette-background)" : Constants.EvChargingColor)"
                         stroke="@Constants.EvChargingColor" stroke-width="4" />
             }
 

@@ -7,7 +7,7 @@
 @inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
 
-<MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
+<MudThemeProvider @ref="@_mudThemeProvider" @bind-IsDarkMode="_isDarkMode" Theme="_tscTheme" />
 <MudPopoverProvider />
 <MudDialogProvider FullWidth="true"
                    MaxWidth="MaxWidth.Medium" />
@@ -41,9 +41,27 @@
         TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
         ?? key;
 
+    private bool _isDarkMode;
     private MudThemeProvider? _mudThemeProvider;
 
     private MudTheme? _tscTheme;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _mudThemeProvider != null)
+        {
+            _isDarkMode = await _mudThemeProvider.GetSystemPreference();
+            await _mudThemeProvider.WatchSystemPreference(OnSystemPreferenceChanged);
+            StateHasChanged();
+        }
+    }
+
+    private Task OnSystemPreferenceChanged(bool newValue)
+    {
+        _isDarkMode = newValue;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
 
     protected override void OnInitialized()
     {
@@ -54,6 +72,12 @@
                 Primary = Constants.PrimaryColor,
                 Secondary = Constants.SecondaryColor,
                 AppbarBackground = Constants.PrimaryColor, // or a const you define
+            },
+            PaletteDark = new PaletteDark
+            {
+                Primary = Constants.PrimaryColor,
+                Secondary = Constants.SecondaryColor,
+                AppbarBackground = Constants.PrimaryColor,
             },
         };
     }
