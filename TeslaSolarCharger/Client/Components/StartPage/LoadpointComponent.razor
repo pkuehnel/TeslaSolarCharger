@@ -87,7 +87,7 @@
                         LoadPoint.ChargingPower = loadpointValues.ChargingPower;
                         LoadPoint.ActualCurrent = loadpointValues.ChargingCurrent;
                         LoadPoint.ActualPhases = loadpointValues.ChargingPhases;
-                        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                        await InvokeAsync(StateHasChanged);
                     }
                     catch (Exception e)
                     {
