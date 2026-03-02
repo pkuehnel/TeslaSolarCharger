@@ -24,11 +24,11 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsRestartTscTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Restart TSC to add new Teslas"),
-            new TextLocalizationTranslation(LanguageCodes.German, "TSC neu starten um neue Teslas hinzuzufügen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "TSC neu starten, um neue Teslas hinzuzufügen"));
 
         Register(TranslationKeys.CarSettingsRestartTscHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Restart TSC to add new Teslas. To add any other car use the button below."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Um neue Teslas hinzuzufügen, TSC neu starten. Um ein anderes Fahrzeug hinzuzufügen, nachfolgenden Button benutzten."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Um neue Teslas hinzuzufügen, TSC neu starten. Um ein anderes Fahrzeug hinzuzufügen, den nachfolgenden Button benutzen."));
 
         Register(TranslationKeys.CarSettingsAddNonTeslaButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add non Tesla"),
