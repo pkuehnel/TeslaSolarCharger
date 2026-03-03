@@ -28,7 +28,8 @@ public class DebugService(ILogger<DebugService> logger,
     IConstants constants,
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
-    IServiceProvider serviceProvider) : IDebugService
+    IServiceProvider serviceProvider,
+    ITokenHelper tokenHelper) : IDebugService
 {
     public async Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors()
     {
@@ -187,6 +188,20 @@ public class DebugService(ILogger<DebugService> logger,
     {
         logger.LogTrace("{method} {capacity}", nameof(SetLogCapacity), capacity);
         inMemorySink.UpdateCapacity(capacity);
+    }
+
+    public async Task<int> ClearTeslaTokenEncryptionKeys()
+    {
+        logger.LogTrace("{method}", nameof(ClearTeslaTokenEncryptionKeys));
+        var key = constants.TeslaTokenEncryptionKeyKey;
+        var configsToRemove = await context.TscConfigurations
+            .Where(c => c.Key == key)
+            .ToListAsync().ConfigureAwait(false);
+        var count = configsToRemove.Count;
+        logger.LogInformation("Delete {count} encryption keys", count);
+        context.TscConfigurations.RemoveRange(configsToRemove);
+        await context.SaveChangesAsync().ConfigureAwait(false);
+        return count;
     }
 
     private async Task AddFilesToArchive(string sourceDir, ZipArchive archive)

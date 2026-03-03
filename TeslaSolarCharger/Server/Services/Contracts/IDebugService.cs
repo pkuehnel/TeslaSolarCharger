@@ -31,4 +31,5 @@ public interface IDebugService
     Task StreamLogsToAsync(Stream stream);
     Task<List<MeterValue>> GetLatestMeterValues();
     List<string> GetLogs(int? tail);
+    Task<int> ClearTeslaTokenEncryptionKeys();
 }
