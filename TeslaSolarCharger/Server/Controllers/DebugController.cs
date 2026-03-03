@@ -263,4 +263,11 @@ public class DebugController(
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
+
+    [HttpPost]
+    public async Task<IActionResult> ClearTeslaTokenEncryptionKeys()
+    {
+        var result = await debugService.ClearTeslaTokenEncryptionKeys();
+        return Ok(new DtoValue<int>(result));
+    }
 }

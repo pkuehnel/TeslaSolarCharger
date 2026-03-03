@@ -260,6 +260,15 @@ else
         <pre>@_gridPricesDetails</pre>
     }
 
+    <RightAlignedButtonComponent ButtonText="Clear Tesla Token Encryption Key"
+                                 IsLoading="@_loadingClearEncryptionKeys"
+                                 OnButtonClicked="ClearTeslaTokenEncryptionKeys"></RightAlignedButtonComponent>
+
+    @if (!string.IsNullOrEmpty(_clearEncryptionKeysResult))
+    {
+        <pre>@_clearEncryptionKeysResult</pre>
+    }
+
     <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportReloadPageButton)'
                                  OnButtonClicked="JavaScriptWrapper.ReloadPage"></RightAlignedButtonComponent>
 
@@ -295,6 +304,9 @@ else
 
     private bool _loadingGridPrices;
     private string? _gridPricesDetails;
+
+    private bool _loadingClearEncryptionKeys;
+    private string? _clearEncryptionKeysResult;
 
     public DateTime? ChargingPricesFrom { get; set; }
     public DateTime? ChargingPricesTo { get; set; }
@@ -611,6 +623,22 @@ else
             _gridPricesDetails = result.Data?.Value ?? T(TranslationKeys.SupportNoData);
         }
         _loadingGridPrices = false;
+    }
+
+    private async Task ClearTeslaTokenEncryptionKeys()
+    {
+        _loadingClearEncryptionKeys = true;
+        var deletedElements = await HttpClientHelper.SendPostRequestAsync<DtoValue<int>>(
+            "api/Debug/ClearTeslaTokenEncryptionKeys", null);
+        _loadingClearEncryptionKeys = false;
+        if (deletedElements.HasError)
+        {
+            _clearEncryptionKeysResult = deletedElements.ErrorMessage;
+        }
+        else
+        {
+            _clearEncryptionKeysResult = $"Cleared {deletedElements.Data?.Value.ToString()} keys";
+        }
     }
 
 }
