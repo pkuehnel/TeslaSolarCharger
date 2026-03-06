@@ -1,18 +1,19 @@
 ﻿using System.Net;
-using Quartz.Util;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TelegramService(ILogger<TelegramService> logger,
-    IConfigurationWrapper configurationWrapper)
+    IConfigurationWrapper configurationWrapper,
+    IHttpClientFactory httpClientFactory)
     : ITelegramService
 {
     public async Task<HttpStatusCode> SendMessage(string message)
     {
         logger.LogTrace("{method}({param})", nameof(SendMessage), message);
-        using var httpClient = new HttpClient();
+        var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
         var botKey = configurationWrapper.TelegramBotKey();
         var channel = configurationWrapper.TelegramChannelId();
         if (string.IsNullOrWhiteSpace(botKey))
@@ -28,8 +29,6 @@ public class TelegramService(ILogger<TelegramService> logger,
         }
 
         var requestUri = CreateRequestUri(message, botKey, channel);
-
-        httpClient.Timeout = TimeSpan.FromSeconds(1);
 
         HttpResponseMessage response;
         try

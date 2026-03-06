@@ -16,6 +16,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -32,7 +33,8 @@ public class BackendApiService(
     IPasswordGenerationService passwordGenerationService,
     ITokenHelper tokenHelper,
     IMemoryCache memoryCache,
-    ISettings settings)
+    ISettings settings,
+    IHttpClientFactory httpClientFactory)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -319,8 +321,7 @@ public class BackendApiService(
         }
         try
         {
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(20);
+            var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
             if (httpMethod == HttpMethod.Get)
             {
                 request.Method = HttpMethod.Get;

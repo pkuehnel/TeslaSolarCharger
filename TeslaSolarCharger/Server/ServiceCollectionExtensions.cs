@@ -212,13 +212,16 @@ public static class ServiceCollectionExtensions
             .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<AutoRefreshingValueHandlingService>())
             .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
 
-            .AddHttpClient()
-
-
-
-
             .AddHostedService<DatabaseValueBufferFlushService>()
             .AddSharedBackendDependencies();
+        services.AddHttpClient(StaticConstants.HttpClientNameShortTimeout, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddHttpClient(StaticConstants.HttpClientNameDefaultTimeout, client =>
+        {
+        });
+        services.AddHttpClient();
         return services;
     }
 }
