@@ -10,6 +10,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using System.Net;
 using System.Security.Claims;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,7 +20,8 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     ITscConfigurationService tscConfigurationService,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
-    IMemoryCache memoryCache) : ITokenHelper
+    IMemoryCache memoryCache,
+    IHttpClientFactory httpClientFactory) : ITokenHelper
 {
     public async Task<TokenState> GetFleetApiTokenState(bool useCache)
     {
@@ -129,8 +131,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             };
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/FleetApiTokenExpiresInSeconds";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(20);
+        var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
@@ -227,10 +228,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             return false;
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "Client/IsTokenValid";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(20);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new("Bearer", token.AccessToken);
+        var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {

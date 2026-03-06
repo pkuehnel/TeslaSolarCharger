@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Dtos.EnergyCharts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -19,16 +20,18 @@ public class SpotPriceService : ISpotPriceService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConstants _constants;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public SpotPriceService(ILogger<SpotPriceService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
         IDateTimeProvider dateTimeProvider, IConstants constants,
-        IServiceScopeFactory serviceScopeFactory)
+        IServiceScopeFactory serviceScopeFactory, IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _dateTimeProvider = dateTimeProvider;
         _constants = constants;
         _serviceScopeFactory = serviceScopeFactory;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task UpdateSpotPrices()
@@ -145,7 +148,7 @@ public class SpotPriceService : ISpotPriceService
     private async Task<DtoEnergyChartPrices?> GetEnergyChartPrices(DateTimeOffset fromDate, DateTimeOffset toDate, string regionCode)
     {
         var url = GenerateEnergyChartUrl(fromDate, toDate, regionCode);
-        using var httpClient = new HttpClient();
+        var httpClient = _httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
         httpClient.Timeout = TimeSpan.FromHours(_constants.SpotPriceRefreshIntervalHours);
         var response = await httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
