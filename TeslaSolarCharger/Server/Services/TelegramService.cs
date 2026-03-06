@@ -30,8 +30,6 @@ public class TelegramService(ILogger<TelegramService> logger,
 
         var requestUri = CreateRequestUri(message, botKey, channel);
 
-        httpClient.Timeout = TimeSpan.FromSeconds(1);
-
         HttpResponseMessage response;
         try
         {

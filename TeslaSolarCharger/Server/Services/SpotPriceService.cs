@@ -149,7 +149,6 @@ public class SpotPriceService : ISpotPriceService
     {
         var url = GenerateEnergyChartUrl(fromDate, toDate, regionCode);
         var httpClient = _httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
-        httpClient.Timeout = TimeSpan.FromHours(_constants.SpotPriceRefreshIntervalHours);
         var response = await httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
