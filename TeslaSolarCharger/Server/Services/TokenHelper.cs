@@ -103,6 +103,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
 
     private async Task<TokenStateIncludingExpirationTime> GetUncachedFleetApiTokenState()
     {
+        logger.LogTrace("{method}()", nameof(GetUncachedFleetApiTokenState));
         var hasCurrentTokenMissingScopes = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.FleetApiTokenMissingScopes), "true", StringComparison.InvariantCultureIgnoreCase);
         if (hasCurrentTokenMissingScopes)
         {
@@ -129,7 +130,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/FleetApiTokenExpiresInSeconds";
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        httpClient.Timeout = TimeSpan.FromSeconds(20);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
@@ -184,6 +185,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
 
     private async Task<TokenStateIncludingExpirationTime> GetUncachedBackendTokenState()
     {
+        logger.LogTrace("{method}()", nameof(GetUncachedBackendTokenState));
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
@@ -226,7 +228,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "Client/IsTokenValid";
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        httpClient.Timeout = TimeSpan.FromSeconds(20);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new("Bearer", token.AccessToken);
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
