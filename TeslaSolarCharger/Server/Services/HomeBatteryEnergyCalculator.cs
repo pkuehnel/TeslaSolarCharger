@@ -38,23 +38,39 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     public async Task RefreshHomeBatteryMinSoc(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(RefreshHomeBatteryMinSoc));
+
+        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        var (nextSunrise, nextSunset, nextSunEvent) = GetNextSunevent(currentDate);
+        _settings.NextSunEvent = nextSunEvent;
+        _logger.LogTrace("Updated {settingsName}.{nextSunEventName} to {nextSunEventValue}", nameof(ISettings), nameof(ISettings.NextSunEvent), nextSunEvent);
+
         if (!_configurationWrapper.DynamicHomeBatteryMinSoc())
         {
             return;
         }
-
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
         if (homeBatteryUsableEnergy == default)
         {
             _logger.LogWarning(
-                "Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Using configured home battery min soc.");
+                "Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Do not update home battery min soc.");
             return;
         }
 
-        var calculateMinSoc = await GetDynamicMinSocAtTime(currentDate, homeBatteryUsableEnergy.Value, cancellationToken)
+        if (nextSunrise == default)
+        {
+            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, but next sunrise is unknown. Do not update home battery min soc.");
+            return;
+        }
+
+        if (nextSunset == default)
+        {
+            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, but next sunset is unknown. Do not update home battery min soc.");
+            return;
+        }
+
+        var calculateMinSoc = await GetDynamicMinSocAtTime(currentDate, homeBatteryUsableEnergy.Value, nextSunrise.Value, nextSunset.Value, cancellationToken)
             .ConfigureAwait(false);
-        if (calculateMinSoc.HasValue && calculateMinSoc != _configurationWrapper.HomeBatteryMinSoc())
+        if (calculateMinSoc != _configurationWrapper.HomeBatteryMinSoc())
         {
             var configuration = await _configurationWrapper.GetBaseConfigurationAsync();
             configuration.HomeBatteryMinSoc = calculateMinSoc;
@@ -78,8 +94,13 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
                 "Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Using configured home battery min soc.");
             return _configurationWrapper.HomeBatteryMinSoc();
         }
+        var (nextSunrise, nextSunset, _) = GetNextSunevent(targetTime);
+        if (nextSunrise == default || nextSunset == default)
+        {
+            return null;
+        }
 
-        return await GetDynamicMinSocAtTime(targetTime, homeBatteryUsableEnergy.Value, cancellationToken).ConfigureAwait(false);
+        return await GetDynamicMinSocAtTime(targetTime, homeBatteryUsableEnergy.Value, nextSunrise.Value, nextSunset.Value, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -132,43 +153,19 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         return estimatedSoc;
     }
 
-    private async Task<int?> GetDynamicMinSocAtTime(DateTimeOffset targetTime,
-        int homeBatteryUsableEnergy, CancellationToken cancellationToken)
+    private async Task<int> GetDynamicMinSocAtTime(DateTimeOffset targetTime,
+        int homeBatteryUsableEnergy, DateTimeOffset nextSunrise, DateTimeOffset nextSunset, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({targetTime}, {homeBatteryUsableEnergy})", nameof(GetDynamicMinSocAtTime), targetTime,
             homeBatteryUsableEnergy);
-        var homeGeofenceLatitude = _configurationWrapper.HomeGeofenceLatitude();
-        var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
-        var nextSunset = _sunCalculator.NextSunset(homeGeofenceLatitude,
-            homeGeofenceLongitude, targetTime, _constants.WeatherPredictionInFutureDays - 1);
-        var forceFullBatteryBySunset = _configurationWrapper.ForceFullHomeBatteryBySunset();
-        if (nextSunset == default)
-        {
-            _logger.LogWarning("Could not calculate sunset for current date {targetTime}. Using configured home battery min soc.",
-                targetTime);
-            return null;
-        }
-
-        var nextSunrise = _sunCalculator.NextSunrise(homeGeofenceLatitude, homeGeofenceLongitude, targetTime,
-            _constants.WeatherPredictionInFutureDays - 1);
-        if (nextSunrise == default)
-        {
-            _logger.LogWarning("Could not calculate sunrise for current date {targetTime}. Using configured home battery min soc.",
-                targetTime);
-            return null;
-        }
-
-        _settings.NextSunEvent = nextSunrise < nextSunset ? NextSunEvent.Sunrise : NextSunEvent.Sunset;
-        var targetDate = nextSunrise.Value;
+        var targetDate = nextSunrise;
         var isTargetDateSunrise = true;
+        var forceFullBatteryBySunset = _configurationWrapper.ForceFullHomeBatteryBySunset();
         if (forceFullBatteryBySunset && _settings.NextSunEvent == NextSunEvent.Sunset)
         {
-            targetDate = nextSunset.Value;
+            targetDate = nextSunset;
             isTargetDateSunrise = false;
         }
-
-        _logger.LogTrace("Next sunrise: {nextSunrise}", nextSunrise);
-        _logger.LogTrace("Next sunset: {nextSunset}", nextSunset);
 
         var predictionInterval = TimeSpan.FromHours(1);
         // Make sure battery does not run out the next day
@@ -215,6 +212,37 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
 
         return calculateMinSoc;
+    }
+
+    private (DateTimeOffset? nextSunrise, DateTimeOffset? nextSunset, NextSunEvent nextSunEvent) GetNextSunevent(DateTimeOffset targetTime)
+    {
+        var homeGeofenceLatitude = _configurationWrapper.HomeGeofenceLatitude();
+        var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
+        var nextSunset = _sunCalculator.NextSunset(homeGeofenceLatitude,
+            homeGeofenceLongitude, targetTime, _constants.WeatherPredictionInFutureDays - 1);
+        if (nextSunset == default)
+        {
+            _logger.LogWarning("Could not calculate sunset for current date {targetTime}. Using configured home battery min soc.",
+                targetTime);
+        }
+
+        var nextSunrise = _sunCalculator.NextSunrise(homeGeofenceLatitude, homeGeofenceLongitude, targetTime,
+            _constants.WeatherPredictionInFutureDays - 1);
+        if (nextSunrise == default)
+        {
+            _logger.LogWarning("Could not calculate sunrise for current date {targetTime}. Using configured home battery min soc.",
+                targetTime);
+        }
+        _logger.LogTrace("Next sunrise: {nextSunrise}", nextSunrise);
+        _logger.LogTrace("Next sunset: {nextSunset}", nextSunset);
+
+        if (nextSunrise == default || nextSunset == default)
+        {
+            return (nextSunrise, nextSunset, NextSunEvent.Unknown);
+        }
+
+        var nextSunEvent = nextSunrise < nextSunset ? NextSunEvent.Sunrise : NextSunEvent.Sunset;
+        return (nextSunrise, nextSunset, nextSunEvent);
     }
 
 
