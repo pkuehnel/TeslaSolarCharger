@@ -11,6 +11,7 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+@using TeslaSolarCharger.Shared.SignalRClients
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
 
@@ -22,6 +23,7 @@
 @inject IConstants Constants
 @inject IDateTimeProvider DateTimeProvider
 @inject ITextLocalizationService TextLocalizer
+@inject ISignalRStateService SignalRStateService
 
 @implements IDisposable
 
@@ -211,6 +213,9 @@
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
+    private IDisposable? _subscription;
+    private bool _hasUserManuallyChangedDate;
+
     //This values was determined by testing. Is used to not get an error when setting series values to null and to redraw the chart after a browser width change.
     private const int RedrawDelayMilliseconds = 50;
 
@@ -226,6 +231,25 @@
         _chartOptions = GetChartOptions();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+
+        _subscription = await SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.EnergyPredictionChangeTrigger,
+            async () =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    var now = TimeProvider.GetLocalNow().Date;
+                    if (!_hasUserManuallyChangedDate && SelectedDate?.Date != now)
+                    {
+                        SelectedDate = now;
+                    }
+                    if (SelectedDate.HasValue)
+                    {
+                        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+                        StateHasChanged();
+                    }
+                }).ConfigureAwait(false);
+            });
     }
 
     private ApexChartOptions<DtoChartValue<int, decimal?>> GetChartOptions()
@@ -566,6 +590,7 @@
             return;
         }
         SelectedDate = SelectedDate.Value.AddDays(-1);
+        _hasUserManuallyChangedDate = SelectedDate.Value.Date != TimeProvider.GetLocalNow().Date;
     }
 
     private void NextDay()
@@ -577,6 +602,7 @@
         if (SelectedDate < MaxAllowedDate)
         {
             SelectedDate = SelectedDate.Value.AddDays(1);
+            _hasUserManuallyChangedDate = SelectedDate.Value.Date != TimeProvider.GetLocalNow().Date;
         }
     }
 
@@ -598,6 +624,7 @@
             return;
         }
         SelectedDate = newDate;
+        _hasUserManuallyChangedDate = SelectedDate.Value.Date != TimeProvider.GetLocalNow().Date;
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
     }
 
@@ -611,6 +638,7 @@
             if (SelectedDate != currentDate)
             {
                 SelectedDate = currentDate;
+                _hasUserManuallyChangedDate = false;
                 await RefreshData(DateOnly.FromDateTime(currentDate));
             }
             return;
@@ -638,6 +666,7 @@
     {
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
         _consumptionChart?.Dispose();
+        _subscription?.Dispose();
     }
 
     private string T(string key) =>
