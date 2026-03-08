@@ -251,7 +251,7 @@
                             await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
                             StateHasChanged();
                         }
-                    }).ConfigureAwait(false);
+                    });
                 }
                 catch (Exception e)
                 {
@@ -598,7 +598,7 @@
             return;
         }
         SelectedDate = SelectedDate.Value.AddDays(-1);
-        UpdateHaseUserManuallyChangedDate(SelectedDate.Value);
+        UpdateHasUserManuallyChangedDate(SelectedDate.Value);
     }
 
     private void NextDay()
@@ -610,7 +610,7 @@
         if (SelectedDate < MaxAllowedDate)
         {
             SelectedDate = SelectedDate.Value.AddDays(1);
-            UpdateHaseUserManuallyChangedDate(SelectedDate.Value);
+            UpdateHasUserManuallyChangedDate(SelectedDate.Value);
         }
     }
 
@@ -632,11 +632,11 @@
             return;
         }
         SelectedDate = newDate;
-        UpdateHaseUserManuallyChangedDate(SelectedDate.Value);
+        UpdateHasUserManuallyChangedDate(SelectedDate.Value);
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
     }
 
-    private void UpdateHaseUserManuallyChangedDate(DateTime newSelectedDate)
+    private void UpdateHasUserManuallyChangedDate(DateTime newSelectedDate)
     {
         _hasUserManuallyChangedDate = newSelectedDate.Date != TimeProvider.GetLocalNow().Date;
     }
