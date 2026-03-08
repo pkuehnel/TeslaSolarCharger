@@ -41,13 +41,26 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
             logger.LogError(ex, "An error occurred while saving buffered charger meter values to the database.");
         }
 
-        await carValueEstimationService.UpdateAllCarValueEstimations(cancellationToken).ConfigureAwait(false);
-
-        var energyPredictionChange = new StateUpdateDto
+        try
         {
-            DataType = DataTypeConstants.EnergyPredictionChangeTrigger,
-            Timestamp = dateTimeProvider.DateTimeOffSetUtcNow(),
-        };
-        await appStateNotifier.NotifyStateUpdateAsync(energyPredictionChange).ConfigureAwait(false);
+            await carValueEstimationService.UpdateAllCarValueEstimations(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while updating car value estimations.");
+        }
+
+        try
+        {
+            var energyPredictionChange = new StateUpdateDto
+            {
+                DataType = DataTypeConstants.EnergyPredictionChangeTrigger, Timestamp = dateTimeProvider.DateTimeOffSetUtcNow(),
+            };
+            await appStateNotifier.NotifyStateUpdateAsync(energyPredictionChange).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while notifying about changed energy values");
+        }
     }
 }
