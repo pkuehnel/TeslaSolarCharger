@@ -170,7 +170,7 @@
 
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(StaticConstants.LongTimeOutHttpClientName);
+            var httpClient = HttpClientFactory.CreateClient(StaticConstants.HttpClientNameLongTimeout);
             var chunkSize = 10 * 1024 * 1024;
             var totalChunks = (int)Math.Ceiling((double)_file.Size / chunkSize);
             var stream = _file.OpenReadStream(MaxFileSize);
@@ -225,7 +225,7 @@
         }
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(StaticConstants.NormalTimeOutHttpClientName);
+            var httpClient = HttpClientFactory.CreateClient(StaticConstants.HttpClientNameDefaultTimeout);
             var backupFiles = await httpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
             if (backupFiles != null)
             {
