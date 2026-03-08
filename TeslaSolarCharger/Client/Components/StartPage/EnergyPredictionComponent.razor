@@ -24,6 +24,7 @@
 @inject IDateTimeProvider DateTimeProvider
 @inject ITextLocalizationService TextLocalizer
 @inject ISignalRStateService SignalRStateService
+@inject ILogger<EnergyPredictionComponent> Logger
 
 @implements IDisposable
 
@@ -234,21 +235,28 @@
 
         _subscription = await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.EnergyPredictionChangeTrigger,
-            async () =>
+            async void () =>
             {
-                await InvokeAsync(async () =>
+                try
                 {
-                    var now = TimeProvider.GetLocalNow().Date;
-                    if (!_hasUserManuallyChangedDate && SelectedDate?.Date != now)
+                    await InvokeAsync(async () =>
                     {
-                        SelectedDate = now;
-                    }
-                    if (SelectedDate.HasValue)
-                    {
-                        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
-                        StateHasChanged();
-                    }
-                }).ConfigureAwait(false);
+                        var now = TimeProvider.GetLocalNow().Date;
+                        if (!_hasUserManuallyChangedDate && SelectedDate?.Date != now)
+                        {
+                            SelectedDate = now;
+                        }
+                        if (SelectedDate.HasValue)
+                        {
+                            await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+                            StateHasChanged();
+                        }
+                    }).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshData));
+                }
             });
     }
 
@@ -590,7 +598,7 @@
             return;
         }
         SelectedDate = SelectedDate.Value.AddDays(-1);
-        _hasUserManuallyChangedDate = SelectedDate.Value.Date != TimeProvider.GetLocalNow().Date;
+        UpdateHaseUserManuallyChangedDate(SelectedDate.Value);
     }
 
     private void NextDay()
@@ -602,7 +610,7 @@
         if (SelectedDate < MaxAllowedDate)
         {
             SelectedDate = SelectedDate.Value.AddDays(1);
-            _hasUserManuallyChangedDate = SelectedDate.Value.Date != TimeProvider.GetLocalNow().Date;
+            UpdateHaseUserManuallyChangedDate(SelectedDate.Value);
         }
     }
 
@@ -624,8 +632,13 @@
             return;
         }
         SelectedDate = newDate;
-        _hasUserManuallyChangedDate = SelectedDate.Value.Date != TimeProvider.GetLocalNow().Date;
+        UpdateHaseUserManuallyChangedDate(SelectedDate.Value);
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
+    }
+
+    private void UpdateHaseUserManuallyChangedDate(DateTime newSelectedDate)
+    {
+        _hasUserManuallyChangedDate = newSelectedDate.Date != TimeProvider.GetLocalNow().Date;
     }
 
     private async Task ExpandedChanged(bool isExpanded)
