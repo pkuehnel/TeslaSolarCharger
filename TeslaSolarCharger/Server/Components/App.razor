@@ -22,7 +22,14 @@
 </head>
 
 <body>
-
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            var style = document.createElement('style');
+            style.innerHTML = ':root { --mud-palette-background: #212529; }';
+            document.head.appendChild(style);
+        }
+    </script>
 <Routes @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
     <div id="loading-message">
         <LoadingSpinnerComponent/>
@@ -37,6 +44,11 @@
     <script src=@Assets["_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.js"]></script>
     <script src=@Assets["js/map.js"]></script>
     <script src=@Assets["lib/leaflet/leaflet.js"]></script>
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+    </script>
     <script>
         window.setBootstrapTheme = (theme) => {
             document.documentElement.setAttribute('data-bs-theme', theme);
