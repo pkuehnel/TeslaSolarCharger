@@ -57,6 +57,7 @@ public class Constants : IConstants
     public string OcppChargePointConnectorIdDelimiter => "_";
     public string DefaultIdTag => "Solar4Car";
     public string UnknownCarName => "Guest car";
+    public string DarkModeBackGroundColor => "#212529";
     public string PrimaryColor => "#1b6ec2";
     public string SecondaryColor => "#6c757d";
     public string SolarPowerColor => "#F57C00";
