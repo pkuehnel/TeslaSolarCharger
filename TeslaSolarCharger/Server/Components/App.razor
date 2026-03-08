@@ -38,6 +38,11 @@
     <script src=@Assets["js/map.js"]></script>
     <script src=@Assets["lib/leaflet/leaflet.js"]></script>
     <script>
+        window.setBootstrapTheme = (theme) => {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        };
+    </script>
+    <script>
         window.registerViewportChangeCallback = (dotnetHelper) => {
             window.addEventListener('load', () => {
                 dotnetHelper.invokeMethodAsync('OnResize', window.innerWidth, window.innerHeight);
@@ -50,4 +55,3 @@
 </body>
 
 </html>
-

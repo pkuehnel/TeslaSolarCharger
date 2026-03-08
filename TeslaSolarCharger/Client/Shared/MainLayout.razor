@@ -6,8 +6,9 @@
 
 @inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
+@inject IJSRuntime JsRuntime
 
-<MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
+<MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider FullWidth="true"
                    MaxWidth="MaxWidth.Medium" />
@@ -45,6 +46,9 @@
 
     private MudTheme? _tscTheme;
 
+    private bool _wasMudThemeProviderNull;
+    private bool _isDarkMode;
+
     protected override void OnInitialized()
     {
         _tscTheme = new MudTheme
@@ -55,6 +59,48 @@
                 Secondary = Constants.SecondaryColor,
                 AppbarBackground = Constants.PrimaryColor, // or a const you define
             },
+            PaletteDark = new PaletteDark
+            {
+                Primary = Constants.PrimaryColor,
+                Secondary = Constants.SecondaryColor,
+                AppbarBackground = Constants.PrimaryColor, // or a const you define
+            },
         };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _wasMudThemeProviderNull)
+        {
+            if (_mudThemeProvider == default)
+            {
+                _wasMudThemeProviderNull = true;
+            }
+            else
+            {
+                _wasMudThemeProviderNull = false;
+                _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
+                await SyncBootstrapThemeAsync(_isDarkMode);
+                await InvokeAsync(async () =>
+                {
+                    await _mudThemeProvider.WatchSystemDarkModeAsync(OnSystemDarkModeChanged);
+                    StateHasChanged();
+                }); 
+            }
+
+        }
+    }
+
+    private async Task OnSystemDarkModeChanged(bool newValue)
+    {
+        _isDarkMode = newValue;
+        await SyncBootstrapThemeAsync(newValue);
+        StateHasChanged();
+    }
+
+    private async Task SyncBootstrapThemeAsync(bool isDarkMode)
+    {
+        var theme = isDarkMode ? "dark" : "light";
+        await JsRuntime.InvokeVoidAsync("setBootstrapTheme", theme);
     }
 }

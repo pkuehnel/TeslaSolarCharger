@@ -60,7 +60,7 @@ else
     {
         <div @key="carBasicConfiguration.Guid"
              id="@GetCarCardElementId(carBasicConfiguration)"
-             class="shadow p-3 mb-5 bg-white rounded">
+             class="shadow p-3 mb-5 rounded">
             <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
                                OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
                                SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
