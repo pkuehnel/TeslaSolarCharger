@@ -45,6 +45,11 @@
     <script src=@Assets["js/map.js"]></script>
     <script src=@Assets["lib/leaflet/leaflet.js"]></script>
     <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+    </script>
+    <script>
         window.setBootstrapTheme = (theme) => {
             document.documentElement.setAttribute('data-bs-theme', theme);
         };

@@ -122,17 +122,21 @@ namespace TeslaSolarCharger.Server.Middlewares
                     updateLogs();
                 </script>";
 
+            var setDarkModeScript = $@"    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {{
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }}
+    </script>";
+
             var styles = @"
                 <style>
                     .logs-section {
                         margin-top: 20px;
                         border: 1px solid #dee2e6;
                         border-radius: 0.25rem;
-                        background-color: #f8f9fa;
                     }
                     .logs-header {
                         padding: 10px 15px;
-                        background-color: #e9ecef;
                         border-bottom: 1px solid #dee2e6;
                         font-weight: bold;
                     }
@@ -197,6 +201,7 @@ namespace TeslaSolarCharger.Server.Middlewares
         </div>
     </div>
     {refreshScript}
+    {setDarkModeScript}
 </body>
 </html>";
         }
