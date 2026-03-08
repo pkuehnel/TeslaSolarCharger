@@ -1,5 +1,8 @@
 ﻿using Quartz;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
@@ -7,7 +10,9 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob> logger,
     IMeterValueLogService meterValueLogService,
     IChargerValueLogService chargerValueLogService,
-    ICarValueEstimationService carValueEstimationService) : IJob
+    ICarValueEstimationService carValueEstimationService,
+    IAppStateNotifier appStateNotifier,
+    IDateTimeProvider dateTimeProvider) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
     {
@@ -36,6 +41,26 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
             logger.LogError(ex, "An error occurred while saving buffered charger meter values to the database.");
         }
 
-        await carValueEstimationService.UpdateAllCarValueEstimations(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await carValueEstimationService.UpdateAllCarValueEstimations(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while updating car value estimations.");
+        }
+
+        try
+        {
+            var energyPredictionChange = new StateUpdateDto
+            {
+                DataType = DataTypeConstants.EnergyPredictionChangeTrigger, Timestamp = dateTimeProvider.DateTimeOffSetUtcNow(),
+            };
+            await appStateNotifier.NotifyStateUpdateAsync(energyPredictionChange).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while notifying about changed energy values");
+        }
     }
 }

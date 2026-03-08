@@ -10,4 +10,5 @@ public class DataTypeConstants
     public const string LoadPointMatchesChangeTrigger = "LoadPointMatchesChangeTrigger";
     public const string NotChargingAsExpectedChangeTrigger = "NotChargingAsExpectedChangeTrigger";
     public const string ChargingSchedulesChangeTrigger = "ChargingSchedulesChangeTrigger";
+    public const string EnergyPredictionChangeTrigger = "EnergyPredictionChangeTrigger";
 }
