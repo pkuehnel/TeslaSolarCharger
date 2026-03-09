@@ -72,7 +72,7 @@ public class Constants : IConstants
     public string HomeConsumptionColor => "#FF689D";
     public string HomeConsumptionChartColor => "#FF689D";
     public string HomeConsumptionPredictionColor => "#FFE6E9";
-    public string EvChargingColor => "lightgrey";
+    public string EvChargingColor => "#939393";
     public string ConsumptionColor => "#FF8C7C";
     public string FeedInColor => "lightgreen";
 
