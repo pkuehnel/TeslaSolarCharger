@@ -34,6 +34,7 @@ public class ApexChartHelper : IApexChartHelper
                 Size = 5,
             },
             Stroke = new Stroke { Curve = Curve.Smooth },
+            Theme = new() {Mode = Mode.Light},
         };
         if (showLegend)
         {
