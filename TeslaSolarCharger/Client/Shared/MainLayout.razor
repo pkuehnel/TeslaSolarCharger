@@ -81,7 +81,7 @@
             {
                 _wasMudThemeProviderNull = false;
                 _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
-                ThemeStateService.SetDarkMode(_isDarkMode);
+                await ThemeStateService.SetDarkModeAsync(_isDarkMode);
                 await SyncBootstrapThemeAsync(_isDarkMode);
                 await InvokeAsync(async () =>
                 {
@@ -96,7 +96,7 @@
     private async Task OnSystemDarkModeChanged(bool newValue)
     {
         _isDarkMode = newValue;
-        ThemeStateService.SetDarkMode(newValue);
+        await ThemeStateService.SetDarkModeAsync(newValue);
         await SyncBootstrapThemeAsync(newValue);
         StateHasChanged();
     }
