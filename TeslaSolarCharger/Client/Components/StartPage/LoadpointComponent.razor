@@ -15,7 +15,7 @@
 @inject IEntityKeyGenerationHelper EntityKeyGenerationHelper
 @inject ITextLocalizationService TextLocalizer
 
-<div class="shadow p-3 mb-5 bg-white rounded">
+<div class="shadow p-3 mb-5 rounded">
     <div class="text-center">@((LoadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
     <div class="progress-wrapper">
         @for (var i = 1; i <= LoadPoint.MaxPhases; i++)

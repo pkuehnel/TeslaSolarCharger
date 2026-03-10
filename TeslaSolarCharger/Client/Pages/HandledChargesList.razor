@@ -48,14 +48,7 @@ else
             <PropertyColumn Property="x => x.StartTime"
                             Title="@T(TranslationKeys.HandledChargesListStartTime)">
                 <CellTemplate>
-                    @if (context.Item.EndTime.HasValue && false)
-                    {
-                        <MudLink Href="@($"/TimeSeries/{CarId}/{((DateTimeOffset)context.Item.StartTime.ToUniversalTime()).ToUnixTimeSeconds()}/{((DateTimeOffset)context.Item.EndTime.Value.ToUniversalTime()).ToUnixTimeSeconds()}")">@context.Item.StartTime</MudLink>
-                    }
-                    else
-                    {
-                        @context.Item.StartTime.ToString("g")
-                    }
+                    @context.Item.StartTime.ToString("g")
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.EndTime"
