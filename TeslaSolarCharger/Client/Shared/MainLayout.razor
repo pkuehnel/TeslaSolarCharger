@@ -3,10 +3,12 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 
 @inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
 @inject IJSRuntime JsRuntime
+@inject IThemeStateService ThemeStateService
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -79,6 +81,7 @@
             {
                 _wasMudThemeProviderNull = false;
                 _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
+                ThemeStateService.SetDarkMode(_isDarkMode);
                 await SyncBootstrapThemeAsync(_isDarkMode);
                 await InvokeAsync(async () =>
                 {
@@ -93,6 +96,7 @@
     private async Task OnSystemDarkModeChanged(bool newValue)
     {
         _isDarkMode = newValue;
+        ThemeStateService.SetDarkMode(newValue);
         await SyncBootstrapThemeAsync(newValue);
         StateHasChanged();
     }
