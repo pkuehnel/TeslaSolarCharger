@@ -1,10 +1,18 @@
 ﻿using ApexCharts;
 using TeslaSolarCharger.Client.Helper.Contracts;
+using TeslaSolarCharger.Client.Services.Contracts;
 
 namespace TeslaSolarCharger.Client.Helper;
 
 public class ApexChartHelper : IApexChartHelper
 {
+    private readonly IThemeStateService _themeStateService;
+
+    public ApexChartHelper(IThemeStateService themeStateService)
+    {
+        _themeStateService = themeStateService;
+    }
+
     public ApexChartOptions<T> GetDefaultChartOptions<T>(bool showLegend) where T : class
     {
         var options = new ApexChartOptions<T>
@@ -34,7 +42,7 @@ public class ApexChartHelper : IApexChartHelper
                 Size = 5,
             },
             Stroke = new Stroke { Curve = Curve.Smooth },
-            Theme = new() {Mode = Mode.Light},
+            Theme = new() { Mode = _themeStateService.IsDarkMode ? Mode.Dark : Mode.Light },
         };
         if (showLegend)
         {

@@ -25,6 +25,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<EnergyPredictionComponent> Logger
+@inject IThemeStateService ThemeStateService
 
 @implements IDisposable
 
@@ -222,6 +223,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        ThemeStateService.OnDarkModeChanged += OnDarkModeChanged;
         var currentTime = TimeProvider.GetLocalNow();
         SelectedDate = currentTime.Date;
         await base.OnInitializedAsync();
@@ -675,8 +677,22 @@
         }
     }
 
+    private async void OnDarkModeChanged(bool isDarkMode)
+    {
+        if (_chartOptions?.Theme != null && _consumptionChart != null)
+        {
+            _chartOptions.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
+            await InvokeAsync(async () =>
+            {
+                await _consumptionChart.UpdateOptionsAsync(false, false, false);
+                StateHasChanged();
+            });
+        }
+    }
+
     public void Dispose()
     {
+        ThemeStateService.OnDarkModeChanged -= OnDarkModeChanged;
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
         _consumptionChart?.Dispose();
         _subscription?.Dispose();
