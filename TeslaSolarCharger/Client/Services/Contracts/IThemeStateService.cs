@@ -4,5 +4,5 @@ public interface IThemeStateService
 {
     bool IsDarkMode { get; }
     event Func<bool, Task>? OnDarkModeChanged;
-    void SetDarkMode(bool isDarkMode);
+    Task SetDarkModeAsync(bool isDarkMode);
 }
