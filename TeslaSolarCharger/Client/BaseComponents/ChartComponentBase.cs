@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using ApexCharts;
@@ -17,8 +16,8 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
     [Inject]
     protected ILogger<ChartComponentBase<TItem>> Logger { get; set; } = default!;
 
-    protected ApexChart<TItem>? _chart;
-    protected ApexChartOptions<TItem>? _options;
+    protected ApexChart<TItem>? Chart;
+    protected ApexChartOptions<TItem>? Options;
 
     protected override Task OnInitializedAsync()
     {
@@ -40,12 +39,12 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
     {
         try
         {
-            if (_options?.Theme != null && _chart != null)
+            if (Options?.Theme != null && Chart != null)
             {
-                _options.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
+                Options.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
                 await InvokeAsync(async () =>
                 {
-                    await _chart.UpdateOptionsAsync(false, false, false);
+                    await Chart.UpdateOptionsAsync(false, false, false);
                     StateHasChanged();
                 });
             }
@@ -60,10 +59,14 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
     {
         try
         {
-            if (_chart != null)
+            if (Chart != null)
             {
-                await _chart.UpdateOptionsAsync(false, false, false);
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(async () =>
+                {
+                    await Chart.UpdateOptionsAsync(false, false, false);
+                    StateHasChanged();
+                });
+                
             }
         }
         catch (Exception ex)
@@ -76,7 +79,7 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
     {
         ThemeStateService.OnDarkModeChanged -= OnDarkModeChangedHandler;
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedHandlerAsync;
-        _chart?.Dispose();
+        Chart?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

@@ -90,13 +90,13 @@
                 <!-- Consumption Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <ApexChart TItem="DtoChartValue<int, decimal?>"
-                               Options="_options"
+                               Options="Options"
                                Width="@ChartWidthCalculator.ChartWidth"
                                Height="@ChartHeight"
                                XAxisType="XAxisType.Numeric"
                                FormatXAxisLabel="@(arg => arg.ToString("N0"))"
                                FormatYAxisLabel="@(arg => arg.ToString("F1"))"
-                               @ref="_chart">
+                               @ref="Chart">
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryChargingData"
@@ -228,7 +228,7 @@
         await InvokeAsync(() => StateHasChanged());
 
         // Configure consumption chart options
-        _options = GetChartOptions();
+        Options = GetChartOptions();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
 
@@ -550,9 +550,9 @@
 
             _dataLoaded = true;
 
-            if (_chart != null)
+            if (Chart != null)
             {
-                await _chart.UpdateSeriesAsync();
+                await Chart.UpdateSeriesAsync();
             }
 
             StateHasChanged();
@@ -648,9 +648,9 @@
             return;
         }
 
-        if (_chart != default)
+        if (Chart != default)
         {
-            await _chart.UpdateOptionsAsync(false, false, false);
+            await Chart.UpdateOptionsAsync(false, false, false);
         }
     }
 

@@ -24,12 +24,12 @@
 
 <ApexChart TItem="DtoChartValue<string, decimal>"
            Title="@T(TranslationKeys.ChargingSchedulesChartTitle)"
-           Options="_options"
+           Options="Options"
            Width="@ChartWidthCalculator.ChartWidth"
            Height="@ChartHeight"
            FormatXAxisLabel="@(arg => arg.ToString("N"))"
            FormatYAxisLabel="@(arg => arg.ToString("N"))"
-           @ref="_chart">
+           @ref="Chart">
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_chargingValues"
@@ -101,7 +101,7 @@
         {
             Type = XAxisType.Category,
         };
-        _options = options;
+        Options = options;
         await UpdateGridPriceValues();
     }
 
@@ -129,9 +129,9 @@
             result.Add(chartValue);
         }
         _gridPriceValues = result;
-        if (_chart != default)
+        if (Chart != default)
         {
-            await _chart.UpdateSeriesAsync();
+            await Chart.UpdateSeriesAsync();
         }
     }
 
@@ -153,9 +153,9 @@
             result.Add(chartValue);
         }
         _chargingValues = result;
-        if (_chart != default)
+        if (Chart != default)
         {
-            await _chart.UpdateSeriesAsync();
+            await Chart.UpdateSeriesAsync();
         }
     }
 
