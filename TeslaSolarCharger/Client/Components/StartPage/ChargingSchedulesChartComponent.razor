@@ -20,6 +20,7 @@
 @inject IValidFromToHelper ValidFromToHelper
 @inject ITextLocalizationService TextLocalizer
 @inject IThemeStateService ThemeStateService
+@inject ILogger<ChargingSchedulesChartComponent> Logger
 
 @implements IDisposable
 
@@ -203,14 +204,21 @@
 
     private async void OnDarkModeChanged(bool isDarkMode)
     {
-        if (_options?.Theme != null && _chart != null)
+        try
         {
-            _options.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
-            await InvokeAsync(async () =>
+            if (_options?.Theme != null && _chart != null)
             {
-                await _chart.UpdateOptionsAsync(false, false, false);
-                StateHasChanged();
-            });
+                _options.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
+                await InvokeAsync(async () =>
+                {
+                    await _chart.UpdateOptionsAsync(false, false, false);
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not update darkmode.");
         }
     }
 

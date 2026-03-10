@@ -679,14 +679,21 @@
 
     private async void OnDarkModeChanged(bool isDarkMode)
     {
-        if (_chartOptions?.Theme != null && _consumptionChart != null)
+        try
         {
-            _chartOptions.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
-            await InvokeAsync(async () =>
+            if (_chartOptions?.Theme != null && _consumptionChart != null)
             {
-                await _consumptionChart.UpdateOptionsAsync(false, false, false);
-                StateHasChanged();
-            });
+                _chartOptions.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
+                await InvokeAsync(async () =>
+                {
+                    await _consumptionChart.UpdateOptionsAsync(false, false, false);
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not update darkmode.");
         }
     }
 
