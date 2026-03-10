@@ -85,5 +85,5 @@ public interface IConstants
     int ManualCarMinutesUntilForgetSoc { get; }
     int RefreshableValuesRefreshIntervalSeconds { get; }
     int SolarPowerSurplusPredictionIntervalHours { get; }
-    string DarkModeBackGroundColor { get; }
+    string DarkModeBackgroundColor { get; }
 }
