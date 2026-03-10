@@ -215,9 +215,6 @@
     private IDisposable? _subscription;
     private bool _hasUserManuallyChangedDate;
 
-    //This values was determined by testing. Is used to not get an error when setting series values to null and to redraw the chart after a browser width change.
-    private const int RedrawDelayMilliseconds = 50;
-
     protected override async Task OnInitializedAsync()
     {
 
