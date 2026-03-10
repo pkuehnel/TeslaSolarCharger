@@ -6,7 +6,7 @@ public class ThemeStateService : IThemeStateService
 {
     public bool IsDarkMode { get; private set; }
 
-    public event Action<bool>? OnDarkModeChanged;
+    public event Func<bool, Task>? OnDarkModeChanged;
 
     public void SetDarkMode(bool isDarkMode)
     {

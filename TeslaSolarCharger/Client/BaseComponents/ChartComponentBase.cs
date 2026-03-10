@@ -37,7 +37,7 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
         await base.OnAfterRenderAsync(firstRender);
     }
 
-    private async void OnDarkModeChangedHandler(bool isDarkMode)
+    private async Task OnDarkModeChangedHandler(bool isDarkMode)
     {
         try
         {
