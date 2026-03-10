@@ -18,16 +18,15 @@
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
-@inject IChartWidthCalculator ChartWidthCalculator
 @inject IApexChartHelper ApexChartHelper
+@using TeslaSolarCharger.Client.BaseComponents
+
 @inject IConstants Constants
 @inject IDateTimeProvider DateTimeProvider
 @inject ITextLocalizationService TextLocalizer
 @inject ISignalRStateService SignalRStateService
-@inject ILogger<EnergyPredictionComponent> Logger
-@inject IThemeStateService ThemeStateService
 
-@implements IDisposable
+@inherits ChartComponentBase<DtoChartValue<int, decimal?>>
 
 <MudExpansionPanels>
     <MudExpansionPanel ExpandedChanged="isExpanded => ExpandedChanged(isExpanded)">
@@ -91,13 +90,13 @@
                 <!-- Consumption Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <ApexChart TItem="DtoChartValue<int, decimal?>"
-                               Options="_chartOptions"
+                               Options="_options"
                                Width="@ChartWidthCalculator.ChartWidth"
                                Height="@ChartHeight"
                                XAxisType="XAxisType.Numeric"
                                FormatXAxisLabel="@(arg => arg.ToString("N0"))"
                                FormatYAxisLabel="@(arg => arg.ToString("F1"))"
-                               @ref="_consumptionChart">
+                               @ref="_chart">
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryChargingData"
@@ -205,11 +204,9 @@
 
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
-    private ApexChartOptions<DtoChartValue<int, decimal?>>? _chartOptions;
     private bool _isSolarPredictionEnabled;
     private bool _dataLoaded;
     private bool _isExpanded;
-    private ApexChart<DtoChartValue<int, decimal?>>? _consumptionChart;
 
     private int ChartHeightValue { get; set; } = 470;
     private string ChartHeight => $"{ChartHeightValue}px";
@@ -223,7 +220,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ThemeStateService.OnDarkModeChanged += OnDarkModeChanged;
+
         var currentTime = TimeProvider.GetLocalNow();
         SelectedDate = currentTime.Date;
         await base.OnInitializedAsync();
@@ -231,7 +228,7 @@
         await InvokeAsync(() => StateHasChanged());
 
         // Configure consumption chart options
-        _chartOptions = GetChartOptions();
+        _options = GetChartOptions();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
 
@@ -332,15 +329,7 @@
         return options;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            ChartWidthCalculator.ChartWidthChanged += OnChartWidthChangedAsync;
-            await ChartWidthCalculator.InitAsync();
-        }
-        await base.OnAfterRenderAsync(firstRender);
-    }
+
 
     private class LegendItemData
     {
@@ -561,9 +550,9 @@
 
             _dataLoaded = true;
 
-            if (_consumptionChart != null)
+            if (_chart != null)
             {
-                await _consumptionChart.UpdateSeriesAsync();
+                await _chart.UpdateSeriesAsync();
             }
 
             StateHasChanged();
@@ -659,49 +648,15 @@
             return;
         }
 
-        if (_consumptionChart != default)
+        if (_chart != default)
         {
-            await _consumptionChart.UpdateOptionsAsync(false, false, false);
+            await _chart.UpdateOptionsAsync(false, false, false);
         }
     }
 
-    private async ValueTask OnChartWidthChangedAsync()
+    public override void Dispose()
     {
-        await InvokeAsync(StateHasChanged);
-
-        await Task.Delay(RedrawDelayMilliseconds);
-
-        if (_consumptionChart != default)
-        {
-            await _consumptionChart.UpdateOptionsAsync(false, false, false);
-        }
-    }
-
-    private async void OnDarkModeChanged(bool isDarkMode)
-    {
-        try
-        {
-            if (_chartOptions?.Theme != null && _consumptionChart != null)
-            {
-                _chartOptions.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
-                await InvokeAsync(async () =>
-                {
-                    await _consumptionChart.UpdateOptionsAsync(false, false, false);
-                    StateHasChanged();
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Could not update darkmode.");
-        }
-    }
-
-    public void Dispose()
-    {
-        ThemeStateService.OnDarkModeChanged -= OnDarkModeChanged;
-        ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
-        _consumptionChart?.Dispose();
+        base.Dispose();
         _subscription?.Dispose();
     }
 
