@@ -11,27 +11,25 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Client.BaseComponents
 
 @inject IApexChartHelper ApexChartHelper
-@inject IChartWidthCalculator ChartWidthCalculator
 @inject IDateTimeProvider DateTimeProvider
 @inject IConstants Constants
 @inject IHomeService HomeService
 @inject IValidFromToHelper ValidFromToHelper
 @inject ITextLocalizationService TextLocalizer
-@inject IThemeStateService ThemeStateService
-@inject ILogger<ChargingSchedulesChartComponent> Logger
 
-@implements IDisposable
+@inherits ChartComponentBase<DtoChartValue<string, decimal>>
 
 <ApexChart TItem="DtoChartValue<string, decimal>"
            Title="@T(TranslationKeys.ChargingSchedulesChartTitle)"
-           Options="_options"
+           Options="Options"
            Width="@ChartWidthCalculator.ChartWidth"
            Height="@ChartHeight"
            FormatXAxisLabel="@(arg => arg.ToString("N"))"
            FormatYAxisLabel="@(arg => arg.ToString("N"))"
-           @ref="_chart">
+           @ref="Chart">
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_chargingValues"
@@ -56,16 +54,13 @@
     [Parameter]
     public List<DtoChargingSchedule>? ChargingSchedules { get; set; }
 
-    private ApexChart<DtoChartValue<string, decimal>>? _chart;
     private string ChartHeight { get; set; } = "400px";
-    private ApexChartOptions<DtoChartValue<string, decimal>>? _options;
     private List<DtoChartValue<string, decimal>> _chargingValues = new();
     private List<DtoChartValue<string, decimal>> _gridPriceValues = new();
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        ThemeStateService.OnDarkModeChanged += OnDarkModeChanged;
         var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<string, decimal>>(true);
         options.Yaxis =
         [
@@ -106,7 +101,7 @@
         {
             Type = XAxisType.Category,
         };
-        _options = options;
+        Options = options;
         await UpdateGridPriceValues();
     }
 
@@ -134,9 +129,9 @@
             result.Add(chartValue);
         }
         _gridPriceValues = result;
-        if (_chart != default)
+        if (Chart != default)
         {
-            await _chart.UpdateSeriesAsync();
+            await Chart.UpdateSeriesAsync();
         }
     }
 
@@ -158,9 +153,9 @@
             result.Add(chartValue);
         }
         _chargingValues = result;
-        if (_chart != default)
+        if (Chart != default)
         {
-            await _chart.UpdateSeriesAsync();
+            await Chart.UpdateSeriesAsync();
         }
     }
 
@@ -181,53 +176,8 @@
         return 15;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            ChartWidthCalculator.ChartWidthChanged += OnChartWidthChangedAsync;
-            await ChartWidthCalculator.InitAsync();
-        }
-        await base.OnAfterRenderAsync(firstRender);
-    }
 
 
-
-    private async ValueTask OnChartWidthChangedAsync()
-    {
-        if (_chart != default)
-        {
-            await _chart.UpdateOptionsAsync(false, false, false);
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private async void OnDarkModeChanged(bool isDarkMode)
-    {
-        try
-        {
-            if (_options?.Theme != null && _chart != null)
-            {
-                _options.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
-                await InvokeAsync(async () =>
-                {
-                    await _chart.UpdateOptionsAsync(false, false, false);
-                    StateHasChanged();
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Could not update darkmode.");
-        }
-    }
-
-    public void Dispose()
-    {
-        ThemeStateService.OnDarkModeChanged -= OnDarkModeChanged;
-        ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
-        _chart?.Dispose();
-    }
 
     private string T(string key)
     {
