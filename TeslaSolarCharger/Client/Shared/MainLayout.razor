@@ -98,7 +98,7 @@
         _isDarkMode = newValue;
         await ThemeStateService.SetDarkModeAsync(newValue);
         await SyncBootstrapThemeAsync(newValue);
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SyncBootstrapThemeAsync(bool isDarkMode)
