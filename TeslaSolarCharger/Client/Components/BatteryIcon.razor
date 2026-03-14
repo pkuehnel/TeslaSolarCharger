@@ -14,14 +14,18 @@
     </svg>
 }
 
+@using TeslaSolarCharger.Client.Services.Contracts
+
+@inject IAppColors AppColors
+
 @code {
     [Parameter]
     public int? StateOfCharge { get; set; }
 
     private string GetBatteryColor(int soc)
     {
-        if (soc > 50) return "#008000aa";
-        if (soc > 25) return "#ffff00aa";
-        return "red";
+        if (soc > 50) return AppColors.BatterySocGoodColor;
+        if (soc > 25) return AppColors.BatterySocWarningColor;
+        return AppColors.BatterySocCriticalColor;
     }
 }
