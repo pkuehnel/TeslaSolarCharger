@@ -22,11 +22,11 @@ public class AppColors : IAppColors
     public string BatteryChargingColor => "#20B2AA";
     public string BatteryDischargingColor => "#FF6347";
     public string BatterySocColor => "#212121";
-    public string HomeConsumptionColor => "#FF689D";
-    public string HomeConsumptionChartColor => "#FF689D";
+    public string HomeConsumptionColor => _themeStateService.IsDarkMode ? "#df487d" : "#ff689d";
+    public string HomeConsumptionChartColor => HomeConsumptionColor;
     public string HomeConsumptionPredictionColor => "#FFE6E9";
     public string EvChargingColor => _themeStateService.IsDarkMode ? "#636363" : "#d3d3d3";
-    public string ConsumptionColor => "#FF8C7C";
+    public string ConsumptionColor => _themeStateService.IsDarkMode ? "#780606" : "#FF8C7C";
     public string FeedInColor => _themeStateService.IsDarkMode ? "#00a000" : "90ee90";
     public string DarkModeBackgroundColor => "#212529";
 
