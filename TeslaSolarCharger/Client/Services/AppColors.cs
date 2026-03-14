@@ -27,7 +27,7 @@ public class AppColors : IAppColors
     public string HomeConsumptionPredictionColor => "#FFE6E9";
     public string EvChargingColor => _themeStateService.IsDarkMode ? "#636363" : "#d3d3d3";
     public string ConsumptionColor => _themeStateService.IsDarkMode ? "#780606" : "#FF8C7C";
-    public string FeedInColor => _themeStateService.IsDarkMode ? "#00a000" : "90ee90";
+    public string FeedInColor => _themeStateService.IsDarkMode ? "#00a000" : "#90ee90";
     public string DarkModeBackgroundColor => "#212529";
 
     // Battery SOC Icon colors
