@@ -33,7 +33,7 @@ public class AppColors : IAppColors
     // Battery SOC Icon colors
     public string BatterySocGoodColor => _themeStateService.IsDarkMode ? "#008000" : "#00c000";
 
-    public string BatterySocWarningColor => _themeStateService.IsDarkMode ? "#ccca00" : "#ffff00";
+    public string BatterySocWarningColor => _themeStateService.IsDarkMode ? "#cf7500" : "#ffff00";
 
-    public string BatterySocCriticalColor => "red";
+    public string BatterySocCriticalColor => _themeStateService.IsDarkMode ? "#df0000" : "#ff0000";
 }
