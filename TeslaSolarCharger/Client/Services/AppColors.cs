@@ -22,7 +22,7 @@ public class AppColors : IAppColors
     public string BatteryChargingColor => "#20B2AA";
     public string BatteryDischargingColor => "#FF6347";
     public string BatterySocColor => "#212121";
-    public string HomeConsumptionColor => _themeStateService.IsDarkMode ? "#df487d" : "#ff689d";
+    public string HomeConsumptionColor => _themeStateService.IsDarkMode ? "#bf285d" : "#ff689d";
     public string HomeConsumptionChartColor => HomeConsumptionColor;
     public string HomeConsumptionPredictionColor => "#FFE6E9";
     public string EvChargingColor => _themeStateService.IsDarkMode ? "#636363" : "#d3d3d3";
