@@ -25,15 +25,15 @@ public class AppColors : IAppColors
     public string HomeConsumptionColor => "#FF689D";
     public string HomeConsumptionChartColor => "#FF689D";
     public string HomeConsumptionPredictionColor => "#FFE6E9";
-    public string EvChargingColor => "#939393";
-    public string ConsumptionColor => "#ff6d59";
-    public string FeedInColor => "#55cf55";
+    public string EvChargingColor => _themeStateService.IsDarkMode ? "#636363" : "#d3d3d3";
+    public string ConsumptionColor => "#FF8C7C";
+    public string FeedInColor => _themeStateService.IsDarkMode ? "#00a000" : "90ee90";
     public string DarkModeBackgroundColor => "#212529";
 
     // Battery SOC Icon colors
-    public string BatterySocGoodColor => "#008000aa";
+    public string BatterySocGoodColor => _themeStateService.IsDarkMode ? "#008000" : "#00c000";
 
-    public string BatterySocWarningColor => _themeStateService.IsDarkMode ? "#ccca00aa" : "#ffff00aa";
+    public string BatterySocWarningColor => _themeStateService.IsDarkMode ? "#ccca00" : "#ffff00";
 
     public string BatterySocCriticalColor => "red";
 }
