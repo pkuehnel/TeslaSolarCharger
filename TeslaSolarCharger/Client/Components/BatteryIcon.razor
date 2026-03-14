@@ -17,10 +17,25 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 
 @inject IAppColors AppColors
+@inject IThemeStateService ThemeStateService
 
 @code {
     [Parameter]
     public int? StateOfCharge { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        ThemeStateService.OnDarkModeChanged += OnDarkModeChangedHandler;
+    }
+
+    private async Task OnDarkModeChangedHandler(bool isDarkMode)
+    {
+        await InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
 
     private string GetBatteryColor(int soc)
     {
@@ -28,4 +43,6 @@
         if (soc > 25) return AppColors.BatterySocWarningColor;
         return AppColors.BatterySocCriticalColor;
     }
+
+    
 }
