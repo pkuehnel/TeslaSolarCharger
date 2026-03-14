@@ -16,6 +16,7 @@
 @inject IApexChartHelper ApexChartHelper
 @inject IDateTimeProvider DateTimeProvider
 @inject IConstants Constants
+@inject IAppColors AppColors
 @inject IHomeService HomeService
 @inject IValidFromToHelper ValidFromToHelper
 @inject ITextLocalizationService TextLocalizer
@@ -37,7 +38,7 @@
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
-                     Color="@Constants.PrimaryColor"/>
+                     Color="@AppColors.PrimaryColor"/>
 
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
@@ -46,7 +47,7 @@
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
-                     Color="@Constants.SecondaryColor" />
+                     Color="@AppColors.SecondaryColor" />
 
 </ApexChart>
 
@@ -71,7 +72,7 @@
                     Text = new MultiLineText(T(TranslationKeys.ChargingSchedulesChartYAxisPower)),
                     Style = new AxisTitleStyle()
                     {
-                        Color = Constants.PrimaryColor,
+                        Color = AppColors.PrimaryColor,
                     },
                 },
                 Crosshairs = new AxisCrosshairs()
@@ -90,7 +91,7 @@
                     Text = new MultiLineText(T(TranslationKeys.ChargingSchedulesChartYAxisPrice)),
                     Style = new AxisTitleStyle()
                     {
-                        Color = Constants.SecondaryColor,
+                        Color = AppColors.SecondaryColor,
                     },
                 },
                 DecimalsInFloat = 4,

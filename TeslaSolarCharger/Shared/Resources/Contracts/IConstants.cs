@@ -53,26 +53,9 @@ public interface IConstants
     string OcppChargePointConnectorIdDelimiter { get; }
     string DefaultIdTag { get; }
     int HomeBatteryMinSocRefreshIntervalMinutes { get; }
-    string PrimaryColor { get; }
-    string SecondaryColor { get; }
     string SunriseIcon { get; }
     string SunsetIcon { get; }
     string UnknownCarName { get; }
-    string SolarPowerColor { get; }
-    string ConsumptionColor { get; }
-    string FeedInColor { get; }
-    string GridColor { get; }
-    string BatteryColor { get; }
-    string EvChargingColor { get; }
-    string HomeConsumptionColor { get; }
-    string SolarPowerPredictionColor { get; }
-    string HomeConsumptionPredictionColor { get; }
-    string BatterySocColor { get; }
-    string HomeConsumptionChartColor { get; }
-    string GridExportColor { get; }
-    string GridImportColor { get; }
-    string BatteryChargingColor { get; }
-    string BatteryDischargingColor { get; }
     string SolarPowerIcon { get; }
     string HomeBatteryIcon { get; }
     string HomePowerIcon { get; }
@@ -85,5 +68,4 @@ public interface IConstants
     int ManualCarMinutesUntilForgetSoc { get; }
     int RefreshableValuesRefreshIntervalSeconds { get; }
     int SolarPowerSurplusPredictionIntervalHours { get; }
-    string DarkModeBackgroundColor { get; }
 }

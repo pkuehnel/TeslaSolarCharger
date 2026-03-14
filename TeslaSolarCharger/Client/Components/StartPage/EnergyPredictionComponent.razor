@@ -22,6 +22,7 @@
 @using TeslaSolarCharger.Client.BaseComponents
 
 @inject IConstants Constants
+@inject IAppColors AppColors
 @inject IDateTimeProvider DateTimeProvider
 @inject ITextLocalizationService TextLocalizer
 @inject ISignalRStateService SignalRStateService
@@ -104,7 +105,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryChargingColor"
+                                         Color="@AppColors.BatteryChargingColor"
                                          Group="production-stack" />
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -113,7 +114,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatterySocColor"/>
+                                         Color="@AppColors.BatterySocColor"/>
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryDischargingData"
@@ -121,7 +122,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryDischargingColor"
+                                         Color="@AppColors.BatteryDischargingColor"
                                          Group="consumption-stack"/>
 
                         <!-- House Prediction Line -->
@@ -131,7 +132,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionPredictionColor"/>
+                                         Color="@AppColors.HomeConsumptionPredictionColor"/>
 
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -140,7 +141,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionChartColor"
+                                         Color="@AppColors.HomeConsumptionChartColor"
                                          Group="consumption-stack"/>
 
 
@@ -152,7 +153,7 @@
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
                                              YValue="@(e => e.Value)"
-                                             Color="@Constants.SolarPowerPredictionColor"/>
+                                             Color="@AppColors.SolarPowerPredictionColor"/>
                         }
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -161,7 +162,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.SolarPowerColor"
+                                         Color="@AppColors.SolarPowerColor"
                                          Group="production-stack"/>
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -170,7 +171,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.GridExportColor"
+                                         Color="@AppColors.GridExportColor"
                                          Group="production-stack"/>
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -179,7 +180,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.GridImportColor"
+                                         Color="@AppColors.GridImportColor"
                                          Group="consumption-stack"/>
 
 
@@ -345,7 +346,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = GetRelevantSolarPredictionText(),
-                Color = Constants.SolarPowerPredictionColor,
+                Color = AppColors.SolarPowerPredictionColor,
                 Icon = Constants.SolarPowerIcon,
                 Value = GetRelevantSolarPrediction(),
             });
@@ -355,7 +356,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = T(TranslationKeys.EnergyPredictionSolarActual),
-                Color = Constants.SolarPowerColor,
+                Color = AppColors.SolarPowerColor,
                 Icon = Constants.SolarPowerIcon,
                 Value = SolarActualData.Sum(v => v.Value ?? 0),
             });
@@ -366,7 +367,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = T(TranslationKeys.EnergyPredictionHousePrediction),
-                Color = Constants.HomeConsumptionPredictionColor,
+                Color = AppColors.HomeConsumptionPredictionColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HousePredictionData.Sum(v => v.Value ?? 0),
             });
@@ -376,7 +377,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = T(TranslationKeys.EnergyPredictionHouseActual),
-                Color = Constants.HomeConsumptionChartColor,
+                Color = AppColors.HomeConsumptionChartColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HouseActualData.Sum(v => v.Value ?? 0),
             });
@@ -390,7 +391,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionBatteryCharged),
-                    Color = Constants.BatteryChargingColor,
+                    Color = AppColors.BatteryChargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = chargingValue,
                 });
@@ -404,7 +405,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionBatteryDischarged),
-                    Color = Constants.BatteryDischargingColor,
+                    Color = AppColors.BatteryDischargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = dischargingValue,
                 });
@@ -419,7 +420,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionToGrid),
-                    Color = Constants.GridExportColor,
+                    Color = AppColors.GridExportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = toGridValue,
                 });
@@ -434,7 +435,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionFromGrid),
-                    Color = Constants.GridImportColor,
+                    Color = AppColors.GridImportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = fromGridValue,
                 });
