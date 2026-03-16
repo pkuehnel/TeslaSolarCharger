@@ -71,7 +71,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 _logger.LogTrace("inverter AC overload: {overload}W", inverterAcOverload);
                 if (inverterAcOverload > 0)
                 {
-                    _logger.LogDebug("As inverter power is higher than max inverter AC power, additional home battery discharge power is reduced by overload");
+                    _logger.LogTrace("As inverter power is higher than max inverter AC power, additional home battery discharge power is reduced by overload {overload}W", inverterAcOverload);
                     additionalHomeBatteryDischargePower -= inverterAcOverload.Value;
                     if (additionalHomeBatteryDischargePower < 0)
                     {
