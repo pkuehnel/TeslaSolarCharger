@@ -1,5 +1,3 @@
-using TeslaSolarCharger.Client.Services.Contracts;
-
 namespace TeslaSolarCharger.Client.Services.Contracts;
 
 public interface IAppColors

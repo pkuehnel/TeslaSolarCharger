@@ -652,5 +652,6 @@ else
     public void Dispose()
     {
         _subscription?.Dispose();
+        ThemeStateService.OnDarkModeChanged -= OnDarkModeChangedHandler;
     }
 }
