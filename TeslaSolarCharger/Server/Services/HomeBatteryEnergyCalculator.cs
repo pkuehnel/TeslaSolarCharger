@@ -381,9 +381,15 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             // Determine the end of this time interval
             var intervalEnd = (i + 1 < sortedEntries.Count) ? sortedEntries[i + 1].Key : targetTime;
 
+            var energyInThisInterval = currentEntry.Value;
             if (intervalEnd > targetTime)
             {
+                var durationBeforeAdjustment = intervalEnd - intervalStart;
                 intervalEnd = targetTime;
+                var durationAfterAdjustment = intervalEnd - intervalStart;
+                energyInThisInterval = (int)(((double)energyInThisInterval) *
+                                             (durationAfterAdjustment.TotalSeconds / durationBeforeAdjustment.TotalSeconds));
+                _logger.LogTrace("Updated energy from {energyBefore} to {energyAfter} for interval start {intervalStart}", currentEntry.Value, energyInThisInterval, intervalStart);
             }
 
             // 1. Filter for potentially relevant schedules (optimization)
@@ -424,7 +430,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             }
 
             // Adjust the base energy difference
-            var adjustedEnergyDifference = currentEntry.Value - consumedBySchedulesWh;
+            var adjustedEnergyDifference = energyInThisInterval - consumedBySchedulesWh;
 
             energyInBattery = ApplyEnergyChange(energyInBattery, adjustedEnergyDifference, batteryMaxChargingPower);
 
