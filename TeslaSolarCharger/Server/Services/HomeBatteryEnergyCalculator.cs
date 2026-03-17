@@ -373,7 +373,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             var currentEntry = sortedEntries[i];
             var intervalStart = currentEntry.Key;
 
-            if (intervalStart > targetTime)
+            if (intervalStart >= targetTime)
             {
                 break;
             }
