@@ -147,7 +147,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             predictedSurplusPerSlices,
             homeBatteryUsableEnergy.Value,
             currentSocPercent,
-            futureFullHour,
+            futureTime,
             schedules);
 
         return estimatedSoc;
