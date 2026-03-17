@@ -8,9 +8,11 @@
 @implements IDisposable
 
 @inject IConstants Constants
+@inject IAppColors AppColors
 @inject ISignalRStateService SignalRStateService
 @inject ITextLocalizationService TextLocalizer
 @inject ILogger<PowerFlowComponent> Logger
+@inject IThemeStateService ThemeStateService
 
 @if (_pvValues == default)
 {
@@ -95,36 +97,36 @@ else
             @if (GridLocation != default)
             {
                 <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
-                        fill="@(_pvValues.GridPower == 0 ? "var(--bs-body-bg)" : (_pvValues.GridPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
-                        stroke="@Constants.GridColor" stroke-width="4" />
+                        fill="@(_pvValues.GridPower == 0 ? "var(--bs-body-bg)" : (_pvValues.GridPower > 0 ? AppColors.FeedInColor : AppColors.ConsumptionColor))"
+                        stroke="@AppColors.GridColor" stroke-width="4" />
             }
             <!-- Solar -->
             @if (InverterLocation != default)
             {
                 <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
-                        fill="@(_pvValues.InverterPower == 0 ? "var(--bs-body-bg)" : Constants.SolarPowerColor)"
-                        stroke="@Constants.SolarPowerColor" stroke-width="4" />
+                        fill="@(_pvValues.InverterPower == 0 ? "var(--bs-body-bg)" : AppColors.SolarPowerColor)"
+                        stroke="@AppColors.SolarPowerColor" stroke-width="4" />
             }
             <!-- Home Battery -->
             @if (BatteryLocation != default)
             {
                 <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
-                        fill="@(_pvValues.HomeBatteryPower == 0 ? "var(--bs-body-bg)" : (_pvValues.HomeBatteryPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
-                        stroke="@Constants.BatteryColor" stroke-width="4" />
+                        fill="@(_pvValues.HomeBatteryPower == 0 ? "var(--bs-body-bg)" : (_pvValues.HomeBatteryPower > 0 ? AppColors.FeedInColor : AppColors.ConsumptionColor))"
+                        stroke="@AppColors.BatteryColor" stroke-width="4" />
             }
             <!-- House -->
             @if (HomeLocation != default)
             {
                 <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
-                        fill="@(CalculateHomePower() == 0 ? "var(--bs-body-bg)" : Constants.HomeConsumptionColor)"
-                        stroke="@Constants.HomeConsumptionColor" stroke-width="4" />
+                        fill="@(CalculateHomePower() == 0 ? "var(--bs-body-bg)" : AppColors.HomeConsumptionColor)"
+                        stroke="@AppColors.HomeConsumptionColor" stroke-width="4" />
             }
             <!-- EVCharger -->
             @if (EvChargerLocation != default)
             {
                 <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
-                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "var(--bs-body-bg)" : Constants.EvChargingColor)"
-                        stroke="@Constants.EvChargingColor" stroke-width="4" />
+                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "var(--bs-body-bg)" : AppColors.EvChargingColor)"
+                        stroke="@AppColors.EvChargingColor" stroke-width="4" />
             }
 
             <!-- Text -->
@@ -195,6 +197,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        ThemeStateService.OnDarkModeChanged += OnDarkModeChangedHandler;
 
         // Subscribe to PV value changes
         _subscription = await SignalRStateService.Subscribe<DtoPvValues>(
@@ -216,6 +219,14 @@ else
         await UpdateBalls();
     }
 
+    private async Task OnDarkModeChangedHandler(bool isDarkMode)
+    {
+        await InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
     private async Task UpdateBalls()
     {
         if (_pvValues == default)
@@ -230,7 +241,7 @@ else
             {
                 if (GridLocation != default && _pvValues.GridPower > 0)
                 {
-                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                    Balls.Add(new Ball(AppColors.SolarPowerColor,
                         CalculateDuration(InverterLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = InverterLocation.X,
@@ -241,7 +252,7 @@ else
                 }
                 if (HomeLocation != default)
                 {
-                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                    Balls.Add(new Ball(AppColors.SolarPowerColor,
                         CalculateDuration(InverterLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = InverterLocation.X,
@@ -252,7 +263,7 @@ else
                 }
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
-                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                    Balls.Add(new Ball(AppColors.SolarPowerColor,
                         CalculateDuration(InverterLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = InverterLocation.X,
@@ -271,7 +282,7 @@ else
             {
                 if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
-                    Balls.Add(new Ball(Constants.GridColor,
+                    Balls.Add(new Ball(AppColors.GridColor,
                         CalculateDuration(GridLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = GridLocation.X,
@@ -283,7 +294,7 @@ else
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
-                    Balls.Add(new Ball(Constants.GridColor,
+                    Balls.Add(new Ball(AppColors.GridColor,
                         CalculateDuration(GridLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = GridLocation.X,
@@ -302,7 +313,7 @@ else
             {
                 if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
-                    Balls.Add(new Ball(Constants.BatteryColor,
+                    Balls.Add(new Ball(AppColors.BatteryColor,
                         CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = BatteryLocation.X,
@@ -313,7 +324,7 @@ else
                 }
                 if (GridLocation != default && _pvValues.GridPower > 0)
                 {
-                    Balls.Add(new Ball(Constants.BatteryColor,
+                    Balls.Add(new Ball(AppColors.BatteryColor,
                         CalculateDuration(BatteryLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = BatteryLocation.X,
@@ -331,7 +342,7 @@ else
             var homeLocation = HomeLocation;
             if (homeLocation != default)
             {
-                Balls.Add(new Ball(Constants.HomeConsumptionColor,
+                Balls.Add(new Ball(AppColors.HomeConsumptionColor,
                     CalculateDuration(homeLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                 {
                     StartX = homeLocation.X,
@@ -344,7 +355,7 @@ else
             {
                 if (InverterLocation != default && _pvValues.InverterPower > 0)
                 {
-                    Balls.Add(new Ball(Constants.SolarPowerColor,
+                    Balls.Add(new Ball(AppColors.SolarPowerColor,
                         CalculateDuration(InverterLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = InverterLocation.X,
@@ -356,7 +367,7 @@ else
 
                 if (GridLocation != default && _pvValues.GridPower < 0)
                 {
-                    Balls.Add(new Ball(Constants.GridColor,
+                    Balls.Add(new Ball(AppColors.GridColor,
                         CalculateDuration(GridLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = GridLocation.X,
@@ -368,7 +379,7 @@ else
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower < 0)
                 {
-                    Balls.Add(new Ball(Constants.BatteryColor,
+                    Balls.Add(new Ball(AppColors.BatteryColor,
                         CalculateDuration(BatteryLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
                     {
                         StartX = BatteryLocation.X,

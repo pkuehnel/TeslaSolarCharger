@@ -65,12 +65,15 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             _settings.IsHomeBatteryDischargingActive = true;
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
             var maxInverterAcPower = _configurationWrapper.MaxInverterAcPower();
+            _logger.LogTrace("Max inverter AC Power: {maxInverterAcPower}", maxInverterAcPower);
             if (maxInverterAcPower != null)
             {
-                var inverterAcOverload = (maxInverterAcPower.Value - _settings.InverterPower) * -1;
+                //calculate ac overload if fully adding additionalHomeBatteryDischargePower
+                var inverterAcOverload = (maxInverterAcPower.Value - _settings.InverterPower - additionalHomeBatteryDischargePower) * -1;
+                _logger.LogTrace("inverter AC overload: {overload}W", inverterAcOverload);
                 if (inverterAcOverload > 0)
                 {
-                    _logger.LogDebug("As inverter power is higher than max inverter AC power, additional home battery discharge power is reduced by overload");
+                    _logger.LogTrace("As inverter power is higher than max inverter AC power, additional home battery discharge power is reduced by overload {overload}W", inverterAcOverload);
                     additionalHomeBatteryDischargePower -= inverterAcOverload.Value;
                     if (additionalHomeBatteryDischargePower < 0)
                     {

@@ -6,6 +6,7 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 
 @inject IConstants Constants
+@inject IAppColors AppColors
 @inject ITextLocalizationService TextLocalizer
 @inject IJSRuntime JsRuntime
 @inject IThemeStateService ThemeStateService
@@ -53,18 +54,18 @@
         {
             PaletteLight = new PaletteLight
             {
-                Primary = Constants.PrimaryColor,
-                Secondary = Constants.SecondaryColor,
-                AppbarBackground = Constants.PrimaryColor, // or a const you define
+                Primary = AppColors.PrimaryColor,
+                Secondary = AppColors.SecondaryColor,
+                AppbarBackground = AppColors.PrimaryColor, // or a const you define
             },
             PaletteDark = new PaletteDark
             {
-                Primary = Constants.PrimaryColor,
-                Secondary = Constants.SecondaryColor,
-                AppbarBackground = Constants.PrimaryColor, // or a const you define
-                Background = Constants.DarkModeBackgroundColor,
-                BackgroundGray = Constants.DarkModeBackgroundColor,
-                Surface = Constants.DarkModeBackgroundColor,
+                Primary = AppColors.PrimaryColor,
+                Secondary = AppColors.SecondaryColor,
+                AppbarBackground = AppColors.PrimaryColor, // or a const you define
+                Background = AppColors.DarkModeBackgroundColor,
+                BackgroundGray = AppColors.DarkModeBackgroundColor,
+                Surface = AppColors.DarkModeBackgroundColor,
             },
         };
     }
@@ -81,7 +82,7 @@
             {
                 _wasMudThemeProviderNull = false;
                 _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
-                ThemeStateService.SetDarkMode(_isDarkMode);
+                await ThemeStateService.SetDarkModeAsync(_isDarkMode);
                 await SyncBootstrapThemeAsync(_isDarkMode);
                 await InvokeAsync(async () =>
                 {
@@ -96,9 +97,9 @@
     private async Task OnSystemDarkModeChanged(bool newValue)
     {
         _isDarkMode = newValue;
-        ThemeStateService.SetDarkMode(newValue);
+        await ThemeStateService.SetDarkModeAsync(newValue);
         await SyncBootstrapThemeAsync(newValue);
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SyncBootstrapThemeAsync(bool isDarkMode)

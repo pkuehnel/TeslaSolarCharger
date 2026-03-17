@@ -18,6 +18,8 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
 
     protected ApexChart<TItem>? Chart;
     protected ApexChartOptions<TItem>? Options;
+    //This values was determined by testing. Is used to not get an error when setting series values to null and to redraw the chart after a browser width change.
+    protected const int RedrawDelayMilliseconds = 50;
 
     protected override Task OnInitializedAsync()
     {
@@ -35,7 +37,7 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
         await base.OnAfterRenderAsync(firstRender);
     }
 
-    private async void OnDarkModeChangedHandler(bool isDarkMode)
+    private async Task OnDarkModeChangedHandler(bool isDarkMode)
     {
         try
         {
@@ -44,7 +46,10 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
                 Options.Theme.Mode = isDarkMode ? Mode.Dark : Mode.Light;
                 await InvokeAsync(async () =>
                 {
+                    StateHasChanged();
+                    await Task.Delay(RedrawDelayMilliseconds);
                     await Chart.UpdateOptionsAsync(false, false, false);
+                    await Task.Delay(RedrawDelayMilliseconds);
                     StateHasChanged();
                 });
             }
@@ -63,7 +68,10 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
             {
                 await InvokeAsync(async () =>
                 {
+                    StateHasChanged();
+                    await Task.Delay(RedrawDelayMilliseconds);
                     await Chart.UpdateOptionsAsync(false, false, false);
+                    await Task.Delay(RedrawDelayMilliseconds);
                     StateHasChanged();
                 });
                 

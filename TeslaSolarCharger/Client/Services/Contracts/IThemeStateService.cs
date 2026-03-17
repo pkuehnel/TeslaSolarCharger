@@ -3,6 +3,6 @@ namespace TeslaSolarCharger.Client.Services.Contracts;
 public interface IThemeStateService
 {
     bool IsDarkMode { get; }
-    event Action<bool>? OnDarkModeChanged;
-    void SetDarkMode(bool isDarkMode);
+    event Func<bool, Task>? OnDarkModeChanged;
+    Task SetDarkModeAsync(bool isDarkMode);
 }
