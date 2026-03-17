@@ -445,6 +445,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     /// </summary>
     private int ApplyEnergyChange(int currentEnergyInBattery, int energyDifference, int? batteryMaxChargingPower)
     {
+        _logger.LogTrace("{method}({currentEnergyInBattery}, {energyDifference}, {batteryMaxChargingPower})", nameof(ApplyEnergyChange), currentEnergyInBattery, energyDifference, batteryMaxChargingPower);
         if (energyDifference > 0 && batteryMaxChargingPower.HasValue && energyDifference > batteryMaxChargingPower.Value)
         {
             _logger.LogTrace("Use max charging power");
