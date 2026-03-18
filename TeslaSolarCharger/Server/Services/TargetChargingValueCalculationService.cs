@@ -56,6 +56,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _logger.LogTrace("{variableName}: {value}", nameof(homeBatterySoc), homeBatterySoc);
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
         _logger.LogTrace("{variableName}: {value}", nameof(homeBatteryMinSoc), homeBatteryMinSoc);
+        _logger.LogTrace("{variableName}: {value}", nameof(_settings.IsHomeBatteryDischargingActive), _settings.IsHomeBatteryDischargingActive);
         const int homebatteryDischargeThreshold = 10;
         if (dischargeHomeBatteryToMinSocDuringDay
             && nextSunEvent == NextSunEvent.Sunset
