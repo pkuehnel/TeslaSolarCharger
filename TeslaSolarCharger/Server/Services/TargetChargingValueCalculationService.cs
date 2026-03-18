@@ -56,6 +56,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _logger.LogTrace("{variableName}: {value}", nameof(homeBatterySoc), homeBatterySoc);
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
         _logger.LogTrace("{variableName}: {value}", nameof(homeBatteryMinSoc), homeBatteryMinSoc);
+        _logger.LogTrace("{variableName}: {value}", nameof(_settings.IsHomeBatteryDischargingActive), _settings.IsHomeBatteryDischargingActive);
         const int homebatteryDischargeThreshold = 10;
         if (dischargeHomeBatteryToMinSocDuringDay
             && nextSunEvent == NextSunEvent.Sunset
@@ -64,6 +65,23 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             _settings.IsHomeBatteryDischargingActive = true;
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
+            var maxInverterAcPower = _configurationWrapper.MaxInverterAcPower();
+            _logger.LogTrace("Max inverter AC Power: {maxInverterAcPower}", maxInverterAcPower);
+            if (maxInverterAcPower != null)
+            {
+                //calculate ac overload if fully adding additionalHomeBatteryDischargePower
+                var inverterAcOverload = (maxInverterAcPower.Value - _settings.InverterPower - additionalHomeBatteryDischargePower) * -1;
+                _logger.LogTrace("inverter AC overload: {overload}W", inverterAcOverload);
+                if (inverterAcOverload > 0)
+                {
+                    _logger.LogTrace("As inverter power is higher than max inverter AC power, additional home battery discharge power is reduced by overload {overload}W", inverterAcOverload);
+                    additionalHomeBatteryDischargePower -= inverterAcOverload.Value;
+                    if (additionalHomeBatteryDischargePower < 0)
+                    {
+                        additionalHomeBatteryDischargePower = 0;
+                    }
+                }
+            }
             _logger.LogTrace("Added additional home battery discharge power of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
         }
         else

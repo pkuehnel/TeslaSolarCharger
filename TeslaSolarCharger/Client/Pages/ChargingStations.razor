@@ -35,7 +35,7 @@ else
 {
     foreach (var chargingStation in _chargingStations)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded">
+        <div class="shadow p-3 mb-5 rounded">
             <MudText Typo="Typo.h6" GutterBottom="true">
                 @chargingStation.ChargepointId
                 @if (chargingStation.IsConnected)

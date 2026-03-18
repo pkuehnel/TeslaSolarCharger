@@ -13,11 +13,7 @@
 @inject ITextLocalizationService TextLocalizer
 
 <div>
-    <MudTimeSeriesChart ChartSeries="@_series"
-                        Width="100%" Height="350px"
-                        ChartOptions="@_options"
-                        CanHideSeries
-                        TimeLabelSpacing="TimeSpan.FromSeconds((EndEpoch - StartEpoch) / 10)" />
+
 </div>
 
 @code
@@ -30,15 +26,7 @@
     public long EndEpoch { get; set; }
 
 
-    private readonly ChartOptions _options = new ChartOptions
-        {
-            YAxisLines = false,
-            YAxisRequireZeroPoint = true,
-            XAxisLines = false,
-            LineStrokeWidth = 1,
-        };
 
-    private readonly List<TimeSeriesChartSeries> _series = new();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -60,15 +48,6 @@
         var response = await Http.GetFromJsonAsync<List<DtoTimeSeriesDatum>>($"api/TimeSeriesData/GetTimeSeriesData?carId={CarId}&startEpoch={StartEpoch}&endEpoch={EndEpoch}&carValueType={carValueType}");
         if (response != null && response.Count > 0)
         {
-            var chartSeries = new TimeSeriesChartSeries
-            {
-                Index = 0,
-                    Name = GetSeriesName(carValueType),
-                Data = response.Select(d => new TimeSeriesChartSeries.TimeValue(d.Timestamp, d.Value ?? 0)).ToList(),
-                IsVisible = true,
-                LineDisplayType = LineDisplayType.Line,
-            };
-            _series.Add(chartSeries);
         }
     }
 

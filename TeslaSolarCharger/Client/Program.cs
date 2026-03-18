@@ -43,6 +43,8 @@ builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckSer
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
+builder.Services.AddScoped<IThemeStateService, ThemeStateService>();
+builder.Services.AddScoped<IAppColors, AppColors>();
 builder.Services.AddScoped<IChargePriceService, ChargePriceService>();
 builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 builder.Services.AddScoped<IBaseConfigurationService, BaseConfigurationService>();

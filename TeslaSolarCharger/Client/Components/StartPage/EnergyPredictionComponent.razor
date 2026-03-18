@@ -18,15 +18,17 @@
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
-@inject IChartWidthCalculator ChartWidthCalculator
 @inject IApexChartHelper ApexChartHelper
+@using TeslaSolarCharger.Client.BaseComponents
+
 @inject IConstants Constants
+@inject IAppColors AppColors
 @inject IDateTimeProvider DateTimeProvider
 @inject ITextLocalizationService TextLocalizer
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<EnergyPredictionComponent> Logger
 
-@implements IDisposable
+@inherits ChartComponentBase<DtoChartValue<int, decimal?>>
 
 <MudExpansionPanels>
     <MudExpansionPanel ExpandedChanged="isExpanded => ExpandedChanged(isExpanded)">
@@ -90,13 +92,13 @@
                 <!-- Consumption Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <ApexChart TItem="DtoChartValue<int, decimal?>"
-                               Options="_chartOptions"
+                               Options="Options"
                                Width="@ChartWidthCalculator.ChartWidth"
                                Height="@ChartHeight"
                                XAxisType="XAxisType.Numeric"
                                FormatXAxisLabel="@(arg => arg.ToString("N0"))"
                                FormatYAxisLabel="@(arg => arg.ToString("F1"))"
-                               @ref="_consumptionChart">
+                               @ref="Chart">
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryChargingData"
@@ -104,7 +106,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryChargingColor"
+                                         Color="@AppColors.BatteryChargingColor"
                                          Group="production-stack" />
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -113,7 +115,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatterySocColor"/>
+                                         Color="@AppColors.BatterySocColor"/>
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryDischargingData"
@@ -121,7 +123,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryDischargingColor"
+                                         Color="@AppColors.BatteryDischargingColor"
                                          Group="consumption-stack"/>
 
                         <!-- House Prediction Line -->
@@ -131,7 +133,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionPredictionColor"/>
+                                         Color="@AppColors.HomeConsumptionPredictionColor"/>
 
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -140,7 +142,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionChartColor"
+                                         Color="@AppColors.HomeConsumptionChartColor"
                                          Group="consumption-stack"/>
 
 
@@ -152,7 +154,7 @@
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
                                              YValue="@(e => e.Value)"
-                                             Color="@Constants.SolarPowerPredictionColor"/>
+                                             Color="@AppColors.SolarPowerPredictionColor"/>
                         }
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -161,7 +163,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.SolarPowerColor"
+                                         Color="@AppColors.SolarPowerColor"
                                          Group="production-stack"/>
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -170,7 +172,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.GridExportColor"
+                                         Color="@AppColors.GridExportColor"
                                          Group="production-stack"/>
                         
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -179,7 +181,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.GridImportColor"
+                                         Color="@AppColors.GridImportColor"
                                          Group="consumption-stack"/>
 
 
@@ -204,11 +206,9 @@
 
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
-    private ApexChartOptions<DtoChartValue<int, decimal?>>? _chartOptions;
     private bool _isSolarPredictionEnabled;
     private bool _dataLoaded;
     private bool _isExpanded;
-    private ApexChart<DtoChartValue<int, decimal?>>? _consumptionChart;
 
     private int ChartHeightValue { get; set; } = 470;
     private string ChartHeight => $"{ChartHeightValue}px";
@@ -217,11 +217,9 @@
     private IDisposable? _subscription;
     private bool _hasUserManuallyChangedDate;
 
-    //This values was determined by testing. Is used to not get an error when setting series values to null and to redraw the chart after a browser width change.
-    private const int RedrawDelayMilliseconds = 50;
-
     protected override async Task OnInitializedAsync()
     {
+
         var currentTime = TimeProvider.GetLocalNow();
         SelectedDate = currentTime.Date;
         await base.OnInitializedAsync();
@@ -229,7 +227,7 @@
         await InvokeAsync(() => StateHasChanged());
 
         // Configure consumption chart options
-        _chartOptions = GetChartOptions();
+        Options = GetChartOptions();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
 
@@ -330,15 +328,7 @@
         return options;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            ChartWidthCalculator.ChartWidthChanged += OnChartWidthChangedAsync;
-            await ChartWidthCalculator.InitAsync();
-        }
-        await base.OnAfterRenderAsync(firstRender);
-    }
+
 
     private class LegendItemData
     {
@@ -357,7 +347,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = GetRelevantSolarPredictionText(),
-                Color = Constants.SolarPowerPredictionColor,
+                Color = AppColors.SolarPowerPredictionColor,
                 Icon = Constants.SolarPowerIcon,
                 Value = GetRelevantSolarPrediction(),
             });
@@ -367,7 +357,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = T(TranslationKeys.EnergyPredictionSolarActual),
-                Color = Constants.SolarPowerColor,
+                Color = AppColors.SolarPowerColor,
                 Icon = Constants.SolarPowerIcon,
                 Value = SolarActualData.Sum(v => v.Value ?? 0),
             });
@@ -378,7 +368,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = T(TranslationKeys.EnergyPredictionHousePrediction),
-                Color = Constants.HomeConsumptionPredictionColor,
+                Color = AppColors.HomeConsumptionPredictionColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HousePredictionData.Sum(v => v.Value ?? 0),
             });
@@ -388,7 +378,7 @@
             items.Add(new LegendItemData
             {
                 TooltipText = T(TranslationKeys.EnergyPredictionHouseActual),
-                Color = Constants.HomeConsumptionChartColor,
+                Color = AppColors.HomeConsumptionChartColor,
                 Icon = Constants.HomePowerIcon,
                 Value = HouseActualData.Sum(v => v.Value ?? 0),
             });
@@ -402,7 +392,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionBatteryCharged),
-                    Color = Constants.BatteryChargingColor,
+                    Color = AppColors.BatteryChargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = chargingValue,
                 });
@@ -416,7 +406,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionBatteryDischarged),
-                    Color = Constants.BatteryDischargingColor,
+                    Color = AppColors.BatteryDischargingColor,
                     Icon = Constants.HomeBatteryIcon,
                     Value = dischargingValue,
                 });
@@ -431,7 +421,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionToGrid),
-                    Color = Constants.GridExportColor,
+                    Color = AppColors.GridExportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = toGridValue,
                 });
@@ -446,7 +436,7 @@
                 items.Add(new LegendItemData
                 {
                 TooltipText = T(TranslationKeys.EnergyPredictionFromGrid),
-                    Color = Constants.GridImportColor,
+                    Color = AppColors.GridImportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = fromGridValue,
                 });
@@ -559,9 +549,9 @@
 
             _dataLoaded = true;
 
-            if (_consumptionChart != null)
+            if (Chart != null)
             {
-                await _consumptionChart.UpdateSeriesAsync();
+                await Chart.UpdateSeriesAsync();
             }
 
             StateHasChanged();
@@ -657,28 +647,15 @@
             return;
         }
 
-        if (_consumptionChart != default)
+        if (Chart != default)
         {
-            await _consumptionChart.UpdateOptionsAsync(false, false, false);
+            await Chart.UpdateOptionsAsync(false, false, false);
         }
     }
 
-    private async ValueTask OnChartWidthChangedAsync()
+    public override void Dispose()
     {
-        await InvokeAsync(StateHasChanged);
-
-        await Task.Delay(RedrawDelayMilliseconds);
-
-        if (_consumptionChart != default)
-        {
-            await _consumptionChart.UpdateOptionsAsync(false, false, false);
-        }
-    }
-
-    public void Dispose()
-    {
-        ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
-        _consumptionChart?.Dispose();
+        base.Dispose();
         _subscription?.Dispose();
     }
 
