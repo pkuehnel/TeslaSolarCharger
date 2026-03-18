@@ -14,7 +14,7 @@ public abstract class ChartComponentBase<TItem> : ComponentBase, IDisposable whe
     protected IChartWidthCalculator ChartWidthCalculator { get; set; } = default!;
 
     [Inject]
-    protected ILogger<ChartComponentBase<TItem>> Logger { get; set; } = default!;
+    private ILogger<ChartComponentBase<TItem>> Logger { get; set; } = default!;
 
     protected ApexChart<TItem>? Chart;
     protected ApexChartOptions<TItem>? Options;

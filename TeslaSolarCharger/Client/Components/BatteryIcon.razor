@@ -18,6 +18,7 @@
 
 @inject IAppColors AppColors
 @inject IThemeStateService ThemeStateService
+@implements IDisposable
 
 @code {
     [Parameter]
@@ -44,5 +45,8 @@
         return AppColors.BatterySocCriticalColor;
     }
 
-    
+    public void Dispose()
+    {
+        ThemeStateService.OnDarkModeChanged -= OnDarkModeChangedHandler;
+    }
 }
