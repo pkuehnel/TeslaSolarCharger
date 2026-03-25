@@ -16,6 +16,14 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task<DtoBaseConfiguration> GetBaseConfiguration() => configurationWrapper.GetBaseConfigurationAsync();
 
         [HttpGet]
+        public DtoDynamicMinSocSettings GetDynamicMinSocSettings() => new DtoDynamicMinSocSettings
+        {
+            DynamicHomeBatteryMinSoc = configurationWrapper.DynamicHomeBatteryMinSoc(),
+            HomeBatteryMinSoc = configurationWrapper.HomeBatteryMinSoc(),
+            HomeBatteryMinDynamicMinSoc = configurationWrapper.HomeBatteryMinDynamicMinSoc()
+        };
+
+        [HttpGet]
         public DtoValue<bool> AllowPowerBufferChangeOnHome() => new(configurationWrapper.AllowPowerBufferChangeOnHome());
 
         [HttpGet]

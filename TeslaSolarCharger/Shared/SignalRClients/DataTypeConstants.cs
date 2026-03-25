@@ -11,4 +11,5 @@ public class DataTypeConstants
     public const string NotChargingAsExpectedChangeTrigger = "NotChargingAsExpectedChangeTrigger";
     public const string ChargingSchedulesChangeTrigger = "ChargingSchedulesChangeTrigger";
     public const string EnergyPredictionChangeTrigger = "EnergyPredictionChangeTrigger";
+    public const string DynamicHomeBatteryMinSocChanged = "DynamicHomeBatteryMinSocChanged";
 }
