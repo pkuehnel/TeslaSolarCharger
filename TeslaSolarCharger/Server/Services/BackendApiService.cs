@@ -44,14 +44,12 @@ public class BackendApiService(
         await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
         var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.TeslaFleetApiToken}";
         var teslaTargetActionPayLoad = new RedeemTargetActionPayloadTeslaAuthentication(encryptionKey, baseUrl);
-        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
         }
         var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, teslaTargetActionPayLoad).ConfigureAwait(false);
-        request.Headers.Authorization = new("Bearer", token.AccessToken);
         if (result.HasError)
         {
             throw new InvalidOperationException(result.ErrorMessage);
@@ -309,7 +307,7 @@ public class BackendApiService(
     /// <param name="requestUrlPart">Request URL, e.g. User/Login</param>
     /// <param name="content">Body to send to backend</param>
     /// <returns></returns>
-    public async Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
+    public async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
     {
         logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
         var request = new HttpRequestMessage();
