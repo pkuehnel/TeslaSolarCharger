@@ -87,6 +87,7 @@ public class BackendApiService(
         if (token != default)
         {
             teslaSolarChargerContext.BackendTokens.Remove(token);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var dtoLogin = new DtoLogin(login.EMail, login.Password, installationId.ToString());

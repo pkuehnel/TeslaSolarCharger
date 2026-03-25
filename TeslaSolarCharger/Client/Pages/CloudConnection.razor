@@ -205,7 +205,7 @@ else
             return;
         }
         var baseUrl = NavigationManager.BaseUri;
-        var url = await CloudConnectionCheckService.GetTeslaLoginUrl(baseUrl + "cloudconnection");
+        var url = await CloudConnectionCheckService.GetRedeemUrlIncludingToken(baseUrl + "cloudconnection");
         if (string.IsNullOrEmpty(url))
         {
             Snackbar.Add(T(TranslationKeys.CloudConnectionTeslaLoginUrlGenerationError), Severity.Error);

@@ -7,5 +7,5 @@ public interface ICloudConnectionCheckService
     Task<TokenState> GetBackendTokenState(bool useCache);
     Task<string?> GetBackendTokenUserName();
     Task<TokenState> GetFleetApiTokenState(bool useCache);
-    Task<string?> GetTeslaLoginUrl(string baseUrl);
+    Task<string?> GetRedeemUrlIncludingToken(string baseUrl);
 }

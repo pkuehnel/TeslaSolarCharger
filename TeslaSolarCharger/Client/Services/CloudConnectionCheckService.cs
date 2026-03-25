@@ -28,10 +28,10 @@ public class CloudConnectionCheckService(ILogger<CloudConnectionCheckService> lo
         return response?.Value ?? TokenState.MissingPrecondition;
     }
 
-    public async Task<string?> GetTeslaLoginUrl(string baseUrl)
+    public async Task<string?> GetRedeemUrlIncludingToken(string baseUrl)
     {
-        logger.LogTrace("{method}({baseUrl})", nameof(GetTeslaLoginUrl), baseUrl);
-        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?baseUrl={Uri.EscapeDataString(baseUrl)}");
+        logger.LogTrace("{method}({baseUrl})", nameof(GetRedeemUrlIncludingToken), baseUrl);
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"api/FleetApi/GetRedeemUrlIncludingCookieToken?baseUrl={Uri.EscapeDataString(baseUrl)}");
         return response?.Value;
     }
 }
