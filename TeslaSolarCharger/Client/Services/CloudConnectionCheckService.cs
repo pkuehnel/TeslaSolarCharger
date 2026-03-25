@@ -28,10 +28,10 @@ public class CloudConnectionCheckService(ILogger<CloudConnectionCheckService> lo
         return response?.Value ?? TokenState.MissingPrecondition;
     }
 
-    public async Task<string?> GetTeslaLoginUrl(string locale, string baseUrl)
+    public async Task<string?> GetTeslaLoginUrl(string baseUrl)
     {
-        logger.LogTrace("{method}({locale}, {baseUrl})", nameof(GetTeslaLoginUrl), locale, baseUrl);
-        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={Uri.EscapeDataString(locale)}&baseUrl={Uri.EscapeDataString(baseUrl)}");
+        logger.LogTrace("{method}({baseUrl})", nameof(GetTeslaLoginUrl), baseUrl);
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?baseUrl={Uri.EscapeDataString(baseUrl)}");
         return response?.Value;
     }
 }

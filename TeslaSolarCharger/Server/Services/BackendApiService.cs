@@ -9,7 +9,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
-using TeslaSolarCharger.Server.Dtos.TscBackend;
+using TeslaSolarCharger.Server.Enums.Solar4CarBackend;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -37,32 +37,31 @@ public class BackendApiService(
     IHttpClientFactory httpClientFactory)
     : IBackendApiService
 {
-    public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
+    public async Task<DtoValue<string>> StartTeslaOAuth(string baseUrl)
     {
         logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
         var encryptionKey = passwordGenerationService.GeneratePassword(32);
         await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
-        var state = Guid.NewGuid();
-        var requestUri = $"Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}&encryptionKey={Uri.EscapeDataString(encryptionKey)}&state={Uri.EscapeDataString(state.ToString())}";
+        var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.TeslaFleetApiToken}";
+        var teslaTargetActionPayLoad = new RedeemTargetActionPayloadTeslaAuthentication(encryptionKey, baseUrl);
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
         }
-        var result = await SendRequestToBackend<DtoTeslaOAuthRequestInformation>(HttpMethod.Post, token.AccessToken, requestUri, null).ConfigureAwait(false);
+        var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, teslaTargetActionPayLoad).ConfigureAwait(false);
         request.Headers.Authorization = new("Bearer", token.AccessToken);
-        var oAuthRequestInformation = result.Data;
         if (result.HasError)
         {
             throw new InvalidOperationException(result.ErrorMessage);
         }
 
-        if (oAuthRequestInformation == default)
+        if (result.Data == default || string.IsNullOrEmpty(result.Data.Value))
         {
-            throw new InvalidOperationException("oAuth Information is null");
+            throw new InvalidOperationException("Resulting Redeem code was null although has no error");
         }
-        var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);
+        var requestUrl = GenerateAuthUrl(result.Data.Value);
         await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenMissingScopes, "false");
         await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey, "false");
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenUnauthorized, null);
@@ -160,11 +159,11 @@ public class BackendApiService(
         memoryCache.Remove(constants.BackendTokenStateKey);
     }
 
-    internal string GenerateAuthUrl(DtoTeslaOAuthRequestInformation oAuthInformation, string locale)
+    internal string GenerateAuthUrl(string redeemCode)
     {
-        logger.LogTrace("{method}({@oAuthInformation})", nameof(GenerateAuthUrl), oAuthInformation);
-        var url =
-            $"https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/authorize?&client_id={Uri.EscapeDataString(oAuthInformation.ClientId)}&locale={Uri.EscapeDataString(locale)}&prompt={Uri.EscapeDataString(oAuthInformation.Prompt)}&redirect_uri={Uri.EscapeDataString(oAuthInformation.RedirectUri)}&response_type={Uri.EscapeDataString(oAuthInformation.ResponseType)}&scope={Uri.EscapeDataString(oAuthInformation.Scope)}&state={Uri.EscapeDataString(oAuthInformation.State)}&prompt_missing_scopes=true";
+        logger.LogTrace("{method}({redeemCode})", nameof(GenerateAuthUrl), redeemCode);
+        var requestUrlPart = $"AuthRedeem/Redeem?code={Uri.EscapeDataString(redeemCode)}";
+        var url = GenerateBackendFullRequestUrl(requestUrlPart);
         return url;
     }
 
@@ -313,7 +312,7 @@ public class BackendApiService(
     {
         logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
         var request = new HttpRequestMessage();
-        var finalUrl = configurationWrapper.BackendApiBaseUrl() + requestUrlPart;
+        var finalUrl = GenerateBackendFullRequestUrl(requestUrlPart);
         request.RequestUri = new Uri(finalUrl);
         if (accessToken != default)
         {
@@ -397,6 +396,11 @@ public class BackendApiService(
             );
         }
 
+    }
+
+    private string GenerateBackendFullRequestUrl(string requestUrlPart)
+    {
+        return configurationWrapper.BackendApiBaseUrl() + requestUrlPart;
     }
 
 
