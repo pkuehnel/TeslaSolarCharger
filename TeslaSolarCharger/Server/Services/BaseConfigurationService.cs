@@ -108,7 +108,7 @@ public class BaseConfigurationService(
             Directory.CreateDirectory(backupZipDirectory);
             var destinationArchiveFileName = Path.Combine(backupZipDirectory, backupFileName);
             logger.LogTrace("Creating backup zip file: {destinationArchiveFileName}", destinationArchiveFileName);
-            ZipFile.CreateFromDirectory(backupCopyDestinationDirectory, destinationArchiveFileName);
+            await ZipFile.CreateFromDirectoryAsync(backupCopyDestinationDirectory, destinationArchiveFileName);
             logger.LogTrace("Backup zip file created successfully: {destinationArchiveFileName}", destinationArchiveFileName);
             return destinationArchiveFileName;
         }
@@ -123,12 +123,6 @@ public class BaseConfigurationService(
             {
                 await jobManager.StartJobs().ConfigureAwait(false);
             }
-        var changes = new StateUpdateDto()
-        {
-            DataType = DataTypeConstants.DynamicHomeBatteryMinSocChanged,
-            Timestamp = dateTimeProvider.DateTimeOffSetUtcNow(),
-        };
-        await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
         }
     }
 
