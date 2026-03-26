@@ -37,19 +37,19 @@ public class BackendApiService(
     IHttpClientFactory httpClientFactory)
     : IBackendApiService
 {
-    public async Task<DtoValue<string>> StartTeslaOAuth(string baseUrl)
+    public async Task<DtoValue<string>> GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl)
     {
-        logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
+        logger.LogTrace("{method}()", nameof(GetTeslaOAuthRedeemUrlIncludingCookieAuthCode));
         var encryptionKey = passwordGenerationService.GeneratePassword(32);
         await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
         var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.TeslaFleetApiToken}";
-        var teslaTargetActionPayLoad = new RedeemTargetActionPayloadTeslaAuthentication(encryptionKey, baseUrl);
+        var teslaTargetActionPayload = new RedeemTargetActionPayloadTeslaAuthentication(encryptionKey, baseUrl);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
         }
-        var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, teslaTargetActionPayLoad).ConfigureAwait(false);
+        var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, teslaTargetActionPayload).ConfigureAwait(false);
         if (result.HasError)
         {
             throw new InvalidOperationException(result.ErrorMessage);
@@ -57,7 +57,7 @@ public class BackendApiService(
 
         if (result.Data == default || string.IsNullOrEmpty(result.Data.Value))
         {
-            throw new InvalidOperationException("Resulting Redeem code was null although has no error");
+            throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
         }
         var requestUrl = GenerateAuthUrl(result.Data.Value);
         await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenMissingScopes, "false");

@@ -1,29 +1,25 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
-using System.Net;
-using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
-using TeslaSolarCharger.SharedBackend.Extensions;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
 public class FleetApiController(
     ITeslaFleetApiService fleetApiService,
-    IBackendApiService backendApiService,
-    ITeslaService teslaService,
-    IConfigurationWrapper configurationWrapper)
+    IBackendApiService backendApiService)
     : ApiBaseController
 {
     [HttpGet]
     public Task<DtoValue<TokenState>> FleetApiTokenState(bool useCache) => fleetApiService.GetFleetApiTokenState(useCache);
 
     [HttpGet]
-    public Task<DtoValue<string>> GetRedeemUrlIncludingCookieToken(string baseUrl) => backendApiService.StartTeslaOAuth(baseUrl);
+    public async Task<IActionResult> GetRedeemUrlIncludingCookieAuthCode(string baseUrl)
+    {
+        var result = await backendApiService.GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(baseUrl);
+        return Ok(result);
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetFleetApiState(int carId)
