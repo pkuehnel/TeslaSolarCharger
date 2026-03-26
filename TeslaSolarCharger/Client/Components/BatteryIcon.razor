@@ -43,7 +43,7 @@
 
     private string GetBatteryColor(int soc)
     {
-        if (Color != null)
+        if (!string.IsNullOrWhiteSpace(Color))
         {
             return Color;
         }

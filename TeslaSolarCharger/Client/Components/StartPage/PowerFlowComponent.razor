@@ -207,7 +207,7 @@ else
         await RefreshDynamicMinSocSettings();
 
         _dynamicMinSocSubscription = await SignalRStateService.SubscribeToTrigger(
-            DataTypeConstants.DynamicHomeBatteryMinSocChanged,
+            DataTypeConstants.DynamicHomeBatteryMinSocChangeTrigger,
             async void () =>
             {
                 try
@@ -217,7 +217,7 @@ else
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Could not refresh dynamic min soc settings");
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshDynamicMinSocSettings));
                 }
             });
 
