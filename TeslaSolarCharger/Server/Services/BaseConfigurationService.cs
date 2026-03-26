@@ -8,6 +8,8 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
+using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,7 +21,8 @@ public class BaseConfigurationService(
     ISettings settings,
     IDbConnectionStringHelper dbConnectionStringHelper,
     IConstants constants,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IAppStateNotifier appStateNotifier)
     : IBaseConfigurationService
 {
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -37,6 +40,12 @@ public class BaseConfigurationService(
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
+        var changes = new StateUpdateDto()
+        {
+            DataType = DataTypeConstants.DynamicHomeBatteryMinSocChanged,
+            Timestamp = dateTimeProvider.DateTimeOffSetUtcNow(),
+        };
+        await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
     }
 
     public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)
@@ -99,7 +108,7 @@ public class BaseConfigurationService(
             Directory.CreateDirectory(backupZipDirectory);
             var destinationArchiveFileName = Path.Combine(backupZipDirectory, backupFileName);
             logger.LogTrace("Creating backup zip file: {destinationArchiveFileName}", destinationArchiveFileName);
-            ZipFile.CreateFromDirectory(backupCopyDestinationDirectory, destinationArchiveFileName);
+            await ZipFile.CreateFromDirectoryAsync(backupCopyDestinationDirectory, destinationArchiveFileName);
             logger.LogTrace("Backup zip file created successfully: {destinationArchiveFileName}", destinationArchiveFileName);
             return destinationArchiveFileName;
         }
@@ -240,6 +249,17 @@ public class BaseConfigurationService(
     {
         logger.LogTrace("{method}()", nameof(HomeBatteryValuesAvailable));
         return settings.HomeBatteryPower != default && settings.HomeBatterySoc != default;
+    }
+
+    public DtoDynamicMinSocSettings GetDynamicMinSocSettings()
+    {
+        var minSocSettings = new DtoDynamicMinSocSettings
+        {
+            DynamicHomeBatteryMinSoc = configurationWrapper.DynamicHomeBatteryMinSoc(),
+            HomeBatteryMinSoc = configurationWrapper.HomeBatteryMinSoc(),
+            HomeBatteryMinDynamicMinSoc = configurationWrapper.HomeBatteryMinDynamicMinSoc(),
+        };
+        return minSocSettings;
     }
 
     public List<DtoBackupFileInformation> GetAutoBackupFileInformations()

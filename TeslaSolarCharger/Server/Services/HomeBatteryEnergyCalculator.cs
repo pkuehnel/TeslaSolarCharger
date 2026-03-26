@@ -1,10 +1,14 @@
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.Shared.SignalRClients;
+using TeslaSolarCharger.Shared.TimeProviding;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -17,6 +21,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     private readonly ISunCalculator _sunCalculator;
     private readonly IEnergyDataService _energyDataService;
     private readonly IConstants _constants;
+    private readonly IAppStateNotifier _appStateNotifier;
 
     public HomeBatteryEnergyCalculator(ILogger<HomeBatteryEnergyCalculator> logger,
         IConfigurationWrapper configurationWrapper,
@@ -24,7 +29,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         ISettings settings,
         ISunCalculator sunCalculator,
         IEnergyDataService energyDataService,
-        IConstants constants)
+        IConstants constants,
+        IAppStateNotifier appStateNotifier)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -33,6 +39,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         _sunCalculator = sunCalculator;
         _energyDataService = energyDataService;
         _constants = constants;
+        _appStateNotifier = appStateNotifier;
     }
 
     public async Task RefreshHomeBatteryMinSoc(CancellationToken cancellationToken)
@@ -75,6 +82,12 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             var configuration = await _configurationWrapper.GetBaseConfigurationAsync();
             configuration.HomeBatteryMinSoc = calculateMinSoc;
             await _configurationWrapper.UpdateBaseConfigurationAsync(configuration);
+            var changes = new StateUpdateDto()
+            {
+                DataType = DataTypeConstants.DynamicHomeBatteryMinSocChanged,
+                Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
+            };
+            await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
         }
     }
 

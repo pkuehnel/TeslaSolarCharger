@@ -24,6 +24,9 @@
     [Parameter]
     public int? StateOfCharge { get; set; }
 
+    [Parameter]
+    public string? Color { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -40,6 +43,11 @@
 
     private string GetBatteryColor(int soc)
     {
+        if (Color != null)
+        {
+            return Color;
+        }
+
         if (soc > 50) return AppColors.BatterySocGoodColor;
         if (soc > 25) return AppColors.BatterySocWarningColor;
         return AppColors.BatterySocCriticalColor;
