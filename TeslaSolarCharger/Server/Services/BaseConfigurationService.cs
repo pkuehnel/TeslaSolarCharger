@@ -42,7 +42,7 @@ public class BaseConfigurationService(
         }
         var changes = new StateUpdateDto()
         {
-            DataType = DataTypeConstants.DynamicHomeBatteryMinSocChanged,
+            DataType = DataTypeConstants.DynamicHomeBatteryMinSocChangeTrigger,
             Timestamp = dateTimeProvider.DateTimeOffSetUtcNow(),
         };
         await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
