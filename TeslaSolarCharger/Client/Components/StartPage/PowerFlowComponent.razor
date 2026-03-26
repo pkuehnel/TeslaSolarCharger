@@ -191,7 +191,7 @@ else
     private DtoDynamicMinSocSettings? _dynamicMinSocSettings;
     private readonly int _widthInPixel = 420;
 
-
+    private const int BatterySocWarningThreshold = 15;
 
 
 
@@ -681,8 +681,8 @@ else
 
             if (minSoc == dynamicMinSoc) return AppColors.BatterySocGoodColor;
 
-            if (soc < minSoc - 15) return AppColors.BatterySocCriticalColor;
-            if (soc > minSoc + 15) return AppColors.BatterySocGoodColor;
+            if (soc < minSoc - BatterySocWarningThreshold) return AppColors.BatterySocCriticalColor;
+            if (soc > minSoc + BatterySocWarningThreshold) return AppColors.BatterySocGoodColor;
 
             return AppColors.BatterySocWarningColor;
         }
