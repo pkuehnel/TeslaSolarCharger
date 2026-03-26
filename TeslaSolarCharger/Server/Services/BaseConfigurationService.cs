@@ -257,6 +257,17 @@ public class BaseConfigurationService(
         return settings.HomeBatteryPower != default && settings.HomeBatterySoc != default;
     }
 
+    public DtoDynamicMinSocSettings GetDynamicMinSocSettings()
+    {
+        var minSocSettings = new DtoDynamicMinSocSettings
+        {
+            DynamicHomeBatteryMinSoc = configurationWrapper.DynamicHomeBatteryMinSoc(),
+            HomeBatteryMinSoc = configurationWrapper.HomeBatteryMinSoc(),
+            HomeBatteryMinDynamicMinSoc = configurationWrapper.HomeBatteryMinDynamicMinSoc(),
+        };
+        return minSocSettings;
+    }
+
     public List<DtoBackupFileInformation> GetAutoBackupFileInformations()
     {
         var backupZipDirectory = configurationWrapper.AutoBackupsZipDirectory();
