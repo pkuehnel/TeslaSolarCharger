@@ -190,11 +190,12 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
+        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
 
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
-        if (authToken == default)
+        if (authToken == default || authToken.ExpiresAtUtc < dateTimeProvider.DateTimeOffSetUtcNow())
         {
-            _logger.LogError("Can not connect to SignalR: No token found");
+            _logger.LogError("Can not connect to SignalR: No unexpired token found");
             return false;
         }
 
@@ -215,7 +216,13 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(url, options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult(authToken.AccessToken)!;
+                options.AccessTokenProvider = async () =>
+                {
+                    using var tokenScope = _serviceProvider.CreateScope();
+                    var tokenContext = tokenScope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+                    var token = await tokenContext.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
+                    return token?.AccessToken;
+                };
             })
             .WithAutomaticReconnect(new JitteredExponentialBackoffRetryPolicy())
             .AddNewtonsoftJsonProtocol(options =>
