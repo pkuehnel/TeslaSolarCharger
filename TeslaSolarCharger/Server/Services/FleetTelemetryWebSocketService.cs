@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System.Net.WebSockets;
 using System.Text;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
@@ -15,43 +15,57 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class FleetTelemetryWebSocketService(
-    ILogger<FleetTelemetryWebSocketService> logger,
-    IServiceProvider serviceProvider,
-    ISettings settings) : IFleetTelemetryWebSocketService
+public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, IAsyncDisposable
 {
-    private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
+    private readonly ILogger<FleetTelemetryWebSocketService> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ISettings _settings;
 
-    private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
+    private HubConnection? _hubConnection;
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
+
+    // Track subscribed VINs and when they were connected
+    private readonly Dictionary<string, DateTimeOffset> _subscribedVins = new();
+
+    public FleetTelemetryWebSocketService(
+        ILogger<FleetTelemetryWebSocketService> logger,
+        IServiceProvider serviceProvider,
+        ISettings settings)
+    {
+        _logger = logger;
+        _serviceProvider = serviceProvider;
+        _settings = settings;
+    }
 
     public bool IsClientConnected(string vin)
     {
-        logger.LogTrace("{method}({vin})", nameof(IsClientConnected), vin);
-        return Clients.Any(c => c.Vin == vin && c.WebSocketClient.State == WebSocketState.Open);
+        _logger.LogTrace("{method}({vin})", nameof(IsClientConnected), vin);
+        return _hubConnection?.State == HubConnectionState.Connected && _subscribedVins.ContainsKey(vin);
     }
 
     public DateTimeOffset? ClientConnectedSince(string vin)
     {
-        logger.LogTrace("{method}({vin})", nameof(ClientConnectedSince), vin);
-        var client = Clients.FirstOrDefault(c => c.Vin == vin);
-        if (client == default)
+        _logger.LogTrace("{method}({vin})", nameof(ClientConnectedSince), vin);
+        if (_hubConnection?.State != HubConnectionState.Connected)
         {
             return default;
         }
-        if (client.WebSocketClient.State != WebSocketState.Open)
+
+        if (_subscribedVins.TryGetValue(vin, out var connectedSince))
         {
-            return default;
+            return connectedSince;
         }
-        return client.ConnectedSince;
+
+        return default;
     }
 
     public async Task ReconnectWebSocketsForEnabledCars()
     {
-        logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
-        using var scope = serviceProvider.CreateScope();
+        _logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
+        using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var backendApiService = scope.ServiceProvider.GetRequiredService<IBackendApiService>();
-        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+
         var cars = await context.Cars
             .Where(c => c.UseFleetTelemetry
                         && (c.ShouldBeManaged == true)
@@ -59,15 +73,18 @@ public class FleetTelemetryWebSocketService(
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
-            .Select(c => new { c.Vin, c.IncludeTrackingRelevantFields, })
+            .Select(c => new { c.Vin, c.IncludeTrackingRelevantFields })
             .ToListAsync();
+
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (cars.Any() && (isBaseAppLicensed.Data != true))
         {
-            logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
+            _logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
             return;
         }
-        var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
+
+        var validVins = new HashSet<string>();
+
         foreach (var car in cars)
         {
             if (string.IsNullOrEmpty(car.Vin))
@@ -77,180 +94,245 @@ public class FleetTelemetryWebSocketService(
 
             if (car.IncludeTrackingRelevantFields && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
             {
-                logger.LogWarning("Car {vin} is not licensed for Fleet API, do not connect as IncludeTrackingRelevant fields is enabled", car.Vin);
+                _logger.LogWarning("Car {vin} is not licensed for Fleet API, do not connect as IncludeTrackingRelevant fields is enabled", car.Vin);
                 continue;
             }
-            var existingClient = Clients.FirstOrDefault(c => c.Vin == car.Vin);
-            if (existingClient != default)
-            {
-                var currentTime = dateTimeProvider.DateTimeOffSetUtcNow();
-                //When intervall is changed, change it also in the server WebSocketConnectionHandlingService.SendHeartbeatsTask
-                var serverSideHeartbeatIntervall = TimeSpan.FromSeconds(54);
-                var additionalIntervallbuffer = TimeSpan.FromSeconds(30);
-                var maxLastHeartbeatAge = serverSideHeartbeatIntervall + additionalIntervallbuffer;
-                var earliestPossibleLastHeartbeat = currentTime - maxLastHeartbeatAge;
-                if ((existingClient.WebSocketClient.State == WebSocketState.Open) && (existingClient.LastReceivedHeartbeat > earliestPossibleLastHeartbeat))
-                {
-                    var segment = new ArraySegment<byte>(bytesToSend);
-                    try
-                    {
-                        logger.LogDebug("Sending Heartbeat to websocket client for car {vin}", existingClient.Vin);
-                        await existingClient.WebSocketClient.SendAsync(segment, WebSocketMessageType.Text, true,
-                            new CancellationTokenSource(_heartbeatsendTimeout).Token);
-                        logger.LogDebug("Heartbeat to websocket client for car {vin} sent", existingClient.Vin);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Error sending heartbeat for car {vin}", car);
-                        existingClient.WebSocketClient.Dispose();
-                        Clients.Remove(existingClient);
-                    }
 
-                    continue;
-                }
-
-                logger.LogInformation("Websocket Client State for car {vin} is {state}, last heartbeat is {lastHeartbeat} while earliest Possible Heartbeat is {earliestPossibleHeartbeat}. Disposing client",
-                    car.Vin, existingClient.WebSocketClient.State, existingClient.LastReceivedHeartbeat, earliestPossibleLastHeartbeat);
-                existingClient.WebSocketClient.Dispose();
-                Clients.Remove(existingClient);
-            }
-
-            _ = ConnectToFleetTelemetryApi(car.Vin);
+            validVins.Add(car.Vin);
         }
+
+        await ManageSignalRConnectionAsync(validVins).ConfigureAwait(false);
     }
 
-    private async Task ConnectToFleetTelemetryApi(string vin)
+    private async Task ManageSignalRConnectionAsync(HashSet<string> targetVins)
     {
-        logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
-        using var scope = serviceProvider.CreateScope();
-        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-        var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
-        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var url = configurationWrapper.FleetTelemetryApiUrl() + $"vin={vin}";
-        var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
-        if (authToken == default)
-        {
-            logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
-            return;
-        }
-        using var client = new ClientWebSocket();
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            logger.LogInformation("Connecting Fleet Telemetry for car {vin}.", vin);
-            client.Options.SetRequestHeader("Authorization", $"Bearer {authToken.AccessToken}");
-            await client.ConnectAsync(new Uri(url), new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
-            var cancellation = new CancellationTokenSource();
-            var dtoClient = new DtoFleetTelemetryWebSocketClients
+            // Start connection if needed
+            if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
             {
-                Vin = vin,
-                WebSocketClient = client,
-                CancellationToken = cancellation.Token,
-                LastReceivedHeartbeat = currentDate,
-                ConnectedSince = currentDate,
-            };
-            Clients.Add(dtoClient);
-            var carId = await context.Cars
-                .Where(c => c.Vin == vin)
-                .Select(c => c.Id)
-                .FirstOrDefaultAsync(cancellationToken: cancellation.Token).ConfigureAwait(false);
-            var teslaFleetApiService = scope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
-            var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
-            if (car != default)
-            {
-                await teslaFleetApiService.RefreshVehicleOnlineState(car);
-            }
-            var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
-            await loadPointManagementService.CarStateChanged(carId).ConfigureAwait(false);
-            try
-            {
-                await ReceiveMessages(dtoClient, dtoClient.Vin, carId).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error receiving messages for car {vin}", vin);
-            }
-            finally
-            {
-                Clients.Remove(dtoClient);
-                if (dtoClient.WebSocketClient.State != WebSocketState.Closed && dtoClient.WebSocketClient.State != WebSocketState.Aborted)
+                if (targetVins.Any())
                 {
-                    await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing",
-                        new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error connecting to WebSocket for car {vin}", vin);
-        }
-    }
-
-    private async Task ReceiveMessages(DtoFleetTelemetryWebSocketClients client, string vin, int carId)
-    {
-        logger.LogTrace("{method}(webSocket, ctx, {vin}, {carId})", nameof(ReceiveMessages), vin, carId);
-        var buffer = new byte[1024 * 4]; // Buffer to store incoming data
-        while (client.WebSocketClient.State == WebSocketState.Open)
-        {
-            try
-            {
-                using var scope = serviceProvider.CreateScope();
-                var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-                var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
-                logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
-                var result = await client.WebSocketClient.ReceiveAsync(new(buffer), client.CancellationToken);
-                logger.LogTrace("Received new fleet telemetry message for car {vin}", vin);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    // If the server closed the connection, close the WebSocket
-                    await client.WebSocketClient.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, client.CancellationToken);
-                    logger.LogInformation("WebSocket connection closed by server.");
+                    var success = await InitializeAndStartConnectionAsync().ConfigureAwait(false);
+                    if (!success)
+                    {
+                        return; // Failed to connect, will try again on next job run
+                    }
                 }
                 else
                 {
-                    // Decode the received message
-                    var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    if (jsonMessage == "Heartbeat")
-                    {
-                        logger.LogTrace("Received heartbeat: {message}", jsonMessage);
-                        client.LastReceivedHeartbeat = dateTimeProvider.DateTimeOffSetUtcNow();
-                        continue;
-                    }
-                    logger.LogTrace("Received non heartbeat message.");
-                    var message = DeserializeFleetTelemetryMessage(jsonMessage);
-                    if (message == default)
-                    {
-                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
-                        continue;
-                    }
-
-                    await HandleFleetTelemetryMessage(vin, [message], configurationWrapper, scope).ConfigureAwait(false);
+                    return; // No VINs to track, and not connected
                 }
+            }
+
+            // If we are still not connected (e.g., Reconnecting), we just update the _subscribedVins list
+            // The Reconnected event will handle resubscribing if needed.
+            if (_hubConnection?.State != HubConnectionState.Connected)
+            {
+                // Unsubscribe from VINs we no longer need (update internal list only)
+                var vinsToUnsubscribeReconnecting = _subscribedVins.Keys.Except(targetVins).ToList();
+                foreach (var vin in vinsToUnsubscribeReconnecting)
+                {
+                    _subscribedVins.Remove(vin);
+                }
+                return;
+            }
+
+            // Unsubscribe from VINs we no longer need
+            var vinsToUnsubscribe = _subscribedVins.Keys.Except(targetVins).ToList();
+            foreach (var vin in vinsToUnsubscribe)
+            {
+                try
+                {
+                    _logger.LogInformation("Unsubscribing from VIN {vin}", vin);
+                    await _hubConnection.InvokeAsync("UnsubscribeFromVin", vin).ConfigureAwait(false);
+                    _subscribedVins.Remove(vin);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to unsubscribe from VIN {vin}", vin);
+                }
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+            var teslaFleetApiService = scope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
+
+            // Subscribe to new VINs
+            var vinsToSubscribe = targetVins.Except(_subscribedVins.Keys).ToList();
+            foreach (var vin in vinsToSubscribe)
+            {
+                try
+                {
+                    _logger.LogInformation("Subscribing to VIN {vin}", vin);
+                    await _hubConnection.InvokeAsync("SubscribeToVin", vin).ConfigureAwait(false);
+                    _subscribedVins[vin] = dateTimeProvider.DateTimeOffSetUtcNow();
+
+                    var car = _settings.Cars.FirstOrDefault(c => c.Vin == vin);
+                    if (car != default)
+                    {
+                        await teslaFleetApiService.RefreshVehicleOnlineState(car);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to subscribe to VIN {vin}", vin);
+                }
+            }
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    private async Task<bool> InitializeAndStartConnectionAsync()
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
+
+        var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
+        if (authToken == default)
+        {
+            _logger.LogError("Can not connect to SignalR: No token found");
+            return false;
+        }
+
+        var url = configurationWrapper.FleetTelemetryApiUrl();
+
+        _logger.LogInformation("Initializing SignalR connection to {url}", url);
+
+        if (_hubConnection != null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+
+        var jsonSerializerSettings = new JsonSerializerSettings
+        {
+            Converters = new List<JsonConverter> { new EnumDefaultConverter<CarValueType>(CarValueType.Unknown) },
+        };
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(url, options =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult(authToken.AccessToken)!;
+            })
+            .WithAutomaticReconnect()
+            .AddNewtonsoftJsonProtocol(options =>
+            {
+                options.PayloadSerializerSettings = jsonSerializerSettings;
+            })
+            .Build();
+
+        _hubConnection.On<string, List<DtoTscFleetTelemetryMessage>>("ReceiveTelemetryData", async (vin, messages) =>
+        {
+            try
+            {
+                using var innerScope = _serviceProvider.CreateScope();
+                var innerConfig = innerScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
+                await HandleFleetTelemetryMessage(vin, messages, innerConfig, innerScope).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Could not reveive message");
+                _logger.LogError(ex, "Error processing ReceiveTelemetryData for VIN {vin}", vin);
             }
+        });
+
+        _hubConnection.Reconnected += async (connectionId) =>
+        {
+            _logger.LogInformation("SignalR Reconnected. Resubscribing to active VINs.");
+            await ResubscribeAllVinsAsync().ConfigureAwait(false);
+        };
+
+        _hubConnection.Closed += (error) =>
+        {
+            _logger.LogWarning(error, "SignalR connection closed.");
+            return Task.CompletedTask;
+        };
+
+        try
+        {
+            await _hubConnection.StartAsync().ConfigureAwait(false);
+            _logger.LogInformation("SignalR connection started successfully.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start SignalR connection");
+            return false;
+        }
+    }
+
+    private async Task ResubscribeAllVinsAsync()
+    {
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_hubConnection?.State != HubConnectionState.Connected)
+            {
+                return;
+            }
+
+            var vinsToResubscribe = _subscribedVins.Keys.ToList();
+
+            using var scope = _serviceProvider.CreateScope();
+            var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+            var teslaFleetApiService = scope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
+
+            foreach (var vin in vinsToResubscribe)
+            {
+                try
+                {
+                    _logger.LogInformation("Resubscribing to VIN {vin}", vin);
+                    await _hubConnection.InvokeAsync("SubscribeToVin", vin).ConfigureAwait(false);
+                    _subscribedVins[vin] = dateTimeProvider.DateTimeOffSetUtcNow();
+
+                    var car = _settings.Cars.FirstOrDefault(c => c.Vin == vin);
+                    if (car != default)
+                    {
+                        await teslaFleetApiService.RefreshVehicleOnlineState(car);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to resubscribe to VIN {vin}", vin);
+                    // Remove from tracked list if we failed, so the job will try again
+                    _subscribedVins.Remove(vin);
+                }
+            }
+        }
+        finally
+        {
+            _connectionLock.Release();
         }
     }
 
     private async Task HandleFleetTelemetryMessage(string vin, List<DtoTscFleetTelemetryMessage> messages, 
         IConfigurationWrapper configurationWrapper, IServiceScope scope)
     {
-        logger.LogTrace("Handle {count} messages for VIN {vin}", messages.Count, vin);
+        _logger.LogTrace("Handle {count} messages for VIN {vin}", messages.Count, vin);
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var scopedSettings = scope.ServiceProvider.GetRequiredService<ISettings>();
-        var settingsCar = scopedSettings.Cars.First(c => c.Vin == vin);
+
+        var settingsCar = scopedSettings.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (settingsCar == default)
+        {
+            _logger.LogWarning("Received telemetry for untracked VIN {vin}", vin);
+            return;
+        }
+
         foreach (var message in messages)
         {
             if (configurationWrapper.LogLocationData() ||
             (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
             {
-                logger.LogDebug("Save fleet telemetry message {@message}", message);
+                _logger.LogDebug("Save fleet telemetry message {@message}", message);
             }
             else
             {
-                logger.LogDebug("Save location message for car {vin}", vin);
+                _logger.LogDebug("Save location message for car {vin}", vin);
             }
             
             var carValueLog = new CarValueLog
@@ -360,7 +442,7 @@ public class FleetTelemetryWebSocketService(
         }
         _ = Task.Run(async () =>
         {
-            using var innerScope = serviceProvider.CreateScope();
+            using var innerScope = _serviceProvider.CreateScope();
             var loadPointManagementService = innerScope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
             try
             {
@@ -368,7 +450,7 @@ public class FleetTelemetryWebSocketService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
+                _logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
             }
         });
         await context.SaveChangesAsync().ConfigureAwait(false);
@@ -382,5 +464,14 @@ public class FleetTelemetryWebSocketService(
         };
         var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage, jsonSerializerSettings);
         return message;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            await _hubConnection.DisposeAsync().ConfigureAwait(false);
+        }
+        _connectionLock.Dispose();
     }
 }
