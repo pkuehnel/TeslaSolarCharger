@@ -223,145 +223,152 @@ public class FleetTelemetryWebSocketService(
                         logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
                         continue;
                     }
-                    if (configurationWrapper.LogLocationData() ||
-                        (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
-                    {
-                        logger.LogDebug("Save fleet telemetry message {@message}", message);
-                    }
-                    else
-                    {
-                        logger.LogDebug("Save location message for car {carId}", carId);
-                    }
 
-
-                    var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-                    var carValueLog = new CarValueLog
-                    {
-                        CarId = carId,
-                        Type = message.Type,
-                        DoubleValue = message.DoubleValue,
-                        IntValue = message.IntValue,
-                        StringValue = message.StringValue,
-                        UnknownValue = message.UnknownValue,
-                        BooleanValue = message.BooleanValue,
-                        InvalidValue = message.InvalidValue,
-                        Timestamp = message.TimeStamp.UtcDateTime,
-                        Source = CarValueSource.FleetTelemetry,
-                    };
-                    context.CarValueLogs.Add(carValueLog);
-                    await context.SaveChangesAsync().ConfigureAwait(false);
-                    if (configurationWrapper.GetVehicleDataFromTesla())
-                    {
-                        var scopedSettings = scope.ServiceProvider.GetRequiredService<ISettings>();
-                        var settingsCar = scopedSettings.Cars.First(c => c.Vin == vin);
-                        var shouldUpdateProperty = false;
-                        HomeDetectionVia? homeDetectionVia = null;
-                        if (message.Type == CarValueType.LocatedAtHome
-                            || message.Type == CarValueType.LocatedAtWork
-                            || message.Type == CarValueType.LocatedAtFavorite)
-                        {
-                            homeDetectionVia = await context.Cars
-                                .Where(c => c.Id == settingsCar.Id)
-                                .Select(c => c.HomeDetectionVia)
-                                .FirstAsync();
-                        }
-                        switch (message.Type)
-                        {
-                            case CarValueType.ChargeAmps:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.ChargeCurrentRequest:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.IsPluggedIn:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.ModuleTempMin:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.ModuleTempMax:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.IsCharging:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.ChargerPilotCurrent:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.Longitude:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.Latitude:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.StateOfCharge:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.StateOfChargeLimit:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.ChargerPhases:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.ChargerVoltage:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.VehicleName:
-                                shouldUpdateProperty = true;
-                                break;
-                            case CarValueType.AsleepOrOffline:
-                                settingsCar.IsOnline.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
-                                    carValueLog.BooleanValue == false);
-                                break;
-                            case CarValueType.LocatedAtHome:
-                                if (homeDetectionVia == HomeDetectionVia.LocatedAtHome)
-                                {
-                                    settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
-                                        carValueLog.BooleanValue == true);
-                                }
-                                break;
-                            case CarValueType.LocatedAtWork:
-                                if (homeDetectionVia == HomeDetectionVia.LocatedAtWork)
-                                {
-                                    settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
-                                        carValueLog.BooleanValue == true);
-                                }
-                                break;
-                            case CarValueType.LocatedAtFavorite:
-                                if (homeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
-                                {
-                                    settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
-                                        carValueLog.BooleanValue == true);
-                                }
-                                break;
-                        }
-
-                        if (shouldUpdateProperty)
-                        {
-                            var carPropertyUpdateHelper = scope.ServiceProvider.GetRequiredService<ICarPropertyUpdateHelper>();
-                            carPropertyUpdateHelper.UpdateDtoCarProperty(settingsCar, carValueLog);
-                        }
-                        _ = Task.Run(async () =>
-                        {
-                            using var innerScope = serviceProvider.CreateScope();
-                            var loadPointManagementService = innerScope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
-                            try
-                            {
-                                await loadPointManagementService.CarStateChanged(settingsCar.Id);
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
-                            }
-                        });
-                    }
-
+                    await HandleFleetTelemetryMessage(vin, message, configurationWrapper, scope).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Could not reveive message");
             }
+        }
+    }
+
+    private async Task HandleFleetTelemetryMessage(string vin, DtoTscFleetTelemetryMessage message, 
+        IConfigurationWrapper configurationWrapper, IServiceScope scope)
+    {
+        
+        if (configurationWrapper.LogLocationData() ||
+            (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
+        {
+            logger.LogDebug("Save fleet telemetry message {@message}", message);
+        }
+        else
+        {
+            logger.LogDebug("Save location message for car {vin}", vin);
+        }
+
+
+        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var scopedSettings = scope.ServiceProvider.GetRequiredService<ISettings>();
+        var settingsCar = scopedSettings.Cars.First(c => c.Vin == vin);
+        var carValueLog = new CarValueLog
+        {
+            CarId = settingsCar.Id,
+            Type = message.Type,
+            DoubleValue = message.DoubleValue,
+            IntValue = message.IntValue,
+            StringValue = message.StringValue,
+            UnknownValue = message.UnknownValue,
+            BooleanValue = message.BooleanValue,
+            InvalidValue = message.InvalidValue,
+            Timestamp = message.TimeStamp.UtcDateTime,
+            Source = CarValueSource.FleetTelemetry,
+        };
+        context.CarValueLogs.Add(carValueLog);
+        await context.SaveChangesAsync().ConfigureAwait(false);
+        if (configurationWrapper.GetVehicleDataFromTesla())
+        {
+            var shouldUpdateProperty = false;
+            HomeDetectionVia? homeDetectionVia = null;
+            if (message.Type == CarValueType.LocatedAtHome
+                || message.Type == CarValueType.LocatedAtWork
+                || message.Type == CarValueType.LocatedAtFavorite)
+            {
+                homeDetectionVia = await context.Cars
+                    .Where(c => c.Id == settingsCar.Id)
+                    .Select(c => c.HomeDetectionVia)
+                    .FirstAsync();
+            }
+            switch (message.Type)
+            {
+                case CarValueType.ChargeAmps:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.ChargeCurrentRequest:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.IsPluggedIn:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.ModuleTempMin:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.ModuleTempMax:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.IsCharging:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.ChargerPilotCurrent:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.Longitude:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.Latitude:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.StateOfCharge:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.StateOfChargeLimit:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.ChargerPhases:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.ChargerVoltage:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.VehicleName:
+                    shouldUpdateProperty = true;
+                    break;
+                case CarValueType.AsleepOrOffline:
+                    settingsCar.IsOnline.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                        carValueLog.BooleanValue == false);
+                    break;
+                case CarValueType.LocatedAtHome:
+                    if (homeDetectionVia == HomeDetectionVia.LocatedAtHome)
+                    {
+                        settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                            carValueLog.BooleanValue == true);
+                    }
+                    break;
+                case CarValueType.LocatedAtWork:
+                    if (homeDetectionVia == HomeDetectionVia.LocatedAtWork)
+                    {
+                        settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                            carValueLog.BooleanValue == true);
+                    }
+                    break;
+                case CarValueType.LocatedAtFavorite:
+                    if (homeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
+                    {
+                        settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                            carValueLog.BooleanValue == true);
+                    }
+                    break;
+            }
+
+            if (shouldUpdateProperty)
+            {
+                var carPropertyUpdateHelper = scope.ServiceProvider.GetRequiredService<ICarPropertyUpdateHelper>();
+                carPropertyUpdateHelper.UpdateDtoCarProperty(settingsCar, carValueLog);
+            }
+            _ = Task.Run(async () =>
+            {
+                using var innerScope = serviceProvider.CreateScope();
+                var loadPointManagementService = innerScope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+                try
+                {
+                    await loadPointManagementService.CarStateChanged(settingsCar.Id);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
+                }
+            });
         }
     }
 
