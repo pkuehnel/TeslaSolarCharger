@@ -485,20 +485,16 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                 }
             }
         }
-        _ = Task.Run(async () =>
-        {
-            using var innerScope = _serviceProvider.CreateScope();
-            var loadPointManagementService = innerScope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
-            try
-            {
-                await loadPointManagementService.CarStateChanged(settingsCar.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
-            }
-        });
         await context.SaveChangesAsync().ConfigureAwait(false);
+        var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+        try
+        {
+            await loadPointManagementService.CarStateChanged(settingsCar.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
+        }
     }
 
     internal DtoTscFleetTelemetryMessage? DeserializeFleetTelemetryMessage(string jsonMessage)
