@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System.Text;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
@@ -219,7 +217,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             {
                 options.AccessTokenProvider = () => Task.FromResult(authToken.AccessToken)!;
             })
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new JitteredExponentialBackoffRetryPolicy())
             .AddNewtonsoftJsonProtocol(options =>
             {
                 options.PayloadSerializerSettings = jsonSerializerSettings;
@@ -232,7 +230,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             {
                 using var innerScope = _serviceProvider.CreateScope();
                 var innerConfig = innerScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
-                await HandleFleetTelemetryMessage(vin, messages, innerConfig, innerScope).ConfigureAwait(false);
+                await HandleFleetTelemetryMessages(vin, messages, innerConfig, innerScope).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -240,7 +238,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             }
         });
 
-        _hubConnection.Reconnected += async (connectionId) =>
+        _hubConnection.Reconnected += async (_) =>
         {
             _logger.LogInformation("SignalR Reconnected. Resubscribing to active VINs.");
             await ResubscribeAllVinsAsync().ConfigureAwait(false);
@@ -262,6 +260,46 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         {
             _logger.LogError(ex, "Failed to start SignalR connection");
             return false;
+        }
+    }
+
+    private class JitteredExponentialBackoffRetryPolicy : IRetryPolicy
+    {
+        private const double MinCapSeconds = 240.0; // 4 minutes
+        private const double MaxCapSeconds = 300.0; // 5 minutes
+
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            // 1. Protect against Math.Pow overflow for extremely long-running disconnections
+            if (retryContext.PreviousRetryCount > 12)
+            {
+                return GetRandomCappedDelay();
+            }
+
+            // 2. Calculate base exponential backoff: 2^retryCount
+            // Attempt 0 = 1s, Attempt 1 = 2s, Attempt 2 = 4s... Attempt 8 = 256s
+            var baseDelaySeconds = Math.Pow(2, retryContext.PreviousRetryCount);
+
+            // 3. If the calculated delay reaches or exceeds our 4-minute minimum cap, 
+            // switch to the 4-5 minute random window.
+            if (baseDelaySeconds >= MinCapSeconds)
+            {
+                return GetRandomCappedDelay();
+            }
+
+            // 4. Add Jitter to the exponential backoff (e.g., +/- 20% randomness).
+            // If base is 4s, the delay will be randomly chosen between 3.2s and 4.8s.
+            var jitterMultiplier = 0.8 + (Random.Shared.NextDouble() * 0.4);
+            var jitteredDelaySeconds = baseDelaySeconds * jitterMultiplier;
+
+            return TimeSpan.FromSeconds(jitteredDelaySeconds);
+        }
+
+        private TimeSpan GetRandomCappedDelay()
+        {
+            // Generates a random value between 240 seconds (4 mins) and 300 seconds (5 mins)
+            var randomSeconds = MinCapSeconds + (Random.Shared.NextDouble() * (MaxCapSeconds - MinCapSeconds));
+            return TimeSpan.FromSeconds(randomSeconds);
         }
     }
 
@@ -309,7 +347,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         }
     }
 
-    private async Task HandleFleetTelemetryMessage(string vin, List<DtoTscFleetTelemetryMessage> messages, 
+    private async Task HandleFleetTelemetryMessages(string vin, List<DtoTscFleetTelemetryMessage> messages, 
         IConfigurationWrapper configurationWrapper, IServiceScope scope)
     {
         _logger.LogTrace("Handle {count} messages for VIN {vin}", messages.Count, vin);
