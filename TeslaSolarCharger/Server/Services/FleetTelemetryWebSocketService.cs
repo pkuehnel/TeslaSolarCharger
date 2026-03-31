@@ -1,13 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
-using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -219,17 +217,6 @@ public class FleetTelemetryWebSocketService(
                         continue;
                     }
                     logger.LogTrace("Received non heartbeat message.");
-                    var jObject = JObject.Parse(jsonMessage);
-                    var messageType = jObject[nameof(FleetTelemetryMessageBase.MessageType)]?.ToObject<FleetTelemetryMessageType>();
-                    if (messageType == FleetTelemetryMessageType.Error)
-                    {
-                        var couldHandleErrorMessage = await HandleErrorMessage(jsonMessage);
-                        if (!couldHandleErrorMessage)
-                        {
-                            logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
-                        }
-                        continue;
-                    }
                     var message = DeserializeFleetTelemetryMessage(jsonMessage);
                     if (message == default)
                     {
@@ -376,78 +363,6 @@ public class FleetTelemetryWebSocketService(
                 logger.LogError(ex, "Could not reveive message");
             }
         }
-    }
-
-    private async Task<bool> HandleErrorMessage(string jsonMessage)
-    {
-        logger.LogTrace("{method}({jsonMessage}", nameof(HandleErrorMessage), jsonMessage);
-        var message = JsonConvert.DeserializeObject<DtoFleetTelemetryErrorMessage>(jsonMessage);
-        if (message == default)
-        {
-            return false;
-        }
-        foreach (var vin in message.MissingKeyVins)
-        {
-            using var scope = serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-            var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
-            if (car == default)
-            {
-                continue;
-            }
-            logger.LogError("Set Fleet API state for car {vin} to not working", vin);
-            car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
-            await context.SaveChangesAsync();
-        }
-
-        foreach (var vin in message.UnsupportedFirmwareVins)
-        {
-            logger.LogError("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
-            await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
-        }
-
-        foreach (var vin in message.UnsupportedHardwareVins)
-        {
-            logger.LogError("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
-            await SetCarToFleetTelemetryHardwareIncompatible(vin).ConfigureAwait(false);
-            await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
-        }
-
-        foreach (var vin in message.MaxConfigsVins)
-        {
-            logger.LogError("Car {vin} has already has max allowed Fleet Telemetry configs", vin);
-        }
-
-        return true;
-    }
-
-    private async Task SetCarToFleetTelemetryHardwareIncompatible(string vin)
-    {
-        logger.LogTrace("{method}({vin})", nameof(SetCarToFleetTelemetryHardwareIncompatible), vin);
-        using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
-        if (car == default)
-        {
-            return;
-        }
-        car.IsFleetTelemetryHardwareIncompatible = true;
-        await context.SaveChangesAsync();
-    }
-
-    private async Task DisableFleetTelemetryForCar(string vin)
-    {
-        logger.LogTrace("{method}({vin})", nameof(DisableFleetTelemetryForCar), vin);
-        using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
-        if (car == default)
-        {
-            return;
-        }
-        car.UseFleetTelemetry = false;
-        car.IncludeTrackingRelevantFields = false;
-        await context.SaveChangesAsync();
     }
 
     internal DtoTscFleetTelemetryMessage? DeserializeFleetTelemetryMessage(string jsonMessage)
