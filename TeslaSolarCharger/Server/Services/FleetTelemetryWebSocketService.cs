@@ -104,6 +104,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 
     private async Task ManageSignalRConnectionAsync(HashSet<string> targetVins)
     {
+        _logger.LogTrace("{method}({@vins})", nameof(ManageSignalRConnectionAsync), targetVins);
         await _connectionLock.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -187,6 +188,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 
     private async Task<bool> InitializeAndStartConnectionAsync()
     {
+        _logger.LogTrace("{method}()", nameof(InitializeAndStartConnectionAsync));
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
