@@ -677,9 +677,10 @@ else
 
             var soc = _pvValues.HomeBatterySoc.Value;
             var minSoc = _dynamicMinSocSettings.HomeBatteryMinSoc ?? 0;
-            var dynamicMinSoc = _dynamicMinSocSettings.HomeBatteryMinDynamicMinSoc ?? 5;
+            var minDynamicMinSoc = _dynamicMinSocSettings.HomeBatteryMinDynamicMinSoc ?? 5;
+            var maxDynamicMinSoc = _dynamicMinSocSettings.HomeBatteryMaxDynamicMinSoc ?? 95;
 
-            if (minSoc == dynamicMinSoc) return AppColors.BatterySocGoodColor;
+            if (minSoc == minDynamicMinSoc || soc >= maxDynamicMinSoc) return AppColors.BatterySocGoodColor;
 
             if (soc < minSoc - 15) return AppColors.BatterySocCriticalColor;
             if (soc > minSoc + 15) return AppColors.BatterySocGoodColor;

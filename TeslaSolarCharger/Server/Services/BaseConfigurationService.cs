@@ -258,6 +258,7 @@ public class BaseConfigurationService(
             DynamicHomeBatteryMinSoc = configurationWrapper.DynamicHomeBatteryMinSoc(),
             HomeBatteryMinSoc = configurationWrapper.HomeBatteryMinSoc(),
             HomeBatteryMinDynamicMinSoc = configurationWrapper.HomeBatteryMinDynamicMinSoc(),
+            HomeBatteryMaxDynamicMinSoc = configurationWrapper.HomeBatteryMaxDynamicMinSoc(),
         };
         return minSocSettings;
     }
