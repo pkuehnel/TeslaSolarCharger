@@ -136,36 +136,57 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                 // Subscribe handler
                 client.ApplicationMessageReceivedAsync += handler;
 
+                client.DisconnectedAsync += e =>
+                {
+                    if (!ct.IsCancellationRequested)
+                    {
+                        logger.LogWarning(e.Exception, "MQTT client disconnected from {host}:{port}. Reason: {reason}", mqttConfiguration.Host, mqttConfiguration.Port, e.Reason);
+                    }
+                    return Task.CompletedTask;
+                };
+
                 try
                 {
-                    logger.LogTrace("Connecting MQTT client to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
-                    await client.ConnectAsync(options, ct).ConfigureAwait(false);
-                    logger.LogTrace("MQTT client connected to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
-
-                    if (resultConfigurations.Count > 0)
+                    const int retryIntervalSeconds = 30;
+                    while (!ct.IsCancellationRequested)
                     {
-                        var subscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder().Build();
-                        subscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
-                        logger.LogTrace("Subscribing to {count} topics", subscribeOptions.TopicFilters.Count);
-                        await client.SubscribeAsync(subscribeOptions, ct).ConfigureAwait(false);
-                        logger.LogTrace("Subscribed to {count} topics", subscribeOptions.TopicFilters.Count);
-                    }
+                        try
+                        {
+                            if (!client.IsConnected)
+                            {
+                                logger.LogTrace("Connecting MQTT client to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                                await client.ConnectAsync(options, ct).ConfigureAwait(false);
+                                logger.LogTrace("MQTT client connected to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
 
-                    // Stay alive until cancellation
-                    var tcs = new TaskCompletionSource<object?>();
-                    await using (ct.Register(() => tcs.TrySetResult(null)).ConfigureAwait(false))
-                    {
-                        await tcs.Task.ConfigureAwait(false);
-                        logger.LogTrace("MQTT connection to {host}:{port} cancelled", mqttConfiguration.Host, mqttConfiguration.Port);
+                                if (resultConfigurations.Count > 0)
+                                {
+                                    var subscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder().Build();
+                                    subscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
+
+                                    logger.LogTrace("Subscribing to {count} topics", subscribeOptions.TopicFilters.Count);
+                                    await client.SubscribeAsync(subscribeOptions, ct).ConfigureAwait(false);
+                                    logger.LogTrace("Successfully subscribed to {count} topics", subscribeOptions.TopicFilters.Count);
+                                }
+                            }
+                        }
+                        catch (Exception ex) when (!ct.IsCancellationRequested)
+                        {
+                            // Catch connection/subscription errors so they don't crash the loop
+                            logger.LogError(ex, "Error connecting or subscribing to MQTT broker at {host}:{port}. Will retry in {retryIntervalSeconds}s.", mqttConfiguration.Host, mqttConfiguration.Port, retryIntervalSeconds);
+                        }
+
+                        // Delay before checking the connection state again (prevents CPU spamming)
+                        await Task.Delay(TimeSpan.FromSeconds(retryIntervalSeconds), ct).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
+                    logger.LogTrace("MQTT connection to {host}:{port} cancelled via token", mqttConfiguration.Host, mqttConfiguration.Port);
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error in MQTT client connection to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                    logger.LogError(ex, "Fatal error in MQTT client loop for {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                 }
                 finally
                 {
