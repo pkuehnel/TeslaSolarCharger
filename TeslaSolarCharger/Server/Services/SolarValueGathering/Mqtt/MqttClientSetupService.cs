@@ -192,6 +192,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Fatal error in MQTT client loop for {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                    throw;
                 }
                 finally
                 {
