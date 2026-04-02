@@ -133,10 +133,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                     await Task.CompletedTask;
                 };
 
-                // Subscribe handler
-                client.ApplicationMessageReceivedAsync += handler;
-
-                client.DisconnectedAsync += e =>
+                Func<MqttClientDisconnectedEventArgs, Task> disconnectHandler = e =>
                 {
                     if (!ct.IsCancellationRequested)
                     {
@@ -145,9 +142,15 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                     return Task.CompletedTask;
                 };
 
+                // Subscribe handler
+                client.ApplicationMessageReceivedAsync += handler;
+
+                client.DisconnectedAsync += disconnectHandler;
+
                 try
                 {
                     const int retryIntervalSeconds = 30;
+                    var isSubscribed = false;
                     while (!ct.IsCancellationRequested)
                     {
                         try
@@ -157,16 +160,18 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                                 logger.LogTrace("Connecting MQTT client to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
                                 await client.ConnectAsync(options, ct).ConfigureAwait(false);
                                 logger.LogTrace("MQTT client connected to {host}:{port}", mqttConfiguration.Host, mqttConfiguration.Port);
+                                isSubscribed = false;
+                            }
 
-                                if (resultConfigurations.Count > 0)
-                                {
-                                    var subscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder().Build();
-                                    subscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
+                            if (client.IsConnected && !isSubscribed && resultConfigurations.Count > 0)
+                            {
+                                var subscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder().Build();
+                                subscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
 
-                                    logger.LogTrace("Subscribing to {count} topics", subscribeOptions.TopicFilters.Count);
-                                    await client.SubscribeAsync(subscribeOptions, ct).ConfigureAwait(false);
-                                    logger.LogTrace("Successfully subscribed to {count} topics", subscribeOptions.TopicFilters.Count);
-                                }
+                                logger.LogTrace("Subscribing to {count} topics", subscribeOptions.TopicFilters.Count);
+                                await client.SubscribeAsync(subscribeOptions, ct).ConfigureAwait(false);
+                                logger.LogTrace("Successfully subscribed to {count} topics", subscribeOptions.TopicFilters.Count);
+                                isSubscribed = true;
                             }
                         }
                         catch (Exception ex) when (!ct.IsCancellationRequested)
@@ -192,6 +197,7 @@ public class MqttClientSetupService : IAutoRefreshingValueSetupService, IMqttCli
                 {
                     // cleanup: detach handler & dispose client
                     client.ApplicationMessageReceivedAsync -= handler;
+                    client.DisconnectedAsync -= disconnectHandler;
 
                     try
                     {
