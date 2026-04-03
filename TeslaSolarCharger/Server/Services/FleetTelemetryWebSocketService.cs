@@ -362,11 +362,11 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         }
 
         HomeDetectionVia? homeDetectionVia = null;
-        var anyHomeDetectionRelevantMessate = messages
+        var anyHomeDetectionRelevantMessage = messages
             .Any(m => m.Type == CarValueType.LocatedAtHome
                       || m.Type == CarValueType.LocatedAtWork
                       || m.Type == CarValueType.LocatedAtFavorite);
-        if (anyHomeDetectionRelevantMessate)
+        if (anyHomeDetectionRelevantMessage)
         {
             homeDetectionVia = await context.Cars
                 .Where(c => c.Id == settingsCar.Id)
