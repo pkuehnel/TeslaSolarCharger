@@ -10,6 +10,7 @@ public class CarChargingTarget
     public DateOnly? TargetDate { get; set; }
     public TimeOnly TargetTime { get; set; }
     public DateTimeOffset? LastFulFilled { get; set; }
+    public int? LastKnownHomeBatterySoc { get; set; }
 
     public bool RepeatOnMondays { get; set; }
     public bool RepeatOnTuesdays { get; set; }
