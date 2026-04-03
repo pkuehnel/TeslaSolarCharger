@@ -43,18 +43,6 @@ else
     {
         <FleetApiTestComponent CarId="CarId" />
     }
-    @if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.NotEnoughTimeSinceReconnect)
-    {
-        <MudAlert Severity="Severity.Warning" Class="mb-3">
-            @T(TranslationKeys.CarDetailsFleetTelemetryWarningTime)
-        </MudAlert>
-    }
-    else if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.CarNotConnectedAfterEnoughTimeAfterReconnect)
-    {
-        <MudAlert Severity="Severity.Warning" Class="mb-3">
-            @T(TranslationKeys.CarDetailsFleetTelemetryWarningSleep)
-        </MudAlert>
-    }
 
     @if (CarState.Soc != default)
     {

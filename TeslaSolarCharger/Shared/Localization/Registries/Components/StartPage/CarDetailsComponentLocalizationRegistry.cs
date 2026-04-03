@@ -22,14 +22,6 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.English, "charging"),
             new TextLocalizationTranslation(LanguageCodes.German, "lädt"));
 
-        Register(TranslationKeys.CarDetailsFleetTelemetryWarningTime,
-            new TextLocalizationTranslation(LanguageCodes.English, "Your TSC is connected to the server for less than 10 minutes. As Fleet Telemetry only sends states every 10 minutes the data shown here might not be up-to-date. If any data here is not correct, just wait for 10 minutes without restarting TSC. Note: This is a normal bahavior after a restart of the TSC. If all car data is displayed correctly, you can ignore this message."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr TSC ist seit weniger als 10 Minuten mit dem Server verbunden. Da Fleet Telemetry Zustände nur alle 10 Minuten sendet, sind die hier angezeigten Daten möglicherweise nicht aktuell. Wenn Daten nicht korrekt sind, warten Sie einfach 10 Minuten, ohne TSC neu zu starten. Hinweis: Dies ist ein normales Verhalten nach einem Neustart von TSC. Wenn alle Fahrzeugdaten korrekt angezeigt werden, können Sie diese Meldung ignorieren."));
-
-        Register(TranslationKeys.CarDetailsFleetTelemetryWarningSleep,
-            new TextLocalizationTranslation(LanguageCodes.English, "Your car went to sleep within 10 minutes after the TSC connected to the server. If you see wrong data here, please wake up your car via the Tesla app or by opening a door."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Auto ist innerhalb von 10 Minuten nach der Verbindung von TSC mit dem Server eingeschlafen. Wenn Sie hier falsche Daten sehen, wecken Sie bitte Ihr Auto über die Tesla-App oder durch Öffnen einer Tür auf."));
-
         Register(TranslationKeys.CarDetailsSocLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "SoC: "),
             new TextLocalizationTranslation(LanguageCodes.German, "SoC: "));
