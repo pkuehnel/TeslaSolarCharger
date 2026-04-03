@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
@@ -60,7 +59,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
     {
         _logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
         using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var backendApiService = scope.ServiceProvider.GetRequiredService<IBackendApiService>();
 
         var cars = await context.Cars
@@ -182,7 +181,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
     {
         _logger.LogTrace("{method}()", nameof(InitializeAndStartConnectionAsync));
         using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
 
@@ -351,7 +350,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         IConfigurationWrapper configurationWrapper, IServiceScope scope)
     {
         _logger.LogTrace("Handle {count} messages for VIN {vin}", messages.Count, vin);
-        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var scopedSettings = scope.ServiceProvider.GetRequiredService<ISettings>();
 
         var settingsCar = scopedSettings.Cars.FirstOrDefault(c => c.Vin == vin);
