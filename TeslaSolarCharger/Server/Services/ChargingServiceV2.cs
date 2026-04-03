@@ -457,7 +457,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             var currentFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, currentDate.Offset);
             var fullHourAfterNextTarget = lastTarget.NextExecutionTime.NextFullHour().AddHours(_constants.SolarPowerSurplusPredictionIntervalHours);
             //No predictions required if target is in past
-            if (fullHourAfterNextTarget < currentDate)
+            if (fullHourAfterNextTarget > currentDate)
             {
                 predictedSurplusSlices = await _energyDataService
                     .GetPredictedSurplusPerSlice(currentFullHour, fullHourAfterNextTarget, TimeSpan.FromHours(_constants.SolarPowerSurplusPredictionIntervalHours), cancellationToken)

@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
@@ -23,7 +26,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
 
     // Track subscribed VINs and when they were connected
-    private readonly Dictionary<string, DateTimeOffset> _subscribedVins = new();
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _subscribedVins = new();
 
     public FleetTelemetryWebSocketService(
         ILogger<FleetTelemetryWebSocketService> logger,
@@ -133,7 +136,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                 var vinsToUnsubscribeReconnecting = _subscribedVins.Keys.Except(targetVins).ToList();
                 foreach (var vin in vinsToUnsubscribeReconnecting)
                 {
-                    _subscribedVins.Remove(vin);
+                    _subscribedVins.TryRemove(vin, out _);
                 }
                 return;
             }
@@ -146,7 +149,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                 {
                     _logger.LogInformation("Unsubscribing from VIN {vin}", vin);
                     await _hubConnection.InvokeAsync("UnsubscribeFromVin", vin).ConfigureAwait(false);
-                    _subscribedVins.Remove(vin);
+                    _subscribedVins.TryRemove(vin, out _);
                 }
                 catch (Exception ex)
                 {
@@ -221,8 +224,13 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                 options.AccessTokenProvider = async () =>
                 {
                     using var tokenScope = _serviceProvider.CreateScope();
-                    var tokenContext = tokenScope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+                    var tokenContext = tokenScope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+                    var tokenDateTimeProvider = tokenScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
                     var token = await tokenContext.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
+                    if (token == default || token.ExpiresAtUtc < tokenDateTimeProvider.DateTimeOffSetUtcNow())
+                    {
+                        return null;
+                    }
                     return token?.AccessToken;
                 };
             })
@@ -346,7 +354,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                 {
                     _logger.LogError(ex, "Failed to resubscribe to VIN {vin}", vin);
                     // Remove from tracked list if we failed, so the job will try again
-                    _subscribedVins.Remove(vin);
+                    _subscribedVins.TryRemove(vin, out _);
                 }
             }
         }
