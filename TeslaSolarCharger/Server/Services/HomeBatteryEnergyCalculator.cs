@@ -1,5 +1,4 @@
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Server.SignalR.Notifiers;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
@@ -8,7 +7,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
-using TeslaSolarCharger.Shared.TimeProviding;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -84,7 +82,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             await _configurationWrapper.UpdateBaseConfigurationAsync(configuration);
             var changes = new StateUpdateDto()
             {
-                DataType = DataTypeConstants.DynamicHomeBatteryMinSocChanged,
+                DataType = DataTypeConstants.DynamicHomeBatteryMinSocChangeTrigger,
                 Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
             };
             await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);

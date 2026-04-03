@@ -191,7 +191,7 @@ else
     private DtoDynamicMinSocSettings? _dynamicMinSocSettings;
     private readonly int _widthInPixel = 420;
 
-
+    private const int BatterySocWarningThreshold = 15;
 
 
 
@@ -207,7 +207,7 @@ else
         await RefreshDynamicMinSocSettings();
 
         _dynamicMinSocSubscription = await SignalRStateService.SubscribeToTrigger(
-            DataTypeConstants.DynamicHomeBatteryMinSocChanged,
+            DataTypeConstants.DynamicHomeBatteryMinSocChangeTrigger,
             async void () =>
             {
                 try
@@ -217,7 +217,7 @@ else
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Could not refresh dynamic min soc settings");
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshDynamicMinSocSettings));
                 }
             });
 
@@ -682,8 +682,8 @@ else
 
             if (minSoc == minDynamicMinSoc || soc >= maxDynamicMinSoc) return AppColors.BatterySocGoodColor;
 
-            if (soc < minSoc - 15) return AppColors.BatterySocCriticalColor;
-            if (soc > minSoc + 15) return AppColors.BatterySocGoodColor;
+            if (soc < minSoc - BatterySocWarningThreshold) return AppColors.BatterySocCriticalColor;
+            if (soc > minSoc + BatterySocWarningThreshold) return AppColors.BatterySocGoodColor;
 
             return AppColors.BatterySocWarningColor;
         }

@@ -96,24 +96,6 @@ public class LoadPointManagementService : ILoadPointManagementService
             Soc = car.SoC.Value,
             IsOnline = car.IsOnline.Value,
         };
-        var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
-        if (webSocketConnectedSince != default)
-        {
-            if (((webSocketConnectedSince.Value.AddMinutes(10) > _dateTimeProvider.DateTimeOffSetUtcNow()) && (car.IsOnline.Value == true)))
-            {
-                carState.FleetTelemetryDataState = FleetTelemetryDataState.NotEnoughTimeSinceReconnect;
-            }
-            else if ((car.IsOnline.Value == false) && (car.IsOnline.LastChanged < webSocketConnectedSince.Value.AddMinutes(10))
-                                                   && (car.IsOnline.LastChanged > webSocketConnectedSince.Value))
-
-            {
-                carState.FleetTelemetryDataState = FleetTelemetryDataState.CarNotConnectedAfterEnoughTimeAfterReconnect;
-            }
-            else
-            {
-                carState.FleetTelemetryDataState = FleetTelemetryDataState.UpToDate;
-            }
-        }
         return carState;
     }
 

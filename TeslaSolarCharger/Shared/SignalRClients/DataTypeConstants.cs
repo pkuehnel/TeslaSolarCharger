@@ -1,6 +1,6 @@
 ﻿namespace TeslaSolarCharger.Shared.SignalRClients;
 
-public class DataTypeConstants
+public static class DataTypeConstants
 {
     public const string PvValues = "PvValues";
     public const string LoadPointOverviewValues = "LoadPointOverviewValues";
@@ -11,5 +11,5 @@ public class DataTypeConstants
     public const string NotChargingAsExpectedChangeTrigger = "NotChargingAsExpectedChangeTrigger";
     public const string ChargingSchedulesChangeTrigger = "ChargingSchedulesChangeTrigger";
     public const string EnergyPredictionChangeTrigger = "EnergyPredictionChangeTrigger";
-    public const string DynamicHomeBatteryMinSocChanged = "DynamicHomeBatteryMinSocChanged";
+    public const string DynamicHomeBatteryMinSocChangeTrigger = "DynamicHomeBatteryMinSocChangeTrigger";
 }
