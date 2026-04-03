@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
@@ -20,7 +19,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 {
     private readonly ILogger<FleetTelemetryWebSocketService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly ISettings _settings;
 
     private HubConnection? _hubConnection;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
@@ -30,12 +28,10 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 
     public FleetTelemetryWebSocketService(
         ILogger<FleetTelemetryWebSocketService> logger,
-        IServiceProvider serviceProvider,
-        ISettings settings)
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-        _settings = settings;
     }
 
     public bool IsClientConnected(string vin)
@@ -159,7 +155,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 
             using var scope = _serviceProvider.CreateScope();
             var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-            var teslaFleetApiService = scope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
 
             // Subscribe to new VINs
             var vinsToSubscribe = targetVins.Except(_subscribedVins.Keys).ToList();
@@ -170,12 +165,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                     _logger.LogInformation("Subscribing to VIN {vin}", vin);
                     await _hubConnection.InvokeAsync("SubscribeToVin", vin).ConfigureAwait(false);
                     _subscribedVins[vin] = dateTimeProvider.DateTimeOffSetUtcNow();
-
-                    var car = _settings.Cars.FirstOrDefault(c => c.Vin == vin);
-                    if (car != default)
-                    {
-                        await teslaFleetApiService.RefreshVehicleOnlineState(car);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -212,6 +201,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         {
             await _hubConnection.DisposeAsync();
         }
+        _subscribedVins.Clear();
 
         var jsonSerializerSettings = new JsonSerializerSettings
         {
@@ -270,7 +260,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         try
         {
             await _hubConnection.StartAsync().ConfigureAwait(false);
-            await ResubscribeAllVinsAsync().ConfigureAwait(false);
             _logger.LogInformation("SignalR connection started successfully.");
             return true;
         }
@@ -335,7 +324,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 
             using var scope = _serviceProvider.CreateScope();
             var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-            var teslaFleetApiService = scope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
 
             foreach (var vin in vinsToResubscribe)
             {
@@ -344,12 +332,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                     _logger.LogInformation("Resubscribing to VIN {vin}", vin);
                     await _hubConnection.InvokeAsync("SubscribeToVin", vin).ConfigureAwait(false);
                     _subscribedVins[vin] = dateTimeProvider.DateTimeOffSetUtcNow();
-
-                    var car = _settings.Cars.FirstOrDefault(c => c.Vin == vin);
-                    if (car != default)
-                    {
-                        await teslaFleetApiService.RefreshVehicleOnlineState(car);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -377,6 +359,19 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         {
             _logger.LogWarning("Received telemetry for untracked VIN {vin}", vin);
             return;
+        }
+
+        HomeDetectionVia? homeDetectionVia = null;
+        var anyHomeDetectionRelevantMessate = messages
+            .Any(m => m.Type == CarValueType.LocatedAtHome
+                      || m.Type == CarValueType.LocatedAtWork
+                      || m.Type == CarValueType.LocatedAtFavorite);
+        if (anyHomeDetectionRelevantMessate)
+        {
+            homeDetectionVia = await context.Cars
+                .Where(c => c.Id == settingsCar.Id)
+                .Select(c => c.HomeDetectionVia)
+                .FirstAsync();
         }
 
         foreach (var message in messages)
@@ -408,16 +403,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             if (configurationWrapper.GetVehicleDataFromTesla())
             {
                 var shouldUpdateProperty = false;
-                HomeDetectionVia? homeDetectionVia = null;
-                if (message.Type == CarValueType.LocatedAtHome
-                    || message.Type == CarValueType.LocatedAtWork
-                    || message.Type == CarValueType.LocatedAtFavorite)
-                {
-                    homeDetectionVia = await context.Cars
-                        .Where(c => c.Id == settingsCar.Id)
-                        .Select(c => c.HomeDetectionVia)
-                        .FirstAsync();
-                }
+                
                 switch (message.Type)
                 {
                     case CarValueType.ChargeAmps:
