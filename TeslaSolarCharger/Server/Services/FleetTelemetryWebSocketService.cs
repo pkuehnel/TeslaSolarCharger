@@ -231,7 +231,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                     {
                         return null;
                     }
-                    return token?.AccessToken;
+                    return token.AccessToken;
                 };
             })
             .WithAutomaticReconnect(new JitteredExponentialBackoffRetryPolicy())
@@ -270,6 +270,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         try
         {
             await _hubConnection.StartAsync().ConfigureAwait(false);
+            await ResubscribeAllVinsAsync().ConfigureAwait(false);
             _logger.LogInformation("SignalR connection started successfully.");
             return true;
         }
