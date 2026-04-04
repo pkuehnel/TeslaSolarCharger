@@ -382,10 +382,13 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (actualTargetSoc == default && chargingTarget.DischargeHomeBatteryToMinSoc)
             {
                 var homeBatteryTargetSoc = _configurationWrapper.HomeBatteryMinSoc();
-                if (_settings.HomeBatterySoc <= homeBatteryTargetSoc)
+                if (_settings.HomeBatterySoc <= homeBatteryTargetSoc
+                    //If home battery is charging it means that discharging is not possible anymore as more solar power is there as the car can use. Therefore without this check the target would not be fulfilled until sunset.
+                    || chargingTarget.LastKnownHomeBatterySoc < _settings.HomeBatterySoc)
                 {
                     chargingTarget.LastFulFilled = currentDate;
                 }
+                chargingTarget.LastKnownHomeBatterySoc = _settings.HomeBatterySoc;
             }
 
             if (!(chargingTarget.RepeatOnMondays
@@ -453,9 +456,13 @@ public class ChargingServiceV2 : IChargingServiceV2
             var lastTarget = nextTargets.Last();
             var currentFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, currentDate.Offset);
             var fullHourAfterNextTarget = lastTarget.NextExecutionTime.NextFullHour().AddHours(_constants.SolarPowerSurplusPredictionIntervalHours);
-            predictedSurplusSlices = await _energyDataService
-                .GetPredictedSurplusPerSlice(currentFullHour, fullHourAfterNextTarget, TimeSpan.FromHours(_constants.SolarPowerSurplusPredictionIntervalHours), cancellationToken)
-                .ConfigureAwait(false);
+            //No predictions required if target is in past
+            if (fullHourAfterNextTarget > currentDate)
+            {
+                predictedSurplusSlices = await _energyDataService
+                    .GetPredictedSurplusPerSlice(currentFullHour, fullHourAfterNextTarget, TimeSpan.FromHours(_constants.SolarPowerSurplusPredictionIntervalHours), cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
 
         var allGeneratedSchedules = new List<DtoChargingSchedule>();

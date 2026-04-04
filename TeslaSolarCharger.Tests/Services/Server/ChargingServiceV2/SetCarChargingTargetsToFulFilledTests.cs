@@ -325,4 +325,61 @@ public class SetCarChargingTargetsToFulFilledTests : TestBase
         // Asserting that it is NOT removed (current behavior)
         Assert.NotNull(dbTarget);
     }
+
+    [Theory]
+    // 1) First run when LastKnownHomeBatterySoc is null -> Should not fulfill
+    [InlineData(null, 50, 20, false)]
+    // 2) Subsequent run with SoC increasing (charging) -> Should fulfill
+    [InlineData(49, 50, 20, true)]
+    // 3) Subsequent run with SoC decreasing (discharging) -> Should not fulfill
+    [InlineData(51, 50, 20, false)]
+    // 4) Subsequent run with SoC steady -> Should not fulfill
+    [InlineData(50, 50, 20, false)]
+    public async Task SetCarChargingTargetsToFulFilled_HomeBatterySocTrend_EvaluatesFulfillment(
+        int? lastKnownSoc, int currentHomeBatterySoc, int minHomeBatterySoc, bool shouldFulfill)
+    {
+        // Arrange
+        var carId = 1;
+        var car = CreateDtoCar(carId, 50, true, true);
+
+        // TargetSoc 0/null but DischargeHomeBattery = true. ActualTargetSoc will be default (0/null).
+        var target = CreateTarget(1, carId, null, DateOnly.FromDateTime(CurrentFakeDate.Date), null, true);
+        target.LastKnownHomeBatterySoc = lastKnownSoc;
+
+        var settingsMock = Mock.Mock<ISettings>();
+        settingsMock.Setup(s => s.CarsToManage).Returns(new List<DtoCar> { car });
+        settingsMock.Setup(s => s.Cars).Returns(new List<DtoCar> { car });
+        settingsMock.Setup(s => s.HomeBatterySoc).Returns(currentHomeBatterySoc);
+
+        Mock.Mock<IConfigurationWrapper>()
+            .Setup(c => c.HomeBatteryMinSoc())
+            .Returns(minHomeBatterySoc);
+
+        Mock.Mock<IChargingScheduleService>()
+            .Setup(s => s.GetActualTargetSoc(It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<bool>()))
+            .Returns((int?)null); // Ensure actualTargetSoc == default triggers the home battery block
+
+        Context.CarChargingTargets.Add(target);
+        await Context.SaveChangesAsync();
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        // Act
+        await service.SetCarChargingTargetsToFulFilled(CurrentFakeDate);
+
+        // Assert
+        var dbTarget = await Context.CarChargingTargets.FirstAsync(t => t.Id == target.Id);
+
+        if (shouldFulfill)
+        {
+            Assert.Equal(CurrentFakeDate, dbTarget.LastFulFilled);
+        }
+        else
+        {
+            Assert.Null(dbTarget.LastFulFilled);
+        }
+
+        // Additionally verify that LastKnownHomeBatterySoc is properly updated to current state
+        Assert.Equal(currentHomeBatterySoc, dbTarget.LastKnownHomeBatterySoc);
+    }
 }

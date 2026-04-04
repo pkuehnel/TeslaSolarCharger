@@ -198,7 +198,6 @@ else
     private async Task GenerateFleetApiToken()
     {
         _fleetApiLoginIsLoading = true;
-        var locale = CultureInfo.CurrentCulture.ToString();
         if (BackendTokenState != TokenState.UpToDate)
         {
             Snackbar.Add(T(TranslationKeys.CloudConnectionFleetApiLoginRequirementNotification), Severity.Error);
@@ -206,7 +205,7 @@ else
             return;
         }
         var baseUrl = NavigationManager.BaseUri;
-        var url = await CloudConnectionCheckService.GetTeslaLoginUrl(locale, baseUrl + "cloudconnection");
+        var url = await CloudConnectionCheckService.GetRedeemUrlIncludingCookieAuthCode(baseUrl + "cloudconnection");
         if (string.IsNullOrEmpty(url))
         {
             Snackbar.Add(T(TranslationKeys.CloudConnectionTeslaLoginUrlGenerationError), Severity.Error);

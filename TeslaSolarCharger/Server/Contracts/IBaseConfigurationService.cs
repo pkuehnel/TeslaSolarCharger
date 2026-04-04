@@ -15,4 +15,5 @@ public interface IBaseConfigurationService
     Task<(Stream stream, string fileName)> DownloadBackupStream(string? backupZipDestinationDirectory);
     void ProcessPendingRestore();
     bool HomeBatteryValuesAvailable();
+    DtoDynamicMinSocSettings GetDynamicMinSocSettings();
 }

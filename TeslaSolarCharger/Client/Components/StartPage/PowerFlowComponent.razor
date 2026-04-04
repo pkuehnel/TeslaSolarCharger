@@ -5,6 +5,8 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.SignalRClients
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Client.Helper.Contracts
 @implements IDisposable
 
 @inject IConstants Constants
@@ -13,6 +15,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ILogger<PowerFlowComponent> Logger
 @inject IThemeStateService ThemeStateService
+@inject IHttpClientHelper HttpClientHelper
 
 @if (_pvValues == default)
 {
@@ -152,7 +155,7 @@ else
             {
                 <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
                     <div style="text-align: center;">
-                        <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
+                        <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" Color="@BatteryColor" />
                         <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0") @T(TranslationKeys.UnitWatts)</div>
                     </div>
                 </foreignObject>
@@ -185,19 +188,38 @@ else
     private List<Ball> Balls { get; set; } = new();
 
     private DtoPvValues? _pvValues;
+    private DtoDynamicMinSocSettings? _dynamicMinSocSettings;
     private readonly int _widthInPixel = 420;
 
-
+    private const int BatterySocWarningThreshold = 15;
 
 
 
 
     private IDisposable? _subscription;
+    private IDisposable? _dynamicMinSocSubscription;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         ThemeStateService.OnDarkModeChanged += OnDarkModeChangedHandler;
+
+        await RefreshDynamicMinSocSettings();
+
+        _dynamicMinSocSubscription = await SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.DynamicHomeBatteryMinSocChangeTrigger,
+            async void () =>
+            {
+                try
+                {
+                    await RefreshDynamicMinSocSettings();
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshDynamicMinSocSettings));
+                }
+            });
 
         // Subscribe to PV value changes
         _subscription = await SignalRStateService.Subscribe<DtoPvValues>(
@@ -645,6 +667,33 @@ else
         return homePower;
     }
 
+
+    private string? BatteryColor
+    {
+        get
+        {
+            if (_pvValues?.HomeBatterySoc == null) return null;
+            if (_dynamicMinSocSettings?.DynamicHomeBatteryMinSoc != true) return null;
+
+            var soc = _pvValues.HomeBatterySoc.Value;
+            var minSoc = _dynamicMinSocSettings.HomeBatteryMinSoc ?? 0;
+            var minDynamicMinSoc = _dynamicMinSocSettings.HomeBatteryMinDynamicMinSoc ?? 5;
+            var maxDynamicMinSoc = _dynamicMinSocSettings.HomeBatteryMaxDynamicMinSoc ?? 95;
+
+            if (minSoc == minDynamicMinSoc || soc >= maxDynamicMinSoc) return AppColors.BatterySocGoodColor;
+
+            if (soc < minSoc - BatterySocWarningThreshold) return AppColors.BatterySocCriticalColor;
+            if (soc > minSoc + BatterySocWarningThreshold) return AppColors.BatterySocGoodColor;
+
+            return AppColors.BatterySocWarningColor;
+        }
+    }
+
+    private async Task RefreshDynamicMinSocSettings()
+    {
+        _dynamicMinSocSettings = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoDynamicMinSocSettings>("/api/BaseConfiguration/GetDynamicMinSocSettings");
+    }
+
     private string T(string key) =>
         TextLocalizer.Get<SharedComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
@@ -652,6 +701,7 @@ else
     public void Dispose()
     {
         _subscription?.Dispose();
+        _dynamicMinSocSubscription?.Dispose();
         ThemeStateService.OnDarkModeChanged -= OnDarkModeChangedHandler;
     }
 }

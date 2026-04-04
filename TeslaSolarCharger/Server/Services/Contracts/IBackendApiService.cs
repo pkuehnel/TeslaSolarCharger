@@ -7,7 +7,7 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IBackendApiService
 {
-    Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl);
+    Task<DtoValue<string>> GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl);
     Task<DtoVersionRecommendation> PostInstallationInformation(string reason);
     Task<string?> GetCurrentVersion();
     Task GetNewBackendNotifications();

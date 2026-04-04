@@ -136,7 +136,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             if ((carSettings?.UseFleetTelemetry == true) && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
             {
                 await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet Telemetry not connected for car {car.Vin}",
-                    "Fleet telemetry is not connected. Please check the connection.", issueKeys.FleetTelemetryNotConnected, car.Vin, null);
+                    "Fleet telemetry is not connected. Please check your internet connection and Token state in Cloud Connection. If both have no issues, it is likely a server side issue and will be resolved as soon as possible.", issueKeys.FleetTelemetryNotConnected, car.Vin, null);
             }
             else
             {
