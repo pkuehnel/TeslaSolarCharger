@@ -23,7 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Blazor-ApexCharts" Version="6.1.0" />
     <PackageReference Include="Blazored.FluentValidation" Version="2.2.0" />
-    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.3" />
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
