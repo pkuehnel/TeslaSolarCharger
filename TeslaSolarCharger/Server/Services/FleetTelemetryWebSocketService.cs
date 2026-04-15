@@ -63,12 +63,8 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         var backendApiService = scope.ServiceProvider.GetRequiredService<IBackendApiService>();
 
         var cars = await context.Cars
-            .Where(c => c.UseFleetTelemetry
-                        && (c.ShouldBeManaged == true)
-                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking)
-                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
-                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
-                        && (c.IsFleetTelemetryHardwareIncompatible == false))
+            .Where(c => c.ShouldBeManaged == true
+                && (c.UseFleetTelemetry || (c.CarType != CarType.Tesla)))
             .Select(c => new { c.Vin, c.IncludeTrackingRelevantFields })
             .ToListAsync();
 
