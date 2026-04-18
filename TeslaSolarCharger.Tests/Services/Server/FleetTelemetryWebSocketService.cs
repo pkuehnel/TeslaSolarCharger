@@ -2,7 +2,7 @@
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
-using Xunit.Abstractions;
+
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server;

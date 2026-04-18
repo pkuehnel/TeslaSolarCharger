@@ -8,7 +8,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server.ChargingSchedulesService;
 

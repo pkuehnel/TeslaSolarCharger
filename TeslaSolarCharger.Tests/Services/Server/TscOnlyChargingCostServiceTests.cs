@@ -6,7 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
