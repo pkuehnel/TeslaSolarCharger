@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 

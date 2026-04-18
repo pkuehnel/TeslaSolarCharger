@@ -25,7 +25,7 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit;
-using Xunit.Abstractions;
+
 using DateOnly = System.DateOnly;
 
 namespace TeslaSolarCharger.Tests.Services.Server;

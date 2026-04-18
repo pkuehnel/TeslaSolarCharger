@@ -26,7 +26,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Tests.Data;
-using Xunit.Abstractions;
+using Xunit;
 using Constants = TeslaSolarCharger.Shared.Resources.Constants;
 
 namespace TeslaSolarCharger.Tests;
@@ -160,8 +160,7 @@ public class TestBase : IDisposable
         {
             var serilog = new LoggerConfiguration()
                 .MinimumLevel.ControlledBy(loggingLevelSwitch)
-                .WriteTo.TestOutput(testOutputHelper,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
             builder.SetMinimumLevel(LogLevel.Trace)

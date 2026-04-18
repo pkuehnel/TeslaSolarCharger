@@ -1,6 +1,6 @@
 using System;
 using Xunit;
-using Xunit.Abstractions;
+
 using TeslaSolarCharger.Server.Services;
 
 namespace TeslaSolarCharger.Tests.Services.Server.ChargingSchedulesService;

@@ -1,4 +1,4 @@
-@using Blazored.FluentValidation
+@using Blazilla
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Localization
@@ -12,7 +12,7 @@
 @typeparam T
 
 <EditForm EditContext="@WrappedElement.EditContext" OnValidSubmit="@(_ => HandleValidSubmit(WrappedElement.Item))">
-    <FluentValidationValidator />
+    <FluentValidator />
     @ChildContent
     <ValidationSummary />
     @if (!HideSubmitButton)
