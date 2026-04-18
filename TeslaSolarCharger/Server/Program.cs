@@ -112,7 +112,6 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 
-//Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
 _ = DoStartupStuff(app, logger, configurationWrapper);
@@ -193,6 +192,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
         }
         //Do nothing before these lines as database is restored or created here.
+        var stratupScopedConfigurationWrapper = startupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
+        var configFileDirectory = stratupScopedConfigurationWrapper.ConfigFileDirectory();
+        if (!Directory.Exists(configFileDirectory))
+        {
+            Directory.CreateDirectory(configFileDirectory);
+        }
         var baseConfigurationService = startupScope.ServiceProvider.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
         var teslaSolarChargerContext = startupScope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
