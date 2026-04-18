@@ -2,7 +2,7 @@ using System;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
 using Xunit;
-using Xunit.Abstractions;
+
 using Moq;
 
 namespace TeslaSolarCharger.Tests.Services.Server.ChargingSchedulesService;

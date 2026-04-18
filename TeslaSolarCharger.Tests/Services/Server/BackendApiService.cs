@@ -1,7 +1,6 @@
 ﻿using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Shared.Contracts;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
