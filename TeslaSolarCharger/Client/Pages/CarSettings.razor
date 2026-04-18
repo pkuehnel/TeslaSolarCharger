@@ -56,176 +56,209 @@ else
                                  StartIcon="@Icons.Material.Filled.Add"
                                  OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
 
-    @foreach (var carBasicConfiguration in _carBasicConfigurations)
-    {
-        <div @key="carBasicConfiguration.Guid"
-             id="@GetCarCardElementId(carBasicConfiguration)"
-             class="shadow p-3 mb-5 rounded">
-            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
-                               OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
-                               SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
-                <GenericInput For="() => carBasicConfiguration.Item.Name" />
-                <GenericInput For="() => carBasicConfiguration.Item.Vin"
-                              IsDisabledParameter="@(carBasicConfiguration.Item.CarType == CarType.Tesla)"/>
-                <GenericInput T="bool"
-                              For="() => carBasicConfiguration.Item.ShouldBeManaged"
-                              OnValueChanged="_ => InvokeAsync(() => StateHasChanged())" />
-                @if (carBasicConfiguration.Item.ShouldBeManaged)
-                {
-                    @if (carBasicConfiguration.Item.CarType != CarType.Tesla && carBasicConfiguration.Item.MinimumAmpere < 6)
-                    {
-                        <MudAlert Severity="Severity.Warning"
-                                  NoIcon="true"
-                                  ContentAlignment="HorizontalAlignment.Left">
-                            <h5>@T(TranslationKeys.CarSettingsCurrentBelow6AWarningTitle)</h5>
-                            @T(TranslationKeys.CarSettingsCurrentBelow6AWarningContent)
-                        </MudAlert>
-                    }
-                    <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
-                    @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
-                    {
-                        <GenericInput For="() => carBasicConfiguration.Item.SwitchOffAtCurrent"></GenericInput>
-                        <GenericInput For="() => carBasicConfiguration.Item.SwitchOnAtCurrent"></GenericInput>
-                    }
-                    <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
-                    @if(carBasicConfiguration.Item.CarType != CarType.Tesla)
-                    {
-                        <GenericInput For="() => carBasicConfiguration.Item.MaximumPhases" />
-                    }
-                    <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
-                    <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />
-                    @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
-                    {
-                        <GenericInput T="bool"
-                                      For="() => carBasicConfiguration.Item.UseBle"
-                                      OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))" />
-                        @if (carBasicConfiguration.Item.UseBle)
-                        {
-                            <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
-                        }
-                        @switch (carBasicConfiguration.Item.HomeDetectionVia)
-                        {
-                            case HomeDetectionVia.GpsLocation:
-                                <MudAlert Severity="Severity.Info"
-                                          NoIcon="true"
-                                          ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T(TranslationKeys.CarSettingsGpsHomeDetectionTitle)</h5>
-                                    @T(TranslationKeys.CarSettingsGpsHomeDetectionHintStart)<MudLink Href="/BaseConfiguration">@T(TranslationKeys.BaseConfigurationPageTitle)</MudLink>@T(TranslationKeys.CarSettingsGpsHomeDetectionHintEnd)
-                                </MudAlert>
-                                break;
-                            case HomeDetectionVia.LocatedAtHome:
-                                <MudAlert Severity="Severity.Info"
-                                          NoIcon="true"
-                                          ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavHomeDetectionTitle)</h5>
-                                    @T(TranslationKeys.CarSettingsTeslaNavHomeDetectionHint)
-                                </MudAlert>
-                                break;
-                            case HomeDetectionVia.LocatedAtWork:
-                                <MudAlert Severity="Severity.Info"
-                                          NoIcon="true"
-                                          ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavWorkDetectionTitle)</h5>
-                                    @T(TranslationKeys.CarSettingsTeslaNavWorkDetectionHint)
-                                </MudAlert>
-                                break;
-                            case HomeDetectionVia.LocatedAtFavorite:
-                                <MudAlert Severity="Severity.Warning"
-                                          NoIcon="true"
-                                          ContentAlignment="HorizontalAlignment.Left">
-                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionTitle)</h5>
-                                    @T(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionHint)
-                                </MudAlert>
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
-                        <div class="px-2 pt-2">
-                            <MudSelect T="HomeDetectionVia"
-                                       For="() => carBasicConfiguration.Item.HomeDetectionVia"
-                                       Class="@Constants.DefaultMargin"
-                                       Variant="Variant.Outlined"
-                                       Value="@carBasicConfiguration.Item.HomeDetectionVia"
-                                       ValueChanged="(newItem) => UpdateHomeDetectionVia(carBasicConfiguration.Item, newItem)"
-                                       Label='@T(TranslationKeys.CarSettingsHomeDetectionViaLabel)'
-                                       Margin="Constants.InputMargin">
-                                @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
+    <MudGrid>
+        @foreach (var carBasicConfiguration in _carBasicConfigurations)
+        {
+            <MudItem xs="12" md="6" xl="4">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                @if (IsCarNameEditing(carBasicConfiguration.Guid))
                                 {
-                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(GetHomeDetectionViaName(item))</MudSelectItem>
+                                    <GenericInput T="string"
+                                                  For="() => carBasicConfiguration.Item.Name"/>
                                 }
-                            </MudSelect>
+                                else
+                                {
+                                    <MudText Typo="Typo.h6" Inline="true">@carBasicConfiguration.Item.Name</MudText>
+                                }
+                                <MudIconButton Class="ml-2"
+                                               Icon="@(IsCarNameEditing(carBasicConfiguration.Guid) ? Icons.Material.Filled.Check : Icons.Material.Filled.Edit)"
+                                               Color="Color.Default"
+                                               OnClick="() => ToggleEditCarName(carBasicConfiguration.Guid)"/>
+                            </MudStack>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudFab StartIcon="@Icons.Material.Filled.Wifi" Color="Color.Primary" Size="Size.Small" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div @key="carBasicConfiguration.Guid"
+                             id="@GetCarCardElementId(carBasicConfiguration)">
+                            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
+                                               OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
+                                               SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
+                                <GenericInput For="() => carBasicConfiguration.Item.Vin"
+                                              IsDisabledParameter="@(carBasicConfiguration.Item.CarType == CarType.Tesla)" />
+                                <GenericInput T="bool"
+                                              For="() => carBasicConfiguration.Item.ShouldBeManaged"
+                                              OnValueChanged="_ => InvokeAsync(() => StateHasChanged())" />
+                                @if (carBasicConfiguration.Item.ShouldBeManaged)
+                                {
+                                    @if (carBasicConfiguration.Item.CarType != CarType.Tesla && carBasicConfiguration.Item.MinimumAmpere < 6)
+                                    {
+                                        <MudAlert Severity="Severity.Warning"
+                                                  NoIcon="true"
+                                                  ContentAlignment="HorizontalAlignment.Left">
+                                            <h5>@T(TranslationKeys.CarSettingsCurrentBelow6AWarningTitle)</h5>
+                                            @T(TranslationKeys.CarSettingsCurrentBelow6AWarningContent)
+                                        </MudAlert>
+                                    }
+
+                                    <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
+                                    @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
+                                    {
+                                        <GenericInput For="() => carBasicConfiguration.Item.SwitchOffAtCurrent"></GenericInput>
+                                        <GenericInput For="() => carBasicConfiguration.Item.SwitchOnAtCurrent"></GenericInput>
+                                    }
+
+                                    <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
+                                    @if (carBasicConfiguration.Item.CarType != CarType.Tesla)
+                                    {
+                                        <GenericInput For="() => carBasicConfiguration.Item.MaximumPhases" />
+                                    }
+
+                                    <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
+                                    <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />
+                                    @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
+                                    {
+                                        <GenericInput T="bool"
+                                                      For="() => carBasicConfiguration.Item.UseBle"
+                                                      OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))" />
+                                        @if (carBasicConfiguration.Item.UseBle)
+                                        {
+                                            <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
+                                        }
+
+                                        @switch (carBasicConfiguration.Item.HomeDetectionVia)
+                                        {
+                                            case HomeDetectionVia.GpsLocation:
+                                                <MudAlert Severity="Severity.Info"
+                                                          NoIcon="true"
+                                                          ContentAlignment="HorizontalAlignment.Left">
+                                                    <h5>@T(TranslationKeys.CarSettingsGpsHomeDetectionTitle)</h5>
+                                                    @T(TranslationKeys.CarSettingsGpsHomeDetectionHintStart)<MudLink Href="/BaseConfiguration">@T(TranslationKeys.BaseConfigurationPageTitle)</MudLink>@T(TranslationKeys.CarSettingsGpsHomeDetectionHintEnd)
+                                                </MudAlert>
+                                                break;
+                                            case HomeDetectionVia.LocatedAtHome:
+                                                <MudAlert Severity="Severity.Info"
+                                                          NoIcon="true"
+                                                          ContentAlignment="HorizontalAlignment.Left">
+                                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavHomeDetectionTitle)</h5>
+                                                    @T(TranslationKeys.CarSettingsTeslaNavHomeDetectionHint)
+                                                </MudAlert>
+                                                break;
+                                            case HomeDetectionVia.LocatedAtWork:
+                                                <MudAlert Severity="Severity.Info"
+                                                          NoIcon="true"
+                                                          ContentAlignment="HorizontalAlignment.Left">
+                                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavWorkDetectionTitle)</h5>
+                                                    @T(TranslationKeys.CarSettingsTeslaNavWorkDetectionHint)
+                                                </MudAlert>
+                                                break;
+                                            case HomeDetectionVia.LocatedAtFavorite:
+                                                <MudAlert Severity="Severity.Warning"
+                                                          NoIcon="true"
+                                                          ContentAlignment="HorizontalAlignment.Left">
+                                                    <h5>@T(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionTitle)</h5>
+                                                    @T(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionHint)
+                                                </MudAlert>
+                                                break;
+                                            default:
+                                                throw new ArgumentOutOfRangeException();
+                                        }
+
+                                        <div class="px-2 pt-2">
+                                            <MudSelect T="HomeDetectionVia"
+                                                       For="() => carBasicConfiguration.Item.HomeDetectionVia"
+                                                       Class="@Constants.DefaultMargin"
+                                                       Variant="Variant.Outlined"
+                                                       Value="@carBasicConfiguration.Item.HomeDetectionVia"
+                                                       ValueChanged="(newItem) => UpdateHomeDetectionVia(carBasicConfiguration.Item, newItem)"
+                                                       Label='@T(TranslationKeys.CarSettingsHomeDetectionViaLabel)'
+                                                       Margin="Constants.InputMargin">
+                                                @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
+                                                {
+                                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(GetHomeDetectionViaName(item))</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </div>
+                                        <GenericInput T="bool"
+                                                      For="() => carBasicConfiguration.Item.UseFleetTelemetry"
+                                                      OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields), nameof(carBasicConfiguration.Item.HomeDetectionVia)); }" />
+                                        @if (carBasicConfiguration.Item.UseFleetTelemetry)
+                                        {
+                                            <GenericInput T="bool"
+                                                          For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields"
+                                                          OnValueChanged="_ => { carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.HomeDetectionVia)); Redraw(); }" />
+                                        }
+                                    }
+                                }
+
+                            </EditFormComponent>
+
+                            @if (_vinsToShowBleTest.Contains(carBasicConfiguration.Item.Vin))
+                            {
+                                <hr />
+                                <h3>@T(TranslationKeys.CarSettingsBlePairingTitle)</h3>
+                                <div>
+                                    @T(TranslationKeys.CarSettingsBlePairingHintStart)<a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">@T(TranslationKeys.CarSettingsBlePairingLinkText)</a>@T(TranslationKeys.CarSettingsBlePairingHintEnd)
+                                </div>
+                                @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
+                                {
+
+                                    <div class="alert alert-info" role="alert">
+                                        <p>
+                                            @result
+                                        </p>
+                                    </div>
+
+                                }
+                                <div>
+                                    @T(TranslationKeys.CarSettingsBlePairingNote)
+                                </div>
+                                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText='@T(TranslationKeys.CarSettingsBlePairButton)'></RightAlignedButtonComponent>
+                                <h5>@T(TranslationKeys.CarSettingsTestBleAccessTitle)</h5>
+                                <div>
+                                    @T(TranslationKeys.CarSettingsTestBleAccessHint1)
+                                </div>
+                                <div>
+                                    @T(TranslationKeys.CarSettingsTestBleAccessHint2)
+                                </div>
+                                @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
+                                {
+                                    <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
+                                        <p>
+                                            @bleResult.ResultMessage
+                                        </p>
+                                    </div>
+                                }
+                                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsSetTo7AButton)'></RightAlignedButtonComponent>
+                                @if (carBasicConfiguration.Item.UseBle)
+                                {
+                                    <h5>@T(TranslationKeys.CarSettingsTestWakeupTitle)</h5>
+                                    <div>
+                                        @T(TranslationKeys.CarSettingsTestWakeupHint)
+                                    </div>
+                                    @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
+                                    {
+                                        <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
+                                            <p>
+                                                @bleWakeUpResult.ResultMessage
+                                            </p>
+                                        </div>
+
+                                    }
+                                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsWakeUpButton)'></RightAlignedButtonComponent>
+                                }
+                            }
                         </div>
-                        <GenericInput T="bool"
-                                      For="() => carBasicConfiguration.Item.UseFleetTelemetry"
-                                      OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields), nameof(carBasicConfiguration.Item.HomeDetectionVia));}" />
-                        @if (carBasicConfiguration.Item.UseFleetTelemetry)
-                        {
-                            <GenericInput T="bool"
-                                          For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields"
-                                          OnValueChanged="_ => { carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.HomeDetectionVia)); Redraw(); }" />
-                        }
-                    }
-                }
-
-            </EditFormComponent>
-
-            @if (_vinsToShowBleTest.Contains(carBasicConfiguration.Item.Vin))
-            {
-                <hr />
-                <h3>@T(TranslationKeys.CarSettingsBlePairingTitle)</h3>
-                <div>
-                    @T(TranslationKeys.CarSettingsBlePairingHintStart)<a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">@T(TranslationKeys.CarSettingsBlePairingLinkText)</a>@T(TranslationKeys.CarSettingsBlePairingHintEnd)
-                </div>
-                @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
-                {
-
-                    <div class="alert alert-info" role="alert">
-                        <p>
-                            @result
-                        </p>
-                    </div>
-
-                }
-                <div>
-                    @T(TranslationKeys.CarSettingsBlePairingNote)
-                </div>
-                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText='@T(TranslationKeys.CarSettingsBlePairButton)'></RightAlignedButtonComponent>
-                <h5>@T(TranslationKeys.CarSettingsTestBleAccessTitle)</h5>
-                <div>
-                    @T(TranslationKeys.CarSettingsTestBleAccessHint1)
-                </div>
-                <div>
-                    @T(TranslationKeys.CarSettingsTestBleAccessHint2)
-                </div>
-                @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
-                {
-                    <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
-                        <p>
-                            @bleResult.ResultMessage
-                        </p>
-                    </div>
-                }
-                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsSetTo7AButton)'></RightAlignedButtonComponent>
-                @if (carBasicConfiguration.Item.UseBle)
-                {
-                    <h5>@T(TranslationKeys.CarSettingsTestWakeupTitle)</h5>
-                    <div>
-                        @T(TranslationKeys.CarSettingsTestWakeupHint)
-                    </div>
-                    @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
-                    {
-                        <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
-                            <p>
-                                @bleWakeUpResult.ResultMessage
-                            </p>
-                        </div>
-
-                    }
-                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsWakeUpButton)'></RightAlignedButtonComponent>
-                }
-            }
-        </div>
-    }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
 }
 
 @code {
@@ -238,6 +271,7 @@ else
     private Dictionary<string, DtoBleCommandResult> _bleWakeUpTestResults = new();
 
     private HashSet<string> _loadingVins = new();
+    private HashSet<string> _editingCarNameGuids = new();
     private string? _elementIdToScroll;
 
     private string T(string key) =>
@@ -294,10 +328,10 @@ else
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
         var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
                      ?? new DtoBleCommandResult
-                         {
-                             Success = false,
-                             ResultMessage = T(TranslationKeys.CarSettingsDeserializationError),
-                         };
+                     {
+                         Success = false,
+                         ResultMessage = T(TranslationKeys.CarSettingsDeserializationError),
+                     };
         if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
             result.ResultMessage = T(TranslationKeys.CarSettingsBleSuccessMessage);
@@ -313,10 +347,10 @@ else
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/WakeUp?vin={vin}").ConfigureAwait(false);
         var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
                      ?? new DtoBleCommandResult
-                         {
-                             Success = false,
-                             ResultMessage = T(TranslationKeys.CarSettingsDeserializationError),
-                         };
+                     {
+                         Success = false,
+                         ResultMessage = T(TranslationKeys.CarSettingsDeserializationError),
+                     };
         if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
             result.ResultMessage = T(TranslationKeys.CarSettingsWakeUpSuccessMessage);
@@ -389,4 +423,18 @@ else
         };
     }
 
+    private void ToggleEditCarName(string guid)
+    {
+        if (!_editingCarNameGuids.Add(guid))
+        {
+            _editingCarNameGuids.Remove(guid);
+        }
+
+        Redraw();
+    }
+
+    private bool IsCarNameEditing(string guid)
+    {
+        return _editingCarNameGuids.Contains(guid);
+    }
 }
