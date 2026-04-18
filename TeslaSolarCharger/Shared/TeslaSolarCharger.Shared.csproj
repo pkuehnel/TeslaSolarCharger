@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="10.0.6" />
     <ProjectReference Include="..\..\TeslaSolarCharger.SharedModel\TeslaSolarCharger.SharedModel.csproj" />
   </ItemGroup>
 </Project>
