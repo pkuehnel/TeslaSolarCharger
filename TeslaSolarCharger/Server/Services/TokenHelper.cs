@@ -50,7 +50,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             }
         }
         var state = await GetUncachedSmartCarTokenStates().ConfigureAwait(false);
-        memoryCache.Set(constants.SmartCarTokenStatesKey, state, GetCacheEntryOptions(state.Any() ? state.Max(s => s.ExpiresAt) : null));
+        memoryCache.Set(constants.SmartCarTokenStatesKey, state, GetCacheEntryOptions(state.Any() ? state.Min(s => s.ExpiresAt) : null));
         return state;
     }
 
@@ -71,11 +71,11 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             throw new InvalidOperationException("Backend token not found.");
         }
         request.Headers.Authorization = new("Bearer", token.AccessToken);
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogError("Could not check if token is valid. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            logger.LogError("Could not fetch SmartCar token states. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
             throw new InvalidOperationException("Request resulted in non success status code.");
         }
         var smartCarTokenStates = JsonConvert.DeserializeObject<List<DtoSmartCarTokenState>>(responseString);

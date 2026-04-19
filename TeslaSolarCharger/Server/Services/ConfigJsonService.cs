@@ -212,7 +212,6 @@ public class ConfigJsonService(
             databaseCar.MaximumSoc = 100;
             teslaSolarChargerContext.Cars.Add(databaseCar);
         }
-        logger.LogTrace("Saving car {carId} to database", carId);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         logger.LogTrace("Saved car {carId} to database", carId);
         await AddCarsToSettings().ConfigureAwait(false);

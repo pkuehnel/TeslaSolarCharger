@@ -40,7 +40,7 @@ public class SmartCarApiService : ISmartCarApiService
         List<DtoSmartCarTokenState> tokens;
         try
         {
-            tokens = await _tokenHelper.GetSmartCarTokenStates(true);
+            tokens = await _tokenHelper.GetSmartCarTokenStates(true).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -77,7 +77,7 @@ public class SmartCarApiService : ISmartCarApiService
         var token = await _teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
-            throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
+            throw new InvalidOperationException("Can not refresh smartcar token without backend token");
         }
         var result = await _backendApiService.SendRequestToBackend<object>(HttpMethod.Post, token.AccessToken,
             $"SmartCarRequests/RefreshToken?tokenId={dtoSmartCarTokenState.Id}&encryptionKey={Uri.EscapeDataString(decryptionKey)}", null);

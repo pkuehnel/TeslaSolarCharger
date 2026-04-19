@@ -449,7 +449,7 @@ else
             return;
         }
         var baseUrl = NavigationManager.BaseUri;
-        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={vin}").ConfigureAwait(false);
+        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={Uri.EscapeDataString(vin)}").ConfigureAwait(false);
         var url = result?.Value;
         if (string.IsNullOrEmpty(url))
         {
