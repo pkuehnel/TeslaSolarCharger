@@ -342,7 +342,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         }
     }
 
-    private async Task HandleFleetTelemetryMessages(string vin, List<DtoTscFleetTelemetryMessage> messages, 
+    private async Task HandleFleetTelemetryMessages(string vin, List<DtoTscFleetTelemetryMessage> messages,
         IConfigurationWrapper configurationWrapper, IServiceScope scope)
     {
         _logger.LogTrace("Handle {count} messages for VIN {vin}", messages.Count, vin);
@@ -356,17 +356,15 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             return;
         }
 
-        HomeDetectionVia? homeDetectionVia = null;
-        var anyHomeDetectionRelevantMessage = messages
-            .Any(m => m.Type == CarValueType.LocatedAtHome
-                      || m.Type == CarValueType.LocatedAtWork
-                      || m.Type == CarValueType.LocatedAtFavorite);
-        if (anyHomeDetectionRelevantMessage)
+        var dbCar = await context.Cars
+            .Where(c => c.Id == settingsCar.Id)
+            .FirstAsync();
+
+        if (dbCar.CarType == CarType.Manual)
         {
-            homeDetectionVia = await context.Cars
-                .Where(c => c.Id == settingsCar.Id)
-                .Select(c => c.HomeDetectionVia)
-                .FirstAsync();
+            dbCar.CarType = CarType.SmartCar;
+            await context.SaveChangesAsync().ConfigureAwait(false);
+            _logger.LogInformation("Updated car type to SmartCar for VIN {vin} based on received telemetry", vin);
         }
 
         foreach (var message in messages)
@@ -380,7 +378,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             {
                 _logger.LogDebug("Save location message for car {vin}", vin);
             }
-            
+
             var carValueLog = new CarValueLog
             {
                 CarId = settingsCar.Id,
@@ -398,7 +396,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             if (configurationWrapper.GetVehicleDataFromTesla())
             {
                 var shouldUpdateProperty = false;
-                
+
                 switch (message.Type)
                 {
                     case CarValueType.ChargeAmps:
@@ -448,21 +446,21 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
                             carValueLog.BooleanValue == false);
                         break;
                     case CarValueType.LocatedAtHome:
-                        if (homeDetectionVia == HomeDetectionVia.LocatedAtHome)
+                        if (dbCar.HomeDetectionVia == HomeDetectionVia.LocatedAtHome)
                         {
                             settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
                                 carValueLog.BooleanValue == true);
                         }
                         break;
                     case CarValueType.LocatedAtWork:
-                        if (homeDetectionVia == HomeDetectionVia.LocatedAtWork)
+                        if (dbCar.HomeDetectionVia == HomeDetectionVia.LocatedAtWork)
                         {
                             settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
                                 carValueLog.BooleanValue == true);
                         }
                         break;
                     case CarValueType.LocatedAtFavorite:
-                        if (homeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
+                        if (dbCar.HomeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
                         {
                             settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
                                 carValueLog.BooleanValue == true);
