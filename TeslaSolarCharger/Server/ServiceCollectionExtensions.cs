@@ -177,6 +177,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IChangeTrackingService, ChangeTrackingService>()
             .AddScoped<IStateSnapshotService, StateSnapshotService>()
             .AddSingleton<IAppStateNotifier, AppStateNotifier>()
+            .AddSingleton<ISmartCarApiService, SmartCarApiService>()
             .AddScoped<ErrorHandlingMiddleware>()
 
 

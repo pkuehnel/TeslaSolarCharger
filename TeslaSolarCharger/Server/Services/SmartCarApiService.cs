@@ -8,7 +8,7 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class SmartCarApiService
+public class SmartCarApiService : ISmartCarApiService
 {
     private readonly ILogger<SmartCarApiService> _logger;
     private readonly IBackendApiService _backendApiService;
@@ -51,7 +51,7 @@ public class SmartCarApiService
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         foreach (var dtoSmartCarTokenState in tokens)
         {
-            if (dtoSmartCarTokenState.ExpiresAt.AddSeconds(_constants.TokenRefreshIntervalSeconds * 2) < currentDate)
+            if (dtoSmartCarTokenState.ExpiresAt < currentDate.AddSeconds(_constants.TokenRefreshIntervalSeconds * 2))
             {
                 try
                 {
