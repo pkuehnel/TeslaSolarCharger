@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Enums;
+﻿using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -9,4 +10,5 @@ public interface ITokenHelper
     Task<DateTimeOffset?> GetFleetApiTokenExpirationDate(bool useCache);
     Task<DateTimeOffset?> GetBackendTokenExpirationDate();
     Task<string?> GetTokenUserName();
+    Task<List<DtoSmartCarTokenState>> GetSmartCarTokenStates(bool useCache);
 }
