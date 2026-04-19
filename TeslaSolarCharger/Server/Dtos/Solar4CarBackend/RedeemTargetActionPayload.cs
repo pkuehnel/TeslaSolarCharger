@@ -19,3 +19,13 @@ public class RedeemTargetActionPayloadTeslaAuthentication : RedeemTargetActionPa
 
     public string EncryptionKey { get; set; }
 }
+
+public class RedeemTargetActionPayloadSmartCarAuthentication : RedeemTargetActionPayloadTeslaAuthentication
+{
+    public RedeemTargetActionPayloadSmartCarAuthentication(string encryptionKey, string localRedirectUrl, string vin) : base(encryptionKey, localRedirectUrl)
+    {
+        Vin = vin;
+    }
+
+    public string Vin { get; set; }
+}
