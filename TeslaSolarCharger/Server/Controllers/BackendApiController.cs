@@ -22,4 +22,18 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
 
     [HttpPost]
     public Task LoginToBackend(DtoBackendLogin login) => backendApiService.GetToken(login);
+
+    [HttpGet]
+    public async Task<IActionResult> GetTeslaOAuthRedeemUrl(string baseUrl)
+    {
+        var result = await backendApiService.GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(baseUrl);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSmartCarOAuthRedeemUrl(string baseUrl, string vin)
+    {
+        var result = await backendApiService.GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(baseUrl, vin);
+        return Ok(result);
+    }
 }

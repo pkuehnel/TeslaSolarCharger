@@ -69,6 +69,32 @@ public class BackendApiService(
         return new(requestUrl);
     }
 
+    public async Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin)
+    {
+        logger.LogTrace("{method}()", nameof(GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode));
+        var encryptionKey = passwordGenerationService.GeneratePassword(32);
+        await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.SmartCarToken}";
+        var smartCarTargetActionPayload = new RedeemTargetActionPayloadSmartCarAuthentication(encryptionKey, baseUrl, vin);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
+        }
+        var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, smartCarTargetActionPayload).ConfigureAwait(false);
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+
+        if (result.Data == default || string.IsNullOrEmpty(result.Data.Value))
+        {
+            throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
+        }
+        var requestUrl = GenerateAuthUrl(result.Data.Value);
+        return new(requestUrl);
+    }
+
     public async Task GetToken(DtoBackendLogin login)
     {
         logger.LogTrace("{method}()", nameof(GetToken));

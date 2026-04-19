@@ -4,7 +4,6 @@
 @using TeslaSolarCharger.Shared.Dtos.Ble
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Client.Helper.Contracts
-@using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
@@ -14,12 +13,11 @@
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 
 @inject HttpClient HttpClient
-@inject IHttpClientHelper HttpClientHelper
-@inject ISnackbar Snackbar
 @inject IConstants Constants
-@inject IStringHelper StringHelper
 @inject IJavaScriptWrapper JavaScriptWrapper
 @inject ITextLocalizationService TextLocalizer
+@inject NavigationManager NavigationManager
+@inject IHttpClientHelper HttpClientHelper
 
 <PageTitle>@T(TranslationKeys.CarSettingsTitle)</PageTitle>
 <h1>@T(TranslationKeys.CarSettingsTitle)</h1>
@@ -80,7 +78,13 @@ else
                             </MudStack>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudFab StartIcon="@Icons.Material.Filled.Wifi" Color="Color.Primary" Size="Size.Small" />
+                            @if (carBasicConfiguration.Item.CarType != CarType.Tesla)
+                            {
+                                <MudFab StartIcon="@Icons.Material.Filled.Wifi"
+                                        Color="Color.Primary"
+                                        Size="Size.Small"
+                                        OnClick="() => ConnectToSmartCar(carBasicConfiguration.Item.Vin)"/>
+                            }
                         </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
@@ -437,4 +441,21 @@ else
     {
         return _editingCarNameGuids.Contains(guid);
     }
+
+    private async Task ConnectToSmartCar(string vin)
+    {
+        if (string.IsNullOrEmpty(vin))
+        {
+            return;
+        }
+        var baseUrl = NavigationManager.BaseUri;
+        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={vin}").ConfigureAwait(false);
+        var url = result?.Value;
+        if (string.IsNullOrEmpty(url))
+        {
+            return;
+        }
+        NavigationManager.NavigateTo(url);
+    }
+
 }
