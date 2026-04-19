@@ -40,8 +40,12 @@ public class BackendApiService(
     public async Task<DtoValue<string>> GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl)
     {
         logger.LogTrace("{method}()", nameof(GetTeslaOAuthRedeemUrlIncludingCookieAuthCode));
-        var encryptionKey = passwordGenerationService.GeneratePassword(32);
-        await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        var encryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (string.IsNullOrEmpty(encryptionKey))
+        {
+            encryptionKey = passwordGenerationService.GeneratePassword(32);
+            await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        }
         var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.TeslaFleetApiToken}";
         var teslaTargetActionPayload = new RedeemTargetActionPayloadTeslaAuthentication(encryptionKey, baseUrl);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
@@ -72,8 +76,12 @@ public class BackendApiService(
     public async Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin)
     {
         logger.LogTrace("{method}()", nameof(GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode));
-        var encryptionKey = passwordGenerationService.GeneratePassword(32);
-        await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        var encryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (string.IsNullOrEmpty(encryptionKey))
+        {
+            encryptionKey = passwordGenerationService.GeneratePassword(32);
+            await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        }
         var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.SmartCarToken}";
         var smartCarTargetActionPayload = new RedeemTargetActionPayloadSmartCarAuthentication(encryptionKey, baseUrl, vin);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
