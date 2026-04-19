@@ -69,7 +69,7 @@ public class SmartCarApiService : ISmartCarApiService
     {
         _logger.LogTrace("{method}({@token})", nameof(RefreshToken), dtoSmartCarTokenState);
         var decryptionKey = await _tscConfigurationService.GetConfigurationValueByKey(_constants.TeslaTokenEncryptionKeyKey);
-        if (decryptionKey == default)
+        if (string.IsNullOrEmpty(decryptionKey))
         {
             _logger.LogError("Decryption key not found do not send command");
             throw new InvalidOperationException("No Decryption key found.");

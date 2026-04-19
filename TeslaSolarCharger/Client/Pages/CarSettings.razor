@@ -58,41 +58,41 @@ else
         @foreach (var carBasicConfiguration in _carBasicConfigurations)
         {
             <MudItem xs="12" md="6" xl="4">
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Center">
-                                @if (IsCarNameEditing(carBasicConfiguration.Guid))
+                <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
+                                   OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
+                                   SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
+                    <MudCard>
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center">
+                                    @if (IsCarNameEditing(carBasicConfiguration.Guid))
+                                    {
+                                        <GenericInput T="string"
+                                                      For="() => carBasicConfiguration.Item.Name" />
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.h6" Inline="true">@carBasicConfiguration.Item.Name</MudText>
+                                    }
+                                    <MudIconButton Class="ml-2"
+                                                   Icon="@(IsCarNameEditing(carBasicConfiguration.Guid) ? Icons.Material.Filled.Check : Icons.Material.Filled.Edit)"
+                                                   Color="Color.Default"
+                                                   OnClick="() => ToggleEditCarName(carBasicConfiguration.Guid)" />
+                                </MudStack>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                @if (carBasicConfiguration.Item.CarType != CarType.Tesla)
                                 {
-                                    <GenericInput T="string"
-                                                  For="() => carBasicConfiguration.Item.Name"/>
+                                    <MudFab StartIcon="@Icons.Material.Filled.Wifi"
+                                            Color="Color.Primary"
+                                            Size="Size.Small"
+                                            OnClick="() => ConnectToSmartCar(carBasicConfiguration.Item.Vin)" />
                                 }
-                                else
-                                {
-                                    <MudText Typo="Typo.h6" Inline="true">@carBasicConfiguration.Item.Name</MudText>
-                                }
-                                <MudIconButton Class="ml-2"
-                                               Icon="@(IsCarNameEditing(carBasicConfiguration.Guid) ? Icons.Material.Filled.Check : Icons.Material.Filled.Edit)"
-                                               Color="Color.Default"
-                                               OnClick="() => ToggleEditCarName(carBasicConfiguration.Guid)"/>
-                            </MudStack>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            @if (carBasicConfiguration.Item.CarType != CarType.Tesla)
-                            {
-                                <MudFab StartIcon="@Icons.Material.Filled.Wifi"
-                                        Color="Color.Primary"
-                                        Size="Size.Small"
-                                        OnClick="() => ConnectToSmartCar(carBasicConfiguration.Item.Vin)"/>
-                            }
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <div @key="carBasicConfiguration.Guid"
-                             id="@GetCarCardElementId(carBasicConfiguration)">
-                            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
-                                               OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
-                                               SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <div @key="carBasicConfiguration.Guid"
+                                 id="@GetCarCardElementId(carBasicConfiguration)">
                                 <GenericInput For="() => carBasicConfiguration.Item.Vin"
                                               IsDisabledParameter="@(carBasicConfiguration.Item.CarType == CarType.Tesla)" />
                                 <GenericInput T="bool"
@@ -200,66 +200,65 @@ else
                                     }
                                 }
 
-                            </EditFormComponent>
-
-                            @if (_vinsToShowBleTest.Contains(carBasicConfiguration.Item.Vin))
-                            {
-                                <hr />
-                                <h3>@T(TranslationKeys.CarSettingsBlePairingTitle)</h3>
-                                <div>
-                                    @T(TranslationKeys.CarSettingsBlePairingHintStart)<a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">@T(TranslationKeys.CarSettingsBlePairingLinkText)</a>@T(TranslationKeys.CarSettingsBlePairingHintEnd)
-                                </div>
-                                @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
+                                @if (_vinsToShowBleTest.Contains(carBasicConfiguration.Item.Vin))
                                 {
-
-                                    <div class="alert alert-info" role="alert">
-                                        <p>
-                                            @result
-                                        </p>
-                                    </div>
-
-                                }
-                                <div>
-                                    @T(TranslationKeys.CarSettingsBlePairingNote)
-                                </div>
-                                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText='@T(TranslationKeys.CarSettingsBlePairButton)'></RightAlignedButtonComponent>
-                                <h5>@T(TranslationKeys.CarSettingsTestBleAccessTitle)</h5>
-                                <div>
-                                    @T(TranslationKeys.CarSettingsTestBleAccessHint1)
-                                </div>
-                                <div>
-                                    @T(TranslationKeys.CarSettingsTestBleAccessHint2)
-                                </div>
-                                @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
-                                {
-                                    <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
-                                        <p>
-                                            @bleResult.ResultMessage
-                                        </p>
-                                    </div>
-                                }
-                                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsSetTo7AButton)'></RightAlignedButtonComponent>
-                                @if (carBasicConfiguration.Item.UseBle)
-                                {
-                                    <h5>@T(TranslationKeys.CarSettingsTestWakeupTitle)</h5>
+                                    <hr />
+                                    <h3>@T(TranslationKeys.CarSettingsBlePairingTitle)</h3>
                                     <div>
-                                        @T(TranslationKeys.CarSettingsTestWakeupHint)
+                                        @T(TranslationKeys.CarSettingsBlePairingHintStart)<a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">@T(TranslationKeys.CarSettingsBlePairingLinkText)</a>@T(TranslationKeys.CarSettingsBlePairingHintEnd)
                                     </div>
-                                    @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
+                                    @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
                                     {
-                                        <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
+
+                                        <div class="alert alert-info" role="alert">
                                             <p>
-                                                @bleWakeUpResult.ResultMessage
+                                                @result
                                             </p>
                                         </div>
 
                                     }
-                                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsWakeUpButton)'></RightAlignedButtonComponent>
+                                    <div>
+                                        @T(TranslationKeys.CarSettingsBlePairingNote)
+                                    </div>
+                                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText='@T(TranslationKeys.CarSettingsBlePairButton)'></RightAlignedButtonComponent>
+                                    <h5>@T(TranslationKeys.CarSettingsTestBleAccessTitle)</h5>
+                                    <div>
+                                        @T(TranslationKeys.CarSettingsTestBleAccessHint1)
+                                    </div>
+                                    <div>
+                                        @T(TranslationKeys.CarSettingsTestBleAccessHint2)
+                                    </div>
+                                    @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
+                                    {
+                                        <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
+                                            <p>
+                                                @bleResult.ResultMessage
+                                            </p>
+                                        </div>
+                                    }
+                                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsSetTo7AButton)'></RightAlignedButtonComponent>
+                                    @if (carBasicConfiguration.Item.UseBle)
+                                    {
+                                        <h5>@T(TranslationKeys.CarSettingsTestWakeupTitle)</h5>
+                                        <div>
+                                            @T(TranslationKeys.CarSettingsTestWakeupHint)
+                                        </div>
+                                        @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
+                                        {
+                                            <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
+                                                <p>
+                                                    @bleWakeUpResult.ResultMessage
+                                                </p>
+                                            </div>
+
+                                        }
+                                        <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText='@T(TranslationKeys.CarSettingsWakeUpButton)'></RightAlignedButtonComponent>
+                                    }
                                 }
-                            }
-                        </div>
-                    </MudCardContent>
-                </MudCard>
+                            </div>
+                        </MudCardContent>
+                    </MudCard>
+                </EditFormComponent>
             </MudItem>
         }
     </MudGrid>

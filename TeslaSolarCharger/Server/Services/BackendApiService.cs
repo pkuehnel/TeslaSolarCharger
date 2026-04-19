@@ -87,7 +87,7 @@ public class BackendApiService(
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
-            throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
+            throw new InvalidOperationException("Can not start SmartCar OAuth without backend token");
         }
         var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, smartCarTargetActionPayload).ConfigureAwait(false);
         if (result.HasError)
