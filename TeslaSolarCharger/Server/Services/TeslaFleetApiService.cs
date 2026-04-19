@@ -447,7 +447,7 @@ public class TeslaFleetApiService(
             return;
         }
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        if(fleetApiTokenExpiration > currentDate.AddMinutes(1))
+        if(fleetApiTokenExpiration.Value.AddSeconds(constants.TokenRefreshIntervalSeconds * 2) > currentDate)
         {
             logger.LogDebug("Do not refresh Fleet API Token as it is still valid until {expiration}", fleetApiTokenExpiration);
             return;
