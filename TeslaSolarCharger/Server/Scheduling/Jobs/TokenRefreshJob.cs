@@ -9,13 +9,15 @@ public class TokenRefreshJob : IJob
     private readonly ILogger<TokenRefreshJob> _logger;
     private readonly IBackendApiService _backendApiService;
     private readonly ITeslaFleetApiService _teslaFleetApiService;
+    private readonly ISmartCarApiService _smartCarApiService;
 
     public TokenRefreshJob(ILogger<TokenRefreshJob> logger,
-        IBackendApiService backendApiService, ITeslaFleetApiService teslaFleetApiService)
+        IBackendApiService backendApiService, ITeslaFleetApiService teslaFleetApiService, ISmartCarApiService smartCarApiService)
     {
         _logger = logger;
         _backendApiService = backendApiService;
         _teslaFleetApiService = teslaFleetApiService;
+        _smartCarApiService = smartCarApiService;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -31,11 +33,19 @@ public class TokenRefreshJob : IJob
         }
         try
         {
-            await _teslaFleetApiService.RefreshFleetApiTokenIfNeeded().ConfigureAwait(false);
+            await _teslaFleetApiService.RefreshFleetApiTokenIfRequired().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not refresh fleet API token.");
+        }
+        try
+        {
+            await _smartCarApiService.RefreshTokensIfRequired().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not refresh SmartCar API token.");
         }
     }
 }
