@@ -57,10 +57,10 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<List<DtoSmartCarTokenState>> GetUncachedSmartCarTokenStates()
     {
         logger.LogTrace("{method}()", nameof(GetUncachedSmartCarTokenStates));
-        var backendTokenState = await GetBackendTokenState(false);
+        var backendTokenState = await GetBackendTokenState(true);
         if (backendTokenState != TokenState.UpToDate)
         {
-            throw new InvalidOperationException("Backend token state is not up to date.");
+            throw new InvalidOperationException($"Backend token state is {backendTokenState} and not up to date.");
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "SmartCarRequests/GetSmartCarTokenStates";
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
