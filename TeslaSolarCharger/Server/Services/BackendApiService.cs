@@ -169,6 +169,7 @@ public class BackendApiService(
             return;
         }
         //As expiration date is not null a token must exist.
+        logger.LogTrace("Backend token not valid anymore, refreshing...");
         var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
         var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);
         var result = await SendRequestToBackend<DtoAccessToken>(HttpMethod.Post, null, "User/RefreshToken", dtoRefreshToken);
