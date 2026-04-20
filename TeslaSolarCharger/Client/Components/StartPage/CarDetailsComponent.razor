@@ -58,7 +58,7 @@ else
                                     BufferLabelSuffix="@T(TranslationKeys.UnitPercent)">
         </ProgressWithLabelComponent>
     }
-    @if (CarSettings.CarType == CarType.Manual)
+    @if (CarSettings.CarType != CarType.Tesla)
     {
         if (CarState.Soc == default)
         {

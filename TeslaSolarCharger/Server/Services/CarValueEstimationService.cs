@@ -37,14 +37,18 @@ public class CarValueEstimationService : ICarValueEstimationService
     public async Task PlugoutCarsAndClearSocIfRequired(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(PlugoutCarsAndClearSocIfRequired));
-        var manualCarIds = await _context.Cars
-            .Where(c => c.ShouldBeManaged == true && c.CarType == CarType.Manual)
-            .Select(c => c.Id)
-            .ToHashSetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var dbCars = await _context.Cars
+            .Where(c => c.ShouldBeManaged == true && c.CarType != CarType.Tesla)
+            .Select(c => new DtoCarInfo()
+            {
+                Id = c.Id,
+                CarType = c.CarType,
+            })
+            .ToListAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        foreach (var manualCarId in manualCarIds)
+        foreach (var dbCar in dbCars)
         {
-            var car = _settings.Cars.FirstOrDefault(c => c.Id == manualCarId);
+            var car = _settings.Cars.FirstOrDefault(c => c.Id == dbCar.Id);
             if (car == default)
             {
                 continue;
@@ -240,4 +244,9 @@ public class CarValueEstimationService : ICarValueEstimationService
         await _loadPointManagementService.CarStateChanged(car.Id);
     }
 
+    private class DtoCarInfo
+    {
+        public int Id { get; set; }
+        public CarType CarType { get; set; }
+    }
 }
