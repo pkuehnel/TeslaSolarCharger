@@ -41,6 +41,7 @@ public class SmartCarApiService : ISmartCarApiService
         try
         {
             tokens = await _tokenHelper.GetSmartCarTokenStates(true).ConfigureAwait(false);
+            _logger.LogTrace("Found {count} smartcar tokens: {@tokens}", tokens.Count, tokens);
         }
         catch (Exception ex)
         {
