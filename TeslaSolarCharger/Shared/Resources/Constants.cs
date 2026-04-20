@@ -43,6 +43,7 @@ public class Constants : IConstants
     public string FleetApiTokenExpirationTimeKey => "FleetApiTokenExpirationTime";
     public string FleetApiTokenStateKey => "FleetApiTokenState";
     public string BackendTokenStateKey => "BackendTokenState";
+    public string SmartCarTokenStatesKey => "SmartCarTokenStates";
     public string IsBaseAppLicensedKey => "IsBaseAppLicensed";
     public string IsFleetApiLicensedKey => "IsFleetApiLicensed_";
     public string HomeDetectionViaConvertedKey => "HomeDetectionViaConverted";
@@ -70,6 +71,7 @@ public class Constants : IConstants
 
     public DateTimeOffset FirstChargePriceTimeStamp => new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
     public int SpotPriceRefreshIntervalHours => 2;
+    public int TokenRefreshIntervalSeconds => 59;
     public int ManualCarMinutesUntilForgetSoc => 10;
     public int RefreshableValuesRefreshIntervalSeconds => 1;
     public int SolarPowerSurplusPredictionIntervalHours => 1;

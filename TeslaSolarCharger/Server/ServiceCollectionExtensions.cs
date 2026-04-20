@@ -70,8 +70,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
-            .AddTransient<BackendTokenRefreshJob>()
-            .AddTransient<FleetApiTokenRefreshJob>()
+            .AddTransient<TokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<BackendNotificationRefreshJob>()
@@ -178,6 +177,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IChangeTrackingService, ChangeTrackingService>()
             .AddScoped<IStateSnapshotService, StateSnapshotService>()
             .AddSingleton<IAppStateNotifier, AppStateNotifier>()
+            .AddSingleton<ISmartCarApiService, SmartCarApiService>()
             .AddScoped<ErrorHandlingMiddleware>()
 
 

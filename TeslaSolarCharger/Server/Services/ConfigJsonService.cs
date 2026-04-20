@@ -79,7 +79,8 @@ public class ConfigJsonService(
 
         var cars = await teslaSolarChargerContext.Cars
             .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla))
-            .OrderBy(c => c.ChargingPriority)
+            .OrderByDescending(c => c.ShouldBeManaged == true)
+            .ThenBy(c => c.ChargingPriority)
             .Select(c => new CarBasicConfiguration(c.Id, c.Name)
             {
                 Vin = c.Vin ?? string.Empty,
@@ -111,6 +112,7 @@ public class ConfigJsonService(
 
     public async Task AddCarsToSettings()
     {
+        logger.LogTrace("{method}()", nameof(AddCarsToSettings));
         settings.Cars = await GetCars().ConfigureAwait(false);
         foreach (var dtoCar in settings.CarsToManage)
         {
@@ -211,8 +213,7 @@ public class ConfigJsonService(
             teslaSolarChargerContext.Cars.Add(databaseCar);
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var shouldInitializeManualCarValues = carId == default && databaseCar.CarType == CarType.Manual;
-        var manualCarIdToInitialize = shouldInitializeManualCarValues ? databaseCar.Id : (int?)null;
+        logger.LogTrace("Saved car {carId} to database", carId);
         await AddCarsToSettings().ConfigureAwait(false);
         if (databaseCar.CarType == CarType.Tesla)
         {
