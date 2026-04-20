@@ -60,7 +60,10 @@ public class CarValueEstimationService : ICarValueEstimationService
             {
                 _logger.LogTrace("Plugging out manual car {carId} and clearing SoC as last connector match was more than {minutes} minutes ago", car.Id, _constants.ManualCarMinutesUntilForgetSoc);
                 car.PluggedIn.Update(currentDate, false);
-                car.SoC.Update(currentDate, null);
+                if (dbCar.CarType == CarType.Manual)
+                {
+                    car.SoC.Update(currentDate, null);
+                }
                 await _loadPointManagementService.CarStateChanged(car.Id);
             }
         }
@@ -155,7 +158,7 @@ public class CarValueEstimationService : ICarValueEstimationService
                     _logger.LogTrace("Last plugged out was not default, so checking if was longer plugged out than {maxPluggedOutTime}", maxPluggedOutTime);
                     var timeDiff = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero) - lastPluggedOut.Value;
                     _logger.LogTrace("Actual time diff is {timeDiff}", timeDiff);
-                    if (timeDiff > maxPluggedOutTime)
+                    if (car.CarType == CarType.Manual && timeDiff > maxPluggedOutTime)
                     {
                         _logger.LogTrace("Time diff is too long so set soc to null");
                         settingsCar?.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
@@ -171,7 +174,7 @@ public class CarValueEstimationService : ICarValueEstimationService
         {
             var timeDiff = _dateTimeProvider.DateTimeOffSetUtcNow() - lastPluggedOut.Value;
             _logger.LogTrace("Car has been plugged out for {timeDiff}", timeDiff);
-            if (timeDiff > maxPluggedOutTime)
+            if (car.CarType == CarType.Manual && timeDiff > maxPluggedOutTime)
             {
                 _logger.LogTrace("Time diff is too long so set soc to null");
                 settingsCar.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
