@@ -64,7 +64,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "SmartCarRequests/GetSmartCarTokenStates";
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
@@ -291,10 +291,10 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             return false;
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "Client/IsTokenValid";
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new("Bearer", token.AccessToken);
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             return false;
