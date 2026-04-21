@@ -16,14 +16,14 @@ using TeslaSolarCharger.Shared.Resources;
 namespace TeslaSolarCharger.Server.Services;
 
 public class TokenHelper(ILogger<TokenHelper> logger,
-    ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
-    ITscConfigurationService tscConfigurationService,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IMemoryCache memoryCache,
-    IHttpClientFactory httpClientFactory) : ITokenHelper
+    IHttpClientFactory httpClientFactory,
+    IServiceScopeFactory serviceScopeFactory) : ITokenHelper
 {
+
     public async Task<TokenState> GetFleetApiTokenState(bool useCache)
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
@@ -65,7 +65,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         var url = configurationWrapper.BackendApiBaseUrl() + "SmartCarRequests/GetSmartCarTokenStates";
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             throw new InvalidOperationException("Backend token not found.");
@@ -117,7 +119,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     public async Task<string?> GetTokenUserName()
     {
         logger.LogTrace("{method}()", nameof(GetTokenUserName));
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             return null;
@@ -144,7 +148,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     public async Task<DateTimeOffset?> GetBackendTokenExpirationDate()
     {
         logger.LogTrace("{method}()", nameof(GetBackendTokenExpirationDate));
-        var expirationDate = await teslaSolarChargerContext.BackendTokens
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var expirationDate = await context.BackendTokens
             .Select(t => new
             {
                 t.ExpiresAtUtc,
@@ -156,6 +162,8 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<TokenStateIncludingExpirationTime> GetUncachedFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetUncachedFleetApiTokenState));
+        using var scope = serviceScopeFactory.CreateScope();
+        var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
         var hasCurrentTokenMissingScopes = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.FleetApiTokenMissingScopes), "true", StringComparison.InvariantCultureIgnoreCase);
         if (hasCurrentTokenMissingScopes)
         {
@@ -182,8 +190,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/FleetApiTokenExpiresInSeconds";
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             return new()
@@ -192,7 +201,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             };
         }
         request.Headers.Authorization = new("Bearer", token.AccessToken);
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
@@ -237,7 +246,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<TokenStateIncludingExpirationTime> GetUncachedBackendTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetUncachedBackendTokenState));
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             return new()
@@ -272,7 +283,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<bool> HasValidBackendToken()
     {
         logger.LogTrace("{method}", nameof(HasValidBackendToken));
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync();
         if (token == default)
         {
             return false;
