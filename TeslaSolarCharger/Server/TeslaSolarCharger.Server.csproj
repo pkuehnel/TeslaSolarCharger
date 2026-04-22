@@ -55,7 +55,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.6" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.6" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="10.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
