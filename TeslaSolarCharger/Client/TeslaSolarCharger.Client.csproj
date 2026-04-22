@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazilla" Version="2.3.0" />
+    <PackageReference Include="Blazilla" Version="2.3.1" />
     <PackageReference Include="Blazor-ApexCharts" Version="6.1.0" />
     <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="10.0.6" />
