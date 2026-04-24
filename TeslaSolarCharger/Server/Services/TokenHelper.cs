@@ -50,7 +50,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             }
         }
         var state = await GetUncachedSmartCarTokenStates().ConfigureAwait(false);
-        memoryCache.Set(constants.SmartCarTokenStatesKey, state, GetCacheEntryOptions(state.Any() ? state.Min(s => s.ExpiresAt) : null));
+        memoryCache.Set(constants.SmartCarTokenStatesKey, state, GetCacheEntryOptions(null));
         return state;
     }
 

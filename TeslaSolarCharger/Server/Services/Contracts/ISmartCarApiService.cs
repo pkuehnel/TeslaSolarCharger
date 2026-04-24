@@ -2,5 +2,5 @@
 
 public interface ISmartCarApiService
 {
-    Task RefreshTokensIfRequired();
+    Task UpdateSmartCarCarTypes();
 }
