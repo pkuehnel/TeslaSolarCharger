@@ -84,15 +84,8 @@ public class CarValueEstimationService : ICarValueEstimationService
     private async Task UpdateSocEstimation(Car car, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({carId})", nameof(UpdateSocEstimation), car.Id);
-        var lastNonEstimatedSoc = await _context.CarValueLogs
-            .Where(cvl => cvl.CarId == car.Id
-                          && cvl.Type == CarValueType.StateOfCharge
-                          && cvl.Source > CarValueSource.Estimation)
-            .OrderByDescending(cvl => cvl.Timestamp)
-            .Select(cvl => new { Timestamp = new DateTimeOffset(cvl.Timestamp, TimeSpan.Zero), cvl.IntValue })
-            .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        _logger.LogTrace("lastNonEstimatedSoc: {@lastNonEstimatedSoc}", lastNonEstimatedSoc);
-        if (lastNonEstimatedSoc?.IntValue == null)
+        var lastNonEstimatedSoc = await GetLastNonEstimatedSoc(car.Id, cancellationToken).ConfigureAwait(false);
+        if (lastNonEstimatedSoc?.Soc == null)
         {
             _logger.LogTrace("exiting: no lastNonEstimatedSoc");
             return;
@@ -223,7 +216,7 @@ public class CarValueEstimationService : ICarValueEstimationService
             _logger.LogWarning("Can not estimate soc for car {carId} as usable energy is {usableEnergy} which is <= 0", car.Id, car.UsableEnergy);
             return;
         }
-        var estimatedSoc = (int)(lastNonEstimatedSoc.IntValue.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
+        var estimatedSoc = (int)(lastNonEstimatedSoc.Soc.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
         _logger.LogTrace("estimatedSoc: {estimatedSoc}", estimatedSoc);
         var estimatedSocCarValueLog = new CarValueLog()
         {
@@ -247,9 +240,41 @@ public class CarValueEstimationService : ICarValueEstimationService
         await _loadPointManagementService.CarStateChanged(car.Id);
     }
 
+    private async Task<DtoSocInfo?> GetLastNonEstimatedSoc(int carId, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetLastNonEstimatedSoc), carId);
+        var lastNonEstimatedSoc = await _context.CarValueLogs
+            .Where(cvl => cvl.CarId == carId
+                          && cvl.Type == CarValueType.StateOfCharge
+                          && cvl.Source > CarValueSource.Estimation)
+            .OrderByDescending(cvl => cvl.Timestamp)
+            .Select(cvl => new { Timestamp = new DateTimeOffset(cvl.Timestamp, TimeSpan.Zero), cvl.IntValue, cvl.DoubleValue })
+            .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        _logger.LogTrace("lastNonEstimatedSoc: {@lastNonEstimatedSoc}", lastNonEstimatedSoc);
+        if (lastNonEstimatedSoc == default)
+        {
+            return null;
+        }
+        var soc = lastNonEstimatedSoc.IntValue
+                  ?? (lastNonEstimatedSoc.DoubleValue != null
+                        ? Convert.ToInt32(lastNonEstimatedSoc.DoubleValue.Value)
+                        : null);
+        return new()
+        {
+            Timestamp = lastNonEstimatedSoc.Timestamp,
+            Soc = soc,
+        };
+    }
+
     private class DtoCarInfo
     {
         public int Id { get; set; }
         public CarType CarType { get; set; }
+    }
+
+    private class DtoSocInfo
+    {
+        public DateTimeOffset Timestamp { get; set; }
+        public int? Soc { get; set; }
     }
 }
