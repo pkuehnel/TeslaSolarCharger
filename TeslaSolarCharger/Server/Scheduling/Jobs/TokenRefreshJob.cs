@@ -41,7 +41,7 @@ public class TokenRefreshJob : IJob
         }
         try
         {
-            await _smartCarApiService.RefreshTokensIfRequired().ConfigureAwait(false);
+            await _smartCarApiService.UpdateSmartCarCarTypes().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
