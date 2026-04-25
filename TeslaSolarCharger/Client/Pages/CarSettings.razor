@@ -83,11 +83,13 @@ else
                             <CardHeaderActions>
                                 @if (carBasicConfiguration.Item.CarType != CarType.Tesla && carBasicConfiguration.Item.ShouldBeManaged)
                                 {
-                                    <MudFab StartIcon="@(carBasicConfiguration.Item.CarType == CarType.SmartCar 
-                                        ? Icons.Material.Filled.WifiOff : Icons.Material.Filled.Wifi)"
-                                            Color="Color.Primary"
-                                            Size="Size.Small"
-                                            OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
+                                    <MudTooltip Text="@(carBasicConfiguration.Item.CarType == CarType.SmartCar ? "Disconnect from SmartCar" : "Connect to Smart Car (Car License required)")">
+                                        <MudFab StartIcon="@(carBasicConfiguration.Item.CarType == CarType.SmartCar 
+                                                               ? Icons.Material.Filled.WifiOff : Icons.Material.Filled.Wifi)"
+                                                Color="Color.Primary"
+                                                Size="Size.Small"
+                                                OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
+                                    </MudTooltip>
                                 }
                             </CardHeaderActions>
                         </MudCardHeader>
