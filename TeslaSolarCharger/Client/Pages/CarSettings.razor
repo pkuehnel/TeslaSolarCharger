@@ -5,7 +5,6 @@
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Enums
-@using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
@@ -18,6 +17,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject NavigationManager NavigationManager
 @inject IHttpClientHelper HttpClientHelper
+@inject ISnackbar Snackbar
 
 <PageTitle>@T(TranslationKeys.CarSettingsTitle)</PageTitle>
 <h1>@T(TranslationKeys.CarSettingsTitle)</h1>
@@ -81,12 +81,13 @@ else
                                 </MudStack>
                             </CardHeaderContent>
                             <CardHeaderActions>
-                                @if (carBasicConfiguration.Item.CarType != CarType.Tesla)
+                                @if (carBasicConfiguration.Item.CarType != CarType.Tesla && carBasicConfiguration.Item.ShouldBeManaged)
                                 {
-                                    <MudFab StartIcon="@Icons.Material.Filled.Wifi"
+                                    <MudFab StartIcon="@(carBasicConfiguration.Item.CarType == CarType.SmartCar 
+                                        ? Icons.Material.Filled.WifiOff : Icons.Material.Filled.Wifi)"
                                             Color="Color.Primary"
                                             Size="Size.Small"
-                                            OnClick="() => ConnectToSmartCar(carBasicConfiguration.Item.Vin)" />
+                                            OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
                                 }
                             </CardHeaderActions>
                         </MudCardHeader>
@@ -422,7 +423,7 @@ else
             HomeDetectionVia.LocatedAtHome => T(TranslationKeys.HomeDetectionViaLocatedAtHome),
             HomeDetectionVia.LocatedAtWork => T(TranslationKeys.HomeDetectionViaLocatedAtWork),
             HomeDetectionVia.LocatedAtFavorite => T(TranslationKeys.HomeDetectionViaLocatedAtFavorite),
-            _ => homeDetectionVia.ToString()
+            _ => homeDetectionVia.ToString(),
         };
     }
 
@@ -441,14 +442,21 @@ else
         return _editingCarNameGuids.Contains(guid);
     }
 
-    private async Task ConnectToSmartCar(string vin)
+    private async Task ConnectToSmartCarClicked(CarBasicConfiguration car)
     {
-        if (string.IsNullOrEmpty(vin))
+        if (string.IsNullOrEmpty(car.Vin))
         {
+            Snackbar.Add("Cannot connect to Smart Car: VIN is missing.", Severity.Error);
+            return;
+        }
+
+        if (car.CarType == CarType.SmartCar)
+        {
+            Snackbar.Add("Disabling a Smartcar connection is not possible at the moment.", Severity.Error);
             return;
         }
         var baseUrl = NavigationManager.BaseUri;
-        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={Uri.EscapeDataString(vin)}").ConfigureAwait(false);
+        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={Uri.EscapeDataString(car.Vin)}").ConfigureAwait(false);
         var url = result?.Value;
         if (string.IsNullOrEmpty(url))
         {
