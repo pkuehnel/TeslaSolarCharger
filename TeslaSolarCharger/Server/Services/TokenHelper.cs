@@ -10,19 +10,20 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using System.Net;
 using System.Security.Claims;
+using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TokenHelper(ILogger<TokenHelper> logger,
-    ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
-    ITscConfigurationService tscConfigurationService,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IMemoryCache memoryCache,
-    IHttpClientFactory httpClientFactory) : ITokenHelper
+    IHttpClientFactory httpClientFactory,
+    IServiceScopeFactory serviceScopeFactory) : ITokenHelper
 {
+
     public async Task<TokenState> GetFleetApiTokenState(bool useCache)
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
@@ -35,6 +36,57 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         memoryCache.Set(constants.FleetApiTokenStateKey, state.TokenState, GetCacheEntryOptions(state.ExpiresAtUtc));
         memoryCache.Set(constants.FleetApiTokenExpirationTimeKey, state.ExpiresAtUtc, GetCacheEntryOptions(state.ExpiresAtUtc));
         return state.TokenState;
+    }
+
+    public async Task<List<DtoSmartCarTokenState>> GetSmartCarTokenStates(bool useCache)
+    {
+        logger.LogTrace("{method}()", nameof(GetSmartCarTokenStates));
+        if (useCache && memoryCache.TryGetValue(constants.SmartCarTokenStatesKey, out List<DtoSmartCarTokenState>? cachedSmartCarTokenStates))
+        {
+            logger.LogTrace("Returning SmartCarTokenStates from cache: {tokenStates}", cachedSmartCarTokenStates);
+            if (cachedSmartCarTokenStates != default)
+            {
+                return cachedSmartCarTokenStates;
+            }
+        }
+        var state = await GetUncachedSmartCarTokenStates().ConfigureAwait(false);
+        memoryCache.Set(constants.SmartCarTokenStatesKey, state, GetCacheEntryOptions(null));
+        return state;
+    }
+
+    private async Task<List<DtoSmartCarTokenState>> GetUncachedSmartCarTokenStates()
+    {
+        logger.LogTrace("{method}()", nameof(GetUncachedSmartCarTokenStates));
+        var backendTokenState = await GetBackendTokenState(true);
+        if (backendTokenState != TokenState.UpToDate)
+        {
+            throw new InvalidOperationException($"Backend token state is {backendTokenState} and not up to date.");
+        }
+        var url = configurationWrapper.BackendApiBaseUrl() + "SmartCarRequests/GetSmartCarTokenStates";
+        var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            throw new InvalidOperationException("Backend token not found.");
+        }
+        request.Headers.Authorization = new("Bearer", token.AccessToken);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Could not fetch SmartCar token states. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            throw new InvalidOperationException("Request resulted in non success status code.");
+        }
+        var smartCarTokenStates = JsonConvert.DeserializeObject<List<DtoSmartCarTokenState>>(responseString);
+        if (smartCarTokenStates == null)
+        {
+            logger.LogError("Could not deserialize result.");
+            throw new InvalidOperationException("Could not deserialize result.");
+        }
+        return smartCarTokenStates;
     }
 
     public async Task<DateTimeOffset?> GetFleetApiTokenExpirationDate(bool useCache)
@@ -67,7 +119,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     public async Task<string?> GetTokenUserName()
     {
         logger.LogTrace("{method}()", nameof(GetTokenUserName));
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             return null;
@@ -94,7 +148,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     public async Task<DateTimeOffset?> GetBackendTokenExpirationDate()
     {
         logger.LogTrace("{method}()", nameof(GetBackendTokenExpirationDate));
-        var expirationDate = await teslaSolarChargerContext.BackendTokens
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var expirationDate = await context.BackendTokens
             .Select(t => new
             {
                 t.ExpiresAtUtc,
@@ -106,6 +162,8 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<TokenStateIncludingExpirationTime> GetUncachedFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetUncachedFleetApiTokenState));
+        using var scope = serviceScopeFactory.CreateScope();
+        var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
         var hasCurrentTokenMissingScopes = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.FleetApiTokenMissingScopes), "true", StringComparison.InvariantCultureIgnoreCase);
         if (hasCurrentTokenMissingScopes)
         {
@@ -132,8 +190,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/FleetApiTokenExpiresInSeconds";
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             return new()
@@ -142,7 +201,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             };
         }
         request.Headers.Authorization = new("Bearer", token.AccessToken);
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
@@ -187,7 +246,9 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<TokenStateIncludingExpirationTime> GetUncachedBackendTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetUncachedBackendTokenState));
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             return new()
@@ -222,16 +283,18 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<bool> HasValidBackendToken()
     {
         logger.LogTrace("{method}", nameof(HasValidBackendToken));
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        using var scope = serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var token = await context.BackendTokens.SingleOrDefaultAsync();
         if (token == default)
         {
             return false;
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "Client/IsTokenValid";
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new("Bearer", token.AccessToken);
         var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        using var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             return false;
@@ -245,6 +308,12 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         return true;
     }
 
+    /// <summary>
+    /// Generates memory cache entry options with a default absolute expiration of 15 minutes, 
+    /// which can be reduced if a shorter, future expiration date is provided.
+    /// </summary>
+    /// <param name="validUntil">An optional future date and time. If provided and it occurs sooner than the 15-minute default, the cache expiration is shortened to match this exact date.</param>
+    /// <returns>A configured <see cref="MemoryCacheEntryOptions"/> instance with the calculated absolute expiration relative to now.</returns>
     private MemoryCacheEntryOptions GetCacheEntryOptions(DateTimeOffset? validUntil)
     {
         logger.LogTrace("{method}({validUntil})", nameof(GetCacheEntryOptions), validUntil);

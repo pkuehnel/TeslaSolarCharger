@@ -3,4 +3,5 @@
 public enum RedeemTargetActionType
 {
     TeslaFleetApiToken = 100,
+    SmartCarToken = 200,
 }

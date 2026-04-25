@@ -60,7 +60,7 @@ public class ManualCarHandlingService(
     public async Task<ManualCarOperationResult> UpdateStateFromConnectorAsync(int carId, DtoOcppConnectorState connectorState)
     {
         logger.LogTrace("{method}({carId})", nameof(UpdateStateFromConnectorAsync), carId);
-        if (!await IsManualCarAsync(carId).ConfigureAwait(false))
+        if (!await IsNonTeslaCarAsync(carId).ConfigureAwait(false))
         {
             return ManualCarOperationResult.NotManual;
         }
@@ -101,7 +101,7 @@ public class ManualCarHandlingService(
     public async Task<ManualCarOperationResult> HandleConnectorAssignmentAsync(int carId, bool? isCharging, DateTimeOffset timestamp)
     {
         logger.LogTrace("{method}({carId})", nameof(HandleConnectorAssignmentAsync), carId);
-        if (!await IsManualCarAsync(carId).ConfigureAwait(false))
+        if (!await IsNonTeslaCarAsync(carId).ConfigureAwait(false))
         {
             return ManualCarOperationResult.NotManual;
         }
@@ -128,7 +128,7 @@ public class ManualCarHandlingService(
     public async Task<ManualCarOperationResult> HandleConnectorUnassignmentAsync(int carId, DateTimeOffset timestamp)
     {
         logger.LogTrace("{method}({carId})", nameof(HandleConnectorUnassignmentAsync), carId);
-        if (!await IsManualCarAsync(carId).ConfigureAwait(false))
+        if (!await IsNonTeslaCarAsync(carId).ConfigureAwait(false))
         {
             return ManualCarOperationResult.NotManual;
         }
@@ -150,8 +150,8 @@ public class ManualCarHandlingService(
         return new(true, stateChanged);
     }
 
-    private async Task<bool> IsManualCarAsync(int carId)
-        => await context.Cars.AnyAsync(c => c.Id == carId && c.CarType == CarType.Manual).ConfigureAwait(false);
+    private async Task<bool> IsNonTeslaCarAsync(int carId)
+        => await context.Cars.AnyAsync(c => c.Id == carId && c.CarType != CarType.Tesla).ConfigureAwait(false);
 
     private DtoCar? TryGetCachedCar(int carId, bool throwIfMissing)
     {
