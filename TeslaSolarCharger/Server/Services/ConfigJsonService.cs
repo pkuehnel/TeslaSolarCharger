@@ -224,9 +224,9 @@ public class ConfigJsonService(
         }
     }
 
-    public async Task DisconnectCarFromStartCar(int carId)
+    public async Task DisconnectCarFromSmartCar(int carId)
     {
-        logger.LogTrace("{method}({carId})", nameof(DisconnectCarFromStartCar), carId);
+        logger.LogTrace("{method}({carId})", nameof(DisconnectCarFromSmartCar), carId);
         var carBasicConfigurations = await GetCarBasicConfigurations(carId).ConfigureAwait(false);
         var carBasicConfiguration = carBasicConfigurations.Single();
         carBasicConfiguration.CarType = CarType.Manual;
