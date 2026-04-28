@@ -17,5 +17,5 @@ public interface IConfigJsonService
     Task AddBleBaseUrlToAllCars();
     Task SetCorrectHomeDetectionVia();
     Task AddAllTeslasToAllowedCars();
-    Task DisconnectCarFromStartCar(int carId);
+    Task DisconnectCarFromSmartCar(int carId);
 }
