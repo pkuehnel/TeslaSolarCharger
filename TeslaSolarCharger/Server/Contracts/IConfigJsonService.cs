@@ -11,10 +11,11 @@ public interface IConfigJsonService
     Task UpdateAverageGridVoltage();
     Task ConvertOldCarsToNewCar();
     Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration);
-    Task<List<CarBasicConfiguration>> GetCarBasicConfigurations();
+    Task<List<CarBasicConfiguration>> GetCarBasicConfigurations(int? carId = null);
     ISettings GetSettings();
     Task AddCarsToSettings();
     Task AddBleBaseUrlToAllCars();
     Task SetCorrectHomeDetectionVia();
     Task AddAllTeslasToAllowedCars();
+    Task DisconnectCarFromStartCar(int carId);
 }

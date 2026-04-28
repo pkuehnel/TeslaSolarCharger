@@ -35,5 +35,11 @@ namespace TeslaSolarCharger.Server.Controllers
         {
             return configJsonService.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
         }
+
+        [HttpPost]
+        public Task DisconnectCarFromStartCar(int carId)
+        {
+            return configJsonService.DisconnectCarFromStartCar(carId);
+        }
     }
 }
