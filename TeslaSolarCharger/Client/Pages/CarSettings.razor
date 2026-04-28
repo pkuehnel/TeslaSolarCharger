@@ -454,10 +454,11 @@ else
 
         if (car.CarType == CarType.SmartCar)
         {
-            var disconnectResult = await HttpClientHelper.SendGetRequestAsync<object>($"/api/Config/DisconnectCarFromSmartCar?carId={Uri.EscapeDataString(car.Id.ToString())}").ConfigureAwait(false);
+            var disconnectResult = await HttpClientHelper.SendPostRequestAsync<object>($"/api/Config/DisconnectCarFromSmartCar?carId={Uri.EscapeDataString(car.Id.ToString())}", null).ConfigureAwait(false);
             if (disconnectResult.HasError)
             {
                 Snackbar.Add("Could not disconnect Smart Car: " + disconnectResult.ErrorMessage, Severity.Error);
+                return;
             }
             car.CarType = CarType.Manual;
             await InvokeAsync(() => StateHasChanged());
