@@ -455,6 +455,13 @@ else
         if (car.CarType == CarType.SmartCar)
         {
             Snackbar.Add("Disabling a Smartcar connection is not possible at the moment.", Severity.Error);
+            var disconnectResult = await HttpClientHelper.SendGetRequestAsync<object>($"/api/Config/DisconnectCarFromStartCar?carId={Uri.EscapeDataString(car.Id.ToString())}").ConfigureAwait(false);
+            if (disconnectResult.HasError)
+            {
+                Snackbar.Add("Could not disconnect Smart Car.", Severity.Error);
+            }
+            car.CarType = CarType.Manual;
+            await InvokeAsync(() => StateHasChanged());
             return;
         }
         var baseUrl = NavigationManager.BaseUri;

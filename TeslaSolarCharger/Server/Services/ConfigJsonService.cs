@@ -26,8 +26,7 @@ public class ConfigJsonService(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     ITscConfigurationService tscConfigurationService,
     ILoadPointManagementService loadPointManagementService,
-    ICarPropertyUpdateHelper carPropertyUpdateHelper,
-    IDateTimeProvider dateTimeProvider)
+    ICarPropertyUpdateHelper carPropertyUpdateHelper)
     : IConfigJsonService
 {
 
@@ -73,12 +72,16 @@ public class ConfigJsonService(
         }
     }
 
-    public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
+    public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations(int? carId = null)
     {
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
-
-        var cars = await teslaSolarChargerContext.Cars
-            .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla))
+        var carQuery = teslaSolarChargerContext.Cars
+            .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla));
+        if(carId != default)
+        {
+            carQuery = carQuery.Where(c => c.Id == carId);
+        }
+        var cars = await carQuery
             .OrderByDescending(c => c.ShouldBeManaged == true)
             .ThenBy(c => c.ChargingPriority)
             .Select(c => new CarBasicConfiguration(c.Id, c.Name)
@@ -219,6 +222,15 @@ public class ConfigJsonService(
         {
             await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
         }
+    }
+
+    public async Task DisconnectCarFromStartCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(DisconnectCarFromStartCar), carId);
+        var carBasicConfigurations = await GetCarBasicConfigurations(carId).ConfigureAwait(false);
+        var carBasicConfiguration = carBasicConfigurations.Single();
+        carBasicConfiguration.CarType = CarType.Manual;
+        await UpdateCarBasicConfiguration(carId, carBasicConfiguration).ConfigureAwait(false);
     }
 
     private async Task<List<DtoCar>> GetCars()
@@ -528,6 +540,7 @@ public class ConfigJsonService(
                 var averageValue = Convert.ToInt32(chargingDetailsChargerVoltages.Average(c => c!.Value));
                 logger.LogDebug("Use {averageVoltage}V for charge speed calculation (provided by charging details)", averageValue);
                 settings.AverageHomeGridVoltage = averageValue;
+                // ReSharper disable once RedundantJumpStatement
                 return;
             }
 
