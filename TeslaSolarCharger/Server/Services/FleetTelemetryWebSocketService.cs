@@ -360,13 +360,6 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
             .Where(c => c.Id == settingsCar.Id)
             .FirstAsync();
 
-        if (dbCar.CarType == CarType.Manual)
-        {
-            dbCar.CarType = CarType.SmartCar;
-            await context.SaveChangesAsync().ConfigureAwait(false);
-            _logger.LogInformation("Updated car type to SmartCar for VIN {vin} based on received telemetry", vin);
-        }
-
         foreach (var message in messages)
         {
             if (configurationWrapper.LogLocationData() ||
