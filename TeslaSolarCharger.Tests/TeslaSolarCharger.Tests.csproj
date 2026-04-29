@@ -9,7 +9,7 @@
 
   <ItemGroup>
 	  <PackageReference Include="Autofac.Extras.FakeItEasy" Version="7.0.0" />
-	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
 	  <PackageReference Include="Autofac.Extras.Moq" Version="7.0.0" />
 	  <PackageReference Include="FluentAssertions" Version="7.2.2" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
