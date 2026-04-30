@@ -224,12 +224,24 @@ public class ConfigJsonService(
         }
     }
 
+    public async Task ConnectCarToSmartCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(ConnectCarToSmartCar), carId);
+        await SetCarTypeTo(carId, CarType.SmartCar).ConfigureAwait(false);
+    }
+
     public async Task DisconnectCarFromSmartCar(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(DisconnectCarFromSmartCar), carId);
+        await SetCarTypeTo(carId, CarType.Manual).ConfigureAwait(false);
+    }
+
+    private async Task SetCarTypeTo(int carId, CarType carType)
+    {
+        logger.LogTrace("{method}({carId}, {carType})", nameof(SetCarTypeTo), carId, carType);
         var carBasicConfigurations = await GetCarBasicConfigurations(carId).ConfigureAwait(false);
         var carBasicConfiguration = carBasicConfigurations.Single();
-        carBasicConfiguration.CarType = CarType.Manual;
+        carBasicConfiguration.CarType = carType;
         await UpdateCarBasicConfiguration(carId, carBasicConfiguration).ConfigureAwait(false);
     }
 

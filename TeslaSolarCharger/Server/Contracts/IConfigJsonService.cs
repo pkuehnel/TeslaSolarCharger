@@ -18,4 +18,5 @@ public interface IConfigJsonService
     Task SetCorrectHomeDetectionVia();
     Task AddAllTeslasToAllowedCars();
     Task DisconnectCarFromSmartCar(int carId);
+    Task ConnectCarToSmartCar(int carId);
 }
