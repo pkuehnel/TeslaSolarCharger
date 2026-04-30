@@ -36,7 +36,7 @@ public class BackendApiService(
     IMemoryCache memoryCache,
     ISettings settings,
     IHttpClientFactory httpClientFactory,
-    IConfigJsonService configJsonService)
+    IServiceScopeFactory serviceScopeFactory)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl)
@@ -103,6 +103,8 @@ public class BackendApiService(
             throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
         }
         var requestUrl = GenerateAuthUrl(result.Data.Value);
+        using var scope = serviceScopeFactory.CreateScope();
+        var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
         return new(requestUrl);
     }
