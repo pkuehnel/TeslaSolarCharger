@@ -64,7 +64,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
 
         var cars = await context.Cars
             .Where(c => c.ShouldBeManaged == true
-                && (c.UseFleetTelemetry || (c.CarType != CarType.Tesla)))
+                && ((c.UseFleetTelemetry && c.CarType == CarType.Tesla) || (c.CarType == CarType.SmartCar)))
             .Select(c => new { c.Vin, c.IncludeTrackingRelevantFields })
             .ToListAsync();
 

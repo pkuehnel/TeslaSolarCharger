@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
@@ -34,7 +35,8 @@ public class BackendApiService(
     ITokenHelper tokenHelper,
     IMemoryCache memoryCache,
     ISettings settings,
-    IHttpClientFactory httpClientFactory)
+    IHttpClientFactory httpClientFactory,
+    IConfigJsonService configJsonService)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl)
@@ -76,6 +78,7 @@ public class BackendApiService(
     public async Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin)
     {
         logger.LogTrace("{method}()", nameof(GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode));
+        var carId = await teslaSolarChargerContext.Cars.Where(c => c.Vin == vin).Select(c => c.Id).SingleAsync().ConfigureAwait(false);
         var encryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
         if (string.IsNullOrEmpty(encryptionKey))
         {
@@ -100,6 +103,7 @@ public class BackendApiService(
             throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
         }
         var requestUrl = GenerateAuthUrl(result.Data.Value);
+        await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
         return new(requestUrl);
     }
 
