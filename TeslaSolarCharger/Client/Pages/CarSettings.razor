@@ -462,6 +462,7 @@ else
             }
             car.CarType = CarType.Manual;
             await InvokeAsync(() => StateHasChanged());
+            Snackbar.Add("Smart Car disconnected successfully.", Severity.Success);
             return;
         }
         var baseUrl = NavigationManager.BaseUri;
@@ -469,6 +470,7 @@ else
         var url = result?.Value;
         if (string.IsNullOrEmpty(url))
         {
+            Snackbar.Add("Could not connect to Smart Car: URL is missing.", Severity.Error);
             return;
         }
         NavigationManager.NavigateTo(url);
