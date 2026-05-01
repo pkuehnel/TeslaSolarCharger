@@ -80,6 +80,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             logger.LogError("Could not fetch SmartCar token states. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
             throw new InvalidOperationException("Request resulted in non success status code.");
         }
+        logger.LogTrace("Received response for SmartCar token states request: {responseString}", responseString);
         var smartCarTokenStates = JsonConvert.DeserializeObject<List<DtoSmartCarTokenState>>(responseString);
         if (smartCarTokenStates == null)
         {
