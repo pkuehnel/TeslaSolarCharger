@@ -75,4 +75,9 @@ public class Constants : IConstants
     public int ManualCarMinutesUntilForgetSoc => 10;
     public int RefreshableValuesRefreshIntervalSeconds => 1;
     public int SolarPowerSurplusPredictionIntervalHours => 1;
+
+    public string QueryParamSuccess => "success";
+    public string QueryParamMessage => "message";
+    public string QueryParamError => "error";
+    public string QueryParamVin => "vin";
 }

@@ -14,6 +14,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
+@inject IOAuthNotificationService OAuthNotificationService
 
 <h1>@T(TranslationKeys.CloudConnectionTitle)</h1>
 
@@ -157,6 +158,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        await OAuthNotificationService.HandleQueryParameters();
         await RefreshData();
 
     }

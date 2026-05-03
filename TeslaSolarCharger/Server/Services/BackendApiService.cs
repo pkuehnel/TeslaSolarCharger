@@ -103,10 +103,22 @@ public class BackendApiService(
             throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
         }
         var requestUrl = GenerateAuthUrl(result.Data.Value);
+        if (!baseUrl.Contains(constants.QueryParamVin + "="))
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
+            await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
+        }
+        return new(requestUrl);
+    }
+
+    public async Task ConnectCarToSmartCarByVin(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(ConnectCarToSmartCarByVin), vin);
+        var carId = await teslaSolarChargerContext.Cars.Where(c => c.Vin == vin).Select(c => c.Id).SingleAsync().ConfigureAwait(false);
         using var scope = serviceScopeFactory.CreateScope();
         var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
-        return new(requestUrl);
     }
 
     public async Task GetToken(DtoBackendLogin login)
