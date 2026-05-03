@@ -119,11 +119,6 @@ public class TextLocalizationService : ITextLocalizationService
         culture ??= CultureInfo.CurrentUICulture;
         foreach (var registryType in registryTypes)
         {
-            if (registryType == null)
-            {
-                continue;
-            }
-
             if (!_registries.TryGetValue(registryType, out var registry))
             {
                 continue;
@@ -136,7 +131,7 @@ public class TextLocalizationService : ITextLocalizationService
             }
         }
 
-        return $"[{key}]";
+        return null;
     }
 
     public string? Get<TRegistry>(string key, params Type[] fallbackRegistryTypes)
