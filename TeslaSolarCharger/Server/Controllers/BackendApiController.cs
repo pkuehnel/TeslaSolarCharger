@@ -36,4 +36,11 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
         var result = await backendApiService.GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(baseUrl, vin);
         return Ok(result);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> ConnectCarToSmartCar(string vin)
+    {
+        await backendApiService.ConnectCarToSmartCarByVin(vin);
+        return Ok();
+    }
 }
