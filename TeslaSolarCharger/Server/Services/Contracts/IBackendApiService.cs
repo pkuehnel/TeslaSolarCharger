@@ -18,4 +18,6 @@ public interface IBackendApiService
     Task<bool> IsFleetApiLicensed(string vin, bool useCache);
     Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin);
     Task ConnectCarToSmartCarByVin(string vin);
+    Task<string> GetAuthorizeUrl(string baseUrl);
+    Task ExchangeToken(string code, string state, string baseUrl);
 }

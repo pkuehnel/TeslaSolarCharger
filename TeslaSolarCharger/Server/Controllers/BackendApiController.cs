@@ -43,4 +43,18 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
         await backendApiService.ConnectCarToSmartCarByVin(vin);
         return Ok();
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAuthorizeUrl(string baseUrl)
+    {
+        var result = await backendApiService.GetAuthorizeUrl(baseUrl);
+        return Ok(new DtoValue<string>(result));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ExchangeToken(string code, string state, string baseUrl)
+    {
+        await backendApiService.ExchangeToken(code, state, baseUrl);
+        return Ok();
+    }
 }

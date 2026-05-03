@@ -4,6 +4,9 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.AspNetCore.WebUtilities;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -119,6 +122,120 @@ public class BackendApiService(
         using var scope = serviceScopeFactory.CreateScope();
         var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
+    }
+
+    public async Task<string> GetAuthorizeUrl(string baseUrl)
+    {
+        logger.LogTrace("{method}({baseUrl})", nameof(GetAuthorizeUrl), baseUrl);
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        var state = Guid.NewGuid().ToString();
+
+        var codeVerifier = GenerateRandomString(64);
+        using var sha256 = SHA256.Create();
+        var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(codeVerifier));
+        var codeChallenge = Base64UrlTextEncoder.Encode(challengeBytes);
+
+        memoryCache.Set($"pkce_{state}", codeVerifier, TimeSpan.FromMinutes(10));
+
+        var authorizeUrl = $"{configurationWrapper.BackendApiBaseUrl().Replace("/api/", "")}/connect/authorize?client_id={installationId}&redirect_uri={Uri.EscapeDataString(baseUrl)}&response_type=code&state={state}&code_challenge={codeChallenge}&code_challenge_method=S256&installation_id={installationId}";
+        return authorizeUrl;
+    }
+
+    public async Task ExchangeToken(string code, string state, string baseUrl)
+    {
+        logger.LogTrace("{method}(code, {state}, {baseUrl})", nameof(ExchangeToken), state, baseUrl);
+
+        if (!memoryCache.TryGetValue($"pkce_{state}", out string? codeVerifier) || codeVerifier == null)
+        {
+            throw new InvalidOperationException("PKCE verifier not found or expired.");
+        }
+        memoryCache.Remove($"pkce_{state}");
+
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+
+        var form = new Dictionary<string, string>
+        {
+            { "grant_type", "authorization_code" },
+            { "code", code },
+            { "redirect_uri", baseUrl },
+            { "code_verifier", codeVerifier },
+            { "client_id", installationId.ToString() }
+        };
+
+        var result = await SendRequestWithFormToBackend<DtoAccessToken>(HttpMethod.Post, "connect/token", form);
+
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+
+        var newToken = result.Data ?? throw new InvalidOperationException("Could not parse token");
+
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (token == default)
+        {
+            token = new(newToken.AccessToken, newToken.RefreshToken)
+            {
+                ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt),
+            };
+            teslaSolarChargerContext.BackendTokens.Add(token);
+        }
+        else
+        {
+            token.AccessToken = newToken.AccessToken;
+            token.RefreshToken = newToken.RefreshToken;
+            token.ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt);
+        }
+
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        memoryCache.Remove(constants.BackendTokenStateKey);
+    }
+
+    private async Task<Result<T>> SendRequestWithFormToBackend<T>(HttpMethod httpMethod, string requestUrlPart, Dictionary<string, string> form)
+    {
+        logger.LogTrace("{method}({httpMethod}, {requestUrlPart}, {form})", nameof(SendRequestWithFormToBackend), httpMethod, requestUrlPart, form);
+        var request = new HttpRequestMessage();
+        var finalUrl = GenerateBackendFullRequestUrl(requestUrlPart);
+        request.RequestUri = new Uri(finalUrl);
+        request.Method = httpMethod;
+        request.Content = new FormUrlEncodedContent(form);
+
+        try
+        {
+            var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
+            var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+            var responseContentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            logger.LogTrace("Response: {responseContent}", responseContentString);
+            if (response.IsSuccessStatusCode)
+            {
+                var deserializedObject = JsonConvert.DeserializeObject<T>(responseContentString);
+                if (deserializedObject == null)
+                {
+                    return new Dtos.Result<T>(default, $"{finalUrl}: Could not deserialize response to {typeof(T).Name}.", null);
+                }
+                return new Dtos.Result<T>(deserializedObject, null, null);
+            }
+            else
+            {
+                var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+                var message = problemDetails != null
+                    ? $"Cloud Error: Status Code: {response.StatusCode}, ProblemDetails: {problemDetails.Detail}"
+                    : "An error occurred while retrieving data from the backend server.";
+
+                return new Dtos.Result<T>(default, message, problemDetails);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while sending request to backend");
+            return new Dtos.Result<T>(default, $"{finalUrl}: Unexpected error: {ex.Message}", null);
+        }
+    }
+
+    private static string GenerateRandomString(int length)
+    {
+        var bytes = RandomNumberGenerator.GetBytes(length);
+        return Base64UrlTextEncoder.Encode(bytes);
     }
 
     public async Task GetToken(DtoBackendLogin login)
