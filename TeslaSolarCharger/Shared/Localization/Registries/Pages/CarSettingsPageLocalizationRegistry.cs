@@ -146,6 +146,30 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Wake up command successfully sent via BLE"),
             new TextLocalizationTranslation(LanguageCodes.German, "Aufweckbefehl erfolgreich über BLE gesendet"));
 
+        Register(TranslationKeys.CarSettingsSmartCarConnectTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect to Smart Car (Car License required)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit Smart Car verbinden (Fahrzeuglizenz erforderlich)"));
+
+        Register(TranslationKeys.CarSettingsSmartCarDisconnectTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "Disconnect from Smart Car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Von Smart Car trennen"));
+
+        Register(TranslationKeys.CarSettingsSmartCarVinMissingError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot connect to Smart Car: VIN is missing."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: VIN fehlt."));
+
+        Register(TranslationKeys.CarSettingsSmartCarDisconnectError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not disconnect Smart Car: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Smart Car konnte nicht getrennt werden: {0}"));
+
+        Register(TranslationKeys.CarSettingsSmartCarDisconnectSuccess,
+            new TextLocalizationTranslation(LanguageCodes.English, "Smart Car disconnected successfully."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Smart Car erfolgreich getrennt."));
+
+        Register(TranslationKeys.CarSettingsSmartCarUrlMissingError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not connect to Smart Car: URL is missing."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: URL fehlt."));
+
         Register(TranslationKeys.AddCarDialogTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Add car"),
             new TextLocalizationTranslation(LanguageCodes.German, "Auto hinzufügen"));
