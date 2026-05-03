@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
@@ -34,14 +35,19 @@ public class BackendApiService(
     ITokenHelper tokenHelper,
     IMemoryCache memoryCache,
     ISettings settings,
-    IHttpClientFactory httpClientFactory)
+    IHttpClientFactory httpClientFactory,
+    IServiceScopeFactory serviceScopeFactory)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl)
     {
         logger.LogTrace("{method}()", nameof(GetTeslaOAuthRedeemUrlIncludingCookieAuthCode));
-        var encryptionKey = passwordGenerationService.GeneratePassword(32);
-        await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        var encryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (string.IsNullOrEmpty(encryptionKey))
+        {
+            encryptionKey = passwordGenerationService.GeneratePassword(32);
+            await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        }
         var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.TeslaFleetApiToken}";
         var teslaTargetActionPayload = new RedeemTargetActionPayloadTeslaAuthentication(encryptionKey, baseUrl);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
@@ -67,6 +73,52 @@ public class BackendApiService(
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRequestExpired, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRefreshNonSuccessStatusCode, null);
         return new(requestUrl);
+    }
+
+    public async Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin)
+    {
+        logger.LogTrace("{method}()", nameof(GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode));
+        var carId = await teslaSolarChargerContext.Cars.Where(c => c.Vin == vin).Select(c => c.Id).SingleAsync().ConfigureAwait(false);
+        var encryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (string.IsNullOrEmpty(encryptionKey))
+        {
+            encryptionKey = passwordGenerationService.GeneratePassword(32);
+            await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
+        }
+        var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.SmartCarToken}";
+        var smartCarTargetActionPayload = new RedeemTargetActionPayloadSmartCarAuthentication(encryptionKey, baseUrl, vin);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            throw new InvalidOperationException("Can not start SmartCar OAuth without backend token");
+        }
+        var result = await SendRequestToBackend<DtoValue<string>>(HttpMethod.Post, token.AccessToken, requestUri, smartCarTargetActionPayload).ConfigureAwait(false);
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+
+        if (result.Data == default || string.IsNullOrEmpty(result.Data.Value))
+        {
+            throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
+        }
+        var requestUrl = GenerateAuthUrl(result.Data.Value);
+        if (!baseUrl.Contains(constants.QueryParamVin + "="))
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
+            await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
+        }
+        return new(requestUrl);
+    }
+
+    public async Task ConnectCarToSmartCarByVin(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(ConnectCarToSmartCarByVin), vin);
+        var carId = await teslaSolarChargerContext.Cars.Where(c => c.Vin == vin).Select(c => c.Id).SingleAsync().ConfigureAwait(false);
+        using var scope = serviceScopeFactory.CreateScope();
+        var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
+        await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
     }
 
     public async Task GetToken(DtoBackendLogin login)
@@ -135,6 +187,7 @@ public class BackendApiService(
             return;
         }
         //As expiration date is not null a token must exist.
+        logger.LogTrace("Backend token not valid anymore, refreshing...");
         var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
         var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);
         var result = await SendRequestToBackend<DtoAccessToken>(HttpMethod.Post, null, "User/RefreshToken", dtoRefreshToken);

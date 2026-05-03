@@ -31,7 +31,7 @@ public class CloudConnectionCheckService(ILogger<CloudConnectionCheckService> lo
     public async Task<string?> GetRedeemUrlIncludingCookieAuthCode(string baseUrl)
     {
         logger.LogTrace("{method}({baseUrl})", nameof(GetRedeemUrlIncludingCookieAuthCode), baseUrl);
-        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"api/FleetApi/GetRedeemUrlIncludingCookieAuthCode?baseUrl={Uri.EscapeDataString(baseUrl)}");
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"api/BackendApi/GetTeslaOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}");
         return response?.Value;
     }
 }

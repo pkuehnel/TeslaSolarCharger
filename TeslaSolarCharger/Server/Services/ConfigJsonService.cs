@@ -26,8 +26,7 @@ public class ConfigJsonService(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     ITscConfigurationService tscConfigurationService,
     ILoadPointManagementService loadPointManagementService,
-    ICarPropertyUpdateHelper carPropertyUpdateHelper,
-    IDateTimeProvider dateTimeProvider)
+    ICarPropertyUpdateHelper carPropertyUpdateHelper)
     : IConfigJsonService
 {
 
@@ -73,13 +72,18 @@ public class ConfigJsonService(
         }
     }
 
-    public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
+    public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations(int? carId = null)
     {
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
-
-        var cars = await teslaSolarChargerContext.Cars
-            .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla))
-            .OrderBy(c => c.ChargingPriority)
+        var carQuery = teslaSolarChargerContext.Cars
+            .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla));
+        if(carId != default)
+        {
+            carQuery = carQuery.Where(c => c.Id == carId);
+        }
+        var cars = await carQuery
+            .OrderByDescending(c => c.ShouldBeManaged == true)
+            .ThenBy(c => c.ChargingPriority)
             .Select(c => new CarBasicConfiguration(c.Id, c.Name)
             {
                 Vin = c.Vin ?? string.Empty,
@@ -111,6 +115,7 @@ public class ConfigJsonService(
 
     public async Task AddCarsToSettings()
     {
+        logger.LogTrace("{method}()", nameof(AddCarsToSettings));
         settings.Cars = await GetCars().ConfigureAwait(false);
         foreach (var dtoCar in settings.CarsToManage)
         {
@@ -211,13 +216,33 @@ public class ConfigJsonService(
             teslaSolarChargerContext.Cars.Add(databaseCar);
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var shouldInitializeManualCarValues = carId == default && databaseCar.CarType == CarType.Manual;
-        var manualCarIdToInitialize = shouldInitializeManualCarValues ? databaseCar.Id : (int?)null;
+        logger.LogTrace("Saved car {carId} to database", carId);
         await AddCarsToSettings().ConfigureAwait(false);
         if (databaseCar.CarType == CarType.Tesla)
         {
             await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
         }
+    }
+
+    public async Task ConnectCarToSmartCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(ConnectCarToSmartCar), carId);
+        await SetCarTypeTo(carId, CarType.SmartCar).ConfigureAwait(false);
+    }
+
+    public async Task DisconnectCarFromSmartCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(DisconnectCarFromSmartCar), carId);
+        await SetCarTypeTo(carId, CarType.Manual).ConfigureAwait(false);
+    }
+
+    private async Task SetCarTypeTo(int carId, CarType carType)
+    {
+        logger.LogTrace("{method}({carId}, {carType})", nameof(SetCarTypeTo), carId, carType);
+        var carBasicConfigurations = await GetCarBasicConfigurations(carId).ConfigureAwait(false);
+        var carBasicConfiguration = carBasicConfigurations.Single();
+        carBasicConfiguration.CarType = carType;
+        await UpdateCarBasicConfiguration(carId, carBasicConfiguration).ConfigureAwait(false);
     }
 
     private async Task<List<DtoCar>> GetCars()
@@ -527,6 +552,7 @@ public class ConfigJsonService(
                 var averageValue = Convert.ToInt32(chargingDetailsChargerVoltages.Average(c => c!.Value));
                 logger.LogDebug("Use {averageVoltage}V for charge speed calculation (provided by charging details)", averageValue);
                 settings.AverageHomeGridVoltage = averageValue;
+                // ReSharper disable once RedundantJumpStatement
                 return;
             }
 

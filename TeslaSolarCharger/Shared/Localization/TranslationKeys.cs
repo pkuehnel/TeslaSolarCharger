@@ -223,6 +223,12 @@ public static class TranslationKeys
     public static string CarSettingsDeserializationError => nameof(CarSettingsDeserializationError);
     public static string CarSettingsBleSuccessMessage => nameof(CarSettingsBleSuccessMessage);
     public static string CarSettingsWakeUpSuccessMessage => nameof(CarSettingsWakeUpSuccessMessage);
+    public static string CarSettingsSmartCarConnectTooltip => nameof(CarSettingsSmartCarConnectTooltip);
+    public static string CarSettingsSmartCarDisconnectTooltip => nameof(CarSettingsSmartCarDisconnectTooltip);
+    public static string CarSettingsSmartCarVinMissingError => nameof(CarSettingsSmartCarVinMissingError);
+    public static string CarSettingsSmartCarDisconnectError => nameof(CarSettingsSmartCarDisconnectError);
+    public static string CarSettingsSmartCarDisconnectSuccess => nameof(CarSettingsSmartCarDisconnectSuccess);
+    public static string CarSettingsSmartCarUrlMissingError => nameof(CarSettingsSmartCarUrlMissingError);
 
     public static string NavMenuTitle => nameof(NavMenuTitle);
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);
@@ -498,6 +504,10 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateMaxSoc => nameof(CarDetailsFailedToUpdateMaxSoc);
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
+
+    public static string GeneralErrorTitle => nameof(GeneralErrorTitle);
+    public static string GeneralSuccessTitle => nameof(GeneralSuccessTitle);
+    public static string OAuthNotificationSmartCarConnectionFailed => nameof(OAuthNotificationSmartCarConnectionFailed);
 
     public static string UnitWatts => nameof(UnitWatts);
     public static string UnitAmpere => nameof(UnitAmpere);

@@ -436,9 +436,9 @@ public class TeslaFleetApiService(
         return;
     }
 
-    public async Task RefreshFleetApiTokenIfNeeded()
+    public async Task RefreshFleetApiTokenIfRequired()
     {
-        logger.LogTrace("{method}()", nameof(RefreshFleetApiTokenIfNeeded));
+        logger.LogTrace("{method}()", nameof(RefreshFleetApiTokenIfRequired));
         var fleetApiTokenExpiration = await tokenHelper.GetFleetApiTokenExpirationDate(true);
         if (fleetApiTokenExpiration == default)
         {
@@ -447,7 +447,7 @@ public class TeslaFleetApiService(
             return;
         }
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        if(fleetApiTokenExpiration > currentDate.AddMinutes(1))
+        if (fleetApiTokenExpiration.Value > currentDate.AddSeconds(constants.TokenRefreshIntervalSeconds * 2))
         {
             logger.LogDebug("Do not refresh Fleet API Token as it is still valid until {expiration}", fleetApiTokenExpiration);
             return;

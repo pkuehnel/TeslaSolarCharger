@@ -119,11 +119,6 @@ public class TextLocalizationService : ITextLocalizationService
         culture ??= CultureInfo.CurrentUICulture;
         foreach (var registryType in registryTypes)
         {
-            if (registryType == null)
-            {
-                continue;
-            }
-
             if (!_registries.TryGetValue(registryType, out var registry))
             {
                 continue;
@@ -154,5 +149,45 @@ public class TextLocalizationService : ITextLocalizationService
         }
 
         return Get(key, culture, registryTypes);
+    }
+
+    public string GetFormat(string key, object?[] args, params Type[] registryTypes)
+    {
+        return GetFormat(key, null, args, registryTypes);
+    }
+
+    public string GetFormat(string key, CultureInfo? culture, object?[] args, params Type[] registryTypes)
+    {
+        var value = Get(key, culture, registryTypes);
+        if (value == null || value == $"[{key}]")
+        {
+            return value ?? $"[{key}]";
+        }
+
+        try
+        {
+            return string.Format(culture ?? CultureInfo.CurrentUICulture, value, args);
+        }
+        catch (Exception)
+        {
+            return value;
+        }
+    }
+
+    public string GetFormat<TRegistry>(string key, object?[] args, params Type[] fallbackRegistryTypes)
+    {
+        return GetFormat<TRegistry>(key, null, args, fallbackRegistryTypes);
+    }
+
+    public string GetFormat<TRegistry>(string key, CultureInfo? culture, object?[] args, params Type[] fallbackRegistryTypes)
+    {
+        var registryTypes = new Type[1 + (fallbackRegistryTypes?.Length ?? 0)];
+        registryTypes[0] = typeof(TRegistry);
+        if (fallbackRegistryTypes != null && fallbackRegistryTypes.Length > 0)
+        {
+            Array.Copy(fallbackRegistryTypes, 0, registryTypes, 1, fallbackRegistryTypes.Length);
+        }
+
+        return GetFormat(key, culture, args, registryTypes);
     }
 }
