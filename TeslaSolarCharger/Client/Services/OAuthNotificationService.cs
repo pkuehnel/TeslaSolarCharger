@@ -51,7 +51,14 @@ public class OAuthNotificationService(
 
         if (handled)
         {
-            navigationManager.NavigateTo(uri.GetLeftPart(UriPartial.Path));
+            var newUri = navigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+            {
+                [constants.QueryParamError] = null,
+                [constants.QueryParamSuccess] = null,
+                [constants.QueryParamVin] = null,
+                [constants.QueryParamMessage] = null,
+            });
+            navigationManager.NavigateTo(newUri);
         }
     }
 }
