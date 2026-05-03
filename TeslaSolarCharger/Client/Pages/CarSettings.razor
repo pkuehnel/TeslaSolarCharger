@@ -85,13 +85,14 @@ else
                             <CardHeaderActions>
                                 @if (carBasicConfiguration.Item.CarType != CarType.Tesla && carBasicConfiguration.Item.ShouldBeManaged)
                                 {
-                                    <MudTooltip Text="@(carBasicConfiguration.Item.CarType == CarType.SmartCar ? "Disconnect from SmartCar" : "Connect to Smart Car (Car License required)")">
-                                        <MudFab StartIcon="@(carBasicConfiguration.Item.CarType == CarType.SmartCar 
-                                                               ? Icons.Material.Filled.WifiOff : Icons.Material.Filled.Wifi)"
-                                                Color="Color.Primary"
-                                                Size="Size.Small"
-                                                OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
-                                    </MudTooltip>
+                                <MudTooltip Text="@(carBasicConfiguration.Item.CarType == CarType.SmartCar ? T(TranslationKeys.CarSettingsSmartCarDisconnectTooltip) : T(TranslationKeys.CarSettingsSmartCarConnectTooltip))">
+                                    <MudFab StartIcon="@(carBasicConfiguration.Item.CarType == CarType.SmartCar
+                                            ? Icons.Material.Filled.LinkOff
+                                            : Icons.Material.Filled.Link)"
+                                            Color="Color.Primary"
+                                            Size="Size.Small"
+                                            OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
+                                </MudTooltip>
                                 }
                             </CardHeaderActions>
                         </MudCardHeader>
@@ -286,6 +287,9 @@ else
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
+    private string TF(string key, params object[] args) =>
+        TextLocalizer.GetFormat<CarSettingsPageLocalizationRegistry>(key, args, typeof(SharedComponentLocalizationRegistry));
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!string.IsNullOrWhiteSpace(_elementIdToScroll))
@@ -451,7 +455,7 @@ else
     {
         if (string.IsNullOrEmpty(car.Vin))
         {
-            Snackbar.Add("Cannot connect to Smart Car: VIN is missing.", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarVinMissingError), Severity.Error);
             return;
         }
 
@@ -460,12 +464,12 @@ else
             var disconnectResult = await HttpClientHelper.SendPostRequestAsync<object>($"/api/Config/DisconnectCarFromSmartCar?carId={Uri.EscapeDataString(car.Id.ToString())}", null).ConfigureAwait(false);
             if (disconnectResult.HasError)
             {
-                Snackbar.Add("Could not disconnect Smart Car: " + disconnectResult.ErrorMessage, Severity.Error);
+                Snackbar.Add(TF(TranslationKeys.CarSettingsSmartCarDisconnectError, disconnectResult.ErrorMessage ?? string.Empty), Severity.Error);
                 return;
             }
             car.CarType = CarType.Manual;
             await InvokeAsync(() => StateHasChanged());
-            Snackbar.Add("Smart Car disconnected successfully.", Severity.Success);
+            Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarDisconnectSuccess), Severity.Success);
             return;
         }
         var baseUrl = NavigationManager.BaseUri + "CarSettings?" + Constants.QueryParamVin + "=" + Uri.EscapeDataString(car.Vin);
@@ -473,7 +477,7 @@ else
         var url = result?.Value;
         if (string.IsNullOrEmpty(url))
         {
-            Snackbar.Add("Could not connect to Smart Car: URL is missing.", Severity.Error);
+            Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarUrlMissingError), Severity.Error);
             return;
         }
         NavigationManager.NavigateTo(url);

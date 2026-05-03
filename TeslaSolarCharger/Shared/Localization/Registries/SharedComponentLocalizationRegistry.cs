@@ -86,6 +86,18 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, "Reload"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neu laden"));
 
+        Register(TranslationKeys.GeneralErrorTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Error"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fehler"));
+
+        Register(TranslationKeys.GeneralSuccessTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Success"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erfolg"));
+
+        Register(TranslationKeys.OAuthNotificationSmartCarConnectionFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to confirm SmartCar connection: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bestätigung der SmartCar-Verbindung fehlgeschlagen: {0}"));
+
         Register(TranslationKeys.GenericInputMultiSelectionText,
             new TextLocalizationTranslation(LanguageCodes.English, "{0}{1} item{2} been selected"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0}{1} Element{2} ausgewählt"));
