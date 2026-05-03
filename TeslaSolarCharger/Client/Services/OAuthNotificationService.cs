@@ -33,6 +33,22 @@ public class OAuthNotificationService(
         var query = QueryHelpers.ParseQuery(uri.Query);
 
         bool handled = false;
+        if (query.TryGetValue("code", out var code) && query.TryGetValue("state", out var state))
+        {
+            var baseUrl = navigationManager.BaseUri + "cloudconnection";
+            var result = await httpClientHelper.SendPostRequestAsync<object>($"/api/BackendApi/ExchangeToken?code={Uri.EscapeDataString(code.ToString())}&state={Uri.EscapeDataString(state.ToString())}&baseUrl={Uri.EscapeDataString(baseUrl)}", null).ConfigureAwait(false);
+            if (result.HasError)
+            {
+                snackbar.Add("Failed to complete cloud connection: " + result.ErrorMessage, Severity.Error);
+            }
+            else
+            {
+                snackbar.Add("Cloud connection completed successfully.", Severity.Success);
+                // Redirect to self without query parameters to clean up the URL
+                navigationManager.NavigateTo("cloudconnection");
+            }
+        }
+
         if (query.TryGetValue(constants.QueryParamError, out var error))
         {
             var parameters = new DialogParameters<TextDialog> { { x => x.Text, error.ToString()! } };

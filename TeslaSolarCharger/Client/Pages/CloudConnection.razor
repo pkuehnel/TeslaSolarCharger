@@ -15,6 +15,7 @@
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
 @inject IOAuthNotificationService OAuthNotificationService
+@using TeslaSolarCharger.Client.Services.Contracts
 
 <h1>@T(TranslationKeys.CloudConnectionTitle)</h1>
 
@@ -47,17 +48,10 @@ else
 }
 else if(BackendTokenState != default)
 {
-    <GenericInput For="() => _backendLogin.EMail"></GenericInput>
-    <GenericInput For="() => _backendLogin.Password"
-    IsPassword="true"></GenericInput>
-    @if (LoginErrorMessage != default)
-    {
-        <div class="validation-message">
-            @T(TranslationKeys.CloudConnectionLoginFailedPrefix) @LoginErrorMessage
-        </div>
-    }
+    <MudText Typo="Typo.body1" Class="mb-4">To connect to the cloud, please log in with your Solar4Car.com account. You will be redirected to the secure login page.</MudText>
+    
     <RightAlignedButtonComponent OnButtonClicked="Submit"
-    ButtonText='@T(TranslationKeys.CloudConnectionLoginButton)'
+    ButtonText='Log in with Solar4Car.com'
     IsLoading="@_backendLoginIsLoading">
     </RightAlignedButtonComponent>
     <div class="d-flex">
@@ -173,21 +167,13 @@ else
     private async Task Submit()
     {
         _backendLoginIsLoading = true;
-        var result = await HttpClientHelper.SendPostRequestAsync("api/BackendApi/LoginToBackend", _backendLogin);
-        if (result.HasError)
+        var baseUrl = NavigationManager.BaseUri + "cloudconnection";
+        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetAuthorizeUrl?baseUrl={Uri.EscapeDataString(baseUrl)}");
+        if (result?.Value != null)
         {
-            LoginErrorMessage = result.ErrorMessage;
-            Snackbar.Add(T(TranslationKeys.CloudConnectionLoginFailedNotification), Severity.Error);
+            NavigationManager.NavigateTo(result.Value);
         }
-        else
-        {
-            LoginErrorMessage = default;
-            Snackbar.Add(T(TranslationKeys.CloudConnectionLoginSucceededNotification), Severity.Success);
-        }
-
-        await RefreshData();
         _backendLoginIsLoading = false;
-        StateHasChanged();
     }
 
     private void FakeLogout()
