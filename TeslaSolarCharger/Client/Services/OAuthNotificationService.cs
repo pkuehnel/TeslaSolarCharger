@@ -20,14 +20,17 @@ public class OAuthNotificationService(
         var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
 
+        bool handled = false;
         if (query.TryGetValue(constants.QueryParamError, out var error))
         {
-            var parameters = new DialogParameters { ["Text"] = error.ToString() };
-            dialogService.Show<TextDialog>("Error", parameters);
+            var parameters = new DialogParameters<TextDialog> { { x => x.Text, error.ToString()! } };
+            await dialogService.ShowAsync<TextDialog>("Error", parameters);
+            handled = true;
         }
 
         if (query.TryGetValue(constants.QueryParamSuccess, out var success) && success == "true")
         {
+            handled = true;
             if (query.TryGetValue(constants.QueryParamVin, out var vin))
             {
                 var result = await httpClientHelper.SendPostRequestAsync<object>($"/api/BackendApi/ConnectCarToSmartCar?vin={Uri.EscapeDataString(vin.ToString())}", null).ConfigureAwait(false);
@@ -44,6 +47,11 @@ public class OAuthNotificationService(
             {
                 snackbar.Add(message.ToString(), Severity.Success);
             }
+        }
+
+        if (handled)
+        {
+            navigationManager.NavigateTo(uri.GetLeftPart(UriPartial.Path));
         }
     }
 }
