@@ -12,4 +12,12 @@ public interface ITextLocalizationService
     string? Get<TRegistry>(string key, params Type[] fallbackRegistryTypes);
 
     string? Get<TRegistry>(string key, CultureInfo? culture, params Type[] fallbackRegistryTypes);
+
+    string GetFormat(string key, object?[] args, params Type[] registryTypes);
+
+    string GetFormat(string key, CultureInfo? culture, object?[] args, params Type[] registryTypes);
+
+    string GetFormat<TRegistry>(string key, object?[] args, params Type[] fallbackRegistryTypes);
+
+    string GetFormat<TRegistry>(string key, CultureInfo? culture, object?[] args, params Type[] fallbackRegistryTypes);
 }
