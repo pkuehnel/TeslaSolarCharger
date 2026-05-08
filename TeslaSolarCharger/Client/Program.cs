@@ -40,6 +40,7 @@ builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckService>();
+builder.Services.AddScoped<ICarSettingsService, CarSettingsService>();
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();

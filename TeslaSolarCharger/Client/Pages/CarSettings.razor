@@ -2,7 +2,6 @@
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Ble
-@using Newtonsoft.Json
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Enums
@@ -12,12 +11,11 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 
-@inject HttpClient HttpClient
+@inject ICarSettingsService CarSettingsService
 @inject IConstants Constants
 @inject IJavaScriptWrapper JavaScriptWrapper
 @inject ITextLocalizationService TextLocalizer
 @inject NavigationManager NavigationManager
-@inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
 @inject IOAuthNotificationService OAuthNotificationService
 
@@ -310,7 +308,7 @@ else
         await RefreshFleetApiTokenState();
         await RefreshFleetApiLicenseInfo();
         await OAuthNotificationService.HandleQueryParameters();
-        var carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
+        var carBasicConfigurations = await CarSettingsService.GetCarBasicConfigurations();
         if (carBasicConfigurations != null)
         {
             _vinsToShowBleTest = carBasicConfigurations.Where(c => c is { UseBle: true, ShouldBeManaged: true, CarType: CarType.Tesla, }).Select(c => c.Vin).ToHashSet();
@@ -320,7 +318,7 @@ else
 
     private async Task RefreshFleetApiLicenseInfo()
     {
-        var licenseInfo = await HttpClient.GetFromJsonAsync<DtoFleetApiLicenseInfo>("api/BackendApi/GetFleetApiLicenseInfo").ConfigureAwait(false);
+        var licenseInfo = await CarSettingsService.GetFleetApiLicenseInfo();
         if (licenseInfo != null)
         {
             _fleetApiLicenseInfo = licenseInfo;
@@ -329,21 +327,15 @@ else
 
     private async Task RefreshFleetApiTokenState()
     {
-        var value = await HttpClient.GetFromJsonAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
-        if (value != null)
-        {
-            _fleetApiTokenState = value.Value;
-        }
+        _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
     }
 
     private async Task PairCar(CarBasicConfiguration car)
     {
         _pairingResults.Remove(car.Vin);
         _loadingVins.Add(car.Vin);
-        var url = $"/api/Ble/PairKey?vin={car.Vin}&apiRole=charging_manager";
-        var result = await HttpClient.GetStringAsync(url).ConfigureAwait(false);
-        var resultJson = JsonConvert.DeserializeObject<DtoBleCommandResult>(result);
-        _pairingResults[car.Vin] = resultJson?.ResultMessage ?? result;
+        var resultJson = await CarSettingsService.PairKey(car.Vin);
+        _pairingResults[car.Vin] = resultJson?.ResultMessage ?? T(TranslationKeys.CarSettingsDeserializationError);
         _loadingVins.Remove(car.Vin);
     }
 
@@ -351,8 +343,7 @@ else
     {
         _bleTestResults.Remove(vin);
         _loadingVins.Add(vin);
-        var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
-        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
+        var result = await CarSettingsService.SetAmp(vin, 7)
                      ?? new DtoBleCommandResult
                      {
                          Success = false,
@@ -370,8 +361,7 @@ else
     {
         _bleWakeUpTestResults.Remove(vin);
         _loadingVins.Add(vin);
-        var resultString = await HttpClient.GetStringAsync($"/api/Ble/WakeUp?vin={vin}").ConfigureAwait(false);
-        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
+        var result = await CarSettingsService.WakeUp(vin)
                      ?? new DtoBleCommandResult
                      {
                          Success = false,
@@ -474,10 +464,10 @@ else
 
         if (car.CarType == CarType.SmartCar)
         {
-            var disconnectResult = await HttpClientHelper.SendPostRequestAsync<object>($"/api/Config/DisconnectCarFromSmartCar?carId={Uri.EscapeDataString(car.Id.ToString())}", null).ConfigureAwait(false);
-            if (disconnectResult.HasError)
+            var disconnectSuccess = await CarSettingsService.DisconnectCarFromSmartCar(car.Id);
+            if (!disconnectSuccess)
             {
-                Snackbar.Add(TF(TranslationKeys.CarSettingsSmartCarDisconnectError, disconnectResult.ErrorMessage ?? string.Empty), Severity.Error);
+                // Snackbar error is already shown by HttpClientHelper in the service
                 return;
             }
             car.CarType = CarType.Manual;
@@ -486,8 +476,7 @@ else
             return;
         }
         var baseUrl = NavigationManager.BaseUri + "CarSettings?" + Constants.QueryParamVin + "=" + Uri.EscapeDataString(car.Vin);
-        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>($"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={Uri.EscapeDataString(car.Vin)}").ConfigureAwait(false);
-        var url = result?.Value;
+        var url = await CarSettingsService.GetSmartCarOAuthRedeemUrl(baseUrl, car.Vin);
         if (string.IsNullOrEmpty(url))
         {
             Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarUrlMissingError), Severity.Error);
