@@ -17,5 +17,6 @@ public interface IBackendApiService
     Task<Result<bool?>> IsBaseAppLicensed(bool useCache);
     Task<bool> IsFleetApiLicensed(string vin, bool useCache);
     Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin);
+    Task<DtoFleetApiLicenseInfo> GetFleetApiLicenseInfo();
     Task ConnectCarToSmartCarByVin(string vin);
 }
