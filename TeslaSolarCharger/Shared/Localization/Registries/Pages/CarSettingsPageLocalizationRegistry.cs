@@ -170,6 +170,10 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Could not connect to Smart Car: URL is missing."),
             new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: URL fehlt."));
 
+        Register(TranslationKeys.CarSettingsSmartCarLicenseLimitTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot connect to Smart Car: All available licenses are already in use."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: Alle verfügbaren Lizenzen sind bereits belegt."));
+
         Register(TranslationKeys.AddCarDialogTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Add car"),
             new TextLocalizationTranslation(LanguageCodes.German, "Auto hinzufügen"));

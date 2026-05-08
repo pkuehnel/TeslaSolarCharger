@@ -229,6 +229,7 @@ public static class TranslationKeys
     public static string CarSettingsSmartCarDisconnectError => nameof(CarSettingsSmartCarDisconnectError);
     public static string CarSettingsSmartCarDisconnectSuccess => nameof(CarSettingsSmartCarDisconnectSuccess);
     public static string CarSettingsSmartCarUrlMissingError => nameof(CarSettingsSmartCarUrlMissingError);
+    public static string CarSettingsSmartCarLicenseLimitTooltip => nameof(CarSettingsSmartCarLicenseLimitTooltip);
 
     public static string NavMenuTitle => nameof(NavMenuTitle);
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);

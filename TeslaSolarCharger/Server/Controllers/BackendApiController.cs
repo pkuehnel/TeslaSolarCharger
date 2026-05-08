@@ -37,6 +37,12 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
         return Ok(result);
     }
 
+    [HttpGet]
+    public async Task<DtoFleetApiLicenseInfo> GetFleetApiLicenseInfo()
+    {
+        return await backendApiService.GetFleetApiLicenseInfo();
+    }
+
     [HttpPost]
     public async Task<IActionResult> ConnectCarToSmartCar(string vin)
     {

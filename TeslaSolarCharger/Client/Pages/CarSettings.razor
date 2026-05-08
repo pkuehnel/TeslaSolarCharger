@@ -85,12 +85,13 @@ else
                             <CardHeaderActions>
                                 @if (carBasicConfiguration.Item.CarType != CarType.Tesla && carBasicConfiguration.Item.ShouldBeManaged)
                                 {
-                                <MudTooltip Text="@(carBasicConfiguration.Item.CarType == CarType.SmartCar ? T(TranslationKeys.CarSettingsSmartCarDisconnectTooltip) : T(TranslationKeys.CarSettingsSmartCarConnectTooltip))">
+                                <MudTooltip Text="@(carBasicConfiguration.Item.CarType == CarType.SmartCar ? T(TranslationKeys.CarSettingsSmartCarDisconnectTooltip) : (_hasAvailableLicenses ? T(TranslationKeys.CarSettingsSmartCarConnectTooltip) : T(TranslationKeys.CarSettingsSmartCarLicenseLimitTooltip)))">
                                     <MudFab StartIcon="@(carBasicConfiguration.Item.CarType == CarType.SmartCar
                                             ? Icons.Material.Filled.LinkOff
                                             : Icons.Material.Filled.Link)"
                                             Color="Color.Primary"
                                             Size="Size.Small"
+                                            Disabled="@(carBasicConfiguration.Item.CarType != CarType.SmartCar && !_hasAvailableLicenses)"
                                             OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
                                 </MudTooltip>
                                 }
@@ -273,6 +274,8 @@ else
 @code {
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private TokenState? _fleetApiTokenState;
+    private DtoFleetApiLicenseInfo _fleetApiLicenseInfo = new();
+    private bool _hasAvailableLicenses => _fleetApiLicenseInfo.UsedLicenses < _fleetApiLicenseInfo.MaxLicenses;
 
     private HashSet<string> _vinsToShowBleTest = new();
     private Dictionary<string, string> _pairingResults = new();
@@ -305,12 +308,22 @@ else
     protected override async Task OnInitializedAsync()
     {
         await RefreshFleetApiTokenState();
+        await RefreshFleetApiLicenseInfo();
         await OAuthNotificationService.HandleQueryParameters();
         var carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
         if (carBasicConfigurations != null)
         {
             _vinsToShowBleTest = carBasicConfigurations.Where(c => c is { UseBle: true, ShouldBeManaged: true, CarType: CarType.Tesla, }).Select(c => c.Vin).ToHashSet();
             _carBasicConfigurations = carBasicConfigurations.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
+        }
+    }
+
+    private async Task RefreshFleetApiLicenseInfo()
+    {
+        var licenseInfo = await HttpClient.GetFromJsonAsync<DtoFleetApiLicenseInfo>("api/BackendApi/GetFleetApiLicenseInfo").ConfigureAwait(false);
+        if (licenseInfo != null)
+        {
+            _fleetApiLicenseInfo = licenseInfo;
         }
     }
 
