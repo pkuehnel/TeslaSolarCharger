@@ -272,8 +272,8 @@ else
 @code {
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private TokenState? _fleetApiTokenState;
-    private DtoFleetApiLicenseInfo _fleetApiLicenseInfo = new();
-    private bool _hasAvailableLicenses => _fleetApiLicenseInfo.UsedLicenses < _fleetApiLicenseInfo.MaxLicenses;
+    private DtoCarLicenseInfo _carLicenseInfo = new();
+    private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
 
     private HashSet<string> _vinsToShowBleTest = new();
     private Dictionary<string, string> _pairingResults = new();
@@ -321,7 +321,7 @@ else
         var licenseInfo = await CarSettingsService.GetFleetApiLicenseInfo();
         if (licenseInfo != null)
         {
-            _fleetApiLicenseInfo = licenseInfo;
+            _carLicenseInfo = licenseInfo;
         }
     }
 

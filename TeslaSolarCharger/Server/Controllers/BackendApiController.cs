@@ -38,7 +38,7 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
     }
 
     [HttpGet]
-    public async Task<DtoFleetApiLicenseInfo> GetFleetApiLicenseInfo()
+    public async Task<DtoCarLicenseInfo> GetFleetApiLicenseInfo()
     {
         return await backendApiService.GetFleetApiLicenseInfo();
     }

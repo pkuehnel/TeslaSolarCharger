@@ -1,6 +1,6 @@
 ﻿namespace TeslaSolarCharger.Shared.Dtos;
 
-public class DtoFleetApiLicenseInfo
+public class DtoCarLicenseInfo
 {
     public int MaxLicenses { get; set; }
     public int UsedLicenses { get; set; }
