@@ -467,7 +467,6 @@ else
             var disconnectSuccess = await CarSettingsService.DisconnectCarFromSmartCar(car.Id);
             if (!disconnectSuccess)
             {
-                // Snackbar error is already shown by HttpClientHelper in the service
                 return;
             }
             car.CarType = CarType.Manual;
