@@ -121,7 +121,7 @@ public class BackendApiService(
         await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
     }
 
-    public async Task<DtoFleetApiLicenseInfo> GetFleetApiLicenseInfo()
+    public async Task<DtoCarLicenseInfo> GetFleetApiLicenseInfo()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiLicenseInfo));
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
@@ -129,12 +129,12 @@ public class BackendApiService(
         {
             throw new InvalidOperationException("Can not get license info without backend token");
         }
-        var result = await SendRequestToBackend<DtoFleetApiLicenseInfo>(HttpMethod.Get, token.AccessToken, "Client/GetFleetApiLicenseInfo", null).ConfigureAwait(false);
+        var result = await SendRequestToBackend<DtoCarLicenseInfo>(HttpMethod.Get, token.AccessToken, "Client/GetFleetApiLicenseInfo", null).ConfigureAwait(false);
         if (result.HasError)
         {
             throw new InvalidOperationException(result.ErrorMessage);
         }
-        return result.Data ?? new DtoFleetApiLicenseInfo();
+        return result.Data ?? new DtoCarLicenseInfo();
     }
 
     public async Task GetToken(DtoBackendLogin login)

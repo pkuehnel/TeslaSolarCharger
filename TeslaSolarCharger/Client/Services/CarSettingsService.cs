@@ -14,10 +14,10 @@ public class CarSettingsService(ILogger<CarSettingsService> logger, IHttpClientH
         return await httpClientHelper.SendGetRequestWithSnackbarAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations");
     }
 
-    public async Task<DtoFleetApiLicenseInfo?> GetFleetApiLicenseInfo()
+    public async Task<DtoCarLicenseInfo?> GetFleetApiLicenseInfo()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiLicenseInfo));
-        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoFleetApiLicenseInfo>("api/BackendApi/GetFleetApiLicenseInfo");
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoCarLicenseInfo>("api/BackendApi/GetFleetApiLicenseInfo");
     }
 
     public async Task<TokenState> GetFleetApiTokenState()
