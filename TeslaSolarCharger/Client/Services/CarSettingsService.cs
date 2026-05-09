@@ -1,13 +1,24 @@
+using MudBlazor;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Localization;
+using TeslaSolarCharger.Shared.Localization.Contracts;
+using TeslaSolarCharger.Shared.Localization.Registries;
+using TeslaSolarCharger.Shared.Localization.Registries.Pages;
 
 namespace TeslaSolarCharger.Client.Services;
 
-public class CarSettingsService(ILogger<CarSettingsService> logger, IHttpClientHelper httpClientHelper) : ICarSettingsService
+public class CarSettingsService(ILogger<CarSettingsService> logger,
+    IHttpClientHelper httpClientHelper,
+    ISnackbar snackbar,
+    ITextLocalizationService textLocalizer) : ICarSettingsService
 {
+    private string TF(string key, params object[] args) =>
+        textLocalizer.GetFormat<CarSettingsPageLocalizationRegistry>(key, args, typeof(SharedComponentLocalizationRegistry));
+
     public async Task<List<CarBasicConfiguration>?> GetCarBasicConfigurations()
     {
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
@@ -55,6 +66,10 @@ public class CarSettingsService(ILogger<CarSettingsService> logger, IHttpClientH
         logger.LogTrace("{method}({carId})", nameof(DisconnectCarFromSmartCar), carId);
         var url = $"/api/Config/DisconnectCarFromSmartCar?carId={Uri.EscapeDataString(carId.ToString())}";
         var result = await httpClientHelper.SendPostRequestAsync<object>(url, null);
+        if (result.HasError)
+        {
+            snackbar.Add(TF(TranslationKeys.CarSettingsSmartCarDisconnectError, result.ErrorMessage ?? string.Empty), Severity.Error);
+        }
         return !result.HasError;
     }
 
