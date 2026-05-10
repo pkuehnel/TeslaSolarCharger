@@ -375,7 +375,8 @@ public class BackendApiService(
     {
         logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
         var request = new HttpRequestMessage();
-        request.Headers.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue(CultureInfo.CurrentUICulture.Name));
+        var cultureName = string.IsNullOrEmpty(CultureInfo.CurrentUICulture.Name) ? "en-US" : CultureInfo.CurrentUICulture.Name;
+        request.Headers.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue(cultureName));
         var finalUrl = GenerateBackendFullRequestUrl(requestUrlPart);
         request.RequestUri = new Uri(finalUrl);
         if (accessToken != default)
