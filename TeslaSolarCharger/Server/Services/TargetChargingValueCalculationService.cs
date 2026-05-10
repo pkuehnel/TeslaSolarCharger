@@ -104,7 +104,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if (constraintValues.IsCarFullyCharged == true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
-                    new("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
+                    new("Charging can't start because the car isn't allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
             var chargingSchedulePower = chargingSchedule.TargetMinPower;
@@ -137,7 +137,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if (constraintValues.IsCarFullyCharged == true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
-                    new("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
+                    new("Charging can't start because the car isn't allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."));
             }
 
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
