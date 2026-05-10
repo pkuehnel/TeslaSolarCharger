@@ -89,7 +89,7 @@ else
                                             : Icons.Material.Filled.Link)"
                                             Color="Color.Primary"
                                             Size="Size.Small"
-                                            Disabled="@(carBasicConfiguration.Item.CarType != CarType.SmartCar && !_hasAvailableLicenses)"
+                                            Disabled="@(/*carBasicConfiguration.Item.CarType != CarType.SmartCar && !_hasAvailableLicenses*/false)"
                                             OnClick="() => ConnectToSmartCarClicked(carBasicConfiguration.Item)" />
                                 </MudTooltip>
                                 }
