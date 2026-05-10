@@ -478,7 +478,6 @@ else
         var url = await CarSettingsService.GetSmartCarOAuthRedeemUrl(baseUrl, car.Vin);
         if (string.IsNullOrEmpty(url))
         {
-            Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarUrlMissingError), Severity.Error);
             return;
         }
         NavigationManager.NavigateTo(url);
