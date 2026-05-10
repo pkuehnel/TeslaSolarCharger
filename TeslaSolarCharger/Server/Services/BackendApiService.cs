@@ -376,7 +376,9 @@ public class BackendApiService(
         logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
         var request = new HttpRequestMessage();
         var fallbackCulture = "en-US";
-        var cultureName = string.IsNullOrEmpty(CultureInfo.CurrentUICulture.Name) ? fallbackCulture : CultureInfo.CurrentUICulture.Name;
+        var uiCultureName = CultureInfo.CurrentUICulture.Name;
+        logger.LogTrace("UI culture: {uiCultureName}", uiCultureName);
+        var cultureName = string.IsNullOrEmpty(uiCultureName) ? fallbackCulture : uiCultureName;
         request.Headers.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue(cultureName));
         if (cultureName != fallbackCulture)
         {
