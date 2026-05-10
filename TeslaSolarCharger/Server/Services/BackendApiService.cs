@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -374,6 +375,7 @@ public class BackendApiService(
     {
         logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
         var request = new HttpRequestMessage();
+        request.Headers.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue(CultureInfo.CurrentUICulture.Name));
         var finalUrl = GenerateBackendFullRequestUrl(requestUrlPart);
         request.RequestUri = new Uri(finalUrl);
         if (accessToken != default)
@@ -442,8 +444,8 @@ public class BackendApiService(
             else
             {
                 var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-                var message = problemDetails != null
-                    ? $"Cloud Error: Status Code: {response.StatusCode}, ProblemDetails: {problemDetails.Detail}"
+                var message = !string.IsNullOrEmpty(problemDetails?.Detail)
+                    ? problemDetails.Detail
                     : "An error occurred while retrieving data from the backend server.";
 
                 return new Dtos.Result<T>(default, message, problemDetails);
