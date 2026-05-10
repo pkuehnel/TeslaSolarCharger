@@ -325,7 +325,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!_settings.OcppConnectorStates.ContainsKey(connectorId))
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId,
-                    new NotChargingWithExpectedPowerReasonTemplate("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonOcppConnectionNotEstablished));
             }
         }
     }
@@ -337,13 +337,13 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (dtoCar.IsHomeGeofence.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
-                    new NotChargingWithExpectedPowerReasonTemplate("Car is not at home"));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarNotAtHome));
             }
 
             if (dtoCar.PluggedIn.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
-                    new NotChargingWithExpectedPowerReasonTemplate("Car is not plugged in"));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarNotPluggedIn));
             }
         }
 
@@ -352,7 +352,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!settingsOcppConnectorState.Value.IsPluggedIn.Value)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key,
-                    new NotChargingWithExpectedPowerReasonTemplate("Charging connector is not plugged in"));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonConnectorNotPluggedIn));
             }
         }
     }

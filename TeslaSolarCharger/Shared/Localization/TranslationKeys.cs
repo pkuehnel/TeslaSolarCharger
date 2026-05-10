@@ -540,4 +540,26 @@ public static class TranslationKeys
     public static string RestPvValueModbusUrlCreationToolHint => nameof(RestPvValueModbusUrlCreationToolHint);
     public static string RestPvValueHeadersTitle => nameof(RestPvValueHeadersTitle);
     public static string RestPvValueAddNewHeaderButton => nameof(RestPvValueAddNewHeaderButton);
+
+    public static string NotChargingReasonOcppConnectionNotEstablished => nameof(NotChargingReasonOcppConnectionNotEstablished);
+    public static string NotChargingReasonCarNotAtHome => nameof(NotChargingReasonCarNotAtHome);
+    public static string NotChargingReasonCarNotPluggedIn => nameof(NotChargingReasonCarNotPluggedIn);
+    public static string NotChargingReasonConnectorNotPluggedIn => nameof(NotChargingReasonConnectorNotPluggedIn);
+    public static string NotChargingReasonCarNotAllowing => nameof(NotChargingReasonCarNotAllowing);
+    public static string NotChargingReasonWaitingPhaseSwitchCooldown => nameof(NotChargingReasonWaitingPhaseSwitchCooldown);
+    public static string NotChargingReasonWaitingPhaseIncrease => nameof(NotChargingReasonWaitingPhaseIncrease);
+    public static string NotChargingReasonWaitingPhaseReduction => nameof(NotChargingReasonWaitingPhaseReduction);
+    public static string NotChargingReasonWaitingChargeStop => nameof(NotChargingReasonWaitingChargeStop);
+    public static string NotChargingReasonMaxSocReached => nameof(NotChargingReasonMaxSocReached);
+    public static string NotChargingReasonCarSideSocLimitReached => nameof(NotChargingReasonCarSideSocLimitReached);
+    public static string NotChargingReasonStoppedByCar => nameof(NotChargingReasonStoppedByCar);
+    public static string NotChargingReasonWaitingChargeStart => nameof(NotChargingReasonWaitingChargeStart);
+    public static string NotChargingReasonNotEnoughCombinedCurrent => nameof(NotChargingReasonNotEnoughCombinedCurrent);
+    public static string NotChargingReasonChargeModeOffOrMaxSocReached => nameof(NotChargingReasonChargeModeOffOrMaxSocReached);
+    public static string NotChargingReasonUnknownPhases => nameof(NotChargingReasonUnknownPhases);
+    public static string NotChargingReasonUnknownEstimatedVoltage => nameof(NotChargingReasonUnknownEstimatedVoltage);
+    public static string NotChargingReasonReservedForHomeBattery => nameof(NotChargingReasonReservedForHomeBattery);
+    public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
+    public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
+    public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
 }
