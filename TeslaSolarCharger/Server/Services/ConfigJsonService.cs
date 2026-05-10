@@ -113,10 +113,10 @@ public class ConfigJsonService(
         return settings;
     }
 
-    public async Task AddCarsToSettings()
+    public async Task AddCarsToSettings(int? carId)
     {
         logger.LogTrace("{method}()", nameof(AddCarsToSettings));
-        settings.Cars = await GetCars().ConfigureAwait(false);
+        settings.Cars = await GetCars(carId).ConfigureAwait(false);
         foreach (var dtoCar in settings.CarsToManage)
         {
             await loadPointManagementService.CarStateChanged(dtoCar.Id);
@@ -187,7 +187,18 @@ public class ConfigJsonService(
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         logger.LogTrace("{method}({carId}, {@carBasicConfiguration})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
-        var databaseCar = carId == default ? new() : await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
+        Car databaseCar;
+        var isNewCar = false;
+        if (carId == default)
+        {
+            databaseCar = new();
+            isNewCar = true;
+        }
+        else
+        {
+            databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
+        }
+
         databaseCar.Name = carBasicConfiguration.Name;
         databaseCar.Vin = carBasicConfiguration.Vin;
         databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
@@ -217,7 +228,25 @@ public class ConfigJsonService(
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         logger.LogTrace("Saved car {carId} to database", carId);
-        await AddCarsToSettings().ConfigureAwait(false);
+        if (isNewCar)
+        {
+            await AddCarsToSettings(databaseCar.Id).ConfigureAwait(false);
+        }
+        else
+        {
+            var dtoCar = settings.Cars.First(c => c.Id == carId);
+            dtoCar.Id = carBasicConfiguration.Id;
+            dtoCar.Vin = carBasicConfiguration.Vin;
+            dtoCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
+            dtoCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
+            dtoCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
+            dtoCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
+            dtoCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
+            dtoCar.Name = carBasicConfiguration.Name;
+            dtoCar.UseBle = carBasicConfiguration.UseBle;
+            dtoCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
+            await loadPointManagementService.CarStateChanged(dtoCar.Id);
+        }
         if (databaseCar.CarType == CarType.Tesla)
         {
             await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
@@ -245,10 +274,15 @@ public class ConfigJsonService(
         await UpdateCarBasicConfiguration(carId, carBasicConfiguration).ConfigureAwait(false);
     }
 
-    private async Task<List<DtoCar>> GetCars()
+    private async Task<List<DtoCar>> GetCars(int? carId)
     {
         logger.LogTrace("{method}()", nameof(GetCars));
-        var carData = await teslaSolarChargerContext.Cars
+        var dbQuery = teslaSolarChargerContext.Cars.AsQueryable();
+        if (carId != default)
+        {
+            dbQuery = dbQuery.Where(c => c.Id == carId);
+        }
+        var carData = await dbQuery
             .Select(c => new
             {
                 Car = new DtoCar()
