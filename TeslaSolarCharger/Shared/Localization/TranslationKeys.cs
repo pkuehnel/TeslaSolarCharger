@@ -359,6 +359,8 @@ public static class TranslationKeys
     public static string CarDetailsSocLabel => nameof(CarDetailsSocLabel);
     public static string CarDetailsCarLimitLabel => nameof(CarDetailsCarLimitLabel);
     public static string CarDetailsManualSocWarning => nameof(CarDetailsManualSocWarning);
+    public static string CarDetailsNoSocOnNotManualCarWarning => nameof(CarDetailsNoSocOnNotManualCarWarning);
+    public static string CarDetailsManualSocHelperText => nameof(CarDetailsManualSocHelperText);
     public static string CarDetailsStateOfChargeLabel => nameof(CarDetailsStateOfChargeLabel);
     public static string CarDetailsChargeModeLabel => nameof(CarDetailsChargeModeLabel);
     public static string CarDetailsManualModeTeslaHint => nameof(CarDetailsManualModeTeslaHint);

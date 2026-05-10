@@ -63,13 +63,14 @@ else
         if (CarState.Soc == default)
         {
             <MudAlert Severity="Severity.Warning" Class="my-3">
-                @T(TranslationKeys.CarDetailsManualSocWarning)
+                @T(CarSettings.CarType == CarType.Manual ? TranslationKeys.CarDetailsManualSocWarning : TranslationKeys.CarDetailsNoSocOnNotManualCarWarning)
             </MudAlert>
         }
         <GenericInput T="int?"
                       For="() => ManualSocToSet"
                       LabelName='@T(TranslationKeys.CarDetailsStateOfChargeLabel)'
                       PostfixText="@T(TranslationKeys.UnitPercent)"
+                      HelperText='@T(TranslationKeys.CarDetailsManualSocHelperText)'
                       OnValueChanged="SetManualSoc" />
     }
     <div>
