@@ -4,4 +4,5 @@ public class DtoSmartCarTokenState
 {
     public int Id { get; set; }
     public HashSet<string> Vins { get; set; } = new();
+    public bool HasPendingConnections { get; set; }
 }

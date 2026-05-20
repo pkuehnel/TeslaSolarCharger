@@ -27,7 +27,8 @@ public class SmartCarApiService : ISmartCarApiService
         {
             var tokens = await _tokenHelper.GetSmartCarTokenStates(true).ConfigureAwait(false);
             var vins = tokens.SelectMany(t => t.Vins).ToHashSet();
-            _logger.LogTrace("Found {count} smartcar tokens with VINs: {vins}", tokens.Count, vins);
+            var hasPendingConnections = tokens.Any(t => t.HasPendingConnections);
+            _logger.LogTrace("Found {count} smartcar tokens with VINs: {vins}. HasPending: {hasPendingConnections}", tokens.Count, vins, hasPendingConnections);
             var dbCars = await _teslaSolarChargerContext.Cars.ToListAsync().ConfigureAwait(false);
             foreach (var vin in vins)
             {
@@ -44,9 +45,16 @@ public class SmartCarApiService : ISmartCarApiService
             }
             foreach (var smartCarCar in dbCars.Where(c => c.CarType == CarType.SmartCar))
             {
-                if (string.IsNullOrEmpty(smartCarCar.Vin) || !vins.Contains(smartCarCar.Vin))
+                if (string.IsNullOrEmpty(smartCarCar.Vin))
                 {
                     smartCarCar.CarType = CarType.Manual;
+                }
+                else if (!vins.Contains(smartCarCar.Vin))
+                {
+                    if (!hasPendingConnections)
+                    {
+                        smartCarCar.CarType = CarType.Manual;
+                    }
                 }
             }
             await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
