@@ -14,6 +14,8 @@
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Dtos.ChargingStation
 @using TeslaSolarCharger.Shared.Enums
+@using Newtonsoft.Json
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISetupService SetupService
@@ -113,6 +115,42 @@
                     <EditFormComponent T="DtoChargePrice" WrappedElement="_chargePrice" HideSubmitButton="true">
                         <GenericInput For="() => _chargePrice.Item.SolarPrice"></GenericInput>
                         <GenericInput For="() => _chargePrice.Item.GridPrice"></GenericInput>
+
+                        <MudText Typo="Typo.h6" Class="mt-4">Time-Based Prices</MudText>
+                        @foreach (var fixedPrice in _fixedPrices)
+                        {
+                            <div class="row mt-3 align-end">
+                                <div class="col-auto">
+                                    <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
+                                </div>
+                                <div class="col-auto">
+                                    <MudNumericField T="decimal?" @bind-Value="fixedPrice.Value" Label="Price" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </div>
+                                <div class="col-auto">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => _fixedPrices.Remove(fixedPrice)" />
+                                </div>
+                            </div>
+                        }
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddFixedPrice" Class="mt-2">Add Time-Based Price</MudButton>
+
+                        <MudText Typo="Typo.h6" Class="mt-6">Spot Prices (Dynamic Pricing)</MudText>
+                        <GenericInput T="bool" For="() => _chargePrice.Item.AddSpotPriceToGridPrice" OnValueChanged="@StateHasChanged"></GenericInput>
+
+                        @if (_chargePrice.Item.AddSpotPriceToGridPrice)
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <MudSelect T="SpotPriceRegion?" Label="Region" @bind-Value="_chargePrice.Item.SpotPriceRegion" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                        <MudSelectItem T="SpotPriceRegion?" Value="@SpotPriceRegion.DE_LU">Germany / Luxembourg</MudSelectItem>
+                                        <MudSelectItem T="SpotPriceRegion?" Value="@SpotPriceRegion.AT">Austria</MudSelectItem>
+                                        <MudSelectItem T="SpotPriceRegion?" Value="@SpotPriceRegion.CH">Switzerland</MudSelectItem>
+                                    </MudSelect>
+                                </div>
+                                <div class="col-md-6">
+                                    <GenericInput For="() => _chargePrice.Item.SpotPriceSurcharge"></GenericInput>
+                                </div>
+                            </div>
+                        }
                     </EditFormComponent>
                 }
             </MudStep>
@@ -182,6 +220,7 @@
 @code {
     private EditableItem<DtoBaseConfiguration>? _dtoBaseConfiguration;
     private EditableItem<DtoChargePrice>? _chargePrice;
+    private List<FixedPrice> _fixedPrices = new();
     private List<DtoChargingStation>? _chargingStations;
     private MudStepper? _stepper;
     private bool _hasPvSystem = true;
@@ -213,16 +252,39 @@
             }
         }
 
-        _chargePrice = new(new DtoChargePrice()
-        {
-            ValidSince = DateTimeProvider.Now(),
-            GridPrice = new decimal(0.285),
-            SolarPrice = new decimal(0.12),
-        });
+        await LoadChargePrice();
 
         _isInitialized = true;
         _stationRefreshCts = new CancellationTokenSource();
         _ = RefreshStationsLoop(_stationRefreshCts.Token);
+    }
+
+    private async Task LoadChargePrice()
+    {
+        var prices = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>("api/ChargingCost/GetChargePrices");
+        var latestValid = prices?.Where(p => p.ValidSince <= DateTimeProvider.Now()).OrderByDescending(p => p.ValidSince).FirstOrDefault();
+
+        if (latestValid != null)
+        {
+            _chargePrice = new(latestValid);
+            _fixedPrices = !string.IsNullOrEmpty(latestValid.EnergyProviderConfiguration) 
+                ? JsonConvert.DeserializeObject<List<FixedPrice>>(latestValid.EnergyProviderConfiguration) ?? new() 
+                : new();
+        }
+        else
+        {
+            _chargePrice = new(new DtoChargePrice()
+            {
+                ValidSince = DateTimeProvider.Now(),
+                GridPrice = new decimal(0.285),
+                SolarPrice = new decimal(0.12),
+            });
+        }
+    }
+
+    private void AddFixedPrice()
+    {
+        _fixedPrices.Add(new FixedPrice() { ValidOnDays = new List<DayOfWeek>() });
     }
 
     private async Task RefreshStationsLoop(CancellationToken ct)
@@ -270,6 +332,7 @@
         var baseConfigResult = await HttpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
         if (baseConfigResult != null)
         {
+            _chargePrice.Item.EnergyProviderConfiguration = JsonConvert.SerializeObject(_fixedPrices);
             await ChargePriceService.UpdateChargePrice(_chargePrice.Item);
             await SetupService.DeleteSetupCache();
             _stationRefreshCts?.Cancel();
@@ -279,7 +342,7 @@
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<BaseConfigurationPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<BaseConfigurationPageLocalizationRegistry>(key, typeof(ChargingStationsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     public void Dispose()
