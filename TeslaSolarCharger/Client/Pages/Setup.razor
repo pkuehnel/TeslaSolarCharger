@@ -17,6 +17,8 @@
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
 @using MudExtensions
+@using TeslaSolarCharger.Client.Dialogs
+@using TeslaSolarCharger.Shared.Dtos
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISetupService SetupService
@@ -27,7 +29,9 @@
 @inject ITemplateValueConfigurationService TemplateService
 @inject IChargePriceService ChargePriceService
 @inject IChargingStationsService ChargingStationsService
+@inject ICarSettingsService CarSettingsService
 @inject IDateTimeProvider DateTimeProvider
+@inject IDialogService DialogService
 
 <PageTitle>Setup Assistant</PageTitle>
 
@@ -130,8 +134,40 @@
                                           ShowValidSince="false" />
             </MudStep>
 
-            <MudStep Title="Cars & Stations">
-                <MudText Typo="Typo.h5" GutterBottom="true">Cars & Charging Stations</MudText>
+            <MudStep Title="Cars">
+                <MudText Typo="Typo.h5" GutterBottom="true">Cars</MudText>
+                
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold">License Information</MudText>
+                    <MudText Typo="Typo.body2">A license is required for all API-connected vehicles to enable smart charging features.</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2"><b>Exception:</b> Teslas connected directly via <b>Bluetooth (BLE)</b> do not require a separate license.</MudText>
+                </MudAlert>
+
+                @if (_carBasicConfigurations == null)
+                {
+                    <LoadingSpinnerComponent />
+                }
+                else
+                {
+                    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddNonTeslaButton)'
+                                                 StartIcon="@Icons.Material.Filled.Add"
+                                                 OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
+
+                    <MudGrid>
+                        @foreach (var car in _carBasicConfigurations)
+                        {
+                            <MudItem xs="12" md="6">
+                                <CarOverviewComponent Car="car" 
+                                                      OnEditRequested="() => EditCar(car)" 
+                                                      OnDeleteRequested="() => DeleteCar(car)" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </MudStep>
+
+            <MudStep Title="Charging Stations">
+                <MudText Typo="Typo.h5" GutterBottom="true">Charging Stations</MudText>
                 
                 <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
                     <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
@@ -168,12 +204,6 @@
                         </div>
                     }
                 }
-                
-                <div class="d-flex justify-end mt-4">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/CarSettings" Target="_blank" StartIcon="@Icons.Material.Filled.DirectionsCar">
-                        Manage Cars
-                    </MudButton>
-                </div>
             </MudStep>
 
             <MudStep Title="Finish">
@@ -197,6 +227,10 @@
     private EditableItem<DtoChargePrice>? _chargePrice;
     private List<FixedPrice> _fixedPrices = new();
     private List<DtoChargingStation>? _chargingStations;
+    private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
+    private DtoCarLicenseInfo _carLicenseInfo = new();
+    private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
+
     private MudStepper? _stepper;
     private bool _hasPvSystem = true;
     private bool _hasHomeBattery = false;
@@ -235,10 +269,63 @@
         }
 
         await LoadChargePrice();
+        await RefreshCarData();
 
         _isInitialized = true;
         _stationRefreshCts = new CancellationTokenSource();
         _ = RefreshStationsLoop(_stationRefreshCts.Token);
+    }
+
+    private async Task RefreshCarData()
+    {
+        var licenseInfo = await CarSettingsService.GetFleetApiLicenseInfo();
+        if (licenseInfo != null) _carLicenseInfo = licenseInfo;
+
+        var configs = await CarSettingsService.GetCarBasicConfigurations();
+        if (configs != null)
+        {
+            _carBasicConfigurations = configs.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
+        }
+    }
+
+    private async Task AddNewCar()
+    {
+        var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
+        await EditCar(newCar);
+    }
+
+    private async Task EditCar(EditableItem<CarBasicConfiguration> car)
+    {
+        var parameters = new DialogParameters<CarEditDialog>
+        {
+            { x => x.Car, car },
+            { x => x.HasAvailableLicenses, _hasAvailableLicenses }
+        };
+
+        var dialog = await DialogService.ShowAsync<CarEditDialog>("Edit Car", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await RefreshCarData();
+        }
+    }
+
+    private async Task DeleteCar(EditableItem<CarBasicConfiguration> car)
+    {
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, car.Item.Name }
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.DeleteDialogConfirm), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await CarSettingsService.DeleteCar(car.Item.Id);
+            await RefreshCarData();
+        }
     }
 
     private async Task LoadChargePrice()
