@@ -37,14 +37,18 @@ public class CarValueEstimationService : ICarValueEstimationService
     public async Task PlugoutCarsAndClearSocIfRequired(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(PlugoutCarsAndClearSocIfRequired));
-        var manualCarIds = await _context.Cars
-            .Where(c => c.ShouldBeManaged == true && c.CarType == CarType.Manual)
-            .Select(c => c.Id)
-            .ToHashSetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var dbCars = await _context.Cars
+            .Where(c => c.ShouldBeManaged == true && c.CarType != CarType.Tesla)
+            .Select(c => new DtoCarInfo()
+            {
+                Id = c.Id,
+                CarType = c.CarType,
+            })
+            .ToListAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        foreach (var manualCarId in manualCarIds)
+        foreach (var dbCar in dbCars)
         {
-            var car = _settings.Cars.FirstOrDefault(c => c.Id == manualCarId);
+            var car = _settings.Cars.FirstOrDefault(c => c.Id == dbCar.Id);
             if (car == default)
             {
                 continue;
@@ -56,7 +60,10 @@ public class CarValueEstimationService : ICarValueEstimationService
             {
                 _logger.LogTrace("Plugging out manual car {carId} and clearing SoC as last connector match was more than {minutes} minutes ago", car.Id, _constants.ManualCarMinutesUntilForgetSoc);
                 car.PluggedIn.Update(currentDate, false);
-                car.SoC.Update(currentDate, null);
+                if (dbCar.CarType == CarType.Manual)
+                {
+                    car.SoC.Update(currentDate, null);
+                }
                 await _loadPointManagementService.CarStateChanged(car.Id);
             }
         }
@@ -77,15 +84,8 @@ public class CarValueEstimationService : ICarValueEstimationService
     private async Task UpdateSocEstimation(Car car, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({carId})", nameof(UpdateSocEstimation), car.Id);
-        var lastNonEstimatedSoc = await _context.CarValueLogs
-            .Where(cvl => cvl.CarId == car.Id
-                          && cvl.Type == CarValueType.StateOfCharge
-                          && cvl.Source > CarValueSource.Estimation)
-            .OrderByDescending(cvl => cvl.Timestamp)
-            .Select(cvl => new { Timestamp = new DateTimeOffset(cvl.Timestamp, TimeSpan.Zero), cvl.IntValue })
-            .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        _logger.LogTrace("lastNonEstimatedSoc: {@lastNonEstimatedSoc}", lastNonEstimatedSoc);
-        if (lastNonEstimatedSoc?.IntValue == null)
+        var lastNonEstimatedSoc = await GetLastNonEstimatedSoc(car.Id, cancellationToken).ConfigureAwait(false);
+        if (lastNonEstimatedSoc?.Soc == null)
         {
             _logger.LogTrace("exiting: no lastNonEstimatedSoc");
             return;
@@ -151,7 +151,7 @@ public class CarValueEstimationService : ICarValueEstimationService
                     _logger.LogTrace("Last plugged out was not default, so checking if was longer plugged out than {maxPluggedOutTime}", maxPluggedOutTime);
                     var timeDiff = new DateTimeOffset(plugChange.Timestamp, TimeSpan.Zero) - lastPluggedOut.Value;
                     _logger.LogTrace("Actual time diff is {timeDiff}", timeDiff);
-                    if (timeDiff > maxPluggedOutTime)
+                    if (car.CarType == CarType.Manual && timeDiff > maxPluggedOutTime)
                     {
                         _logger.LogTrace("Time diff is too long so set soc to null");
                         settingsCar?.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
@@ -167,7 +167,7 @@ public class CarValueEstimationService : ICarValueEstimationService
         {
             var timeDiff = _dateTimeProvider.DateTimeOffSetUtcNow() - lastPluggedOut.Value;
             _logger.LogTrace("Car has been plugged out for {timeDiff}", timeDiff);
-            if (timeDiff > maxPluggedOutTime)
+            if (car.CarType == CarType.Manual && timeDiff > maxPluggedOutTime)
             {
                 _logger.LogTrace("Time diff is too long so set soc to null");
                 settingsCar.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), null, true);
@@ -216,7 +216,7 @@ public class CarValueEstimationService : ICarValueEstimationService
             _logger.LogWarning("Can not estimate soc for car {carId} as usable energy is {usableEnergy} which is <= 0", car.Id, car.UsableEnergy);
             return;
         }
-        var estimatedSoc = (int)(lastNonEstimatedSoc.IntValue.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
+        var estimatedSoc = (int)(lastNonEstimatedSoc.Soc.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
         _logger.LogTrace("estimatedSoc: {estimatedSoc}", estimatedSoc);
         var estimatedSocCarValueLog = new CarValueLog()
         {
@@ -240,4 +240,41 @@ public class CarValueEstimationService : ICarValueEstimationService
         await _loadPointManagementService.CarStateChanged(car.Id);
     }
 
+    private async Task<DtoSocInfo?> GetLastNonEstimatedSoc(int carId, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetLastNonEstimatedSoc), carId);
+        var lastNonEstimatedSoc = await _context.CarValueLogs
+            .Where(cvl => cvl.CarId == carId
+                          && cvl.Type == CarValueType.StateOfCharge
+                          && cvl.Source > CarValueSource.Estimation)
+            .OrderByDescending(cvl => cvl.Timestamp)
+            .Select(cvl => new { Timestamp = new DateTimeOffset(cvl.Timestamp, TimeSpan.Zero), cvl.IntValue, cvl.DoubleValue })
+            .FirstOrDefaultAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        _logger.LogTrace("lastNonEstimatedSoc: {@lastNonEstimatedSoc}", lastNonEstimatedSoc);
+        if (lastNonEstimatedSoc == default)
+        {
+            return null;
+        }
+        var soc = lastNonEstimatedSoc.IntValue
+                  ?? (lastNonEstimatedSoc.DoubleValue != null
+                        ? Convert.ToInt32(lastNonEstimatedSoc.DoubleValue.Value)
+                        : null);
+        return new()
+        {
+            Timestamp = lastNonEstimatedSoc.Timestamp,
+            Soc = soc,
+        };
+    }
+
+    private class DtoCarInfo
+    {
+        public int Id { get; set; }
+        public CarType CarType { get; set; }
+    }
+
+    private class DtoSocInfo
+    {
+        public DateTimeOffset Timestamp { get; set; }
+        public int? Soc { get; set; }
+    }
 }

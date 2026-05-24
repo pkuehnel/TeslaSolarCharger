@@ -70,8 +70,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
-            .AddTransient<BackendTokenRefreshJob>()
-            .AddTransient<FleetApiTokenRefreshJob>()
+            .AddTransient<TokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<BackendNotificationRefreshJob>()
@@ -169,6 +168,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IChargerValueLogService, ChargerValueLogService>()
             .AddTransient<ICarValueEstimationService, CarValueEstimationService>()
             .AddTransient<IMqttClientSetupService, MqttClientSetupService>()
+            .AddTransient<ISmartCarApiService, SmartCarApiService>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()

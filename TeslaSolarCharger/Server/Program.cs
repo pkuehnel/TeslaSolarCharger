@@ -360,7 +360,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         await backendApiService.RefreshBackendTokenIfNeeded().ConfigureAwait(false);
         var fleetApiService = startupScope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
-        await fleetApiService.RefreshFleetApiTokenIfNeeded().ConfigureAwait(false);
+        await fleetApiService.RefreshFleetApiTokenIfRequired().ConfigureAwait(false);
 
         var carConfigurationService = startupScope.ServiceProvider.GetRequiredService<ICarConfigurationService>();
         if (!configurationWrapper.ShouldUseFakeSolarValues())
@@ -377,7 +377,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
 
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
-        await configJsonService.AddCarsToSettings().ConfigureAwait(false);
+        await configJsonService.AddCarsToSettings(null).ConfigureAwait(false);
 
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();

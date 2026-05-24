@@ -223,6 +223,13 @@ public static class TranslationKeys
     public static string CarSettingsDeserializationError => nameof(CarSettingsDeserializationError);
     public static string CarSettingsBleSuccessMessage => nameof(CarSettingsBleSuccessMessage);
     public static string CarSettingsWakeUpSuccessMessage => nameof(CarSettingsWakeUpSuccessMessage);
+    public static string CarSettingsSmartCarConnectTooltip => nameof(CarSettingsSmartCarConnectTooltip);
+    public static string CarSettingsSmartCarDisconnectTooltip => nameof(CarSettingsSmartCarDisconnectTooltip);
+    public static string CarSettingsSmartCarVinMissingError => nameof(CarSettingsSmartCarVinMissingError);
+    public static string CarSettingsSmartCarDisconnectError => nameof(CarSettingsSmartCarDisconnectError);
+    public static string CarSettingsSmartCarDisconnectSuccess => nameof(CarSettingsSmartCarDisconnectSuccess);
+    public static string CarSettingsSmartCarUrlMissingError => nameof(CarSettingsSmartCarUrlMissingError);
+    public static string CarSettingsSmartCarLicenseLimitTooltip => nameof(CarSettingsSmartCarLicenseLimitTooltip);
 
     public static string NavMenuTitle => nameof(NavMenuTitle);
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);
@@ -352,6 +359,8 @@ public static class TranslationKeys
     public static string CarDetailsSocLabel => nameof(CarDetailsSocLabel);
     public static string CarDetailsCarLimitLabel => nameof(CarDetailsCarLimitLabel);
     public static string CarDetailsManualSocWarning => nameof(CarDetailsManualSocWarning);
+    public static string CarDetailsNoSocOnNotManualCarWarning => nameof(CarDetailsNoSocOnNotManualCarWarning);
+    public static string CarDetailsManualSocHelperText => nameof(CarDetailsManualSocHelperText);
     public static string CarDetailsStateOfChargeLabel => nameof(CarDetailsStateOfChargeLabel);
     public static string CarDetailsChargeModeLabel => nameof(CarDetailsChargeModeLabel);
     public static string CarDetailsManualModeTeslaHint => nameof(CarDetailsManualModeTeslaHint);
@@ -499,6 +508,10 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
 
+    public static string GeneralErrorTitle => nameof(GeneralErrorTitle);
+    public static string GeneralSuccessTitle => nameof(GeneralSuccessTitle);
+    public static string OAuthNotificationSmartCarConnectionFailed => nameof(OAuthNotificationSmartCarConnectionFailed);
+
     public static string UnitWatts => nameof(UnitWatts);
     public static string UnitAmpere => nameof(UnitAmpere);
     public static string UnitPercent => nameof(UnitPercent);
@@ -529,4 +542,26 @@ public static class TranslationKeys
     public static string RestPvValueModbusUrlCreationToolHint => nameof(RestPvValueModbusUrlCreationToolHint);
     public static string RestPvValueHeadersTitle => nameof(RestPvValueHeadersTitle);
     public static string RestPvValueAddNewHeaderButton => nameof(RestPvValueAddNewHeaderButton);
+
+    public static string NotChargingReasonOcppConnectionNotEstablished => nameof(NotChargingReasonOcppConnectionNotEstablished);
+    public static string NotChargingReasonCarNotAtHome => nameof(NotChargingReasonCarNotAtHome);
+    public static string NotChargingReasonCarNotPluggedIn => nameof(NotChargingReasonCarNotPluggedIn);
+    public static string NotChargingReasonConnectorNotPluggedIn => nameof(NotChargingReasonConnectorNotPluggedIn);
+    public static string NotChargingReasonCarNotAllowing => nameof(NotChargingReasonCarNotAllowing);
+    public static string NotChargingReasonWaitingPhaseSwitchCooldown => nameof(NotChargingReasonWaitingPhaseSwitchCooldown);
+    public static string NotChargingReasonWaitingPhaseIncrease => nameof(NotChargingReasonWaitingPhaseIncrease);
+    public static string NotChargingReasonWaitingPhaseReduction => nameof(NotChargingReasonWaitingPhaseReduction);
+    public static string NotChargingReasonWaitingChargeStop => nameof(NotChargingReasonWaitingChargeStop);
+    public static string NotChargingReasonMaxSocReached => nameof(NotChargingReasonMaxSocReached);
+    public static string NotChargingReasonCarSideSocLimitReached => nameof(NotChargingReasonCarSideSocLimitReached);
+    public static string NotChargingReasonStoppedByCar => nameof(NotChargingReasonStoppedByCar);
+    public static string NotChargingReasonWaitingChargeStart => nameof(NotChargingReasonWaitingChargeStart);
+    public static string NotChargingReasonNotEnoughCombinedCurrent => nameof(NotChargingReasonNotEnoughCombinedCurrent);
+    public static string NotChargingReasonChargeModeOffOrMaxSocReached => nameof(NotChargingReasonChargeModeOffOrMaxSocReached);
+    public static string NotChargingReasonUnknownPhases => nameof(NotChargingReasonUnknownPhases);
+    public static string NotChargingReasonUnknownEstimatedVoltage => nameof(NotChargingReasonUnknownEstimatedVoltage);
+    public static string NotChargingReasonReservedForHomeBattery => nameof(NotChargingReasonReservedForHomeBattery);
+    public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
+    public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
+    public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
 }

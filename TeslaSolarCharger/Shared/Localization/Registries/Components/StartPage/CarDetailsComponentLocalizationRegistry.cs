@@ -31,8 +31,16 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuglimit: "));
 
         Register(TranslationKeys.CarDetailsManualSocWarning,
-            new TextLocalizationTranslation(LanguageCodes.English, "As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used."),
+            new TextLocalizationTranslation(LanguageCodes.English, "As this car is not connected via an API, you need to manually set the current state of charge. Note: Each time you plug in the car, the SoC is reset, as TSC does not know how much energy the car has used."),
             new TextLocalizationTranslation(LanguageCodes.German, "Da dieses Auto nicht über eine API verbunden ist, müssen Sie den aktuellen Ladestand manuell einstellen. Hinweis: Jedes Mal, wenn Sie das Auto anschließen, wird der SoC zurückgesetzt, da TSC nicht weiß, wie viel Energie das Auto verbraucht hat."));
+
+        Register(TranslationKeys.CarDetailsNoSocOnNotManualCarWarning,
+            new TextLocalizationTranslation(LanguageCodes.English, "Although this car is connected via an API, the current state of charge is unknown. Depending on the vehicle manufacturer, this can have various causes. Especially when a vehicle has been newly connected via API, it may take a few hours for data to be transmitted. The initial transmission can often be accelerated by moving the vehicle and consuming at least 2% of the battery charge. If no state of charge is displayed within 24 hours, please contact support@solar4car.com with your Vehicle Identification Number (VIN)."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Dieses Auto ist zwar über eine API verbunden, der Ladestand ist aktuell jedoch unbekannt. Abhängig vom Fahrzeughersteller kann dies unterschiedliche Ursachen haben. Insbesondere wenn ein Fahrzeug neu per API verbunden wurde, kann es unter Umständen einige Stunden dauern, bis Daten übermittelt werden. Häufig lässt sich die Erstübermittlung beschleunigen, indem das Fahrzeug bewegt wird und mindestens 2 % der Akkuladung verbraucht werden. Sollte innerhalb von 24 Stunden kein Ladestand angezeigt werden, melden Sie sich bitte mit Ihrer Fahrgestellnummer unter support@solar4car.com."));
+
+        Register(TranslationKeys.CarDetailsManualSocHelperText,
+            new TextLocalizationTranslation(LanguageCodes.English, "You can manually enter a state of charge here. During a charging session, it will be updated automatically based on the charging power and battery capacity."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie können hier manuell einen Ladestand eintragen. Während eines Ladevorgangs wird dieser automatisch basierend auf Ladeleistung und Batteriekapazität aktualisiert."));
 
         Register(TranslationKeys.CarDetailsStateOfChargeLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "State of Charge"),

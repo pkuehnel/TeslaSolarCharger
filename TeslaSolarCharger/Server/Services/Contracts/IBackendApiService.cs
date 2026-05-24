@@ -16,4 +16,7 @@ public interface IBackendApiService
     Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content);
     Task<Result<bool?>> IsBaseAppLicensed(bool useCache);
     Task<bool> IsFleetApiLicensed(string vin, bool useCache);
+    Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin);
+    Task<DtoCarLicenseInfo> GetFleetApiLicenseInfo();
+    Task ConnectCarToSmartCarByVin(string vin);
 }

@@ -68,4 +68,11 @@ public interface IConstants
     int ManualCarMinutesUntilForgetSoc { get; }
     int RefreshableValuesRefreshIntervalSeconds { get; }
     int SolarPowerSurplusPredictionIntervalHours { get; }
+    string SmartCarTokenStatesKey { get; }
+    int TokenRefreshIntervalSeconds { get; }
+
+    string QueryParamSuccess { get; }
+    string QueryParamMessage { get; }
+    string QueryParamError { get; }
+    string QueryParamVin { get; }
 }
