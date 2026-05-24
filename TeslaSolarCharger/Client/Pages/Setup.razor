@@ -16,6 +16,7 @@
 @using TeslaSolarCharger.Shared.Enums
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using MudExtensions
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISetupService SetupService
@@ -39,7 +40,14 @@
     }
     else
     {
-        <MudStepper @ref="_stepper" NonLinear="false" CenterLabels="true" OnStepChanged="OnStepChanged">
+        <MudStepper @ref="_stepper"
+                    NonLinear="false"
+                    CenterLabels="true"
+                    OnStepChanged="OnStepChanged"
+                    HeaderBadgeType="HeaderBadgeType.Number"
+                    HeaderSelectionIndicator="true"
+                    Color="Color.Primary"
+                    CompletedStepColor="Color.Success">
             <MudStep Title="Welcome">
                 <MudText Typo="Typo.h5" GutterBottom="true">Welcome to TeslaSolarCharger!</MudText>
                 <MudText>This assistant will guide you through the basic configuration to get you started as quickly as possible.</MudText>
