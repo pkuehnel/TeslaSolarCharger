@@ -77,31 +77,36 @@
                     <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
                 </MudStep>
 
-                <MudStep Title="Solar Sources">
-                    <MudText Typo="Typo.h5" GutterBottom="true">Solar Data Sources</MudText>
+                <MudStep Title="Solar & Battery">
+                    <MudText Typo="Typo.h5" GutterBottom="true">Solar & Battery Data</MudText>
                     <MudText GutterBottom="true">Configure how TeslaSolarCharger gets your current solar production and grid usage data. Templates are the easiest way to start.</MudText>
                     
                     <TemplateValueConfigurationComponent />
-                </MudStep>
 
-                <MudStep Title="Home Battery">
-                    <MudText Typo="Typo.h5" GutterBottom="true">Home Battery (Optional)</MudText>
-                    <MudText GutterBottom="true">If you have a home battery, you can configure it here to optimize charging.</MudText>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <GenericInput T="bool?"
-                                          For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
-                                          OnValueChanged="StateHasChanged"/>
-                        </div>
-                        <div class="col-md-6">
-                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
-                                          IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
-                        </div>
+                    <div class="mt-8">
+                        <MudSwitch T="bool" @bind-Value="_hasHomeBattery" Label="Do you have a home battery?" Color="Color.Primary" />
                     </div>
-                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
-                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
-                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+
+                    @if (_hasHomeBattery)
+                    {
+                        <div class="mt-4 p-4 rounded border">
+                            <MudText Typo="Typo.h6" GutterBottom="true">Home Battery Settings</MudText>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <GenericInput T="bool?"
+                                                  For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
+                                                  OnValueChanged="StateHasChanged"/>
+                                </div>
+                                <div class="col-md-6">
+                                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
+                                                  IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
+                                </div>
+                            </div>
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+                        </div>
+                    }
                 </MudStep>
             }
 
@@ -194,6 +199,7 @@
     private List<DtoChargingStation>? _chargingStations;
     private MudStepper? _stepper;
     private bool _hasPvSystem = true;
+    private bool _hasHomeBattery = false;
     private bool _isInitialized;
     private CancellationTokenSource? _stationRefreshCts;
     private ChargePriceEditComponent? _chargePriceEditComponent;
@@ -206,6 +212,7 @@
         {
             _dtoBaseConfiguration = new(cachedData.Configuration);
             _hasPvSystem = cachedData.HasPvSystem;
+            _hasHomeBattery = cachedData.HasHomeBattery;
         }
         else
         {
@@ -220,6 +227,10 @@
                                !string.IsNullOrEmpty(response.CurrentPowerToGridMqttTopic) ||
                                response.IsModbusGridUrl ||
                                (templates != null && templates.Any());
+
+                _hasHomeBattery = response.HomeBatteryUsableEnergy > 0 ||
+                                 !string.IsNullOrEmpty(response.HomeBatteryPowerUrl) ||
+                                 !string.IsNullOrEmpty(response.HomeBatteryPowerMqttTopic);
             }
         }
 
@@ -283,6 +294,7 @@
         {
             CurrentStep = stepIndex,
             HasPvSystem = _hasPvSystem,
+            HasHomeBattery = _hasHomeBattery,
             Configuration = _dtoBaseConfiguration.Item
         };
 

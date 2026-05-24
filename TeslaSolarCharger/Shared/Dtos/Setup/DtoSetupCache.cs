@@ -6,5 +6,6 @@ public class DtoSetupCache
 {
     public int CurrentStep { get; set; }
     public bool HasPvSystem { get; set; }
+    public bool HasHomeBattery { get; set; }
     public DtoBaseConfiguration Configuration { get; set; } = new();
 }
