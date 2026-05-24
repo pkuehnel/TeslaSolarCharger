@@ -1,0 +1,218 @@
+@page "/setup"
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ISetupService SetupService
+@inject ITextLocalizationService TextLocalizer
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IConstants Constants
+
+<PageTitle>Setup Assistant</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Setup Assistant</MudText>
+
+    @if (_dtoBaseConfiguration == null)
+    {
+        <LoadingSpinnerComponent />
+    }
+    else
+    {
+        <MudStepper @ref="_stepper" NonLinear="false" CenterLabels="true" OnStepChanged="OnStepChanged">
+            <MudStep Title="Welcome">
+                <MudText Typo="Typo.h5" GutterBottom="true">Welcome to TeslaSolarCharger!</MudText>
+                <MudText>This assistant will guide you through the basic configuration to get you started as quickly as possible.</MudText>
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    You can always change these settings later in the configuration pages.
+                </MudAlert>
+                <div class="mt-8">
+                    <MudSwitch T="bool" @bind-Value="_hasPvSystem" Label="Do you have a Photovoltaik (PV) system?" Color="Color.Primary" />
+                </div>
+            </MudStep>
+
+            @if (_hasPvSystem)
+            {
+                <MudStep Title="Location">
+                    <MudText Typo="Typo.h5" GutterBottom="true">System Location</MudText>
+                    <MudText GutterBottom="true">Please set the location of your PV system on the map. This is used for solar power predictions.</MudText>
+                    
+                    <div class="mb-3">
+                        <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
+                                      Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
+                                      Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
+                                      LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
+                                      LongitudeChanged="@(newLongitude => _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude)"></MapComponent>
+                    </div>
+
+                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
+                    <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
+                </MudStep>
+
+                <MudStep Title="Solar Sources">
+                    <MudText Typo="Typo.h5" GutterBottom="true">Solar Data Sources</MudText>
+                    <MudText GutterBottom="true">Configure how TeslaSolarCharger gets your current solar production and grid usage data. Templates are the easiest way to start.</MudText>
+                    
+                    <TemplateValueConfigurationComponent />
+                </MudStep>
+
+                <MudStep Title="Home Battery">
+                    <MudText Typo="Typo.h5" GutterBottom="true">Home Battery (Optional)</MudText>
+                    <MudText GutterBottom="true">If you have a home battery, you can configure it here to optimize charging.</MudText>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <GenericInput T="bool?"
+                                          For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
+                                          OnValueChanged="StateHasChanged"/>
+                        </div>
+                        <div class="col-md-6">
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
+                                          IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
+                        </div>
+                    </div>
+                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
+                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
+                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+                </MudStep>
+            }
+
+            <MudStep Title="Cloud Connection">
+                <MudText Typo="Typo.h5" GutterBottom="true">Tesla Cloud Connection</MudText>
+                <MudText GutterBottom="true">To control your Tesla, you need to link your account via the Solar4Car Cloud.</MudText>
+                
+                <MudAlert Severity="Severity.Warning" Class="my-4">
+                    Linking your account is required to manage charging. You can do this now or later.
+                </MudAlert>
+                
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Cloud" Href="/cloudconnection" Target="_blank">
+                    Open Cloud Connection Settings
+                </MudButton>
+                <MudText Typo="Typo.caption" Class="mt-2 d-block">This will open in a new tab. Return here when finished.</MudText>
+            </MudStep>
+
+            <MudStep Title="Prices">
+                <MudText Typo="Typo.h5" GutterBottom="true">Grid Prices</MudText>
+                <MudText GutterBottom="true">Configure your electricity prices to allow TeslaSolarCharger to charge when it's cheapest.</MudText>
+                
+                <GenericInput For="() => _dtoBaseConfiguration.Item.ChargingSwitchCosts" />
+                
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" Href="/ChargePrices" Target="_blank">
+                    Configure Detailed Grid Prices
+                </MudButton>
+            </MudStep>
+
+            <MudStep Title="Cars & Stations">
+                <MudText Typo="Typo.h5" GutterBottom="true">Cars & Charging Stations</MudText>
+                <MudText GutterBottom="true">Finally, ensure your cars and charging stations are visible. If you linked your Tesla account, your cars should appear here after a short while.</MudText>
+                
+                <div class="d-flex flex-column gap-4 mt-4">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/CarSettings" Target="_blank">
+                        Manage Cars
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/ChargingStations" Target="_blank">
+                        Manage Charging Stations
+                    </MudButton>
+                </div>
+            </MudStep>
+
+            <MudStep Title="Finish">
+                <MudText Typo="Typo.h5" GutterBottom="true">Almost done!</MudText>
+                <MudText>Click "Finish" to save your configuration and start using TeslaSolarCharger.</MudText>
+                
+                <MudAlert Severity="Severity.Success" Class="mt-8">
+                    Your initial setup is complete. You can always revisit the detailed settings pages for fine-tuning.
+                </MudAlert>
+
+                <div class="d-flex justify-center mt-8">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="FinishSetup">Finish Setup</MudButton>
+                </div>
+            </MudStep>
+        </MudStepper>
+    }
+</MudContainer>
+
+@code {
+    private EditableItem<DtoBaseConfiguration>? _dtoBaseConfiguration;
+    private MudStepper? _stepper;
+    private bool _hasPvSystem = true;
+    private bool _isInitialized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cachedData = await SetupService.GetSetupCache();
+        
+        if (cachedData != null)
+        {
+            _dtoBaseConfiguration = new(cachedData.Configuration);
+            _hasPvSystem = cachedData.HasPvSystem;
+            // Note: MudStepper might need some time to initialize before we can set the step
+        }
+        else
+        {
+            var response = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+            if (response != default)
+            {
+                _dtoBaseConfiguration = new(response);
+            }
+        }
+        _isInitialized = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _isInitialized)
+        {
+            var cachedData = await SetupService.GetSetupCache();
+            if (cachedData != null && _stepper != null)
+            {
+                // Try to restore the step. MudStepper might need a bit of time.
+                // Depending on the version, setActiveStep might be used.
+            }
+        }
+    }
+
+    private async Task OnStepChanged(int stepIndex)
+    {
+        if (_dtoBaseConfiguration == null) return;
+
+        var cache = new DtoSetupCache
+        {
+            CurrentStep = stepIndex,
+            HasPvSystem = _hasPvSystem,
+            Configuration = _dtoBaseConfiguration.Item
+        };
+
+        await SetupService.UpdateSetupCache(cache);
+    }
+
+    private async Task FinishSetup()
+    {
+        if (_dtoBaseConfiguration == null) return;
+
+        _dtoBaseConfiguration.Item.IsFirstRun = false;
+        
+        var result = await HttpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
+        
+        if (result != null)
+        {
+            await SetupService.DeleteSetupCache();
+            Snackbar.Add("Setup completed successfully!", Severity.Success);
+            NavigationManager.NavigateTo("/", true);
+        }
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<BaseConfigurationPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

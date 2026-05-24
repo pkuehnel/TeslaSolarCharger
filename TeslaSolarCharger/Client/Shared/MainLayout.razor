@@ -1,13 +1,17 @@
 ﻿@inherits LayoutComponentBase
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 
 @inject IAppColors AppColors
 @inject ITextLocalizationService TextLocalizer
 @inject IJSRuntime JsRuntime
 @inject IThemeStateService ThemeStateService
+@inject NavigationManager NavigationManager
+@inject IHttpClientHelper HttpClientHelper
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -16,13 +20,23 @@
 <MudSnackbarProvider />
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @if (_isFirstRun == false)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
 
     <main>
         <article class="content px-4">
-            @Body
+            @if (_isFirstRun == null)
+            {
+                <LoadingSpinnerComponent />
+            }
+            else
+            {
+                @Body
+            }
         </article>
     </main>
 </div>
@@ -45,8 +59,9 @@
 
     private bool _wasMudThemeProviderNull;
     private bool _isDarkMode;
+    private bool? _isFirstRun;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _tscTheme = new MudTheme
         {
@@ -66,6 +81,14 @@
                 Surface = AppColors.DarkModeBackgroundColor,
             },
         };
+
+        var response = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+        _isFirstRun = response?.IsFirstRun ?? false;
+
+        if (_isFirstRun == true && NavigationManager.Uri.Contains("/setup", StringComparison.OrdinalIgnoreCase) == false)
+        {
+            NavigationManager.NavigateTo("/setup");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

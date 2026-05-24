@@ -128,6 +128,7 @@ public class BaseConfigurationBase
     public int HomeGeofenceRadius { get; set; } = 50;
     public decimal ChargingSwitchCosts { get; set; } = 0.05M;
 
+    public bool IsFirstRun { get; set; }
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
 }

@@ -46,6 +46,7 @@ public class Constants : IConstants
     public string SmartCarTokenStatesKey => "SmartCarTokenStates";
     public string IsBaseAppLicensedKey => "IsBaseAppLicensed";
     public string IsFleetApiLicensedKey => "IsFleetApiLicensed_";
+    public string SetupCacheKey => "SetupCache";
     public string HomeDetectionViaConvertedKey => "HomeDetectionViaConverted";
     //Also on Cloud Server in Solar4Car.Backend.Helper.Constants
     public int FleetTelemetryReconfigurationBufferHours => 3;
