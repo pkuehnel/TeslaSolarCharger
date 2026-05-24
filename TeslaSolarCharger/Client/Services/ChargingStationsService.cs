@@ -29,6 +29,18 @@ public class ChargingStationsService : IChargingStationsService
         return response;
     }
 
+    public async Task UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateChargingStationConnector));
+        await _httpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/ChargingStations/UpdateChargingStationConnector", chargingStationConnector);
+    }
+
+    public async Task DeleteChargingStation(int chargingStationId)
+    {
+        _logger.LogTrace("{method}({chargingStationId})", nameof(DeleteChargingStation), chargingStationId);
+        await _httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>($"api/ChargingStations/DeleteChargingStation?chargingStationId={chargingStationId}");
+    }
+
     public async Task<Dictionary<int, string>?> GetCarOptions()
     {
         _logger.LogTrace("{method}()", nameof(GetCarOptions));

@@ -1,0 +1,45 @@
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudCard Class="h-100">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">@ChargingStation.ChargepointId</MudText>
+            @if (ChargingStation.IsConnected)
+            {
+                <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsConnectedViaOcpp)' Color="Color.Success" Size="Size.Small" />
+            }
+            else
+            {
+                <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsNotConnectedViaOcpp)' Color="Color.Error" Size="Size.Small" />
+            }
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="OnEditRequested" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="OnDeleteRequested" />
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.body2"><b>Connectors:</b> @ConnectorsCount</MudText>
+            <MudText Typo="Typo.body2"><b>Phase Switching:</b> @(ChargingStation.CanSwitchBetween1And3Phases == true ? "Supported" : "Not Supported")</MudText>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public DtoChargingStation ChargingStation { get; set; } = default!;
+    [Parameter] public int ConnectorsCount { get; set; }
+    [Parameter] public EventCallback OnEditRequested { get; set; }
+    [Parameter] public EventCallback OnDeleteRequested { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ChargingStationsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

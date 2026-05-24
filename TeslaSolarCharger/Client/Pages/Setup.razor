@@ -187,22 +187,17 @@
                 }
                 else
                 {
-                    foreach (var chargingStation in _chargingStations)
-                    {
-                        <div class="shadow-sm p-3 mb-3 rounded border">
-                            <MudText Typo="Typo.subtitle1" GutterBottom="true" Style="font-weight: bold">
-                                @chargingStation.ChargepointId
-                                @if (chargingStation.IsConnected)
-                                {
-                                    <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsConnectedViaOcpp)' Color="Color.Success" Size="Size.Small" Class="ml-2" />
-                                }
-                                else
-                                {
-                                    <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsNotConnectedViaOcpp)' Color="Color.Error" Size="Size.Small" Class="ml-2" />
-                                }
-                            </MudText>
-                        </div>
-                    }
+                    <MudGrid>
+                        @foreach (var chargingStation in _chargingStations)
+                        {
+                            <MudItem xs="12" md="6">
+                                <ChargingStationOverviewComponent ChargingStation="chargingStation"
+                                                                  ConnectorsCount="@(_connectorCounts.GetValueOrDefault(chargingStation.Id))"
+                                                                  OnEditRequested="() => EditStation(chargingStation)"
+                                                                  OnDeleteRequested="() => DeleteStation(chargingStation)" />
+                            </MudItem>
+                        }
+                    </MudGrid>
                 }
             </MudStep>
 
@@ -227,6 +222,7 @@
     private EditableItem<DtoChargePrice>? _chargePrice;
     private List<FixedPrice> _fixedPrices = new();
     private List<DtoChargingStation>? _chargingStations;
+    private Dictionary<int, int> _connectorCounts = new();
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private DtoCarLicenseInfo _carLicenseInfo = new();
     private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
@@ -328,6 +324,39 @@
         }
     }
 
+    private async Task EditStation(DtoChargingStation station)
+    {
+        var parameters = new DialogParameters<ChargingStationEditDialog>
+        {
+            { x => x.ChargingStation, station }
+        };
+
+        var dialog = await DialogService.ShowAsync<ChargingStationEditDialog>(T(TranslationKeys.ChargingStationsTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await RefreshStationData();
+        }
+    }
+
+    private async Task DeleteStation(DtoChargingStation station)
+    {
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, station.ChargepointId }
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.DeleteDialogConfirm), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await ChargingStationsService.DeleteChargingStation(station.Id);
+            await RefreshStationData();
+        }
+    }
+
     private async Task LoadChargePrice()
     {
         var prices = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>("api/ChargingCost/GetChargePrices");
@@ -357,11 +386,24 @@
         {
             try
             {
-                _chargingStations = await ChargingStationsService.GetChargingStations();
+                await RefreshStationData();
                 await InvokeAsync(StateHasChanged);
             }
             catch { /* Ignore errors in background loop */ }
             await Task.Delay(3000, ct);
+        }
+    }
+
+    private async Task RefreshStationData()
+    {
+        _chargingStations = await ChargingStationsService.GetChargingStations();
+        if (_chargingStations != null)
+        {
+            foreach (var station in _chargingStations)
+            {
+                var connectors = await ChargingStationsService.GetChargingStationConnectors(station.Id);
+                _connectorCounts[station.Id] = connectors?.Count ?? 0;
+            }
         }
     }
 

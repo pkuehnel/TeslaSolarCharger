@@ -1,0 +1,126 @@
+@using MudBlazor
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+@inject IChargingStationsService ChargingStationsService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="mr-3 mb-n1" />
+            @T(TranslationKeys.ChargingStationsTitle): @ChargingStation.ChargepointId
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
+            @if (_chargingStationConnectors == null)
+            {
+                <LoadingSpinnerComponent />
+            }
+            else
+            {
+                <MudText Typo="Typo.subtitle1" GutterBottom="true" Class="mt-2">Connectors</MudText>
+                @foreach (var connector in _chargingStationConnectors)
+                {
+                    <div class="mb-6 p-3 border rounded">
+                        <EditFormComponent T="DtoChargingStationConnector" WrappedElement="@connector" HideSubmitButton="true">
+                            @if (connector.Item.MinCurrent < 6)
+                            {
+                                <MudAlert Severity="Severity.Warning" Class="mb-4">
+                                    <h5>@TC(TranslationKeys.ChargingStationConnectorCurrentWarningTitle)</h5>
+                                    @TC(TranslationKeys.ChargingStationConnectorCurrentWarningContent)
+                                </MudAlert>
+                            }
+                            <GenericInput For="() => connector.Item.Name" />
+                            @if (!ChargingStation.IsConnected)
+                            {
+                                <GenericInput For="() => connector.Item.ShouldBeManaged" />
+                            }
+                            <GenericInput For="() => connector.Item.MinCurrent" />
+                            <GenericInput For="() => connector.Item.SwitchOffAtCurrent" />
+                            <GenericInput For="() => connector.Item.SwitchOnAtCurrent" />
+                            <GenericInput For="() => connector.Item.MaxCurrent" />
+                            <GenericInput For="() => connector.Item.ConnectedPhasesCount" />
+                            <GenericInput For="() => connector.Item.ChargingPriority" />
+                            
+                            @if (_carOptions != null)
+                            {
+                                <GenericInput For="() => connector.Item.AllowedCars"
+                                              DropDownOptions="_carOptions"
+                                              DisplayMultiSelectValues="true" />
+                            }
+                            <GenericInput For="() => connector.Item.AllowGuestCars" />
+                            
+                            @if (ChargingStation.CanSwitchBetween1And3Phases == true)
+                            {
+                                <GenericInput For="() => connector.Item.AutoSwitchBetween1And3PhasesEnabled" />
+                                <GenericInput For="() => connector.Item.PhaseSwitchCoolDownTimeSeconds" />
+                            }
+                        </EditFormComponent>
+                    </div>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T(TranslationKeys.GeneralCancel)</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="_isSaving">@T(TranslationKeys.GeneralSave)</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DtoChargingStation ChargingStation { get; set; } = default!;
+
+    private List<EditableItem<DtoChargingStationConnector>>? _chargingStationConnectors;
+    private Dictionary<int, string>? _carOptions;
+    private bool _isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _carOptions = await ChargingStationsService.GetCarOptions();
+        var connectors = await ChargingStationsService.GetChargingStationConnectors(ChargingStation.Id);
+        if (connectors != null)
+        {
+            _chargingStationConnectors = connectors.Select(c => new EditableItem<DtoChargingStationConnector>(c)).ToList();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (_chargingStationConnectors == null) return;
+        _isSaving = true;
+
+        try
+        {
+            foreach (var connector in _chargingStationConnectors)
+            {
+                await ChargingStationsService.UpdateChargingStationConnector(connector.Item);
+            }
+            Snackbar.Add(TC(TranslationKeys.ChargingStationConnectorSaved), Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ChargingStationsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string TC(string key) =>
+        TextLocalizer.Get<ChargingStationConnectorsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}
