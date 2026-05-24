@@ -1,0 +1,143 @@
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
+@inject IOAuthNotificationService OAuthNotificationService
+
+@if (BackendTokenState == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    <MudAlert Severity="@BackendTokenAlertSeverity"
+              NoIcon="true"
+              ShowCloseIcon="false">
+        <div>@BackendTokenStateText</div>
+    </MudAlert>
+}
+
+@if (BackendTokenState == TokenState.UpToDate)
+{
+    @if (LoggedInUserName == default)
+    {
+        <div class="mt-2">@T(TranslationKeys.CloudConnectionLoggedInAsUnknownUser)</div>
+    }
+    else
+    {
+        <div class="mt-2">@T(TranslationKeys.CloudConnectionLoggedInAsPrefix) @LoggedInUserName</div>
+    }
+    <RightAlignedButtonComponent OnButtonClicked="FakeLogout"
+                                 ButtonText='@T(TranslationKeys.CloudConnectionChangeUserButton)' />
+}
+else if (BackendTokenState != default)
+{
+    <div class="mt-4">
+        <GenericInput For="() => _backendLogin.EMail"></GenericInput>
+        <GenericInput For="() => _backendLogin.Password"
+                      IsPassword="true"></GenericInput>
+        @if (LoginErrorMessage != default)
+        {
+            <div class="validation-message">
+                @T(TranslationKeys.CloudConnectionLoginFailedPrefix) @LoginErrorMessage
+            </div>
+        }
+        <RightAlignedButtonComponent OnButtonClicked="Submit"
+                                     ButtonText='@T(TranslationKeys.CloudConnectionLoginButton)'
+                                     IsLoading="@_backendLoginIsLoading">
+        </RightAlignedButtonComponent>
+        <div class="d-flex">
+            <MudSpacer></MudSpacer>
+            <MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions" Target="_blank">
+                @T(TranslationKeys.CloudConnectionRegisterLink)
+            </MudLink>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
+    private bool _backendLoginIsLoading;
+    private string? LoginErrorMessage { get; set; }
+    private TokenState? BackendTokenState { get; set; }
+    private string? LoggedInUserName { get; set; }
+
+    private Severity BackendTokenAlertSeverity => BackendTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
+
+    private string BackendTokenStateText
+    {
+        get
+        {
+            switch (BackendTokenState)
+            {
+                case TokenState.MissingPrecondition:
+                    return T(TranslationKeys.CloudConnectionTokenStateMissingPrecondition);
+                case TokenState.NotAvailable:
+                    return T(TranslationKeys.CloudConnectionTokenStateNotAvailable);
+                case TokenState.Unauthorized:
+                    return T(TranslationKeys.CloudConnectionTokenStateUnauthorized);
+                case TokenState.MissingScopes:
+                    return T(TranslationKeys.CloudConnectionTokenStateMissingScopes);
+                case TokenState.Expired:
+                    return T(TranslationKeys.CloudConnectionTokenStateExpired);
+                case TokenState.UpToDate:
+                    return T(TranslationKeys.CloudConnectionTokenStateUpToDate);
+                case null:
+                    return T(TranslationKeys.CloudConnectionTokenStateMissingPrecondition);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        BackendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
+        LoggedInUserName = await CloudConnectionCheckService.GetBackendTokenUserName();
+    }
+
+    private async Task Submit()
+    {
+        _backendLoginIsLoading = true;
+        var result = await HttpClientHelper.SendPostRequestAsync("api/BackendApi/LoginToBackend", _backendLogin);
+        if (result.HasError)
+        {
+            LoginErrorMessage = result.ErrorMessage;
+            Snackbar.Add(T(TranslationKeys.CloudConnectionLoginFailedNotification), Severity.Error);
+        }
+        else
+        {
+            LoginErrorMessage = default;
+            Snackbar.Add(T(TranslationKeys.CloudConnectionLoginSucceededNotification), Severity.Success);
+        }
+
+        await RefreshData();
+        _backendLoginIsLoading = false;
+        StateHasChanged();
+    }
+
+    private void FakeLogout()
+    {
+        BackendTokenState = TokenState.NotAvailable;
+        LoggedInUserName = default;
+        StateHasChanged();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<CloudConnectionPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

@@ -3,6 +3,7 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared.Dtos.Setup
 @using TeslaSolarCharger.Shared.Localization
@@ -10,6 +11,9 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Enums
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISetupService SetupService
@@ -17,6 +21,10 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject IConstants Constants
+@inject ITemplateValueConfigurationService TemplateService
+@inject IChargePriceService ChargePriceService
+@inject IChargingStationsService ChargingStationsService
+@inject IDateTimeProvider DateTimeProvider
 
 <PageTitle>Setup Assistant</PageTitle>
 
@@ -88,40 +96,69 @@
             }
 
             <MudStep Title="Cloud Connection">
-                <MudText Typo="Typo.h5" GutterBottom="true">Tesla Cloud Connection</MudText>
-                <MudText GutterBottom="true">To control your Tesla, you need to link your account via the Solar4Car Cloud.</MudText>
+                <MudText Typo="Typo.h5" GutterBottom="true">Solar4Car Cloud Connection</MudText>
+                <MudText GutterBottom="true">Connect your instance to the Solar4Car Cloud to enable remote access and advanced features.</MudText>
                 
-                <MudAlert Severity="Severity.Warning" Class="my-4">
-                    Linking your account is required to manage charging. You can do this now or later.
-                </MudAlert>
-                
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Cloud" Href="/cloudconnection" Target="_blank">
-                    Open Cloud Connection Settings
-                </MudButton>
-                <MudText Typo="Typo.caption" Class="mt-2 d-block">This will open in a new tab. Return here when finished.</MudText>
+                <div class="mt-4">
+                    <CloudConnectionLoginComponent />
+                </div>
             </MudStep>
 
             <MudStep Title="Prices">
                 <MudText Typo="Typo.h5" GutterBottom="true">Grid Prices</MudText>
                 <MudText GutterBottom="true">Configure your electricity prices to allow TeslaSolarCharger to charge when it's cheapest.</MudText>
                 
-                <GenericInput For="() => _dtoBaseConfiguration.Item.ChargingSwitchCosts" />
-                
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" Href="/ChargePrices" Target="_blank">
-                    Configure Detailed Grid Prices
-                </MudButton>
+                @if (_chargePrice != null)
+                {
+                    <EditFormComponent T="DtoChargePrice" WrappedElement="_chargePrice" HideSubmitButton="true">
+                        <GenericInput For="() => _chargePrice.Item.SolarPrice"></GenericInput>
+                        <GenericInput For="() => _chargePrice.Item.GridPrice"></GenericInput>
+                    </EditFormComponent>
+                }
             </MudStep>
 
             <MudStep Title="Cars & Stations">
                 <MudText Typo="Typo.h5" GutterBottom="true">Cars & Charging Stations</MudText>
-                <MudText GutterBottom="true">Finally, ensure your cars and charging stations are visible. If you linked your Tesla account, your cars should appear here after a short while.</MudText>
                 
-                <div class="d-flex flex-column gap-4 mt-4">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/CarSettings" Target="_blank">
+                <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
+                    <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
+                    <div>@T(TranslationKeys.ChargingStationsHowToConnectContent)</div>
+                    <div>@((MarkupString)T(TranslationKeys.ChargingStationsHowToConnectUrlFormat))</div>
+                </MudAlert>
+
+                <MudText GutterBottom="true">As soon as a charging station connects via OCPP, it will appear here in real-time.</MudText>
+
+                @if (_chargingStations == null)
+                {
+                    <PlaceholderComponent Count="2"></PlaceholderComponent>
+                }
+                else if (_chargingStations.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Class="mt-4 italic">No charging stations connected yet...</MudText>
+                }
+                else
+                {
+                    foreach (var chargingStation in _chargingStations)
+                    {
+                        <div class="shadow-sm p-3 mb-3 rounded border">
+                            <MudText Typo="Typo.subtitle1" GutterBottom="true" Style="font-weight: bold">
+                                @chargingStation.ChargepointId
+                                @if (chargingStation.IsConnected)
+                                {
+                                    <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsConnectedViaOcpp)' Color="Color.Success" Size="Size.Small" Class="ml-2" />
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsNotConnectedViaOcpp)' Color="Color.Error" Size="Size.Small" Class="ml-2" />
+                                }
+                            </MudText>
+                        </div>
+                    }
+                }
+                
+                <div class="d-flex justify-end mt-4">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/CarSettings" Target="_blank" StartIcon="@Icons.Material.Filled.DirectionsCar">
                         Manage Cars
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/ChargingStations" Target="_blank">
-                        Manage Charging Stations
                     </MudButton>
                 </div>
             </MudStep>
@@ -144,9 +181,12 @@
 
 @code {
     private EditableItem<DtoBaseConfiguration>? _dtoBaseConfiguration;
+    private EditableItem<DtoChargePrice>? _chargePrice;
+    private List<DtoChargingStation>? _chargingStations;
     private MudStepper? _stepper;
     private bool _hasPvSystem = true;
     private bool _isInitialized;
+    private CancellationTokenSource? _stationRefreshCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -156,7 +196,6 @@
         {
             _dtoBaseConfiguration = new(cachedData.Configuration);
             _hasPvSystem = cachedData.HasPvSystem;
-            // Note: MudStepper might need some time to initialize before we can set the step
         }
         else
         {
@@ -164,21 +203,47 @@
             if (response != default)
             {
                 _dtoBaseConfiguration = new(response);
+                
+                var templates = await TemplateService.GetOverviews();
+                _hasPvSystem = response.PredictSolarPowerGeneration || 
+                               !string.IsNullOrEmpty(response.CurrentPowerToGridUrl) ||
+                               !string.IsNullOrEmpty(response.CurrentPowerToGridMqttTopic) ||
+                               response.IsModbusGridUrl ||
+                               (templates != null && templates.Any());
             }
         }
+
+        _chargePrice = new(new DtoChargePrice()
+        {
+            ValidSince = DateTimeProvider.Now(),
+            GridPrice = new decimal(0.285),
+            SolarPrice = new decimal(0.12),
+        });
+
         _isInitialized = true;
+        _stationRefreshCts = new CancellationTokenSource();
+        _ = RefreshStationsLoop(_stationRefreshCts.Token);
+    }
+
+    private async Task RefreshStationsLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                _chargingStations = await ChargingStationsService.GetChargingStations();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch { /* Ignore errors in background loop */ }
+            await Task.Delay(3000, ct);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _isInitialized)
         {
-            var cachedData = await SetupService.GetSetupCache();
-            if (cachedData != null && _stepper != null)
-            {
-                // Try to restore the step. MudStepper might need a bit of time.
-                // Depending on the version, setActiveStep might be used.
-            }
+            // Restoring step logic if needed
         }
     }
 
@@ -198,15 +263,16 @@
 
     private async Task FinishSetup()
     {
-        if (_dtoBaseConfiguration == null) return;
+        if (_dtoBaseConfiguration == null || _chargePrice == null) return;
 
         _dtoBaseConfiguration.Item.IsFirstRun = false;
         
-        var result = await HttpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
-        
-        if (result != null)
+        var baseConfigResult = await HttpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
+        if (baseConfigResult != null)
         {
+            await ChargePriceService.UpdateChargePrice(_chargePrice.Item);
             await SetupService.DeleteSetupCache();
+            _stationRefreshCts?.Cancel();
             Snackbar.Add("Setup completed successfully!", Severity.Success);
             NavigationManager.NavigateTo("/", true);
         }
@@ -215,4 +281,10 @@
     private string T(string key) =>
         TextLocalizer.Get<BaseConfigurationPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
+
+    public void Dispose()
+    {
+        _stationRefreshCts?.Cancel();
+        _stationRefreshCts?.Dispose();
+    }
 }
