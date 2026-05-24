@@ -11,8 +11,8 @@ public class CloudConnectionPageLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Cloud-Verbindung"));
 
         Register(TranslationKeys.CloudConnectionBackendSectionTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Solar4Car Backend connection"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car-Backend-Verbindung"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar4Car Cloud connection"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car-Cloud-Verbindung"));
 
         Register(TranslationKeys.CloudConnectionLoggedInAsUnknownUser,
             new TextLocalizationTranslation(LanguageCodes.English, "Logged in as unknown user"),
@@ -23,7 +23,7 @@ public class CloudConnectionPageLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Angemeldet als"));
 
         Register(TranslationKeys.CloudConnectionChangeUserButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "ChangeUser"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Change user"),
             new TextLocalizationTranslation(LanguageCodes.German, "Benutzer wechseln"));
 
         Register(TranslationKeys.CloudConnectionLoginFailedPrefix,

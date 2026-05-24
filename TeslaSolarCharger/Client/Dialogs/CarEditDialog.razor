@@ -37,7 +37,7 @@
                 @if (Car.Item.ShouldBeManaged)
                 {
                     <div class="mt-4 p-3 border rounded">
-                        <MudText Typo="Typo.subtitle1" GutterBottom="true">Management Settings</MudText>
+                        <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditManagementSettings)</MudText>
                         
                         @if (Car.Item.CarType != CarType.Tesla && Car.Item.MinimumAmpere < 6)
                         {
@@ -67,7 +67,7 @@
                     @if (Car.Item.CarType == CarType.Tesla)
                     {
                         <div class="mt-4 p-3 border rounded">
-                            <MudText Typo="Typo.subtitle1" GutterBottom="true">Tesla Specific</MudText>
+                            <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditTeslaSpecific)</MudText>
                             
                             <GenericInput T="bool"
                                           For="() => Car.Item.UseBle"

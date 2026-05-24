@@ -41,5 +41,25 @@ public class ChargingStationsPageLocalizationRegistry : TextLocalizationRegistry
         Register(TranslationKeys.ChargingStationsNotConnectedViaOcpp,
             new TextLocalizationTranslation(LanguageCodes.English, "Not connected via OCPP"),
             new TextLocalizationTranslation(LanguageCodes.German, "Nicht über OCPP verbunden"));
+
+        Register(TranslationKeys.ChargingStationOverviewConnectors,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connectors"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkte"));
+
+        Register(TranslationKeys.ChargingStationOverviewPhaseSwitching,
+            new TextLocalizationTranslation(LanguageCodes.English, "Phase Switching"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Phasenumschaltung"));
+
+        Register(TranslationKeys.ChargingStationOverviewSupported,
+            new TextLocalizationTranslation(LanguageCodes.English, "Supported"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Unterstützt"));
+
+        Register(TranslationKeys.ChargingStationOverviewNotSupported,
+            new TextLocalizationTranslation(LanguageCodes.English, "Not Supported"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nicht unterstützt"));
+
+        Register(TranslationKeys.ChargingStationEditConnectors,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connectors"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkte"));
     }
 }

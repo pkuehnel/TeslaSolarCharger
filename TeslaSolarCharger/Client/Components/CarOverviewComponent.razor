@@ -23,16 +23,16 @@
     </MudCardHeader>
     <MudCardContent>
         <MudStack Spacing="1">
-            <MudText Typo="Typo.body2"><b>Managed:</b> @(Car.Item.ShouldBeManaged ? "Yes" : "No")</MudText>
+            <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewManaged):</b> @(Car.Item.ShouldBeManaged ? T(TranslationKeys.CarOverviewYes) : T(TranslationKeys.CarOverviewNo))</MudText>
             @if (Car.Item.ShouldBeManaged)
             {
-                <MudText Typo="Typo.body2"><b>Ampere:</b> @Car.Item.MinimumAmpere A - @Car.Item.MaximumAmpere A</MudText>
-                <MudText Typo="Typo.body2"><b>Priority:</b> @Car.Item.ChargingPriority</MudText>
-                <MudText Typo="Typo.body2"><b>Type:</b> @Car.Item.CarType</MudText>
+                <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewAmpere):</b> @Car.Item.MinimumAmpere A - @Car.Item.MaximumAmpere A</MudText>
+                <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewPriority):</b> @Car.Item.ChargingPriority</MudText>
+                <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewType):</b> @Car.Item.CarType</MudText>
                 @if (Car.Item.CarType == CarType.Tesla)
                 {
-                    <MudText Typo="Typo.body2"><b>Bluetooth:</b> @(Car.Item.UseBle ? "Enabled" : "Disabled")</MudText>
-                    <MudText Typo="Typo.body2"><b>Detection:</b> @GetHomeDetectionViaName(Car.Item.HomeDetectionVia)</MudText>
+                    <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewBluetooth):</b> @(Car.Item.UseBle ? T(TranslationKeys.CarOverviewEnabled) : T(TranslationKeys.CarOverviewDisabled))</MudText>
+                    <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewDetection):</b> @GetHomeDetectionViaName(Car.Item.HomeDetectionVia)</MudText>
                 }
             }
         </MudStack>

@@ -10,6 +10,14 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, "Base Configuration"),
             new TextLocalizationTranslation(LanguageCodes.German, "Basiskonfiguration"));
 
+        Register(TranslationKeys.EMail,
+            new TextLocalizationTranslation(LanguageCodes.English, "EMail"),
+            new TextLocalizationTranslation(LanguageCodes.German, "E-Mail"));
+
+        Register(TranslationKeys.Password,
+            new TextLocalizationTranslation(LanguageCodes.English, "Password"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Passwort"));
+
         Register(TranslationKeys.GeneralSave,
             new TextLocalizationTranslation(LanguageCodes.English, "Save"),
             new TextLocalizationTranslation(LanguageCodes.German, "Speichern"));

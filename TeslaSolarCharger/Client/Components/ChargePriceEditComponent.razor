@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
@@ -15,6 +16,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ISnackbar Snackbar
 @inject IChargePriceService ChargePriceService
+@inject IConstants Constants
 
 @if (ChargePrice == null)
 {
@@ -76,7 +78,7 @@ else
                     <MudSelectExtended T="SpotPriceRegion?"
                                        For="() => ChargePrice.Item.SpotPriceRegion"
                                        @bind-Value="ChargePrice.Item.SpotPriceRegion"
-                                       Margin="Margin.Dense"
+                                       Margin="Constants.InputMargin"
                                        Label="@T(TranslationKeys.ChargeCostDetailSpotPriceRegionLabel)"
                                        Variant="Variant.Outlined">
                         <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@T(TranslationKeys.SpotPriceRegionDELU)" />

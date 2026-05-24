@@ -205,5 +205,53 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
         Register(TranslationKeys.HomeDetectionViaLocatedAtFavorite,
             new TextLocalizationTranslation(LanguageCodes.English, "At Favorite"),
             new TextLocalizationTranslation(LanguageCodes.German, "An Favoriten"));
+
+        Register(TranslationKeys.CarOverviewManaged,
+            new TextLocalizationTranslation(LanguageCodes.English, "Managed"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verwaltet"));
+
+        Register(TranslationKeys.CarOverviewAmpere,
+            new TextLocalizationTranslation(LanguageCodes.English, "Ampere"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ampere"));
+
+        Register(TranslationKeys.CarOverviewPriority,
+            new TextLocalizationTranslation(LanguageCodes.English, "Priority"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Priorität"));
+
+        Register(TranslationKeys.CarOverviewType,
+            new TextLocalizationTranslation(LanguageCodes.English, "Type"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Typ"));
+
+        Register(TranslationKeys.CarOverviewBluetooth,
+            new TextLocalizationTranslation(LanguageCodes.English, "Bluetooth"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bluetooth"));
+
+        Register(TranslationKeys.CarOverviewDetection,
+            new TextLocalizationTranslation(LanguageCodes.English, "Detection"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erkennung"));
+
+        Register(TranslationKeys.CarOverviewYes,
+            new TextLocalizationTranslation(LanguageCodes.English, "Yes"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ja"));
+
+        Register(TranslationKeys.CarOverviewNo,
+            new TextLocalizationTranslation(LanguageCodes.English, "No"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nein"));
+
+        Register(TranslationKeys.CarOverviewEnabled,
+            new TextLocalizationTranslation(LanguageCodes.English, "Enabled"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktiviert"));
+
+        Register(TranslationKeys.CarOverviewDisabled,
+            new TextLocalizationTranslation(LanguageCodes.English, "Disabled"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Deaktiviert"));
+
+        Register(TranslationKeys.CarEditManagementSettings,
+            new TextLocalizationTranslation(LanguageCodes.English, "Management Settings"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Management-Einstellungen"));
+
+        Register(TranslationKeys.CarEditTeslaSpecific,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Specific"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Spezifisch"));
     }
 }

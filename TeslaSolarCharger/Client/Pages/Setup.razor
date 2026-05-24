@@ -33,10 +33,10 @@
 @inject IDateTimeProvider DateTimeProvider
 @inject IDialogService DialogService
 
-<PageTitle>Setup Assistant</PageTitle>
+<PageTitle>@T(TranslationKeys.SetupAssistantTitle)</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Setup Assistant</MudText>
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">@T(TranslationKeys.SetupAssistantTitle)</MudText>
 
     @if (_dtoBaseConfiguration == null)
     {
@@ -52,22 +52,22 @@
                     HeaderSelectionIndicator="true"
                     Color="Color.Primary"
                     CompletedStepColor="Color.Success">
-            <MudStep Title="Welcome">
-                <MudText Typo="Typo.h5" GutterBottom="true">Welcome to TeslaSolarCharger!</MudText>
-                <MudText>This assistant will guide you through the basic configuration to get you started as quickly as possible.</MudText>
+            <MudStep Title="@T(TranslationKeys.SetupStepWelcome)">
+                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupWelcomeTitle)</MudText>
+                <MudText>@T(TranslationKeys.SetupWelcomeDescription)</MudText>
                 <MudAlert Severity="Severity.Info" Class="mt-4">
-                    You can always change these settings later in the configuration pages.
+                    @T(TranslationKeys.SetupChangeLaterInfo)
                 </MudAlert>
                 <div class="mt-8">
-                    <MudSwitch T="bool" @bind-Value="_hasPvSystem" Label="Do you have a Photovoltaik (PV) system?" Color="Color.Primary" />
+                    <MudSwitch T="bool" @bind-Value="_hasPvSystem" Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
                 </div>
             </MudStep>
 
             @if (_hasPvSystem)
             {
-                <MudStep Title="Location">
-                    <MudText Typo="Typo.h5" GutterBottom="true">System Location</MudText>
-                    <MudText GutterBottom="true">Please set the location of your PV system on the map. This is used for solar power predictions.</MudText>
+                <MudStep Title="@T(TranslationKeys.SetupStepLocation)">
+                    <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupLocationTitle)</MudText>
+                    <MudText GutterBottom="true">@T(TranslationKeys.SetupLocationDescription)</MudText>
                     
                     <div class="mb-3">
                         <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
@@ -81,20 +81,20 @@
                     <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
                 </MudStep>
 
-                <MudStep Title="Solar & Battery">
-                    <MudText Typo="Typo.h5" GutterBottom="true">Solar & Battery Data</MudText>
-                    <MudText GutterBottom="true">Configure how TeslaSolarCharger gets your current solar production and grid usage data. Templates are the easiest way to start.</MudText>
+                <MudStep Title="@T(TranslationKeys.SetupStepSolarBattery)">
+                    <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryTitle)</MudText>
+                    <MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
                     
                     <TemplateValueConfigurationComponent />
 
                     <div class="mt-8">
-                        <MudSwitch T="bool" @bind-Value="_hasHomeBattery" Label="Do you have a home battery?" Color="Color.Primary" />
+                        <MudSwitch T="bool" @bind-Value="_hasHomeBattery" Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
                     </div>
 
                     @if (_hasHomeBattery)
                     {
                         <div class="mt-4 p-4 rounded border">
-                            <MudText Typo="Typo.h6" GutterBottom="true">Home Battery Settings</MudText>
+                            <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
                             <div class="row">
                                 <div class="col-md-6">
                                     <GenericInput T="bool?"
@@ -114,18 +114,18 @@
                 </MudStep>
             }
 
-            <MudStep Title="Cloud Connection">
-                <MudText Typo="Typo.h5" GutterBottom="true">Solar4Car Cloud Connection</MudText>
-                <MudText GutterBottom="true">Connect your instance to the Solar4Car Cloud to enable remote access and advanced features.</MudText>
+            <MudStep Title="@T(TranslationKeys.SetupStepCloudConnection)">
+                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionTitle)</MudText>
+                <MudText GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionDescription)</MudText>
                 
                 <div class="mt-4">
                     <CloudConnectionLoginComponent />
                 </div>
             </MudStep>
 
-            <MudStep Title="Prices">
-                <MudText Typo="Typo.h5" GutterBottom="true">Grid Prices</MudText>
-                <MudText GutterBottom="true">Configure your electricity prices to allow TeslaSolarCharger to charge when it's cheapest.</MudText>
+            <MudStep Title="@T(TranslationKeys.SetupStepPrices)">
+                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupPricesTitle)</MudText>
+                <MudText GutterBottom="true">@T(TranslationKeys.SetupPricesDescription)</MudText>
                 
                 <ChargePriceEditComponent @ref="_chargePriceEditComponent"
                                           ChargePrice="_chargePrice"
@@ -134,13 +134,13 @@
                                           ShowValidSince="false" />
             </MudStep>
 
-            <MudStep Title="Cars">
-                <MudText Typo="Typo.h5" GutterBottom="true">Cars</MudText>
+            <MudStep Title="@T(TranslationKeys.SetupStepCars)">
+                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCarsTitle)</MudText>
                 
                 <MudAlert Severity="Severity.Info" Class="mb-4">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold">License Information</MudText>
-                    <MudText Typo="Typo.body2">A license is required for all API-connected vehicles to enable smart charging features.</MudText>
-                    <MudText Typo="Typo.body2" Class="mt-2"><b>Exception:</b> Teslas connected directly via <b>Bluetooth (BLE)</b> do not require a separate license.</MudText>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold">@T(TranslationKeys.SetupLicenseInfoTitle)</MudText>
+                    <MudText Typo="Typo.body2">@T(TranslationKeys.SetupLicenseInfoContent)</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2"><b>@T(TranslationKeys.SetupLicenseInfoException)</b></MudText>
                 </MudAlert>
 
                 @if (_carBasicConfigurations == null)
@@ -166,8 +166,8 @@
                 }
             </MudStep>
 
-            <MudStep Title="Charging Stations">
-                <MudText Typo="Typo.h5" GutterBottom="true">Charging Stations</MudText>
+            <MudStep Title="@T(TranslationKeys.SetupStepChargingStations)">
+                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupChargingStationsTitle)</MudText>
                 
                 <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
                     <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
@@ -175,7 +175,7 @@
                     <div>@((MarkupString)T(TranslationKeys.ChargingStationsHowToConnectUrlFormat))</div>
                 </MudAlert>
 
-                <MudText GutterBottom="true">As soon as a charging station connects via OCPP, it will appear here in real-time.</MudText>
+                <MudText GutterBottom="true">@T(TranslationKeys.SetupChargingStationsDescription)</MudText>
 
                 @if (_chargingStations == null)
                 {
@@ -183,7 +183,7 @@
                 }
                 else if (_chargingStations.Count == 0)
                 {
-                    <MudText Typo="Typo.body1" Class="mt-4 italic">No charging stations connected yet...</MudText>
+                    <MudText Typo="Typo.body1" Class="mt-4 italic">@T(TranslationKeys.SetupNoStationsConnected)</MudText>
                 }
                 else
                 {
@@ -201,16 +201,16 @@
                 }
             </MudStep>
 
-            <MudStep Title="Finish">
-                <MudText Typo="Typo.h5" GutterBottom="true">Almost done!</MudText>
-                <MudText>Click "Finish" to save your configuration and start using TeslaSolarCharger.</MudText>
+            <MudStep Title="@T(TranslationKeys.SetupStepFinish)">
+                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupFinishTitle)</MudText>
+                <MudText>@T(TranslationKeys.SetupFinishDescription)</MudText>
                 
                 <MudAlert Severity="Severity.Success" Class="mt-8">
-                    Your initial setup is complete. You can always revisit the detailed settings pages for fine-tuning.
+                    @T(TranslationKeys.SetupSuccessInfo)
                 </MudAlert>
 
                 <div class="d-flex justify-center mt-8">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="FinishSetup">Finish Setup</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="FinishSetup">@T(TranslationKeys.SetupFinishButton)</MudButton>
                 </div>
             </MudStep>
         </MudStepper>
@@ -298,7 +298,7 @@
             { x => x.HasAvailableLicenses, _hasAvailableLicenses }
         };
 
-        var dialog = await DialogService.ShowAsync<CarEditDialog>("Edit Car", parameters);
+        var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -442,13 +442,13 @@
             await _chargePriceEditComponent.SaveChargePrice();
             await SetupService.DeleteSetupCache();
             _stationRefreshCts?.Cancel();
-            Snackbar.Add("Setup completed successfully!", Severity.Success);
+            Snackbar.Add(T(TranslationKeys.SetupSuccessNotification), Severity.Success);
             NavigationManager.NavigateTo("/", true);
         }
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<BaseConfigurationPageLocalizationRegistry>(key, typeof(ChargingStationsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(BaseConfigurationPageLocalizationRegistry), typeof(ChargingStationsPageLocalizationRegistry), typeof(CarSettingsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     public void Dispose()

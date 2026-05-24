@@ -34,9 +34,9 @@
     }
     
     <MudAlert Severity="Severity.Info" Class="mt-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight: bold">License Information</MudText>
-        <MudText Typo="Typo.body2">A license is required for all API-connected vehicles to enable smart charging features.</MudText>
-        <MudText Typo="Typo.body2" Class="mt-2"><b>Exception:</b> Teslas connected directly via <b>Bluetooth (BLE)</b> do not require a separate license.</MudText>
+        <MudText Typo="Typo.subtitle1" Style="font-weight: bold">@T(TranslationKeys.SetupLicenseInfoTitle)</MudText>
+        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupLicenseInfoContent)</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2"><b>@T(TranslationKeys.SetupLicenseInfoException)</b></MudText>
     </MudAlert>
 </div>
 
@@ -70,7 +70,7 @@ else
     private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
 
     private string T(string key) =>
-        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SetupPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     protected override async Task OnInitializedAsync()
@@ -118,7 +118,7 @@ else
             { x => x.HasAvailableLicenses, _hasAvailableLicenses }
         };
 
-        var dialog = await DialogService.ShowAsync<CarEditDialog>("Edit Car", parameters);
+        var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)

@@ -27,8 +27,8 @@
     </MudCardHeader>
     <MudCardContent>
         <MudStack Spacing="1">
-            <MudText Typo="Typo.body2"><b>Connectors:</b> @ConnectorsCount</MudText>
-            <MudText Typo="Typo.body2"><b>Phase Switching:</b> @(ChargingStation.CanSwitchBetween1And3Phases == true ? "Supported" : "Not Supported")</MudText>
+            <MudText Typo="Typo.body2"><b>@T(TranslationKeys.ChargingStationOverviewConnectors):</b> @ConnectorsCount</MudText>
+            <MudText Typo="Typo.body2"><b>@T(TranslationKeys.ChargingStationOverviewPhaseSwitching):</b> @(ChargingStation.CanSwitchBetween1And3Phases == true ? T(TranslationKeys.ChargingStationOverviewSupported) : T(TranslationKeys.ChargingStationOverviewNotSupported))</MudText>
         </MudStack>
     </MudCardContent>
 </MudCard>
