@@ -31,11 +31,23 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoCarLicenseInfo>("api/BackendApi/GetFleetApiLicenseInfo");
     }
 
-    public async Task<TokenState> GetFleetApiTokenState()
+    public async Task<TokenState?> GetFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
         var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState");
-        return response?.Value ?? TokenState.MissingPrecondition;
+        return response?.Value;
+    }
+
+    public async Task<CarBasicConfiguration?> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration)
+    {
+        logger.LogTrace("{method}({id})", nameof(UpdateCarBasicConfiguration), id);
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<CarBasicConfiguration>($"api/Config/UpdateCarBasicConfiguration?carId={id}", configuration);
+    }
+
+    public async Task DeleteCar(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteCar), id);
+        await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>($"api/Config/DeleteCar?carId={id}");
     }
 
     public async Task<DtoBleCommandResult?> PairKey(string vin)

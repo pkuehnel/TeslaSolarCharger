@@ -1,0 +1,199 @@
+@using MudBlazor
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
+@inject ISnackbar Snackbar
+@inject ICarSettingsService CarSettingsService
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="mr-3 mb-n1" />
+            @T(TranslationKeys.CarSettingsTitle)
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
+            <EditFormComponent T="CarBasicConfiguration" WrappedElement="Car"
+                               HideSubmitButton="true" @ref="_editForm">
+                
+                <GenericInput For="() => Car.Item.Name" />
+                <GenericInput For="() => Car.Item.Vin"
+                              IsDisabledParameter="@(Car.Item.CarType == CarType.Tesla)" />
+                <GenericInput T="bool"
+                              For="() => Car.Item.ShouldBeManaged"
+                              OnValueChanged="_ => StateHasChanged()" />
+
+                @if (Car.Item.ShouldBeManaged)
+                {
+                    <div class="mt-4 p-3 border rounded">
+                        <MudText Typo="Typo.subtitle1" GutterBottom="true">Management Settings</MudText>
+                        
+                        @if (Car.Item.CarType != CarType.Tesla && Car.Item.MinimumAmpere < 6)
+                        {
+                            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                                <h5>@T(TranslationKeys.CarSettingsCurrentBelow6AWarningTitle)</h5>
+                                @T(TranslationKeys.CarSettingsCurrentBelow6AWarningContent)
+                            </MudAlert>
+                        }
+
+                        <GenericInput For="() => Car.Item.MinimumAmpere" />
+                        @if (Car.Item.CarType == CarType.Tesla)
+                        {
+                            <GenericInput For="() => Car.Item.SwitchOffAtCurrent"></GenericInput>
+                            <GenericInput For="() => Car.Item.SwitchOnAtCurrent"></GenericInput>
+                        }
+
+                        <GenericInput For="() => Car.Item.MaximumAmpere" />
+                        @if (Car.Item.CarType != CarType.Tesla)
+                        {
+                            <GenericInput For="() => Car.Item.MaximumPhases" />
+                        }
+
+                        <GenericInput For="() => Car.Item.UsableEnergy" />
+                        <GenericInput For="() => Car.Item.ChargingPriority" />
+                    </div>
+
+                    @if (Car.Item.CarType == CarType.Tesla)
+                    {
+                        <div class="mt-4 p-3 border rounded">
+                            <MudText Typo="Typo.subtitle1" GutterBottom="true">Tesla Specific</MudText>
+                            
+                            <GenericInput T="bool"
+                                          For="() => Car.Item.UseBle"
+                                          OnValueChanged="_ => { Car.ClearErrors(nameof(Car.Item.BleApiBaseUrl)); StateHasChanged(); }" />
+                            @if (Car.Item.UseBle)
+                            {
+                                <GenericInput For="() => Car.Item.BleApiBaseUrl" />
+                            }
+
+                            <div class="px-2 pt-2">
+                                <MudSelect T="HomeDetectionVia"
+                                           For="() => Car.Item.HomeDetectionVia"
+                                           Variant="Variant.Outlined"
+                                           @bind-Value="Car.Item.HomeDetectionVia"
+                                           Label='@T(TranslationKeys.CarSettingsHomeDetectionViaLabel)'
+                                           Margin="Constants.InputMargin">
+                                    @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
+                                    {
+                                        <MudSelectItem T="HomeDetectionVia" Value="@item">@(GetHomeDetectionViaName(item))</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </div>
+
+                            <GenericInput T="bool"
+                                          For="() => Car.Item.UseFleetTelemetry"
+                                          OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(Car.Item, newValue); Car.ClearErrors(nameof(Car.Item.IncludeTrackingRelevantFields), nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
+                            @if (Car.Item.UseFleetTelemetry)
+                            {
+                                <GenericInput T="bool"
+                                              For="() => Car.Item.IncludeTrackingRelevantFields"
+                                              OnValueChanged="_ => { Car.ClearErrors(nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
+                            }
+                        </div>
+                    }
+                }
+
+                @if (Car.Item.CarType != CarType.Tesla && Car.Item.ShouldBeManaged)
+                {
+                    <div class="mt-4">
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@(Car.Item.CarType == CarType.SmartCar ? Icons.Material.Filled.LinkOff : Icons.Material.Filled.Link)"
+                                   OnClick="ConnectToSmartCarClicked"
+                                   Disabled="@(Car.Item.CarType != CarType.SmartCar && !HasAvailableLicenses)">
+                            @(Car.Item.CarType == CarType.SmartCar ? T(TranslationKeys.CarSettingsSmartCarDisconnectTooltip) : T(TranslationKeys.CarSettingsSmartCarConnectTooltip))
+                        </MudButton>
+                    </div>
+                }
+            </EditFormComponent>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T(TranslationKeys.GeneralCancel)</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="_isSaving">@T(TranslationKeys.GeneralSave)</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public EditableItem<CarBasicConfiguration> Car { get; set; } = default!;
+    [Parameter] public bool HasAvailableLicenses { get; set; }
+
+    private EditFormComponent<CarBasicConfiguration>? _editForm;
+    private bool _isSaving;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        _isSaving = true;
+        var result = await CarSettingsService.UpdateCarBasicConfiguration(Car.Item.Id, Car.Item);
+        _isSaving = false;
+        
+        if (result != null)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    private string GetHomeDetectionViaName(HomeDetectionVia homeDetectionVia)
+    {
+        return homeDetectionVia switch
+        {
+            HomeDetectionVia.GpsLocation => T(TranslationKeys.HomeDetectionViaGpsLocation),
+            HomeDetectionVia.LocatedAtHome => T(TranslationKeys.HomeDetectionViaLocatedAtHome),
+            HomeDetectionVia.LocatedAtWork => T(TranslationKeys.HomeDetectionViaLocatedAtWork),
+            HomeDetectionVia.LocatedAtFavorite => T(TranslationKeys.HomeDetectionViaLocatedAtFavorite),
+            _ => homeDetectionVia.ToString(),
+        };
+    }
+
+    private void UpdateGetlocationDataViaFleetTelemetry(CarBasicConfiguration carBasicConfiguration, bool newUseFleetTelemetryValue)
+    {
+        if (newUseFleetTelemetryValue) return;
+        carBasicConfiguration.IncludeTrackingRelevantFields = newUseFleetTelemetryValue;
+    }
+
+    private async Task ConnectToSmartCarClicked()
+    {
+        if (string.IsNullOrEmpty(Car.Item.Vin))
+        {
+            Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarVinMissingError), Severity.Error);
+            return;
+        }
+
+        if (Car.Item.CarType == CarType.SmartCar)
+        {
+            var disconnectSuccess = await CarSettingsService.DisconnectCarFromSmartCar(Car.Item.Id);
+            if (disconnectSuccess)
+            {
+                Car.Item.CarType = CarType.Manual;
+                Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarDisconnectSuccess), Severity.Success);
+                StateHasChanged();
+            }
+            return;
+        }
+
+        var baseUrl = NavigationManager.BaseUri + "CarSettings?" + Constants.QueryParamVin + "=" + Uri.EscapeDataString(Car.Item.Vin);
+        var url = await CarSettingsService.GetSmartCarOAuthRedeemUrl(baseUrl, Car.Item.Vin);
+        if (!string.IsNullOrEmpty(url))
+        {
+            NavigationManager.NavigateTo(url);
+        }
+    }
+}

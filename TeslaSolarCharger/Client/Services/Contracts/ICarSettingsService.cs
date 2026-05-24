@@ -8,7 +8,9 @@ public interface ICarSettingsService
 {
     Task<List<CarBasicConfiguration>?> GetCarBasicConfigurations();
     Task<DtoCarLicenseInfo?> GetFleetApiLicenseInfo();
-    Task<TokenState> GetFleetApiTokenState();
+    Task<CarBasicConfiguration?> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration);
+    Task DeleteCar(int id);
+    Task<TokenState?> GetFleetApiTokenState();
     Task<DtoBleCommandResult?> PairKey(string vin);
     Task<DtoBleCommandResult?> SetAmp(string vin, int amps);
     Task<DtoBleCommandResult?> WakeUp(string vin);
