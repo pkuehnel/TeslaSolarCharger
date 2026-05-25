@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Mvc;
 using MudBlazor;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Client.Dtos;
@@ -6,7 +7,7 @@ using TeslaSolarCharger.Client.Helper.Contracts;
 
 namespace TeslaSolarCharger.Client.Helper;
 
-public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper) : IHttpClientHelper
+public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper, NavigationManager navigationManager) : IHttpClientHelper
 {
     public async Task<T?> SendGetRequestWithSnackbarAsync<T>(string url, CancellationToken cancellationToken)
     {
@@ -70,6 +71,12 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
             var result = await SendRequestCoreAsync<T>(method, url, content, cancellationToken);
             if (result.HasError)
             {
+                // Silently return if it was a startup intercept (the page is already reloading)
+                if (result.ErrorMessage == null && result.ValidationProblemDetails == null)
+                {
+                    return default;
+                }
+
                 snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
                 return default;
             }
@@ -125,8 +132,15 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
             }
             else
             {
-                logger.LogError("Unsupported HTPP method {method}", method);
+                logger.LogError("Unsupported HTTP method {method}", method);
                 return new Result<T>(default, $"Unsupported HTTP method: {method}", null);
+            }
+
+            if (response.Headers.Contains("X-TSC-Startup"))
+            {
+                logger.LogWarning("StartupCheckMiddleware intercepted API call to {url}. Reloading application...", url);
+                navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
+                return new Result<T>(default, null, null);
             }
 
             if (response.IsSuccessStatusCode)
