@@ -33,11 +33,7 @@
         </MudAlert>
     }
     
-    <MudAlert Severity="Severity.Info" Class="mt-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight: bold">@T(TranslationKeys.SetupLicenseInfoTitle)</MudText>
-        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupLicenseInfoContent)</MudText>
-        <MudText Typo="Typo.body2" Class="mt-2"><b>@T(TranslationKeys.SetupLicenseInfoException)</b></MudText>
-    </MudAlert>
+    <LicenseInfoComponent Class="mt-3" />
 </div>
 
 
@@ -70,7 +66,7 @@ else
     private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
 
     private string T(string key) =>
-        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SetupPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     protected override async Task OnInitializedAsync()

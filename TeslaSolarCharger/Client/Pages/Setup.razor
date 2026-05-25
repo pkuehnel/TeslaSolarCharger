@@ -137,11 +137,7 @@
             <MudStep Title="@T(TranslationKeys.SetupStepCars)">
                 <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCarsTitle)</MudText>
                 
-                <MudAlert Severity="Severity.Info" Class="mb-4">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold">@T(TranslationKeys.SetupLicenseInfoTitle)</MudText>
-                    <MudText Typo="Typo.body2">@T(TranslationKeys.SetupLicenseInfoContent)</MudText>
-                    <MudText Typo="Typo.body2" Class="mt-2"><b>@T(TranslationKeys.SetupLicenseInfoException)</b></MudText>
-                </MudAlert>
+                <LicenseInfoComponent Class="mb-4" />
 
                 @if (_carBasicConfigurations == null)
                 {
