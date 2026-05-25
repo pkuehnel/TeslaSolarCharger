@@ -51,7 +51,9 @@
                     HeaderBadgeType="HeaderBadgeType.Number"
                     HeaderSelectionIndicator="true"
                     Color="Color.Primary"
-                    CompletedStepColor="Color.Success">
+                    CompletedStepColor="Color.Success"
+                    NextText="@T(TranslationKeys.GeneralNext)"
+                    PreviousText="@T(TranslationKeys.GeneralPrev)">
             <MudStep Title="@T(TranslationKeys.SetupStepWelcome)">
                 <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupWelcomeTitle)</MudText>
                 <MudText>@T(TranslationKeys.SetupWelcomeDescription)</MudText>
@@ -444,7 +446,7 @@
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(BaseConfigurationPageLocalizationRegistry), typeof(ChargingStationsPageLocalizationRegistry), typeof(CarSettingsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get(key, typeof(SetupPageLocalizationRegistry), typeof(BaseConfigurationPageLocalizationRegistry), typeof(ChargingStationsPageLocalizationRegistry), typeof(CarSettingsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     public void Dispose()

@@ -532,6 +532,8 @@ public static class TranslationKeys
     public static string GeneralBaseConfiguration => nameof(GeneralBaseConfiguration);
     public static string EMail => nameof(EMail);
     public static string Password => nameof(Password);
+    public static string GeneralNext => nameof(GeneralNext);
+    public static string GeneralPrev => nameof(GeneralPrev);
 
     public static string MainLayoutAbout => nameof(MainLayoutAbout);
     public static string MainLayoutUnhandledError => nameof(MainLayoutUnhandledError);

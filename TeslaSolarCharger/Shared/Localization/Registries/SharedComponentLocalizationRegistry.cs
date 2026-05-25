@@ -18,6 +18,14 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, "Password"),
             new TextLocalizationTranslation(LanguageCodes.German, "Passwort"));
 
+        Register(TranslationKeys.GeneralNext,
+            new TextLocalizationTranslation(LanguageCodes.English, "Next"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Weiter"));
+
+        Register(TranslationKeys.GeneralPrev,
+            new TextLocalizationTranslation(LanguageCodes.English, "Previous"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zurück"));
+
         Register(TranslationKeys.GeneralSave,
             new TextLocalizationTranslation(LanguageCodes.English, "Save"),
             new TextLocalizationTranslation(LanguageCodes.German, "Speichern"));
