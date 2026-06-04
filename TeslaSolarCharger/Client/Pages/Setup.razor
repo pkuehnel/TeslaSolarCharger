@@ -1,6 +1,9 @@
 @page "/setup"
 @implements IDisposable
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Rest
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Modbus
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Mqtt
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
@@ -49,169 +52,187 @@
                     NonLinear="true"
                     CenterLabels="true"
                     ActiveIndexChanged="OnStepChanged"
-                    HeaderBadgeType="HeaderBadgeType.Number"
-                    HeaderSelectionIndicator="true"
                     CurrentStepColor="Color.Primary"
-                    CompletedStepColor="Color.Success"
-                    NextText="@T(TranslationKeys.GeneralNext)"
-                    PreviousText="@T(TranslationKeys.GeneralPrev)">
-            <MudStep Title="@T(TranslationKeys.SetupStepWelcome)">
-                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupWelcomeTitle)</MudText>
-                <MudText>@T(TranslationKeys.SetupWelcomeDescription)</MudText>
-                <MudAlert Severity="Severity.Info" Class="mt-4">
-                    @T(TranslationKeys.SetupChangeLaterInfo)
-                </MudAlert>
-                <div class="mt-8">
-                    <MudSwitch T="bool" @bind-Value="_hasPvSystem" Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
-                </div>
-            </MudStep>
-
-            @if (_hasPvSystem)
-            {
-                <MudStep Title="@T(TranslationKeys.SetupStepLocation)">
-                    <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupLocationTitle)</MudText>
-                    <MudText GutterBottom="true">@T(TranslationKeys.SetupLocationDescription)</MudText>
-                    
-                    <div class="mb-3">
-                        <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
-                                      Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
-                                      Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
-                                      LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
-                                      LongitudeChanged="@(newLongitude => _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude)"></MapComponent>
+                    CompletedStepColor="Color.Success">
+            <ChildContent>
+                <MudStep Title="@T(TranslationKeys.SetupStepWelcome)">
+                    <MudText>@T(TranslationKeys.SetupWelcomeDescription)</MudText>
+                    <MudAlert Severity="Severity.Info" Class="mt-4">
+                        @T(TranslationKeys.SetupChangeLaterInfo)
+                    </MudAlert>
+                    <div class="mt-8">
+                        <MudSwitch T="bool" @bind-Value="_hasPvSystem" Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
                     </div>
-
-                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
-                    <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
                 </MudStep>
 
-                <MudStep Title="@T(TranslationKeys.SetupStepSolarBattery)">
-                    <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryTitle)</MudText>
-                    <MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
-                    
-                    <TemplateValueConfigurationComponent />
+                @if (_hasPvSystem)
+                {
+                    <MudStep Title="@T(TranslationKeys.SetupStepLocation)">
+                        <MudText GutterBottom="true">@T(TranslationKeys.SetupLocationDescription)</MudText>
 
-                    <div class="mt-8">
-                        <MudSwitch T="bool" @bind-Value="_hasHomeBattery" Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
-                    </div>
-
-                    @if (_hasHomeBattery)
-                    {
-                        <div class="mt-4 p-4 rounded border">
-                            <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <GenericInput T="bool?"
-                                                  For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
-                                                  OnValueChanged="StateHasChanged"/>
-                                </div>
-                                <div class="col-md-6">
-                                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
-                                                  IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
-                                </div>
-                            </div>
-                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
-                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
-                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+                        <div class="mb-3">
+                            <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
+                                          Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
+                                          Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
+                                          LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
+                                          LongitudeChanged="@(newLongitude => _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude)"></MapComponent>
                         </div>
+
+                        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
+                        <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
+                    </MudStep>
+
+                    <MudStep Title="@T(TranslationKeys.SetupStepSolarBattery)">
+                        <MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
+
+                        <TemplateValueConfigurationComponent ShowHeading="false" />
+
+                        <MudExpansionPanels Class="mt-4">
+                            <MudExpansionPanel Text="@T(TranslationKeys.SetupPvNotAvailableAsTemplate)">
+                                <RestValueConfigurationComponent />
+                                <ModbusValueConfigurationComponent />
+                                <MqttValueConfigurationComponent />
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+
+                        <div class="mt-8">
+                            <MudSwitch T="bool" @bind-Value="_hasHomeBattery" Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
+                        </div>
+
+                        @if (_hasHomeBattery)
+                        {
+                            <div class="mt-4 p-4 rounded border">
+                                <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <GenericInput T="bool?"
+                                                      For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
+                                                      OnValueChanged="StateHasChanged"/>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
+                                                      IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
+                                    </div>
+                                </div>
+                                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
+                                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
+                                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+                            </div>
+                        }
+                    </MudStep>
+                }
+
+                <MudStep Title="@T(TranslationKeys.SetupStepCloudConnection)">
+                    <MudText GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionDescription)</MudText>
+
+                    <div class="mt-4">
+                        <CloudConnectionLoginComponent />
+                    </div>
+                </MudStep>
+
+                <MudStep Title="@T(TranslationKeys.SetupStepPrices)">
+                    <MudText GutterBottom="true">@T(TranslationKeys.SetupPricesDescription)</MudText>
+
+                    <ChargePriceEditComponent ChargePrice="_chargePrice"
+                                              FixedPrices="_fixedPrices"
+                                              HideSubmitButton="true"
+                                              ShowValidSince="false" />
+                </MudStep>
+
+                <MudStep Title="@T(TranslationKeys.SetupStepCars)">
+                    <LicenseInfoComponent Class="mb-4" />
+
+                    @if (_carBasicConfigurations == null)
+                    {
+                        <LoadingSpinnerComponent />
+                    }
+                    else
+                    {
+                        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddNonTeslaButton)'
+                                                     StartIcon="@Icons.Material.Filled.Add"
+                                                     OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
+
+                        <MudGrid>
+                            @foreach (var car in _carBasicConfigurations)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <CarOverviewComponent Car="car"
+                                                          OnEditRequested="() => EditCar(car)"
+                                                          OnDeleteRequested="() => DeleteCar(car)" />
+                                </MudItem>
+                            }
+                        </MudGrid>
                     }
                 </MudStep>
-            }
 
-            <MudStep Title="@T(TranslationKeys.SetupStepCloudConnection)">
-                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionTitle)</MudText>
-                <MudText GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionDescription)</MudText>
-                
-                <div class="mt-4">
-                    <CloudConnectionLoginComponent />
+                <MudStep Title="@T(TranslationKeys.SetupStepChargingStations)">
+                    <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
+                        <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
+                        <div>@T(TranslationKeys.ChargingStationsHowToConnectContent)</div>
+                        <div>@((MarkupString)T(TranslationKeys.ChargingStationsHowToConnectUrlFormat))</div>
+                    </MudAlert>
+
+                    <MudText GutterBottom="true">@T(TranslationKeys.SetupChargingStationsDescription)</MudText>
+
+                    @if (_chargingStations == null)
+                    {
+                        <PlaceholderComponent Count="2"></PlaceholderComponent>
+                    }
+                    else if (_chargingStations.Count == 0)
+                    {
+                        <MudText Typo="Typo.body1" Class="mt-4 italic">@T(TranslationKeys.SetupNoStationsConnected)</MudText>
+                    }
+                    else
+                    {
+                        <MudGrid>
+                            @foreach (var chargingStation in _chargingStations)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <ChargingStationOverviewComponent ChargingStation="chargingStation"
+                                                                      ConnectorsCount="@(_connectorCounts.GetValueOrDefault(chargingStation.Id))"
+                                                                      OnEditRequested="() => EditStation(chargingStation)"
+                                                                      OnDeleteRequested="() => DeleteStation(chargingStation)" />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+                </MudStep>
+
+                <MudStep Title="@T(TranslationKeys.SetupStepFinish)">
+                    <MudText>@T(TranslationKeys.SetupFinishDescription)</MudText>
+
+                    <MudAlert Severity="Severity.Success" Class="mt-8">
+                        @T(TranslationKeys.SetupSuccessInfo)
+                    </MudAlert>
+                </MudStep>
+            </ChildContent>
+            <ActionContent>
+                <div class="d-flex justify-space-between align-center w-100 mt-4">
+                    <MudButton Disabled="@(context.ActiveIndex == 0)"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="@(() => context.PreviousStepAsync())">
+                        @T(TranslationKeys.GeneralPrev)
+                    </MudButton>
+                    @if (context.Steps.Count > 0 && context.ActiveIndex == context.Steps.Count - 1)
+                    {
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   EndIcon="@Icons.Material.Filled.Check"
+                                   OnClick="FinishSetup">
+                            @T(TranslationKeys.SetupFinishButton)
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="@(() => context.NextStepAsync())">
+                            @T(TranslationKeys.GeneralNext)
+                        </MudButton>
+                    }
                 </div>
-            </MudStep>
-
-            <MudStep Title="@T(TranslationKeys.SetupStepPrices)">
-                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupPricesTitle)</MudText>
-                <MudText GutterBottom="true">@T(TranslationKeys.SetupPricesDescription)</MudText>
-                
-                <ChargePriceEditComponent @ref="_chargePriceEditComponent"
-                                          ChargePrice="_chargePrice"
-                                          FixedPrices="_fixedPrices"
-                                          HideSubmitButton="true"
-                                          ShowValidSince="false" />
-            </MudStep>
-
-            <MudStep Title="@T(TranslationKeys.SetupStepCars)">
-                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCarsTitle)</MudText>
-                
-                <LicenseInfoComponent Class="mb-4" />
-
-                @if (_carBasicConfigurations == null)
-                {
-                    <LoadingSpinnerComponent />
-                }
-                else
-                {
-                    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddNonTeslaButton)'
-                                                 StartIcon="@Icons.Material.Filled.Add"
-                                                 OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
-
-                    <MudGrid>
-                        @foreach (var car in _carBasicConfigurations)
-                        {
-                            <MudItem xs="12" md="6">
-                                <CarOverviewComponent Car="car" 
-                                                      OnEditRequested="() => EditCar(car)" 
-                                                      OnDeleteRequested="() => DeleteCar(car)" />
-                            </MudItem>
-                        }
-                    </MudGrid>
-                }
-            </MudStep>
-
-            <MudStep Title="@T(TranslationKeys.SetupStepChargingStations)">
-                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupChargingStationsTitle)</MudText>
-                
-                <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
-                    <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
-                    <div>@T(TranslationKeys.ChargingStationsHowToConnectContent)</div>
-                    <div>@((MarkupString)T(TranslationKeys.ChargingStationsHowToConnectUrlFormat))</div>
-                </MudAlert>
-
-                <MudText GutterBottom="true">@T(TranslationKeys.SetupChargingStationsDescription)</MudText>
-
-                @if (_chargingStations == null)
-                {
-                    <PlaceholderComponent Count="2"></PlaceholderComponent>
-                }
-                else if (_chargingStations.Count == 0)
-                {
-                    <MudText Typo="Typo.body1" Class="mt-4 italic">@T(TranslationKeys.SetupNoStationsConnected)</MudText>
-                }
-                else
-                {
-                    <MudGrid>
-                        @foreach (var chargingStation in _chargingStations)
-                        {
-                            <MudItem xs="12" md="6">
-                                <ChargingStationOverviewComponent ChargingStation="chargingStation"
-                                                                  ConnectorsCount="@(_connectorCounts.GetValueOrDefault(chargingStation.Id))"
-                                                                  OnEditRequested="() => EditStation(chargingStation)"
-                                                                  OnDeleteRequested="() => DeleteStation(chargingStation)" />
-                            </MudItem>
-                        }
-                    </MudGrid>
-                }
-            </MudStep>
-
-            <MudStep Title="@T(TranslationKeys.SetupStepFinish)">
-                <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupFinishTitle)</MudText>
-                <MudText>@T(TranslationKeys.SetupFinishDescription)</MudText>
-                
-                <MudAlert Severity="Severity.Success" Class="mt-8">
-                    @T(TranslationKeys.SetupSuccessInfo)
-                </MudAlert>
-
-                <div class="d-flex justify-center mt-8">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="FinishSetup">@T(TranslationKeys.SetupFinishButton)</MudButton>
-                </div>
-            </MudStep>
+            </ActionContent>
         </MudStepper>
     }
 </MudContainer>
@@ -231,12 +252,11 @@
     private bool _hasHomeBattery = false;
     private bool _isInitialized;
     private CancellationTokenSource? _stationRefreshCts;
-    private ChargePriceEditComponent? _chargePriceEditComponent;
 
     protected override async Task OnInitializedAsync()
     {
         var cachedData = await SetupService.GetSetupCache();
-        
+
         if (cachedData != null)
         {
             _dtoBaseConfiguration = new(cachedData.Configuration);
@@ -249,9 +269,9 @@
             if (response != default)
             {
                 _dtoBaseConfiguration = new(response);
-                
+
                 var templates = await TemplateService.GetOverviews();
-                _hasPvSystem = response.PredictSolarPowerGeneration || 
+                _hasPvSystem = response.PredictSolarPowerGeneration ||
                                !string.IsNullOrEmpty(response.CurrentPowerToGridUrl) ||
                                !string.IsNullOrEmpty(response.CurrentPowerToGridMqttTopic) ||
                                response.IsModbusGridUrl ||
@@ -364,8 +384,8 @@
         if (latestValid != null)
         {
             _chargePrice = new(latestValid);
-            _fixedPrices = !string.IsNullOrEmpty(latestValid.EnergyProviderConfiguration) 
-                ? JsonConvert.DeserializeObject<List<FixedPrice>>(latestValid.EnergyProviderConfiguration) ?? new() 
+            _fixedPrices = !string.IsNullOrEmpty(latestValid.EnergyProviderConfiguration)
+                ? JsonConvert.DeserializeObject<List<FixedPrice>>(latestValid.EnergyProviderConfiguration) ?? new()
                 : new();
         }
         else
@@ -410,14 +430,6 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && _isInitialized)
-        {
-            // Restoring step logic if needed
-        }
-    }
-
     private async Task OnStepChanged(int stepIndex)
     {
         if (_dtoBaseConfiguration == null) return;
@@ -435,19 +447,25 @@
 
     private async Task FinishSetup()
     {
-        if (_dtoBaseConfiguration == null || _chargePrice == null || _chargePriceEditComponent == null) return;
+        if (_dtoBaseConfiguration == null || _chargePrice == null) return;
 
         _dtoBaseConfiguration.Item.IsFirstRun = false;
-        
+
         var baseConfigResult = await HttpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
-        if (baseConfigResult != null)
+        if (baseConfigResult == null)
         {
-            await _chargePriceEditComponent.SaveChargePrice();
-            await SetupService.DeleteSetupCache();
-            _stationRefreshCts?.Cancel();
-            Snackbar.Add(T(TranslationKeys.SetupSuccessNotification), Severity.Success);
-            NavigationManager.NavigateTo("/", true);
+            return;
         }
+
+        // Save the charge price directly via the service. The ChargePriceEditComponent only
+        // exists while the prices step is the active step, so we must not depend on its @ref here.
+        _chargePrice.Item.EnergyProviderConfiguration = JsonConvert.SerializeObject(_fixedPrices);
+        await ChargePriceService.UpdateChargePrice(_chargePrice.Item);
+
+        await SetupService.DeleteSetupCache();
+        _stationRefreshCts?.Cancel();
+        Snackbar.Add(T(TranslationKeys.SetupSuccessNotification), Severity.Success);
+        NavigationManager.NavigateTo("/", true);
     }
 
     private string T(string key) =>

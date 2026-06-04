@@ -586,6 +586,7 @@ public static class TranslationKeys
     public static string SetupLocationDescription => nameof(SetupLocationDescription);
     public static string SetupSolarBatteryTitle => nameof(SetupSolarBatteryTitle);
     public static string SetupSolarBatteryDescription => nameof(SetupSolarBatteryDescription);
+    public static string SetupPvNotAvailableAsTemplate => nameof(SetupPvNotAvailableAsTemplate);
     public static string SetupHasHomeBatteryQuestion => nameof(SetupHasHomeBatteryQuestion);
     public static string SetupHomeBatterySettingsTitle => nameof(SetupHomeBatterySettingsTitle);
     public static string SetupCloudConnectionTitle => nameof(SetupCloudConnectionTitle);

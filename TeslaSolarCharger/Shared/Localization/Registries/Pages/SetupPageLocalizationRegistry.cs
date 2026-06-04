@@ -27,8 +27,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Cloud Verbindung"));
 
         Register(TranslationKeys.SetupStepPrices,
-            new TextLocalizationTranslation(LanguageCodes.English, "Prices"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Preise"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Electricity Prices"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Strompreise"));
 
         Register(TranslationKeys.SetupStepCars,
             new TextLocalizationTranslation(LanguageCodes.English, "Cars"),
@@ -63,8 +63,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Standort der Anlage"));
 
         Register(TranslationKeys.SetupLocationDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Please set the location of your PV system on the map. This is used for solar power predictions."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Bitte legen Sie den Standort Ihrer PV-Anlage auf der Karte fest. Dies wird für Solarstromprognosen verwendet."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Please set the location of your PV system on the map. This is used for solar power predictions. For certain vehicle models, this location is also used to determine whether the vehicle is at home."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bitte legen Sie den Standort Ihrer PV-Anlage auf der Karte fest. Dies wird für Solarstromprognosen verwendet. Bei bestimmten Fahrzeugmodellen wird dieser Standort außerdem verwendet, um festzustellen, ob sich das Fahrzeug zu Hause befindet."));
 
         Register(TranslationKeys.SetupSolarBatteryTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar & Battery Data"),
@@ -73,6 +73,10 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
         Register(TranslationKeys.SetupSolarBatteryDescription,
             new TextLocalizationTranslation(LanguageCodes.English, "Configure how TeslaSolarCharger gets your current solar production and grid usage data. Templates are the easiest way to start."),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurieren Sie, wie TeslaSolarCharger Ihre aktuelle Solarproduktion und den Netzbezug ermittelt. Vorlagen sind der einfachste Weg zum Starten."));
+
+        Register(TranslationKeys.SetupPvNotAvailableAsTemplate,
+            new TextLocalizationTranslation(LanguageCodes.English, "My PV system is not available as a template"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Meine PV-Anlage ist nicht als Vorlage verfügbar"));
 
         Register(TranslationKeys.SetupHasHomeBatteryQuestion,
             new TextLocalizationTranslation(LanguageCodes.English, "Do you have a home battery?"),
@@ -91,8 +95,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie Ihre Instanz mit der Solar4Car Cloud, um Fernzugriff und erweiterte Funktionen zu ermöglichen."));
 
         Register(TranslationKeys.SetupPricesTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Grid Prices"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreise"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Electricity Prices"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Strompreise"));
 
         Register(TranslationKeys.SetupPricesDescription,
             new TextLocalizationTranslation(LanguageCodes.English, "Configure your electricity prices to allow TeslaSolarCharger to charge when it's cheapest."),
