@@ -79,6 +79,7 @@ public class Constants : IConstants
 
     public string QueryParamSuccess => "success";
     public string QueryParamMessage => "message";
+    public string QueryParamWarning => "warning";
     public string QueryParamError => "error";
     public string QueryParamVin => "vin";
 }

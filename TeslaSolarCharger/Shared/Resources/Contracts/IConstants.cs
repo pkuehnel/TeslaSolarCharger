@@ -74,6 +74,7 @@ public interface IConstants
 
     string QueryParamSuccess { get; }
     string QueryParamMessage { get; }
+    string QueryParamWarning { get; }
     string QueryParamError { get; }
     string QueryParamVin { get; }
 }

@@ -213,7 +213,7 @@
                                OnClick="@(() => context.PreviousStepAsync())">
                         @T(TranslationKeys.GeneralPrev)
                     </MudButton>
-                    @if (IsLastStep)
+                    @if (context.Steps.Count > 0 && _activeStepIndex >= context.Steps.Count - 1)
                     {
                         <MudButton Color="Color.Primary"
                                    Variant="Variant.Filled"
@@ -250,13 +250,11 @@
     private bool _hasPvSystem = true;
     private bool _hasHomeBattery = false;
     private bool _isInitialized;
+    // Tracked manually because the stepper's ActiveIndex isn't reliably reflected when the action bar
+    // re-renders (OnStepChanged keeps this in sync). The last-step check derives its upper bound from the
+    // stepper's own conditionally-rendered Steps collection, so it stays correct if steps are added/removed.
     private int _activeStepIndex;
     private CancellationTokenSource? _stationRefreshCts;
-
-    // Welcome, Cloud connection, Prices, Cars, Charging stations and Finish are always shown.
-    // Location and Solar & Battery are only shown when the user has a PV system.
-    private int TotalStepCount => _hasPvSystem ? 8 : 6;
-    private bool IsLastStep => _activeStepIndex >= TotalStepCount - 1;
 
     protected override async Task OnInitializedAsync()
     {

@@ -43,6 +43,9 @@ public class OAuthNotificationService(
         if (query.TryGetValue(constants.QueryParamSuccess, out var success) && success == "true")
         {
             handled = true;
+            // The backend flags partial success (e.g. connected, but not all cars could be licensed) with
+            // the warning param, so we surface the message as a warning rather than a plain success.
+            var messageSeverity = query.ContainsKey(constants.QueryParamWarning) ? Severity.Warning : Severity.Success;
             if (query.TryGetValue(constants.QueryParamVin, out var vin))
             {
                 var result = await httpClientHelper.SendPostRequestAsync<object>($"/api/BackendApi/ConnectCarToSmartCar?vin={Uri.EscapeDataString(vin.ToString())}", null).ConfigureAwait(false);
@@ -52,12 +55,12 @@ public class OAuthNotificationService(
                 }
                 else if (query.TryGetValue(constants.QueryParamMessage, out var message))
                 {
-                    snackbar.Add(message.ToString(), Severity.Success);
+                    snackbar.Add(message.ToString(), messageSeverity);
                 }
             }
             else if (query.TryGetValue(constants.QueryParamMessage, out var message))
             {
-                snackbar.Add(message.ToString(), Severity.Success);
+                snackbar.Add(message.ToString(), messageSeverity);
             }
         }
 
@@ -69,6 +72,7 @@ public class OAuthNotificationService(
                 [constants.QueryParamSuccess] = null,
                 [constants.QueryParamVin] = null,
                 [constants.QueryParamMessage] = null,
+                [constants.QueryParamWarning] = null,
             });
             navigationManager.NavigateTo(newUri);
         }
