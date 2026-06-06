@@ -229,7 +229,12 @@ public static class TranslationKeys
     public static string CarSettingsSmartCarDisconnectError => nameof(CarSettingsSmartCarDisconnectError);
     public static string CarSettingsSmartCarDisconnectSuccess => nameof(CarSettingsSmartCarDisconnectSuccess);
     public static string CarSettingsSmartCarUrlMissingError => nameof(CarSettingsSmartCarUrlMissingError);
-    public static string CarSettingsSmartCarLicenseLimitTooltip => nameof(CarSettingsSmartCarLicenseLimitTooltip);
+    public static string CarSettingsAddTeslaFromAccountButton => nameof(CarSettingsAddTeslaFromAccountButton);
+    public static string CarSettingsAddTeslaFromAccountSuccess => nameof(CarSettingsAddTeslaFromAccountSuccess);
+    public static string CarSettingsAddTeslaFromAccountError => nameof(CarSettingsAddTeslaFromAccountError);
+    public static string CarSettingsSmartCarBillingConfirmTitle => nameof(CarSettingsSmartCarBillingConfirmTitle);
+    public static string CarSettingsSmartCarBillingConfirmText => nameof(CarSettingsSmartCarBillingConfirmText);
+    public static string CarSettingsSmartCarBillingConfirmButton => nameof(CarSettingsSmartCarBillingConfirmButton);
 
     public static string NavMenuTitle => nameof(NavMenuTitle);
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);

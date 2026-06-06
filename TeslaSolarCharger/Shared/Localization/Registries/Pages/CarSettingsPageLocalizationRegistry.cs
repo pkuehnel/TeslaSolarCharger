@@ -170,9 +170,29 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Could not connect to Smart Car: URL is missing."),
             new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: URL fehlt."));
 
-        Register(TranslationKeys.CarSettingsSmartCarLicenseLimitTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Cannot connect to Smart Car: All available licenses are already in use."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: Alle verfügbaren Lizenzen sind bereits belegt."));
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Add cars from Tesla account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge aus Tesla-Konto hinzufügen"));
+
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountSuccess,
+            new TextLocalizationTranslation(LanguageCodes.English, "Checked your Tesla account for new cars."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Konto auf neue Fahrzeuge geprüft."));
+
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load cars from your Tesla account: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge konnten nicht aus Ihrem Tesla-Konto geladen werden: {0}"));
+
+        Register(TranslationKeys.CarSettingsSmartCarBillingConfirmTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect to Smart Car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit Smart Car verbinden"));
+
+        Register(TranslationKeys.CarSettingsSmartCarBillingConfirmText,
+            new TextLocalizationTranslation(LanguageCodes.English, "In the next step you can select one or more vehicles. Any vehicle you select beyond your available car licenses is booked automatically as an additional car license and billed via Stripe (prorated). Do you want to continue?"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Im nächsten Schritt können Sie ein oder mehrere Fahrzeuge auswählen. Jedes Fahrzeug, das Sie über Ihre verfügbaren Fahrzeuglizenzen hinaus auswählen, wird automatisch als zusätzliche Fahrzeuglizenz gebucht und anteilig über Stripe abgerechnet. Möchten Sie fortfahren?"));
+
+        Register(TranslationKeys.CarSettingsSmartCarBillingConfirmButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Continue"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Weiter"));
 
         Register(TranslationKeys.AddCarDialogTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Add car"),

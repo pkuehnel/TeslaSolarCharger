@@ -208,12 +208,12 @@
             </ChildContent>
             <ActionContent>
                 <div class="d-flex justify-space-between align-center w-100 mt-4">
-                    <MudButton Disabled="@(context.ActiveIndex == 0)"
+                    <MudButton Disabled="@(_activeStepIndex == 0)"
                                StartIcon="@Icons.Material.Filled.ArrowBack"
                                OnClick="@(() => context.PreviousStepAsync())">
                         @T(TranslationKeys.GeneralPrev)
                     </MudButton>
-                    @if (context.Steps.Count > 0 && context.ActiveIndex == context.Steps.Count - 1)
+                    @if (IsLastStep)
                     {
                         <MudButton Color="Color.Primary"
                                    Variant="Variant.Filled"
@@ -245,13 +245,18 @@
     private Dictionary<int, int> _connectorCounts = new();
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private DtoCarLicenseInfo _carLicenseInfo = new();
-    private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
 
     private MudStepper? _stepper;
     private bool _hasPvSystem = true;
     private bool _hasHomeBattery = false;
     private bool _isInitialized;
+    private int _activeStepIndex;
     private CancellationTokenSource? _stationRefreshCts;
+
+    // Welcome, Cloud connection, Prices, Cars, Charging stations and Finish are always shown.
+    // Location and Solar & Battery are only shown when the user has a PV system.
+    private int TotalStepCount => _hasPvSystem ? 8 : 6;
+    private bool IsLastStep => _activeStepIndex >= TotalStepCount - 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -314,7 +319,6 @@
         var parameters = new DialogParameters<CarEditDialog>
         {
             { x => x.Car, car },
-            { x => x.HasAvailableLicenses, _hasAvailableLicenses }
         };
 
         var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);
@@ -432,6 +436,10 @@
 
     private async Task OnStepChanged(int stepIndex)
     {
+        _activeStepIndex = stepIndex;
+        // Reflect the new step in the action bar immediately, without waiting for the cache update.
+        await InvokeAsync(StateHasChanged);
+
         if (_dtoBaseConfiguration == null) return;
 
         var cache = new DtoSetupCache

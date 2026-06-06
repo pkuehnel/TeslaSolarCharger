@@ -43,6 +43,14 @@
 }
 else
 {
+    @if (_fleetApiTokenState == TokenState.UpToDate)
+    {
+        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)'
+                                     StartIcon="@Icons.Material.Filled.Sync"
+                                     IsLoading="_isRefreshingTeslaCars"
+                                     OnButtonClicked="RefreshTeslaCars"></RightAlignedButtonComponent>
+    }
+
     <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddNonTeslaButton)'
                                  StartIcon="@Icons.Material.Filled.Add"
                                  OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
@@ -62,8 +70,8 @@ else
 @code {
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private TokenState? _fleetApiTokenState;
+    private bool _isRefreshingTeslaCars;
     private DtoCarLicenseInfo _carLicenseInfo = new();
-    private bool _hasAvailableLicenses => _carLicenseInfo.UsedLicenses < _carLicenseInfo.MaxLicenses;
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
@@ -100,6 +108,17 @@ else
         _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
     }
 
+    private async Task RefreshTeslaCars()
+    {
+        _isRefreshingTeslaCars = true;
+        var success = await CarSettingsService.RefreshTeslaCarsFromAccount();
+        if (success)
+        {
+            await RefreshData();
+        }
+        _isRefreshingTeslaCars = false;
+    }
+
     private async Task AddNewCar()
     {
         var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
@@ -111,7 +130,6 @@ else
         var parameters = new DialogParameters<CarEditDialog>
         {
             { x => x.Car, car },
-            { x => x.HasAvailableLicenses, _hasAvailableLicenses }
         };
 
         var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);

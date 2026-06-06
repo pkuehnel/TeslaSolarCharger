@@ -9,9 +9,22 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 namespace TeslaSolarCharger.Server.Controllers
 {
     public class ConfigController(IConfigJsonService configJsonService,
-        IFleetTelemetryConfigurationService fleetTelemetryConfigurationService)
+        IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
+        ICarConfigurationService carConfigurationService)
         : ApiBaseController
     {
+
+        /// <summary>
+        /// Discover and add cars that are present in the connected Tesla account but not yet in TSC.
+        /// Mirrors the discovery that runs at startup, so users can pick up newly added Teslas without restarting.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> RefreshTeslaCarsFromAccount()
+        {
+            await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
+            await configJsonService.AddCarsToSettings(null).ConfigureAwait(false);
+            return Ok();
+        }
 
         /// <summary>
         /// Get all settings and status of all cars

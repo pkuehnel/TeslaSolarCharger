@@ -92,4 +92,17 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>(url);
         return response?.Value;
     }
+
+    public async Task<bool> RefreshTeslaCarsFromAccount()
+    {
+        logger.LogTrace("{method}()", nameof(RefreshTeslaCarsFromAccount));
+        var result = await httpClientHelper.SendPostRequestAsync<object>("api/Config/RefreshTeslaCarsFromAccount", null);
+        if (result.HasError)
+        {
+            snackbar.Add(TF(TranslationKeys.CarSettingsAddTeslaFromAccountError, result.ErrorMessage ?? string.Empty), Severity.Error);
+            return false;
+        }
+        snackbar.Add(TF(TranslationKeys.CarSettingsAddTeslaFromAccountSuccess), Severity.Success);
+        return true;
+    }
 }
