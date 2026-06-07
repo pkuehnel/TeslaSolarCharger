@@ -16,5 +16,8 @@ public interface ICarSettingsService
     Task<DtoBleCommandResult?> WakeUp(string vin);
     Task<bool> DisconnectCarFromSmartCar(int carId);
     Task<string?> GetSmartCarOAuthRedeemUrl(string baseUrl, string vin);
+    Task<string?> GetSmartCarOAuthRedeemUrlForNewCar(string baseUrl);
+    Task<List<DtoSmartCarCompatibleVehicle>?> GetSmartCarCompatibleVehicles();
+    Task SyncSmartCarCars();
     Task<bool> RefreshTeslaCarsFromAccount();
 }

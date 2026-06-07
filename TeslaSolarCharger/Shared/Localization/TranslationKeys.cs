@@ -192,8 +192,6 @@ public static class TranslationKeys
     public static string CarSettingsCreateTokenTitle => nameof(CarSettingsCreateTokenTitle);
     public static string CarSettingsGoToPrefix => nameof(CarSettingsGoToPrefix);
     public static string CarSettingsGenerateTokenSuffix => nameof(CarSettingsGenerateTokenSuffix);
-    public static string CarSettingsRestartTscTitle => nameof(CarSettingsRestartTscTitle);
-    public static string CarSettingsRestartTscHint => nameof(CarSettingsRestartTscHint);
     public static string CarSettingsAddNonTeslaButton => nameof(CarSettingsAddNonTeslaButton);
     public static string CarSettingsCurrentBelow6AWarningTitle => nameof(CarSettingsCurrentBelow6AWarningTitle);
     public static string CarSettingsCurrentBelow6AWarningContent => nameof(CarSettingsCurrentBelow6AWarningContent);
@@ -356,6 +354,23 @@ public static class TranslationKeys
     public static string AddCarTokenInvalidTitle => nameof(AddCarTokenInvalidTitle);
     public static string AddCarTokenInvalidContent => nameof(AddCarTokenInvalidContent);
     public static string AddCarCloudConnectionLink => nameof(AddCarCloudConnectionLink);
+    public static string CarSettingsAddCarButton => nameof(CarSettingsAddCarButton);
+    public static string AddCarChooseTypeHint => nameof(AddCarChooseTypeHint);
+    public static string AddCarFreeBadge => nameof(AddCarFreeBadge);
+    public static string AddCarLicenseBadge => nameof(AddCarLicenseBadge);
+    public static string AddCarManualOptionTitle => nameof(AddCarManualOptionTitle);
+    public static string AddCarManualOptionDescription => nameof(AddCarManualOptionDescription);
+    public static string AddCarTeslaOptionTitle => nameof(AddCarTeslaOptionTitle);
+    public static string AddCarTeslaOptionDescription => nameof(AddCarTeslaOptionDescription);
+    public static string AddCarSmartCarOptionTitle => nameof(AddCarSmartCarOptionTitle);
+    public static string AddCarSmartCarOptionDescription => nameof(AddCarSmartCarOptionDescription);
+    public static string AddCarTeslaStepHint => nameof(AddCarTeslaStepHint);
+    public static string AddCarSmartCarSearchLabel => nameof(AddCarSmartCarSearchLabel);
+    public static string AddCarSmartCarSearchHint => nameof(AddCarSmartCarSearchHint);
+    public static string AddCarSmartCarNotListed => nameof(AddCarSmartCarNotListed);
+    public static string AddCarSmartCarConnectButton => nameof(AddCarSmartCarConnectButton);
+    public static string AddCarBackButton => nameof(AddCarBackButton);
+    public static string CarOverviewSmartCarConnecting => nameof(CarOverviewSmartCarConnecting);
 
     public static string CarDetailsConnectedToServer => nameof(CarDetailsConnectedToServer);
     public static string CarDetailsAtHome => nameof(CarDetailsAtHome);

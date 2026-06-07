@@ -14,7 +14,14 @@
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Typo="Typo.h6">@Car.Item.Name</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@Car.Item.Vin</MudText>
+            @if (IsPendingSmartCar)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Sync">@T(TranslationKeys.CarOverviewSmartCarConnecting)</MudChip>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Car.Item.Vin</MudText>
+            }
         </CardHeaderContent>
         <CardHeaderActions>
             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="OnEditRequested" />
@@ -43,6 +50,9 @@
     [Parameter] public EditableItem<CarBasicConfiguration> Car { get; set; } = default!;
     [Parameter] public EventCallback OnEditRequested { get; set; }
     [Parameter] public EventCallback OnDeleteRequested { get; set; }
+
+    // A SmartCar car whose VIN has not arrived yet (placeholder) is still being set up.
+    private bool IsPendingSmartCar => Car.Item.CarType == CarType.SmartCar && string.IsNullOrEmpty(Car.Item.Vin);
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))

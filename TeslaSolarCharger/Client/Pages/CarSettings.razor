@@ -1,4 +1,5 @@
 @page "/CarSettings"
+@using Microsoft.AspNetCore.WebUtilities
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Ble
@@ -43,17 +44,9 @@
 }
 else
 {
-    @if (_fleetApiTokenState == TokenState.UpToDate)
-    {
-        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)'
-                                     StartIcon="@Icons.Material.Filled.Sync"
-                                     IsLoading="_isRefreshingTeslaCars"
-                                     OnButtonClicked="RefreshTeslaCars"></RightAlignedButtonComponent>
-    }
-
-    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddNonTeslaButton)'
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddCarButton)'
                                  StartIcon="@Icons.Material.Filled.Add"
-                                 OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
+                                 OnButtonClicked="OpenAddCarWizard"></RightAlignedButtonComponent>
 
     <MudGrid>
         @foreach (var carBasicConfiguration in _carBasicConfigurations)
@@ -70,7 +63,6 @@ else
 @code {
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private TokenState? _fleetApiTokenState;
-    private bool _isRefreshingTeslaCars;
     private DtoCarLicenseInfo _carLicenseInfo = new();
 
     private string T(string key) =>
@@ -86,7 +78,20 @@ else
     {
         await RefreshFleetApiTokenState();
         await RefreshFleetApiLicenseInfo();
+        // A new-SmartCar OAuth return is tagged with an explicit marker by the add wizard, so trigger an
+        // immediate sync to pick up the freshly connected car without waiting for the background poll.
+        var shouldSyncSmartCarCars = IsNewSmartCarOAuthReturn();
         await OAuthNotificationService.HandleQueryParameters();
+        if (shouldSyncSmartCarCars)
+        {
+            await CarSettingsService.SyncSmartCarCars();
+            // Drop the marker so a later refresh does not sync again.
+            var cleanUri = NavigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+            {
+                [Constants.QueryParamSmartCarAdded] = null,
+            });
+            NavigationManager.NavigateTo(cleanUri, forceLoad: false, replace: true);
+        }
         var carBasicConfigurations = await CarSettingsService.GetCarBasicConfigurations();
         if (carBasicConfigurations != null)
         {
@@ -108,21 +113,32 @@ else
         _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
     }
 
-    private async Task RefreshTeslaCars()
+    private bool IsNewSmartCarOAuthReturn()
     {
-        _isRefreshingTeslaCars = true;
-        var success = await CarSettingsService.RefreshTeslaCarsFromAccount();
-        if (success)
-        {
-            await RefreshData();
-        }
-        _isRefreshingTeslaCars = false;
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        return query.ContainsKey(Constants.QueryParamSmartCarAdded);
     }
 
-    private async Task AddNewCar()
+    private async Task OpenAddCarWizard()
     {
-        var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
-        await EditCar(newCar);
+        var dialog = await DialogService.ShowAsync<AddCarDialog>(T(TranslationKeys.AddCarDialogTitle));
+        var result = await dialog.Result;
+        if (result == null || result.Canceled || result.Data is not AddCarResultAction action)
+        {
+            return;
+        }
+
+        switch (action)
+        {
+            case AddCarResultAction.EditNewManualCar:
+                var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
+                await EditCar(newCar);
+                break;
+            case AddCarResultAction.Refresh:
+                await RefreshData();
+                break;
+        }
     }
 
     private async Task EditCar(EditableItem<CarBasicConfiguration> car)

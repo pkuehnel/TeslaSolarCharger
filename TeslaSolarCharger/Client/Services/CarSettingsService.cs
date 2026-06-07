@@ -102,6 +102,26 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         return response?.Value;
     }
 
+    public async Task<string?> GetSmartCarOAuthRedeemUrlForNewCar(string baseUrl)
+    {
+        logger.LogTrace("{method}({baseUrl})", nameof(GetSmartCarOAuthRedeemUrlForNewCar), baseUrl);
+        var url = $"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}";
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>(url);
+        return response?.Value;
+    }
+
+    public async Task<List<DtoSmartCarCompatibleVehicle>?> GetSmartCarCompatibleVehicles()
+    {
+        logger.LogTrace("{method}()", nameof(GetSmartCarCompatibleVehicles));
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoSmartCarCompatibleVehicle>>("api/BackendApi/GetSmartCarCompatibleVehicles");
+    }
+
+    public async Task SyncSmartCarCars()
+    {
+        logger.LogTrace("{method}()", nameof(SyncSmartCarCars));
+        await httpClientHelper.SendPostRequestAsync<object>("api/Config/SyncSmartCarCars", null);
+    }
+
     public async Task<bool> RefreshTeslaCarsFromAccount()
     {
         logger.LogTrace("{method}()", nameof(RefreshTeslaCarsFromAccount));

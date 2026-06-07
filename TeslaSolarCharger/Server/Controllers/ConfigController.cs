@@ -10,7 +10,8 @@ namespace TeslaSolarCharger.Server.Controllers
 {
     public class ConfigController(IConfigJsonService configJsonService,
         IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
-        ICarConfigurationService carConfigurationService)
+        ICarConfigurationService carConfigurationService,
+        ISmartCarApiService smartCarApiService)
         : ApiBaseController
     {
 
@@ -23,6 +24,19 @@ namespace TeslaSolarCharger.Server.Controllers
         {
             await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
             await configJsonService.AddCarsToSettings(null).ConfigureAwait(false);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Sync SmartCar connections from the backend and create/flip TSC cars accordingly. Called when the
+        /// user returns from the SmartCar OAuth flow so freshly connected cars (with a known VIN) appear at
+        /// once instead of waiting for the next background poll.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> SyncSmartCarCars()
+        {
+            // Force a cache bypass so a car connected moments ago in the OAuth flow is picked up at once.
+            await smartCarApiService.UpdateSmartCarCarTypes(forceRefresh: true).ConfigureAwait(false);
             return Ok();
         }
 

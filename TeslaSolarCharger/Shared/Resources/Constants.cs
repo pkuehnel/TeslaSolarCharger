@@ -82,4 +82,5 @@ public class Constants : IConstants
     public string QueryParamWarning => "warning";
     public string QueryParamError => "error";
     public string QueryParamVin => "vin";
+    public string QueryParamSmartCarAdded => "smartCarAdded";
 }

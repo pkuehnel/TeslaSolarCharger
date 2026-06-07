@@ -77,4 +77,5 @@ public interface IConstants
     string QueryParamWarning { get; }
     string QueryParamError { get; }
     string QueryParamVin { get; }
+    string QueryParamSmartCarAdded { get; }
 }
