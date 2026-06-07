@@ -38,10 +38,19 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         return response?.Value;
     }
 
-    public async Task<CarBasicConfiguration?> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration)
+    public async Task<bool> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration)
     {
         logger.LogTrace("{method}({id})", nameof(UpdateCarBasicConfiguration), id);
-        return await httpClientHelper.SendPostRequestWithSnackbarAsync<CarBasicConfiguration>($"api/Config/UpdateCarBasicConfiguration?carId={id}", configuration);
+        // The endpoint returns an empty 200 body, so check for success via the Result instead of a
+        // deserialized payload (deserializing an empty body would be reported as an error).
+        var result = await httpClientHelper.SendPostRequestAsync($"api/Config/UpdateCarBasicConfiguration?carId={id}", configuration);
+        if (result.HasError)
+        {
+            snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
+            return false;
+        }
+
+        return true;
     }
 
     public async Task DeleteCar(int id)

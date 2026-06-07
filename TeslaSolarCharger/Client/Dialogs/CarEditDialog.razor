@@ -144,7 +144,7 @@
         var result = await CarSettingsService.UpdateCarBasicConfiguration(Car.Item.Id, Car.Item);
         _isSaving = false;
         
-        if (result != null)
+        if (result)
         {
             MudDialog.Close(DialogResult.Ok(true));
         }
