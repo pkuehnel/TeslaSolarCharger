@@ -457,9 +457,10 @@
 
         _dtoBaseConfiguration.Item.IsFirstRun = false;
 
-        var baseConfigResult = await HttpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
-        if (baseConfigResult == null)
+        var baseConfigResult = await HttpClientHelper.SendPostRequestAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
+        if (baseConfigResult.HasError)
         {
+            Snackbar.Add(baseConfigResult.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
             return;
         }
 
