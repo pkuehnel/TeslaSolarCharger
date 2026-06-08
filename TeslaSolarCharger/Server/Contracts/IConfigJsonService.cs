@@ -19,4 +19,5 @@ public interface IConfigJsonService
     Task AddAllTeslasToAllowedCars();
     Task DisconnectCarFromSmartCar(int carId);
     Task ConnectCarToSmartCar(int carId);
+    Task DeleteCar(int carId);
 }

@@ -5,6 +5,8 @@ public static class TranslationKeys
     public static string DeleteDialogContentFormat => nameof(DeleteDialogContentFormat);
     public static string DeleteDialogCancel => nameof(DeleteDialogCancel);
     public static string DeleteDialogConfirm => nameof(DeleteDialogConfirm);
+    public static string DeleteDialogConfirmationPromptFormat => nameof(DeleteDialogConfirmationPromptFormat);
+    public static string DeleteDialogConfirmationLabel => nameof(DeleteDialogConfirmationLabel);
     public static string TextDialogOk => nameof(TextDialogOk);
 
     public static string BaseConfigurationPageTitle => nameof(BaseConfigurationPageTitle);
@@ -355,6 +357,14 @@ public static class TranslationKeys
     public static string AddCarTokenInvalidContent => nameof(AddCarTokenInvalidContent);
     public static string AddCarCloudConnectionLink => nameof(AddCarCloudConnectionLink);
     public static string CarSettingsAddCarButton => nameof(CarSettingsAddCarButton);
+    public static string CarSettingsDeleteProgressTitle => nameof(CarSettingsDeleteProgressTitle);
+    public static string CarDeletionStepChargingProcesses => nameof(CarDeletionStepChargingProcesses);
+    public static string CarDeletionStepHandledCharges => nameof(CarDeletionStepHandledCharges);
+    public static string CarDeletionStepCarValueLogs => nameof(CarDeletionStepCarValueLogs);
+    public static string CarDeletionStepMeterValues => nameof(CarDeletionStepMeterValues);
+    public static string CarDeletionStepChargingTargets => nameof(CarDeletionStepChargingTargets);
+    public static string CarDeletionStepConnectorAssignments => nameof(CarDeletionStepConnectorAssignments);
+    public static string CarDeletionStepCar => nameof(CarDeletionStepCar);
     public static string AddCarChooseTypeHint => nameof(AddCarChooseTypeHint);
     public static string AddCarFreeBadge => nameof(AddCarFreeBadge);
     public static string AddCarLicenseBadge => nameof(AddCarLicenseBadge);

@@ -38,6 +38,22 @@
 </div>
 
 
+<MudOverlay Visible="@(_deletionProgress != null)" DarkBackground="true" ZIndex="9999">
+    @if (_deletionProgress != null)
+    {
+        <MudPaper Class="pa-6" Style="min-width: 320px; max-width: 90vw;">
+            <MudText Typo="Typo.h6" Class="mb-3">@T(TranslationKeys.CarSettingsDeleteProgressTitle)</MudText>
+            <MudText Typo="Typo.body1" Class="mb-2">@GetDeletionStepText(_deletionProgress.CurrentStep)</MudText>
+            <MudProgressLinear Value="_deletionProgress.Value"
+                               Max="_deletionProgress.MaxValue"
+                               Size="Size.Large"
+                               Striped="true"
+                               Color="Color.Primary" />
+            <MudText Typo="Typo.caption" Class="mt-2">@_deletionProgress.Value / @_deletionProgress.MaxValue</MudText>
+        </MudPaper>
+    }
+</MudOverlay>
+
 @if (_carBasicConfigurations == null)
 {
     <LoadingSpinnerComponent />
@@ -64,6 +80,7 @@ else
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private TokenState? _fleetApiTokenState;
     private DtoCarLicenseInfo _carLicenseInfo = new();
+    private DtoCarDeletionProgress? _deletionProgress;
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
@@ -159,18 +176,73 @@ else
 
     private async Task DeleteCar(EditableItem<CarBasicConfiguration> car)
     {
+        var carName = car.Item.Name;
         var parameters = new DialogParameters<DeleteDialog>
         {
-            { x => x.ElementName, car.Item.Name },
+            { x => x.ElementName, carName },
+            // Require the user to retype the car name before deleting, but only when there is a name to type.
+            { x => x.ConfirmationName, string.IsNullOrEmpty(carName) ? null : carName },
         };
 
         var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.DeleteDialogConfirm), parameters);
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled)
+        if (result == null || result.Canceled)
+        {
+            return;
+        }
+
+        // Deleting a car can take a while (large value/meter log tables), so show an overlay with progress that
+        // is polled from the server while the delete request runs.
+        var cancellationTokenSource = new CancellationTokenSource();
+        _deletionProgress = new DtoCarDeletionProgress { Value = 0, MaxValue = 7, CurrentStep = CarDeletionStep.ChargingProcesses };
+        await InvokeAsync(StateHasChanged);
+        _ = RefreshDeletionProgressForever(cancellationTokenSource.Token);
+        try
         {
             await CarSettingsService.DeleteCar(car.Item.Id);
-            await RefreshData();
+        }
+        finally
+        {
+            await cancellationTokenSource.CancelAsync();
+            _deletionProgress = null;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        await RefreshData();
+    }
+
+    private async Task RefreshDeletionProgressForever(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                var progress = await CarSettingsService.GetCarDeletionProgress();
+                // Keep the last known progress visible if the server briefly reports nothing (start/end race).
+                if (progress != null)
+                {
+                    _deletionProgress = progress;
+                    await InvokeAsync(StateHasChanged);
+                }
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                break;
+            }
         }
     }
+
+    private string GetDeletionStepText(CarDeletionStep step) => step switch
+    {
+        CarDeletionStep.ChargingProcesses => T(TranslationKeys.CarDeletionStepChargingProcesses),
+        CarDeletionStep.HandledCharges => T(TranslationKeys.CarDeletionStepHandledCharges),
+        CarDeletionStep.CarValueLogs => T(TranslationKeys.CarDeletionStepCarValueLogs),
+        CarDeletionStep.MeterValues => T(TranslationKeys.CarDeletionStepMeterValues),
+        CarDeletionStep.ChargingTargets => T(TranslationKeys.CarDeletionStepChargingTargets),
+        CarDeletionStep.ConnectorAssignments => T(TranslationKeys.CarDeletionStepConnectorAssignments),
+        CarDeletionStep.Car => T(TranslationKeys.CarDeletionStepCar),
+        _ => string.Empty,
+    };
 }

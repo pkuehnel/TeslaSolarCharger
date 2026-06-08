@@ -11,7 +11,8 @@ namespace TeslaSolarCharger.Server.Controllers
     public class ConfigController(IConfigJsonService configJsonService,
         IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
         ICarConfigurationService carConfigurationService,
-        ISmartCarApiService smartCarApiService)
+        ISmartCarApiService smartCarApiService,
+        ISettings settings)
         : ApiBaseController
     {
 
@@ -67,6 +68,28 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task DisconnectCarFromSmartCar(int carId)
         {
             return configJsonService.DisconnectCarFromSmartCar(carId);
+        }
+
+        /// <summary>
+        /// Delete a car and all of its related data (charging processes, handled charges, logs, meter values,
+        /// charging targets and charging connector assignments).
+        /// </summary>
+        /// <param name="carId">Car Id of the car to delete</param>
+        [HttpDelete]
+        public async Task<IActionResult> DeleteCar(int carId)
+        {
+            await configJsonService.DeleteCar(carId).ConfigureAwait(false);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Get the progress of the currently running car deletion (or null if no deletion is running).
+        /// Polled by the UI to show what is being deleted at the moment.
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetCarDeletionProgress()
+        {
+            return Ok(settings.CarDeletionProgress);
         }
     }
 }

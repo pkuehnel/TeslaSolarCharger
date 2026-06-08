@@ -10,6 +10,38 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
 
+        Register(TranslationKeys.CarSettingsDeleteProgressTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting car..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug wird gelöscht..."));
+
+        Register(TranslationKeys.CarDeletionStepChargingProcesses,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting charging history"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladehistorie wird gelöscht"));
+
+        Register(TranslationKeys.CarDeletionStepHandledCharges,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting handled charges"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Abgerechnete Ladevorgänge werden gelöscht"));
+
+        Register(TranslationKeys.CarDeletionStepCarValueLogs,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting car value logs"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugdaten-Protokolle werden gelöscht"));
+
+        Register(TranslationKeys.CarDeletionStepMeterValues,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting meter values"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zählerwerte werden gelöscht"));
+
+        Register(TranslationKeys.CarDeletionStepChargingTargets,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting charging targets"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeziele werden gelöscht"));
+
+        Register(TranslationKeys.CarDeletionStepConnectorAssignments,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting charging connector assignments"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschluss-Zuordnungen werden gelöscht"));
+
+        Register(TranslationKeys.CarDeletionStepCar,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug wird gelöscht"));
+
         Register(TranslationKeys.CarSettingsCreateTokenTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla Fleet API Token is not valid."),
             new TextLocalizationTranslation(LanguageCodes.German, "Tesla Fleet API Token ist ungültig."));

@@ -265,6 +265,96 @@ public class ConfigJsonService(
         await SetCarTypeTo(carId, CarType.Manual).ConfigureAwait(false);
     }
 
+    public async Task DeleteCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(DeleteCar), carId);
+        var carExists = await teslaSolarChargerContext.Cars.AnyAsync(c => c.Id == carId).ConfigureAwait(false);
+        if (!carExists)
+        {
+            logger.LogWarning("Car with id {carId} does not exist, nothing to delete.", carId);
+            return;
+        }
+
+        // Remove every row that references the car before deleting the car itself, otherwise the foreign key
+        // constraints (most of which are non-cascading) would block the delete. Children are removed before
+        // their parents so no constraint is violated at any step. Everything runs in a single transaction so a
+        // failure midway leaves the car and its data intact instead of half-deleted.
+        // The big log tables (CarValueLogs, MeterValues) can take a while, so progress is published to the
+        // settings after each step and polled by the UI (see GetCarDeletionProgress).
+        const int totalSteps = 7;
+        var progress = new DtoCarDeletionProgress { Value = 0, MaxValue = totalSteps, CurrentStep = CarDeletionStep.ChargingProcesses, };
+        settings.CarDeletionProgress = progress;
+        try
+        {
+            await using var transaction = await teslaSolarChargerContext.Database.BeginTransactionAsync().ConfigureAwait(false);
+
+            // Charging processes and their details.
+            progress.CurrentStep = CarDeletionStep.ChargingProcesses;
+            await teslaSolarChargerContext.ChargingDetails
+                .Where(cd => cd.ChargingProcess.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            await teslaSolarChargerContext.ChargingProcesses
+                .Where(cp => cp.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 1;
+
+            // Handled charges and their power distributions.
+            progress.CurrentStep = CarDeletionStep.HandledCharges;
+            await teslaSolarChargerContext.PowerDistributions
+                .Where(pd => pd.HandledCharge.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            await teslaSolarChargerContext.HandledCharges
+                .Where(hc => hc.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 2;
+
+            // Logged car values (potentially a very large table).
+            progress.CurrentStep = CarDeletionStep.CarValueLogs;
+            await teslaSolarChargerContext.CarValueLogs
+                .Where(cvl => cvl.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 3;
+
+            // Meter values (potentially a very large table).
+            progress.CurrentStep = CarDeletionStep.MeterValues;
+            await teslaSolarChargerContext.MeterValues
+                .Where(mv => mv.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 4;
+
+            // Charging targets.
+            progress.CurrentStep = CarDeletionStep.ChargingTargets;
+            await teslaSolarChargerContext.CarChargingTargets
+                .Where(cct => cct.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 5;
+
+            // Charging connector assignments.
+            progress.CurrentStep = CarDeletionStep.ConnectorAssignments;
+            await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                .Where(ac => ac.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 6;
+
+            // Finally the car itself.
+            progress.CurrentStep = CarDeletionStep.Car;
+            await teslaSolarChargerContext.Cars
+                .Where(c => c.Id == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+
+            await transaction.CommitAsync().ConfigureAwait(false);
+            progress.Value = totalSteps;
+
+            // Drop the car from the in-memory state so the charging loop and load point handling stop referencing it.
+            settings.Cars.RemoveAll(c => c.Id == carId);
+            settings.LatestLoadPointCombinations.RemoveWhere(lp => lp.CarId == carId);
+        }
+        finally
+        {
+            settings.CarDeletionProgress = null;
+        }
+    }
+
     private async Task SetCarTypeTo(int carId, CarType carType)
     {
         logger.LogTrace("{method}({carId}, {carType})", nameof(SetCarTypeTo), carId, carType);

@@ -7,10 +7,19 @@
 <MudDialog>
     <DialogContent>
         @string.Format(T(TranslationKeys.DeleteDialogContentFormat), ElementName)
+        @if (RequiresNameConfirmation)
+        {
+            <MudAlert Severity="Severity.Warning" Class="my-3">
+                @string.Format(T(TranslationKeys.DeleteDialogConfirmationPromptFormat), ConfirmationName)
+            </MudAlert>
+            <MudTextField @bind-Value="_confirmationInput"
+                          Immediate="true"
+                          Label="@T(TranslationKeys.DeleteDialogConfirmationLabel)" />
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@T(TranslationKeys.DeleteDialogCancel)</MudButton>
-        <MudButton Color="Color.Error" OnClick="Submit">@T(TranslationKeys.DeleteDialogConfirm)</MudButton>
+        <MudButton Color="Color.Error" OnClick="Submit" Disabled="@(!CanConfirm)">@T(TranslationKeys.DeleteDialogConfirm)</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -21,10 +30,32 @@
     [Parameter]
     public string ElementName { get; set; } = "";
 
+    /// <summary>
+    /// When set to a non-empty value the user has to type this exact text before the delete can be confirmed.
+    /// Leave null/empty to keep the plain confirmation behaviour used by other callers.
+    /// </summary>
+    [Parameter]
+    public string? ConfirmationName { get; set; }
+
+    private string _confirmationInput = "";
+
+    private bool RequiresNameConfirmation => !string.IsNullOrEmpty(ConfirmationName);
+
+    private bool CanConfirm => !RequiresNameConfirmation
+                               || string.Equals(_confirmationInput.Trim(), ConfirmationName, StringComparison.Ordinal);
+
     private string T(string key) =>
         TextLocalizer.Get<DialogsLocalizationRegistry>(key)
         ?? key;
 
-    void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    void Submit()
+    {
+        if (!CanConfirm)
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
     void Cancel() => MudDialog.Cancel();
 }
