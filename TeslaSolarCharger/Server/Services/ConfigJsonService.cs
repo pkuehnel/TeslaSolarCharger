@@ -289,13 +289,21 @@ public class ConfigJsonService(
             await using var transaction = await teslaSolarChargerContext.Database.BeginTransactionAsync().ConfigureAwait(false);
 
             // Charging processes and their details.
+            // A charging process can belong to both a car and an OCPP charging connector (a car charging at a
+            // charging station). Those linked to a connector are charging station history and must be kept - only
+            // the car reference is removed. Charging processes without a connector relation are car-only and are
+            // deleted together with their details. Details of kept (connector) processes must not be deleted.
             progress.CurrentStep = CarDeletionStep.ChargingProcesses;
             await teslaSolarChargerContext.ChargingDetails
-                .Where(cd => cd.ChargingProcess.CarId == carId)
+                .Where(cd => cd.ChargingProcess.CarId == carId && cd.ChargingProcess.OcppChargingStationConnectorId == null)
                 .ExecuteDeleteAsync().ConfigureAwait(false);
             await teslaSolarChargerContext.ChargingProcesses
-                .Where(cp => cp.CarId == carId)
+                .Where(cp => cp.CarId == carId && cp.OcppChargingStationConnectorId == null)
                 .ExecuteDeleteAsync().ConfigureAwait(false);
+            await teslaSolarChargerContext.ChargingProcesses
+                .Where(cp => cp.CarId == carId && cp.OcppChargingStationConnectorId != null)
+                .ExecuteUpdateAsync(s => s.SetProperty(cp => cp.CarId, (int?)null))
+                .ConfigureAwait(false);
             progress.Value = 1;
 
             // Handled charges and their power distributions.
@@ -316,6 +324,10 @@ public class ConfigJsonService(
             progress.Value = 3;
 
             // Meter values (potentially a very large table).
+            // A meter value belongs to either a car or a charging connector, never both: the
+            // CK_MeterValue_CarId_Conditional check constraint ties a non-null CarId to MeterValueKind.Car, and
+            // connector meter values are stored with CarId == null. So every meter value with this CarId is
+            // car-only and is safe to delete (charging station meter values are not affected).
             progress.CurrentStep = CarDeletionStep.MeterValues;
             await teslaSolarChargerContext.MeterValues
                 .Where(mv => mv.CarId == carId)
