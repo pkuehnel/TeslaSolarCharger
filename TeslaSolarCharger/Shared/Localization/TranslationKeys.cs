@@ -357,6 +357,7 @@ public static class TranslationKeys
     public static string AddCarTokenInvalidContent => nameof(AddCarTokenInvalidContent);
     public static string AddCarCloudConnectionLink => nameof(AddCarCloudConnectionLink);
     public static string CarSettingsAddCarButton => nameof(CarSettingsAddCarButton);
+    public static string CarSettingsDeleteCarTitle => nameof(CarSettingsDeleteCarTitle);
     public static string CarSettingsDeleteProgressTitle => nameof(CarSettingsDeleteProgressTitle);
     public static string CarDeletionStepChargingProcesses => nameof(CarDeletionStepChargingProcesses);
     public static string CarDeletionStepHandledCharges => nameof(CarDeletionStepHandledCharges);

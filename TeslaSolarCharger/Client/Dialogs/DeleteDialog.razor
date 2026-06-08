@@ -12,9 +12,11 @@
             <MudAlert Severity="Severity.Warning" Class="my-3">
                 @string.Format(T(TranslationKeys.DeleteDialogConfirmationPromptFormat), ConfirmationName)
             </MudAlert>
-            <MudTextField @bind-Value="_confirmationInput"
-                          Immediate="true"
-                          Label="@T(TranslationKeys.DeleteDialogConfirmationLabel)" />
+            <GenericInput T="string"
+                          For="() => ConfirmationInput"
+                          LabelName="@T(TranslationKeys.DeleteDialogConfirmationLabel)"
+                          ImmediateValueUpdate="true"
+                          OnValueChanged="@(_ => StateHasChanged())" />
         }
     </DialogContent>
     <DialogActions>
@@ -37,12 +39,13 @@
     [Parameter]
     public string? ConfirmationName { get; set; }
 
-    private string _confirmationInput = "";
+    // GenericInput binds to a property (not a field) via its For expression, so this must stay a property.
+    public string ConfirmationInput { get; set; } = "";
 
     private bool RequiresNameConfirmation => !string.IsNullOrEmpty(ConfirmationName);
 
     private bool CanConfirm => !RequiresNameConfirmation
-                               || string.Equals(_confirmationInput.Trim(), ConfirmationName, StringComparison.Ordinal);
+                               || string.Equals(ConfirmationInput.Trim(), ConfirmationName, StringComparison.Ordinal);
 
     private string T(string key) =>
         TextLocalizer.Get<DialogsLocalizationRegistry>(key)

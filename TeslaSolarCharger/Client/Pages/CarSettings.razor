@@ -184,7 +184,7 @@ else
             { x => x.ConfirmationName, string.IsNullOrEmpty(carName) ? null : carName },
         };
 
-        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.DeleteDialogConfirm), parameters);
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.CarSettingsDeleteCarTitle), parameters);
         var result = await dialog.Result;
 
         if (result == null || result.Canceled)

@@ -10,6 +10,10 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
 
+        Register(TranslationKeys.CarSettingsDeleteCarTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Delete car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug löschen"));
+
         Register(TranslationKeys.CarSettingsDeleteProgressTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Deleting car..."),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug wird gelöscht..."));
