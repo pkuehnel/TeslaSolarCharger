@@ -76,7 +76,7 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
 
         Register(TranslationKeys.NotChargingReasonReservedForHomeBattery,
             new TextLocalizationTranslation(LanguageCodes.English, "Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Reserviere {0}W zum Laden der Hausbatterie, da ihr Ladestand ({1}%) unter dem Mindest-Ladestand ({2}%) liegt."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Reserviere {0}W zum Laden der Heimbatterie, da ihr Ladestand ({1}%) unter dem Mindest-Ladestand ({2}%) liegt."));
 
         Register(TranslationKeys.NotChargingReasonSolarValuesTooOld,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar values are too old"),
@@ -84,10 +84,10 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
 
         Register(TranslationKeys.NotChargingReasonPowerBufferDecreased,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging speed is decreased due to power buffer being set to {0}W"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird verringert, da ein Leistungsbuffer von {0}W eingestellt ist"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird verringert, da ein Leistungspuffer von {0}W eingestellt ist"));
 
         Register(TranslationKeys.NotChargingReasonPowerBufferIncreased,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging speed is increased due to power buffer being set to {0}W"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird erhöht, da ein Leistungsbuffer von {0}W eingestellt ist"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird erhöht, da ein Leistungspuffer von {0}W eingestellt ist"));
     }
 }

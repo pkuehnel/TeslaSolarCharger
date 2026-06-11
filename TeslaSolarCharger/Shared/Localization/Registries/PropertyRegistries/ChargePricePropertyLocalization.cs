@@ -44,7 +44,7 @@ public class ChargePricePropertyLocalization : PropertyLocalizationRegistry<DtoC
                 "Enable this to add the market spot price of your region to the grid price."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Spotpreise verwenden",
-                "Aktiviere dies, um den Spotmarktpreis deiner Region zum Netzpreis hinzuzufügen."));
+                "Aktivieren Sie dies, um den Spotmarktpreis Ihrer Region zum Netzpreis hinzuzufügen."));
 
         Register(x => x.SpotPriceRegion,
             new PropertyLocalizationTranslation(LanguageCodes.English,

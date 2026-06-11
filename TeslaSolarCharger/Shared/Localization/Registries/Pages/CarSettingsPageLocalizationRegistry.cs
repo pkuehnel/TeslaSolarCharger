@@ -52,11 +52,11 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsGoToPrefix,
             new TextLocalizationTranslation(LanguageCodes.English, "Go to "),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gehe zu "));
+            new TextLocalizationTranslation(LanguageCodes.German, "Gehen Sie zu "));
 
         Register(TranslationKeys.CarSettingsGenerateTokenSuffix,
             new TextLocalizationTranslation(LanguageCodes.English, " and generate a Tesla Fleet API Token."),
-            new TextLocalizationTranslation(LanguageCodes.German, " und generiere ein Tesla Fleet API Token."));
+            new TextLocalizationTranslation(LanguageCodes.German, " und generieren Sie ein Tesla Fleet API Token."));
 
         Register(TranslationKeys.CarSettingsAddNonTeslaButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add non Tesla"),
@@ -232,7 +232,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.AddCarTokenInvalidContent,
             new TextLocalizationTranslation(LanguageCodes.English, "Go to "),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gehe zu "));
+            new TextLocalizationTranslation(LanguageCodes.German, "Gehen Sie zu "));
 
         Register(TranslationKeys.AddCarCloudConnectionLink,
             new TextLocalizationTranslation(LanguageCodes.English, "Cloud Connection"),

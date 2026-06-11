@@ -25,7 +25,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.SkipPowerChangesOnLastAdjustmentNewerThanSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Skip Power Changes On Last Adjustment Newer Than Seconds",
-                "Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power."),
+                "Be cautious when setting values below 25 seconds as this might result in unexpected behaviour as cars or charging stations might take some time to update the power."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Leistungsänderungen überspringen, wenn die letzte Anpassung neuer als Sekunden ist",
                 "Seien Sie vorsichtig bei Werten unter 25 Sekunden, da Fahrzeuge oder Ladestationen möglicherweise Zeit benötigen, um die Leistung anzupassen."));
@@ -73,7 +73,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.PredictSolarPowerGeneration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Predict Solar Power Generation",
-                "If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data."),
+                "If enabled, your home geofence location is transferred to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Solarenergieerzeugung vorhersagen",
                 "Wenn aktiviert, wird Ihr Home-Geofence an die Server von Solar4Car.com sowie an www.visualcrossing.com übertragen. Ihre Positionsdaten werden dabei nie mit anderen Daten verknüpft."));
@@ -89,7 +89,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.ShowEnergyDataOnHome,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Show Energy Data On Home",
-                "This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspery Pi 3. This will be fixed in a future update."),
+                "This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspberry Pi 3. This will be fixed in a future update."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Energiedaten auf der Startseite anzeigen",
                 "Diese Funktion befindet sich in einer frühen Beta-Phase und verhält sich eventuell nicht wie erwartet. Auf Geräten mit geringer Leistung (z. B. Raspberry Pi 3) kann das Laden länger als 30 Sekunden dauern oder fehlschlagen. Dies wird in einem zukünftigen Update behoben."));
@@ -268,7 +268,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "This value is used to reduce the number of charging starts and stops by artificially increasing the cost of short charging sessions. This way, during charge planning, continuous but slightly more expensive charging periods are preferred over cheaper, non-continuous ones. Set this value to 0 to ensure charging always occurs at the lowest-cost times."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Kosten für Ladeschaltungen",
-                "Dieser Wert wird verwendet, um die Anzahl der Lade­starts und -stopps zu reduzieren, indem kurze Ladezeiten durch zusätzliche Kosten künstlich verteuert werden. Dadurch werden bei der Ladeplanung zusammenhängende, etwas teurere Ladezeiten gegenüber günstigeren, aber nicht zusammenhängenden Ladezeiten bevorzugt. Setze diesen Wert auf 0, damit stets zu den günstigsten Zeiten geladen wird."));
+                "Dieser Wert wird verwendet, um die Anzahl der Lade­starts und -stopps zu reduzieren, indem kurze Ladezeiten durch zusätzliche Kosten künstlich verteuert werden. Dadurch werden bei der Ladeplanung zusammenhängende, etwas teurere Ladezeiten gegenüber günstigeren, aber nicht zusammenhängenden Ladezeiten bevorzugt. Setzen Sie diesen Wert auf 0, damit stets zu den günstigsten Zeiten geladen wird."));
 
         Register(x => x.MaxCombinedCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -289,7 +289,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.UseTeslaMateIntegration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use TeslaMate Integration",
-                "When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated ever 24 hours."),
+                "When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated every 24 hours."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "TeslaMate-Integration verwenden",
                 "Wenn Sie TeslaMate nutzen, können Sie hier aktivieren, dass die von TSC berechneten Ladekosten in TeslaMate übernommen werden. Hinweis: Die Kosten werden in TeslaMate nur alle 24 Stunden aktualisiert."));
@@ -305,7 +305,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.HomeGeofenceRadius,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Radius",
-                "Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended"),
+                "Increase or decrease the radius of the home geofence. Note: Values below 50m are not recommended"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Radius Zuhause",
                 "Erhöhen oder verringern Sie den Radius des Home-Geofences. Hinweis: Werte unter 50 m werden nicht empfohlen."));

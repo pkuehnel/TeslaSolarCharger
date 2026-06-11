@@ -68,7 +68,7 @@ else
 <form action="https://www.paypal.com/donate" method="post" target="_blank">
     <div style="text-align:center">
         <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
-        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T(TranslationKeys.HomePagePaypalTitle)' alt='@T(TranslationKeys.HomePaypalAltText)' />
+        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T(TranslationKeys.HomePagePaypalTitle)' alt='@T(TranslationKeys.HomePagePaypalAltText)' />
         <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
     </div>
 </form>
@@ -110,7 +110,7 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(CarSettingsPageLocalizationRegistry), typeof(ChargingStationsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     public void Dispose()

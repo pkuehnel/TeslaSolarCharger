@@ -28,7 +28,7 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.LocationUpdateInfoText,
             new TextLocalizationTranslation(LanguageCodes.English, "To update the location, click the save button on the bottom of the page"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Um den Standort zu aktualisieren, klicke auf die Schaltfläche zum Speichern am unteren Rand der Seite"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Um den Standort zu aktualisieren, klicken Sie auf die Schaltfläche zum Speichern am unteren Rand der Seite"));
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceHint,
             new TextLocalizationTranslation(LanguageCodes.English, "The location is required to detect if an API connected car is at home and to predict the weather."),
@@ -36,7 +36,7 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceMapHandlingHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Click on the map to select your home geofence. Within that area TSC will regulate the charging power."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicke auf die Karte, um deinen Home-Geofence auszuwählen. Innerhalb dieses Bereichs reguliert TSC die Ladeleistung."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Karte, um Ihren Home-Geofence auszuwählen. Innerhalb dieses Bereichs reguliert TSC die Ladeleistung."));
 
         Register(TranslationKeys.BaseConfigurationTelegramSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Telegram:"),
@@ -44,7 +44,7 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.BaseConfigurationHowToSetupTelegramLinkText,
             new TextLocalizationTranslation(LanguageCodes.English, "How to set up Telegram"),
-            new TextLocalizationTranslation(LanguageCodes.German, "So richtest du Telegram ein"));
+            new TextLocalizationTranslation(LanguageCodes.German, "So richten Sie Telegram ein"));
 
         Register(TranslationKeys.BaseConfigurationTelegramBotNote,
             new TextLocalizationTranslation(LanguageCodes.English, "Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,..."),
@@ -56,11 +56,11 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.BaseConfigurationSaveBeforeTestingTooltip,
             new TextLocalizationTranslation(LanguageCodes.English, "You need to save the configuration before testing it."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Du musst die Konfiguration speichern, bevor du sie testen kannst."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie müssen die Konfiguration speichern, bevor Sie sie testen können."));
 
         Register(TranslationKeys.BaseConfigurationAdvancedSettingsPanelText,
             new TextLocalizationTranslation(LanguageCodes.English, "Advanced settings. Please only change values here if you know what you are doing."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Erweiterte Einstellungen. Ändere Werte hier nur, wenn du weißt, was du tust."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Erweiterte Einstellungen. Ändern Sie Werte hier nur, wenn Sie wissen, was Sie tun."));
 
         Register(TranslationKeys.BaseConfigurationLowIntervalWarning,
             new TextLocalizationTranslation(LanguageCodes.English, "Values below 25 seconds are not recommended and might cause performance issues."),

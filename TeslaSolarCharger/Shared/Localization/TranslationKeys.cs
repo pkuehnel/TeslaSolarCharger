@@ -74,6 +74,7 @@ public static class TranslationKeys
     public static string SupportChargingPricesFrom => nameof(SupportChargingPricesFrom);
     public static string SupportChargingPricesTo => nameof(SupportChargingPricesTo);
     public static string SupportReloadPageButton => nameof(SupportReloadPageButton);
+    public static string SupportClearTeslaTokenEncryptionKeyButton => nameof(SupportClearTeslaTokenEncryptionKeyButton);
     public static string SupportVinUnknownError => nameof(SupportVinUnknownError);
     public static string SupportNoError => nameof(SupportNoError);
     public static string SupportNoData => nameof(SupportNoData);
@@ -178,6 +179,8 @@ public static class TranslationKeys
     public static string ChargingStationsNoStationsFound => nameof(ChargingStationsNoStationsFound);
     public static string ChargingStationsConnectedViaOcpp => nameof(ChargingStationsConnectedViaOcpp);
     public static string ChargingStationsNotConnectedViaOcpp => nameof(ChargingStationsNotConnectedViaOcpp);
+    public static string ChargingStationsEditStationTitle => nameof(ChargingStationsEditStationTitle);
+    public static string ChargingStationsDeleteStationTitle => nameof(ChargingStationsDeleteStationTitle);
 
     public static string HomePageTitle => nameof(HomePageTitle);
     public static string HomePageNoCarsOrStationsHintStart => nameof(HomePageNoCarsOrStationsHintStart);
@@ -474,8 +477,6 @@ public static class TranslationKeys
     public static string FixedPriceFromMinute => nameof(FixedPriceFromMinute);
     public static string FixedPriceToHour => nameof(FixedPriceToHour);
     public static string FixedPriceToMinute => nameof(FixedPriceToMinute);
-
-    public static string HomePaypalAltText => nameof(HomePaypalAltText);
 
     public static string ChargingTargetsTitle => nameof(ChargingTargetsTitle);
     public static string ChargingTargetsAddButton => nameof(ChargingTargetsAddButton);

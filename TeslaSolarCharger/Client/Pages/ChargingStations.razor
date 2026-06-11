@@ -78,7 +78,7 @@ else
             { x => x.ChargingStation, station }
         };
 
-        var dialog = await DialogService.ShowAsync<ChargingStationEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);
+        var dialog = await DialogService.ShowAsync<ChargingStationEditDialog>(T(TranslationKeys.ChargingStationsEditStationTitle), parameters);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -94,7 +94,7 @@ else
             { x => x.ElementName, station.ChargepointId }
         };
 
-        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.DeleteDialogConfirm), parameters);
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.ChargingStationsDeleteStationTitle), parameters);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)

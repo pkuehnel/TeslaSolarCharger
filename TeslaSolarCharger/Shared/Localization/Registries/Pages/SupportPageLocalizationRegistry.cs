@@ -20,7 +20,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportNeverShareLogsPubliclyContent,
             new TextLocalizationTranslation(LanguageCodes.English, "Logs might contain sensitive information like your vehicle's location. Do not share logs publicly."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Protokolle können sensible Informationen wie den Standort deines Fahrzeugs enthalten. Teile Protokolle nicht öffentlich."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Protokolle können sensible Informationen wie den Standort Ihres Fahrzeugs enthalten. Teilen Sie Protokolle nicht öffentlich."));
 
         Register(TranslationKeys.SupportDownloadServerLogsButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Download Server Logs"),
@@ -128,7 +128,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportChargingPhasesToSetHelperText,
             new TextLocalizationTranslation(LanguageCodes.English, "When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Beim Starten eines Ladevorgangs oder beim Ändern des Stroms wird dieser Wert verwendet. Hinweis: Das Ladegerät kann die Anforderung ablehnen, wenn es keine Phasenumschaltung unterstützt oder du 3 auswählst, obwohl das Ladegerät nur an eine Phase angeschlossen ist. Leer lassen, um keinen Wert für das Ladegerät zu setzen."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Beim Starten eines Ladevorgangs oder beim Ändern des Stroms wird dieser Wert verwendet. Hinweis: Das Ladegerät kann die Anforderung ablehnen, wenn es keine Phasenumschaltung unterstützt oder Sie 3 auswählen, obwohl das Ladegerät nur an eine Phase angeschlossen ist. Leer lassen, um keinen Wert für das Ladegerät zu setzen."));
 
         Register(TranslationKeys.SupportStartChargingButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Start Charging"),
@@ -197,6 +197,10 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
         Register(TranslationKeys.SupportReloadPageButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Reload page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Seite neu laden"));
+
+        Register(TranslationKeys.SupportClearTeslaTokenEncryptionKeyButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Clear Tesla Token Encryption Key"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Token-Verschlüsselungsschlüssel zurücksetzen"));
 
         Register(TranslationKeys.SupportVinUnknownError,
             new TextLocalizationTranslation(LanguageCodes.English, "VIN is unknown"),

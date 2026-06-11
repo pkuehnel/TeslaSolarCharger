@@ -12,7 +12,7 @@ public class EnergyPredictionComponentLocalizationRegistry : TextLocalizationReg
 
         Register(TranslationKeys.EnergyPredictionBatterySocSeries,
             new TextLocalizationTranslation(LanguageCodes.English, "Home Battery SoC %"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher SoC %"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimbatterie SoC %"));
 
         Register(TranslationKeys.EnergyPredictionUnitKwh,
             new TextLocalizationTranslation(LanguageCodes.English, "kWh"),

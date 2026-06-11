@@ -20,7 +20,7 @@ public class ChargingSchedulesComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.ChargingSchedulesReasonBattery,
             new TextLocalizationTranslation(LanguageCodes.English, "Discharging home battery"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hausbatterie entladen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimbatterie wird entladen"));
 
         Register(TranslationKeys.ChargingSchedulesReasonGridPrice,
             new TextLocalizationTranslation(LanguageCodes.English, "Cheap grid price"),

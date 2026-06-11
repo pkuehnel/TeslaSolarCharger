@@ -12,7 +12,7 @@ public class DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization : P
                 "Serialnumber of your Energy Meter or Home Manager 2.0. Can be left empty if you only have one Energy Meter (which is the case for most setups)"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Seriennummer",
-                "Seriennummer des Energy Meter oder Home Manager 2.0. Kann leer gelassen werden, wenn du nur ein Energy Meter besitzt (Standardfall in den meisten Anwendungen)"));
+                "Seriennummer des Energy Meter oder Home Manager 2.0. Kann leer gelassen werden, wenn Sie nur ein Energy Meter besitzen (Standardfall in den meisten Anwendungen)"));
     }
 
 }

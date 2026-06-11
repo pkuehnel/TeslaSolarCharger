@@ -24,7 +24,7 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
 
         Register(TranslationKeys.SetupStepCloudConnection,
             new TextLocalizationTranslation(LanguageCodes.English, "Cloud Connection"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Cloud Verbindung"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Cloud-Verbindung"));
 
         Register(TranslationKeys.SetupStepPrices,
             new TextLocalizationTranslation(LanguageCodes.English, "Electricity Prices"),
@@ -55,8 +55,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Sie können diese Einstellungen jederzeit später in den Konfigurationsseiten ändern."));
 
         Register(TranslationKeys.SetupHasPvSystemQuestion,
-            new TextLocalizationTranslation(LanguageCodes.English, "Do you have a Photovoltaik (PV) system?"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Haben Sie eine Photovoltaik (PV) Anlage?"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Do you have a photovoltaic (PV) system?"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Haben Sie eine Photovoltaikanlage (PV)?"));
 
         Register(TranslationKeys.SetupLocationTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "System Location"),
@@ -80,15 +80,15 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
 
         Register(TranslationKeys.SetupHasHomeBatteryQuestion,
             new TextLocalizationTranslation(LanguageCodes.English, "Do you have a home battery?"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Haben Sie einen Hausspeicher?"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Haben Sie eine Heimbatterie?"));
 
         Register(TranslationKeys.SetupHomeBatterySettingsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Home Battery Settings"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hausspeicher Einstellungen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimbatterie-Einstellungen"));
 
         Register(TranslationKeys.SetupCloudConnectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar4Car Cloud Connection"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car Cloud Verbindung"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car-Cloud-Verbindung"));
 
         Register(TranslationKeys.SetupCloudConnectionDescription,
             new TextLocalizationTranslation(LanguageCodes.English, "Connect your instance to the Solar4Car Cloud to enable remote access and advanced features."),
@@ -135,8 +135,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Fast fertig!"));
 
         Register(TranslationKeys.SetupFinishDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Click \"Finish\" to save your configuration and start using TeslaSolarCharger."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf \"Abschließen\", um Ihre Konfiguration zu speichern und TeslaSolarCharger zu nutzen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Click \"Finish Setup\" to save your configuration and start using TeslaSolarCharger."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf \"Einrichtung abschließen\", um Ihre Konfiguration zu speichern und TeslaSolarCharger zu nutzen."));
 
         Register(TranslationKeys.SetupSuccessInfo,
             new TextLocalizationTranslation(LanguageCodes.English, "Your initial setup is complete. You can always revisit the detailed settings pages for fine-tuning."),

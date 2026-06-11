@@ -48,7 +48,7 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
 
         Register(TranslationKeys.ChargeCostDetailTimeBasedPriceHint,
             new TextLocalizationTranslation(LanguageCodes.English, "You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hier kannst du Zeiten mit speziellen Preisen festlegen. Für verbleibende Zeiten ohne Preisangabe wird der oben angegebene Standardnetzpreis verwendet."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Hier können Sie Zeiten mit speziellen Preisen festlegen. Für verbleibende Zeiten ohne Preisangabe wird der oben angegebene Standardnetzpreis verwendet."));
 
         Register(TranslationKeys.ChargeCostDetailPriceLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Price"),
@@ -68,7 +68,7 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
 
         Register(TranslationKeys.ChargeCostDetailUseSpotPricesHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Aktiviere dies, wenn du dynamische Preise basierend auf EPEX Spot DE verwendest (z. B. Tibber oder aWATTar)"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktivieren Sie dies, wenn Sie dynamische Preise basierend auf EPEX Spot DE verwenden (z. B. Tibber oder aWATTar)"));
 
         Register(TranslationKeys.ChargeCostDetailAdditionalCostsToSpotPriceLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Additional costs to spotprice"),

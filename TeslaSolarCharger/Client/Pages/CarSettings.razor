@@ -83,7 +83,7 @@ else
     private DtoCarDeletionProgress? _deletionProgress;
 
     private string T(string key) =>
-        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(CloudConnectionPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     protected override async Task OnInitializedAsync()
