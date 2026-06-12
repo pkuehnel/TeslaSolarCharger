@@ -15,7 +15,10 @@
 @inject IChargePriceService ChargePriceService
 @inject ITextLocalizationService TextLocalizer
 
-<button class="btn btn-primary" @onclick="NavigateToList">@T(TranslationKeys.ChargeCostDetailAllChargeCostsButton)</button>
+<PageTitle>@T(TranslationKeys.ChargeCostDetailTitle)</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+           OnClick="NavigateToList">@T(TranslationKeys.ChargeCostDetailAllChargeCostsButton)</MudButton>
 <h1>@T(TranslationKeys.ChargeCostDetailTitle)</h1>
 
 <ChargePriceEditComponent ChargePrice="ChargePrice" 

@@ -39,28 +39,16 @@ else
         <MudText Typo="Typo.h6" Class="mt-4">@T(TranslationKeys.ChargeCostDetailTimeBasedPricesLabel)</MudText>
         @foreach (var fixedPrice in FixedPrices)
         {
-            <div class="row mt-3">
-                <div class="col-auto">
-                    <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
-                </div>
-            </div>
-            <div class="row mt-3 align-end">
-                <div class="col-auto">
-                    <InputComponent ValueId="price"
-                                    LabelText='@T(TranslationKeys.ChargeCostDetailPriceLabel)'
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputNumber id="price" @bind-Value="fixedPrice.Value" class="form-control" placeholder=" " />
-                        </InputFragment>
-                    </InputComponent>
-                </div>
-                <div class="col-auto">
+            <MudPaper Class="pa-3 mt-3" Outlined="true">
+                <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
+                <div class="d-flex align-center">
+                    <div class="flex-grow-1">
+                        <GenericInput For="() => fixedPrice.Value"
+                                      LabelName="@T(TranslationKeys.ChargeCostDetailPriceLabel)"></GenericInput>
+                    </div>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="_ => DeleteFixedPrice(fixedPrice)" />
                 </div>
-            </div>
-
-            <hr />
+            </MudPaper>
         }
         <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
                                      ButtonText="@T(TranslationKeys.ChargeCostDetailAddTimeBasedPriceButton)"
@@ -73,8 +61,8 @@ else
 
         @if (ChargePrice.Item.AddSpotPriceToGridPrice)
         {
-            <div class="row p-2">
-                <div class="col-md-6">
+            <MudGrid>
+                <MudItem xs="12" md="6">
                     <MudSelectExtended T="SpotPriceRegion?"
                                        For="() => ChargePrice.Item.SpotPriceRegion"
                                        @bind-Value="ChargePrice.Item.SpotPriceRegion"
@@ -85,11 +73,11 @@ else
                         <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@T(TranslationKeys.SpotPriceRegionAT)" />
                         <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@T(TranslationKeys.SpotPriceRegionCH)" />
                     </MudSelectExtended>
-                </div>
-                <div class="col-md-6">
+                </MudItem>
+                <MudItem xs="12" md="6">
                     <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"></GenericInput>
-                </div>
-            </div>
+                </MudItem>
+            </MudGrid>
         }
         
         @if(ChargePriceUpdateProgress != default && ChargePriceUpdateProgress.Value != null && ChargePriceUpdateProgress.MaxValue != null)
