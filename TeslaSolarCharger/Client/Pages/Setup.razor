@@ -312,7 +312,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _stepsRestored || _stepper == null || _restoreToStepIndex is not int target)
+        // Not gated on firstRender: OnInitializedAsync is async, so the first render shows the loading spinner
+        // and the stepper (with its @ref) only exists on a later render. Run as soon as the stepper is available
+        // and there is a step to restore; _stepsRestored ensures this happens exactly once.
+        if (_stepsRestored || _stepper == null || _restoreToStepIndex is not int target)
         {
             return;
         }
@@ -320,12 +323,18 @@
         _stepsRestored = true;
         // Drive the stepper forward to the restored step so each step before it is marked completed (green),
         // matching a normal forward navigation. A controlled ActiveIndex would jump without completing them.
-        for (var i = 0; i < target; i++)
+        try
         {
-            await _stepper.NextStepAsync();
+            for (var i = 0; i < target; i++)
+            {
+                await _stepper.NextStepAsync();
+            }
         }
-        _isRestoringSteps = false;
-        _restoreToStepIndex = null;
+        finally
+        {
+            _isRestoringSteps = false;
+            _restoreToStepIndex = null;
+        }
         await InvokeAsync(StateHasChanged);
     }
 
