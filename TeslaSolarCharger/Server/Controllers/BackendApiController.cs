@@ -44,6 +44,13 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
     }
 
     [HttpGet]
+    public async Task<DtoValue<bool>> IsBaseAppLicensed(bool useCache)
+    {
+        var result = await backendApiService.IsBaseAppLicensed(useCache);
+        return new(result.Data == true);
+    }
+
+    [HttpGet]
     public async Task<List<DtoSmartCarCompatibleVehicle>> GetSmartCarCompatibleVehicles()
     {
         return await backendApiService.GetSmartCarCompatibleVehicles();

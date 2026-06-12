@@ -98,6 +98,18 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.English, "Please connect your instance to the Solar4Car cloud before continuing."),
             new TextLocalizationTranslation(LanguageCodes.German, "Bitte verbinden Sie Ihre Instanz mit der Solar4Car-Cloud, bevor Sie fortfahren."));
 
+        Register(TranslationKeys.SetupBaseAppLicenseRequiredNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "A Solar4Car base license is required before continuing."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Für die Fortsetzung ist eine Solar4Car-Basislizenz erforderlich."));
+
+        Register(TranslationKeys.SetupBaseAppLicenseMissingInfo,
+            new TextLocalizationTranslation(LanguageCodes.English, "Your account is connected, but it does not include a base license. A base license is required to use TeslaSolarCharger. You can purchase one here:"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Konto ist verbunden, enthält aber keine Basislizenz. Für die Nutzung von TeslaSolarCharger ist eine Basislizenz erforderlich. Sie können diese hier erwerben:"));
+
+        Register(TranslationKeys.SetupBaseAppLicenseRecheckButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Re-check license"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Lizenz erneut prüfen"));
+
         Register(TranslationKeys.SetupPricesTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Electricity Prices"),
             new TextLocalizationTranslation(LanguageCodes.German, "Strompreise"));

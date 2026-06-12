@@ -630,6 +630,9 @@ public static class TranslationKeys
     public static string SetupCloudConnectionTitle => nameof(SetupCloudConnectionTitle);
     public static string SetupCloudConnectionDescription => nameof(SetupCloudConnectionDescription);
     public static string SetupCloudConnectionRequiredNotification => nameof(SetupCloudConnectionRequiredNotification);
+    public static string SetupBaseAppLicenseRequiredNotification => nameof(SetupBaseAppLicenseRequiredNotification);
+    public static string SetupBaseAppLicenseMissingInfo => nameof(SetupBaseAppLicenseMissingInfo);
+    public static string SetupBaseAppLicenseRecheckButton => nameof(SetupBaseAppLicenseRecheckButton);
     public static string SetupPricesTitle => nameof(SetupPricesTitle);
     public static string SetupPricesDescription => nameof(SetupPricesDescription);
     public static string SetupCarsTitle => nameof(SetupCarsTitle);

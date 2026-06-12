@@ -66,6 +66,17 @@
                     <div class="mt-4">
                         <CloudConnectionLoginComponent OnConnectionStateChanged="OnCloudConnectionStateChanged" />
                     </div>
+
+                    @if (_cloudConnected && !_baseAppLicensed)
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mt-4">
+                            <div>@T(TranslationKeys.SetupBaseAppLicenseMissingInfo)</div>
+                            <MudLink Href="https://solar4car.com/subscriptions" Target="_blank">https://solar4car.com/subscriptions</MudLink>
+                        </MudAlert>
+                        <RightAlignedButtonComponent OnButtonClicked="RecheckBaseAppLicense"
+                                                     ButtonText="@T(TranslationKeys.SetupBaseAppLicenseRecheckButton)"
+                                                     IsLoading="@_isRecheckingLicense" />
+                    }
                 </MudStep>
 
                 <MudStep Title="@T(TranslationKeys.SetupStepSolarBattery)">
@@ -207,7 +218,7 @@
                         <MudButton Color="Color.Primary"
                                    Variant="Variant.Filled"
                                    EndIcon="@Icons.Material.Filled.ArrowForward"
-                                   Disabled="@(_activeStepIndex == CloudConnectionStepIndex && !_cloudConnected)"
+                                   Disabled="@(_activeStepIndex == CloudConnectionStepIndex && !CloudStepFulfilled)"
                                    OnClick="@(() => context.NextStepAsync())">
                             @T(TranslationKeys.GeneralNext)
                         </MudButton>
@@ -228,9 +239,11 @@
     private MudStepper? _stepper;
     private bool _hasPvSystem = true;
     private bool _hasHomeBattery;
-    // Whether the instance is connected to the Solar4Car cloud. Gates the Next button on the cloud step, since
-    // a connected account is required to use TeslaSolarCharger.
+    // Whether the instance is connected to the Solar4Car cloud and the account has a base license. Both are
+    // required to use TeslaSolarCharger, so navigation past the cloud step is gated on them.
     private bool _cloudConnected;
+    private bool _baseAppLicensed;
+    private bool _isRecheckingLicense;
     // Bound to the stepper's ActiveIndex, so a value restored from the setup cache is applied as soon as the
     // stepper initializes. The stepper clamps it to the actual step count itself.
     private int _activeStepIndex;
@@ -291,6 +304,7 @@
         // The CloudConnectionLoginComponent only reports the connection state while the cloud step is rendered,
         // so determine the initial state here to gate step navigation independently of the active step.
         _cloudConnected = await CloudConnectionCheckService.GetBackendTokenState(true) == TokenState.UpToDate;
+        _baseAppLicensed = _cloudConnected && await CloudConnectionCheckService.IsBaseAppLicensed(true);
 
         _stationRefreshCts = new CancellationTokenSource();
         _ = RefreshStationsLoop(_stationRefreshCts.Token);
@@ -313,21 +327,36 @@
         }
     }
 
-    private void OnCloudConnectionStateChanged(TokenState state)
+    private bool CloudStepFulfilled => _cloudConnected && _baseAppLicensed;
+
+    private async Task OnCloudConnectionStateChanged(TokenState state)
     {
         _cloudConnected = state == TokenState.UpToDate;
+        // The server clears its license cache on a fresh login, so the cached check is still accurate here.
+        _baseAppLicensed = _cloudConnected && await CloudConnectionCheckService.IsBaseAppLicensed(true);
+    }
+
+    private async Task RecheckBaseAppLicense()
+    {
+        _isRecheckingLicense = true;
+        // Skip the cache so a license bought on solar4car.com since the last check is detected.
+        _baseAppLicensed = await CloudConnectionCheckService.IsBaseAppLicensed(false);
+        _isRecheckingLicense = false;
     }
 
     private Task OnStepPreviewInteraction(StepperInteractionEventArgs args)
     {
         // Block any navigation past the cloud connection step (Next button as well as clicking a step header)
-        // until the instance is connected. Completing or skipping a step moves to the step after it, while
-        // activating (header click) moves to the step itself.
+        // until the instance is connected and has a base license. Completing or skipping a step moves to the
+        // step after it, while activating (header click) moves to the step itself.
         var targetStepIndex = args.Action == StepAction.Activate ? args.StepIndex : args.StepIndex + 1;
-        if (!_cloudConnected && targetStepIndex > CloudConnectionStepIndex)
+        if (!CloudStepFulfilled && targetStepIndex > CloudConnectionStepIndex)
         {
             args.Cancel = true;
-            Snackbar.Add(T(TranslationKeys.SetupCloudConnectionRequiredNotification), Severity.Warning);
+            var notificationKey = _cloudConnected
+                ? TranslationKeys.SetupBaseAppLicenseRequiredNotification
+                : TranslationKeys.SetupCloudConnectionRequiredNotification;
+            Snackbar.Add(T(notificationKey), Severity.Warning);
         }
 
         return Task.CompletedTask;
