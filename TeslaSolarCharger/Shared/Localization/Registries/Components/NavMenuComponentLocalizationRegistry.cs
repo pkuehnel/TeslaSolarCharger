@@ -20,7 +20,7 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
 
-        Register(TranslationKeys.CarSettingsTitle,
+        Register(TranslationKeys.CarsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
 

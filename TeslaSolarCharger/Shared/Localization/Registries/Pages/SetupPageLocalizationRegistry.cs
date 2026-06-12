@@ -27,8 +27,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Cloud-Verbindung"));
 
         Register(TranslationKeys.SetupStepPrices,
-            new TextLocalizationTranslation(LanguageCodes.English, "Electricity Prices"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Strompreise"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladepreise"));
 
         Register(TranslationKeys.SetupStepCars,
             new TextLocalizationTranslation(LanguageCodes.English, "Cars"),

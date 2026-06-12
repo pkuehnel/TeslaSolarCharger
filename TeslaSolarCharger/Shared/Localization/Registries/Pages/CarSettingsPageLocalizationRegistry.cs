@@ -6,9 +6,9 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 {
     protected override void Configure()
     {
-        Register(TranslationKeys.CarSettingsTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
+        Register(TranslationKeys.CarsTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cars"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge"));
 
         Register(TranslationKeys.CarSettingsDeleteCarTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete car"),

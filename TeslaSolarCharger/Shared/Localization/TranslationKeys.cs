@@ -193,7 +193,7 @@ public static class TranslationKeys
     public static string SignalRReconnectionDelayHint => nameof(SignalRReconnectionDelayHint);
     public static string SignalRConnected => nameof(SignalRConnected);
 
-    public static string CarSettingsTitle => nameof(CarSettingsTitle);
+    public static string CarsTitle => nameof(CarsTitle);
     public static string CarSettingsCreateTokenTitle => nameof(CarSettingsCreateTokenTitle);
     public static string CarSettingsGoToPrefix => nameof(CarSettingsGoToPrefix);
     public static string CarSettingsGenerateTokenSuffix => nameof(CarSettingsGenerateTokenSuffix);

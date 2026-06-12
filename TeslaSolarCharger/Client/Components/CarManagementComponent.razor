@@ -206,7 +206,7 @@ else
             { x => x.Car, car },
         };
 
-        var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);
+        var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarsTitle), parameters);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)
