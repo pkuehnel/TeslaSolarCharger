@@ -282,6 +282,30 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "All cars found in your connected Tesla account will be added. You can remove unwanted cars afterwards."),
             new TextLocalizationTranslation(LanguageCodes.German, "Alle in Ihrem verbundenen Tesla-Konto gefundenen Autos werden hinzugefügt. Nicht gewünschte Autos können Sie anschließend entfernen."));
 
+        Register(TranslationKeys.AddCarTeslaConnectHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect your Tesla account to add your Teslas. You will be redirected to Tesla to log in and your cars will be imported automatically when you return."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie Ihr Tesla-Konto, um Ihre Teslas hinzuzufügen. Sie werden zur Anmeldung zu Tesla weitergeleitet und Ihre Autos werden bei der Rückkehr automatisch importiert."));
+
+        Register(TranslationKeys.AddCarConnectTeslaButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect Tesla account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Konto verbinden"));
+
+        Register(TranslationKeys.AddCarTeslaNeedsCloudContent,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connecting a Tesla requires a connected Solar4Car cloud account first. Please connect it on "),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zum Verbinden eines Teslas ist zunächst ein verbundenes Solar4Car-Cloud-Konto erforderlich. Bitte verbinden Sie es unter "));
+
+        Register(TranslationKeys.AddCarTeslaNeedsCloudNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "Please connect your Solar4Car cloud account before connecting a Tesla."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bitte verbinden Sie Ihr Solar4Car-Cloud-Konto, bevor Sie einen Tesla verbinden."));
+
+        Register(TranslationKeys.AddCarTeslaConnectUrlError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not generate the Tesla login URL. Please try again."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Die Tesla-Anmelde-URL konnte nicht erzeugt werden. Bitte versuchen Sie es erneut."));
+
+        Register(TranslationKeys.CarOverviewTeslaTokenExpired,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla connection expired – reconnect"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Verbindung abgelaufen – neu verbinden"));
+
         Register(TranslationKeys.AddCarSmartCarSearchLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Search your vehicle"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug suchen"));

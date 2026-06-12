@@ -78,4 +78,5 @@ public interface IConstants
     string QueryParamError { get; }
     string QueryParamVin { get; }
     string QueryParamSmartCarAdded { get; }
+    string QueryParamTeslaConnected { get; }
 }

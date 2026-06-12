@@ -49,12 +49,17 @@
                 {
                     <LoadingSpinnerComponent />
                 }
+                else if (_fleetApiTokenState == TokenState.MissingPrecondition)
+                {
+                    @* MissingPrecondition means the Solar4Car cloud account is not connected yet, which is a
+                       prerequisite for the Tesla connection. *@
+                    <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
+                        @T(TranslationKeys.AddCarTeslaNeedsCloudContent)<MudLink Href="/cloudconnection">@T(TranslationKeys.AddCarCloudConnectionLink)</MudLink>
+                    </MudAlert>
+                }
                 else if (_fleetApiTokenState != TokenState.UpToDate)
                 {
-                    <MudAlert Severity="Severity.Error" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
-                        <h4>@T(TranslationKeys.AddCarTokenInvalidTitle)</h4>
-                        @T(TranslationKeys.AddCarTokenInvalidContent)<MudLink Href="/cloudconnection">@T(TranslationKeys.AddCarCloudConnectionLink)</MudLink>@T(TranslationKeys.CarSettingsGenerateTokenSuffix)
-                    </MudAlert>
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.AddCarTeslaConnectHint)</MudText>
                 }
                 else
                 {
@@ -93,6 +98,12 @@
         {
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddTeslasFromAccount" Disabled="_isBusy">
                 @T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)
+            </MudButton>
+        }
+        else if (_step == Step.Tesla && _fleetApiTokenState is not null and not TokenState.MissingPrecondition)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectTeslaAccount" Disabled="_isBusy">
+                @T(TranslationKeys.AddCarConnectTeslaButton)
             </MudButton>
         }
         else if (_step == Step.SmartCar)
@@ -176,6 +187,13 @@
             _compatibleVehicles = await CarSettingsService.GetSmartCarCompatibleVehicles() ?? new List<DtoSmartCarCompatibleVehicle>();
             _isLoadingCompatibleVehicles = false;
         }
+    }
+
+    private void ConnectTeslaAccount()
+    {
+        // The Tesla OAuth flow needs a full-page redirect, so hand off to the host page which owns the
+        // return URL and the post-return import.
+        MudDialog.Close(DialogResult.Ok(AddCarResultAction.ConnectTesla));
     }
 
     private async Task AddTeslasFromAccount()

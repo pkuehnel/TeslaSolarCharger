@@ -22,6 +22,16 @@
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@Car.Item.Vin</MudText>
             }
+            @if (ShowTeslaTokenWarning)
+            {
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="Color.Warning"
+                         Icon="@Icons.Material.Filled.WarningAmber"
+                         OnClick="@(() => OnReconnectTeslaRequested.InvokeAsync())">
+                    @T(TranslationKeys.CarOverviewTeslaTokenExpired)
+                </MudChip>
+            }
         </CardHeaderContent>
         <CardHeaderActions>
             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Variant="Variant.Outlined" OnClick="OnEditRequested" />
@@ -50,9 +60,18 @@
     [Parameter] public EditableItem<CarBasicConfiguration> Car { get; set; } = default!;
     [Parameter] public EventCallback OnEditRequested { get; set; }
     [Parameter] public EventCallback OnDeleteRequested { get; set; }
+    // The global Tesla Fleet API token state (one token per Tesla account). Used to flag Tesla cars whose
+    // connection needs (re)establishing. Null while unknown.
+    [Parameter] public TokenState? FleetApiTokenState { get; set; }
+    [Parameter] public EventCallback OnReconnectTeslaRequested { get; set; }
 
     // A SmartCar car whose VIN has not arrived yet (placeholder) is still being set up.
     private bool IsPendingSmartCar => Car.Item.CarType == CarType.SmartCar && string.IsNullOrEmpty(Car.Item.Vin);
+
+    // Show a reconnect prompt on Tesla cars when the (global) Fleet API token is missing or no longer valid.
+    private bool ShowTeslaTokenWarning =>
+        Car.Item.CarType == CarType.Tesla
+        && FleetApiTokenState is not null and not TokenState.UpToDate;
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))

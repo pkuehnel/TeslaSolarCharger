@@ -13,6 +13,7 @@
 @using TeslaSolarCharger.Client.Dialogs
 
 @inject ICarSettingsService CarSettingsService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
 @inject NavigationManager NavigationManager
@@ -21,14 +22,6 @@
 @inject IDialogService DialogService
 
 <div class="mb-3">
-    @if (_fleetApiTokenState != null && _fleetApiTokenState != TokenState.UpToDate)
-    {
-        <MudAlert Severity="Severity.Error" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
-            <h4>@T(TranslationKeys.CarSettingsCreateTokenTitle)</h4>
-            @T(TranslationKeys.CarSettingsGoToPrefix)<MudLink Href="/cloudconnection">@T(TranslationKeys.CloudConnectionTitle)</MudLink>@T(TranslationKeys.CarSettingsGenerateTokenSuffix)
-        </MudAlert>
-    }
-
     <LicenseInfoComponent Class="mt-3" />
 </div>
 
@@ -64,6 +57,8 @@ else
         {
             <MudItem xs="12" md="6" xl="4">
                 <CarOverviewComponent Car="carBasicConfiguration"
+                                      FleetApiTokenState="_fleetApiTokenState"
+                                      OnReconnectTeslaRequested="StartTeslaConnect"
                                       OnEditRequested="() => EditCar(carBasicConfiguration)"
                                       OnDeleteRequested="() => DeleteCar(carBasicConfiguration)" />
             </MudItem>
@@ -97,19 +92,26 @@ else
     {
         await RefreshFleetApiTokenState();
         await RefreshFleetApiLicenseInfo();
-        // A new-SmartCar OAuth return is tagged with an explicit marker by the add wizard, so trigger an
-        // immediate sync to pick up the freshly connected car without waiting for the background poll.
-        var shouldSyncSmartCarCars = IsNewSmartCarOAuthReturn();
+        // SmartCar and Tesla OAuth returns are tagged with an explicit marker by the add wizard, so trigger an
+        // immediate sync/import to pick up the freshly connected car(s) without waiting for the background poll.
+        var shouldSyncSmartCarCars = HasQueryParam(Constants.QueryParamSmartCarAdded);
+        var isTeslaConnectReturn = HasQueryParam(Constants.QueryParamTeslaConnected);
         await OAuthNotificationService.HandleQueryParameters();
         if (shouldSyncSmartCarCars)
         {
             await CarSettingsService.SyncSmartCarCars();
-            // Drop the marker so a later refresh does not sync again.
-            var cleanUri = NavigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+            DropQueryParam(Constants.QueryParamSmartCarAdded);
+        }
+        if (isTeslaConnectReturn)
+        {
+            // The Tesla token has just been redeemed server-side; refresh the state and import the account's
+            // Teslas so the user does not have to reopen the dialog.
+            await RefreshFleetApiTokenState();
+            if (_fleetApiTokenState == TokenState.UpToDate)
             {
-                [Constants.QueryParamSmartCarAdded] = null,
-            });
-            NavigationManager.NavigateTo(cleanUri, forceLoad: false, replace: true);
+                await CarSettingsService.RefreshTeslaCarsFromAccount();
+            }
+            DropQueryParam(Constants.QueryParamTeslaConnected);
         }
         var carBasicConfigurations = await CarSettingsService.GetCarBasicConfigurations();
         if (carBasicConfigurations != null)
@@ -132,11 +134,41 @@ else
         _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
     }
 
-    private bool IsNewSmartCarOAuthReturn()
+    private bool HasQueryParam(string key)
     {
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
-        return query.ContainsKey(Constants.QueryParamSmartCarAdded);
+        return query.ContainsKey(key);
+    }
+
+    private void DropQueryParam(string key)
+    {
+        var cleanUri = NavigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            [key] = null,
+        });
+        NavigationManager.NavigateTo(cleanUri, forceLoad: false, replace: true);
+    }
+
+    private async Task StartTeslaConnect()
+    {
+        // Tesla OAuth requires the cloud account to be connected first.
+        var backendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
+        if (backendTokenState != TokenState.UpToDate)
+        {
+            Snackbar.Add(T(TranslationKeys.AddCarTeslaNeedsCloudNotification), Severity.Error);
+            return;
+        }
+
+        // Return to this same page with a marker so the OAuth return imports the account's Teslas (see RefreshData).
+        var returnUrl = NavigationManager.BaseUri + ReturnPage + "?" + Constants.QueryParamTeslaConnected + "=true";
+        var url = await CloudConnectionCheckService.GetRedeemUrlIncludingCookieAuthCode(returnUrl);
+        if (string.IsNullOrEmpty(url))
+        {
+            Snackbar.Add(T(TranslationKeys.AddCarTeslaConnectUrlError), Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo(url);
     }
 
     private async Task OpenAddCarWizard()
@@ -160,6 +192,9 @@ else
                 break;
             case AddCarResultAction.Refresh:
                 await RefreshData();
+                break;
+            case AddCarResultAction.ConnectTesla:
+                await StartTeslaConnect();
                 break;
         }
     }

@@ -50,7 +50,6 @@
         <MudStepper @ref="_stepper"
                     NonLinear="true"
                     CenterLabels="true"
-                    ActiveIndex="_activeStepIndex"
                     ActiveIndexChanged="OnStepChanged"
                     CurrentStepColor="Color.Primary"
                     CompletedStepColor="Color.Success">
@@ -237,10 +236,16 @@
     // a connected account is required to use TeslaSolarCharger.
     private bool _cloudConnected;
     private bool _isInitialized;
-    // Two-way bound with the stepper's ActiveIndex so it can be restored from the setup cache on load and kept
-    // in sync via OnStepChanged. The last-step check derives its upper bound from the stepper's own Steps
+    // Kept in sync via OnStepChanged. The last-step check derives its upper bound from the stepper's own Steps
     // collection, so it stays correct if steps are added/removed.
     private int _activeStepIndex;
+    // The step to restore to from the setup cache on load (e.g. after an OAuth redirect back here). Applied once
+    // after first render by fast-forwarding the stepper so the steps before it show as completed.
+    private int? _restoreToStepIndex;
+    // True while the initial step restore is fast-forwarding; suppresses cache writes from the intermediate
+    // ActiveIndexChanged events so the stored CurrentStep is not clobbered.
+    private bool _isRestoringSteps;
+    private bool _stepsRestored;
     // Number of (now unconditional) steps rendered in the stepper. Used to clamp a restored step index.
     private const int StepCount = 8;
     private CancellationTokenSource? _stationRefreshCts;
@@ -254,9 +259,25 @@
             _dtoBaseConfiguration = new(cachedData.Configuration);
             _hasPvSystem = cachedData.HasPvSystem;
             _hasHomeBattery = cachedData.HasHomeBattery;
-            // Restore the step the user left off on (e.g. after the SmartCar OAuth flow redirects back here),
-            // clamped to the current step count since the layout may have changed since the cache was written.
-            _activeStepIndex = Math.Clamp(cachedData.CurrentStep, 0, StepCount - 1);
+            // Restore the step the user left off on (e.g. after an OAuth flow redirects back here), clamped to
+            // the current step count since the layout may have changed since the cache was written. The actual
+            // navigation happens after first render (see OnAfterRenderAsync).
+            var restoreStep = Math.Clamp(cachedData.CurrentStep, 0, StepCount - 1);
+            if (restoreStep > 0)
+            {
+                _restoreToStepIndex = restoreStep;
+                // Guard before the stepper initializes so its initial ActiveIndexChanged(0) does not overwrite
+                // the stored step.
+                _isRestoringSteps = true;
+            }
+
+            // Restore the in-progress charge price from the cache so edits survive a reload. The price is only
+            // persisted to the server on Finish, so without this the prices step would reset to defaults.
+            if (cachedData.ChargePrice != null)
+            {
+                _chargePrice = new(cachedData.ChargePrice);
+                _fixedPrices = cachedData.FixedPrices;
+            }
         }
         else
         {
@@ -278,11 +299,34 @@
             }
         }
 
-        await LoadChargePrice();
+        // Only load the price from the server when it was not already restored from the cache above.
+        if (_chargePrice == null)
+        {
+            await LoadChargePrice();
+        }
 
         _isInitialized = true;
         _stationRefreshCts = new CancellationTokenSource();
         _ = RefreshStationsLoop(_stationRefreshCts.Token);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _stepsRestored || _stepper == null || _restoreToStepIndex is not int target)
+        {
+            return;
+        }
+
+        _stepsRestored = true;
+        // Drive the stepper forward to the restored step so each step before it is marked completed (green),
+        // matching a normal forward navigation. A controlled ActiveIndex would jump without completing them.
+        for (var i = 0; i < target; i++)
+        {
+            await _stepper.NextStepAsync();
+        }
+        _isRestoringSteps = false;
+        _restoreToStepIndex = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnCloudConnectionStateChanged(TokenState state)
@@ -381,6 +425,10 @@
     private async Task OnStepChanged(int stepIndex)
     {
         _activeStepIndex = stepIndex;
+        // While restoring the step after a reload, the stepper fires this for each intermediate step. Skip the
+        // cache write so the stored CurrentStep is not overwritten with an intermediate value.
+        if (_isRestoringSteps) return;
+
         // Reflect the new step in the action bar immediately, without waiting for the cache update.
         await InvokeAsync(StateHasChanged);
 
@@ -391,7 +439,10 @@
             CurrentStep = stepIndex,
             HasPvSystem = _hasPvSystem,
             HasHomeBattery = _hasHomeBattery,
-            Configuration = _dtoBaseConfiguration.Item
+            Configuration = _dtoBaseConfiguration.Item,
+            // Snapshot the in-progress price too, so navigating between steps and reloading keeps the edits.
+            ChargePrice = _chargePrice?.Item,
+            FixedPrices = _fixedPrices,
         };
 
         await SetupService.UpdateSetupCache(cache);

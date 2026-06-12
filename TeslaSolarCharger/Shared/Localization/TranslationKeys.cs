@@ -379,6 +379,12 @@ public static class TranslationKeys
     public static string AddCarSmartCarOptionTitle => nameof(AddCarSmartCarOptionTitle);
     public static string AddCarSmartCarOptionDescription => nameof(AddCarSmartCarOptionDescription);
     public static string AddCarTeslaStepHint => nameof(AddCarTeslaStepHint);
+    public static string AddCarTeslaConnectHint => nameof(AddCarTeslaConnectHint);
+    public static string AddCarConnectTeslaButton => nameof(AddCarConnectTeslaButton);
+    public static string AddCarTeslaNeedsCloudContent => nameof(AddCarTeslaNeedsCloudContent);
+    public static string AddCarTeslaNeedsCloudNotification => nameof(AddCarTeslaNeedsCloudNotification);
+    public static string AddCarTeslaConnectUrlError => nameof(AddCarTeslaConnectUrlError);
+    public static string CarOverviewTeslaTokenExpired => nameof(CarOverviewTeslaTokenExpired);
     public static string AddCarSmartCarSearchLabel => nameof(AddCarSmartCarSearchLabel);
     public static string AddCarSmartCarSearchHint => nameof(AddCarSmartCarSearchHint);
     public static string AddCarSmartCarNotListed => nameof(AddCarSmartCarNotListed);

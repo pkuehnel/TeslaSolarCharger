@@ -10,4 +10,7 @@ public enum AddCarResultAction
 
     /// <summary>Cars were added/changed server-side (e.g. Tesla discovery); the page should just refresh its list.</summary>
     Refresh,
+
+    /// <summary>The user wants to connect their Tesla account; the page should start the Tesla OAuth redirect.</summary>
+    ConnectTesla,
 }
