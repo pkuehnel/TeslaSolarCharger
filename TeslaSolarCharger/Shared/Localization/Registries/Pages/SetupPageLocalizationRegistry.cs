@@ -91,8 +91,8 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car-Cloud-Verbindung"));
 
         Register(TranslationKeys.SetupCloudConnectionDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connect your instance to the Solar4Car Cloud to enable remote access and advanced features."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie Ihre Instanz mit der Solar4Car Cloud, um Fernzugriff und erweiterte Funktionen zu ermöglichen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "A Solar4Car account is required to use TeslaSolarCharger. Please log in or create an account to continue. You cannot proceed until your instance is connected."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Für die Nutzung von TeslaSolarCharger ist ein Solar4Car-Konto erforderlich. Bitte melden Sie sich an oder erstellen Sie ein Konto, um fortzufahren. Sie können erst fortfahren, wenn Ihre Instanz verbunden ist."));
 
         Register(TranslationKeys.SetupPricesTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Electricity Prices"),

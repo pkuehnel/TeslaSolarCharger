@@ -1,0 +1,254 @@
+@using Microsoft.AspNetCore.WebUtilities
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.Ble
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Client.Dialogs
+
+@inject ICarSettingsService CarSettingsService
+@inject IConstants Constants
+@inject ITextLocalizationService TextLocalizer
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IOAuthNotificationService OAuthNotificationService
+@inject IDialogService DialogService
+
+<div class="mb-3">
+    @if (_fleetApiTokenState != null && _fleetApiTokenState != TokenState.UpToDate)
+    {
+        <MudAlert Severity="Severity.Error" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
+            <h4>@T(TranslationKeys.CarSettingsCreateTokenTitle)</h4>
+            @T(TranslationKeys.CarSettingsGoToPrefix)<MudLink Href="/cloudconnection">@T(TranslationKeys.CloudConnectionTitle)</MudLink>@T(TranslationKeys.CarSettingsGenerateTokenSuffix)
+        </MudAlert>
+    }
+
+    <LicenseInfoComponent Class="mt-3" />
+</div>
+
+
+<MudOverlay Visible="@(_deletionProgress != null)" DarkBackground="true" ZIndex="9999">
+    @if (_deletionProgress != null)
+    {
+        <MudPaper Class="pa-6" Style="min-width: 320px; max-width: 90vw;">
+            <MudText Typo="Typo.h6" Class="mb-3">@T(TranslationKeys.CarSettingsDeleteProgressTitle)</MudText>
+            <MudText Typo="Typo.body1" Class="mb-2">@GetDeletionStepText(_deletionProgress.CurrentStep)</MudText>
+            <MudProgressLinear Value="_deletionProgress.Value"
+                               Max="_deletionProgress.MaxValue"
+                               Size="Size.Large"
+                               Striped="true"
+                               Color="Color.Primary" />
+            <MudText Typo="Typo.caption" Class="mt-2">@_deletionProgress.Value / @_deletionProgress.MaxValue</MudText>
+        </MudPaper>
+    }
+</MudOverlay>
+
+@if (_carBasicConfigurations == null)
+{
+    <LoadingSpinnerComponent />
+}
+else
+{
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddCarButton)'
+                                 StartIcon="@Icons.Material.Filled.Add"
+                                 OnButtonClicked="OpenAddCarWizard"></RightAlignedButtonComponent>
+
+    <MudGrid>
+        @foreach (var carBasicConfiguration in _carBasicConfigurations)
+        {
+            <MudItem xs="12" md="6" xl="4">
+                <CarOverviewComponent Car="carBasicConfiguration"
+                                      OnEditRequested="() => EditCar(carBasicConfiguration)"
+                                      OnDeleteRequested="() => DeleteCar(carBasicConfiguration)" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    /// <summary>
+    /// Relative page (without leading slash) the SmartCar OAuth flow should return to, e.g. "CarSettings" or
+    /// "setup". Connecting a SmartCar navigates the browser away and back; this keeps the user on the page they
+    /// started from instead of always landing on the Car Settings page.
+    /// </summary>
+    [Parameter] public string ReturnPage { get; set; } = "CarSettings";
+
+    private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
+    private TokenState? _fleetApiTokenState;
+    private DtoCarLicenseInfo _carLicenseInfo = new();
+    private DtoCarDeletionProgress? _deletionProgress;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(CloudConnectionPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        await RefreshFleetApiTokenState();
+        await RefreshFleetApiLicenseInfo();
+        // A new-SmartCar OAuth return is tagged with an explicit marker by the add wizard, so trigger an
+        // immediate sync to pick up the freshly connected car without waiting for the background poll.
+        var shouldSyncSmartCarCars = IsNewSmartCarOAuthReturn();
+        await OAuthNotificationService.HandleQueryParameters();
+        if (shouldSyncSmartCarCars)
+        {
+            await CarSettingsService.SyncSmartCarCars();
+            // Drop the marker so a later refresh does not sync again.
+            var cleanUri = NavigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+            {
+                [Constants.QueryParamSmartCarAdded] = null,
+            });
+            NavigationManager.NavigateTo(cleanUri, forceLoad: false, replace: true);
+        }
+        var carBasicConfigurations = await CarSettingsService.GetCarBasicConfigurations();
+        if (carBasicConfigurations != null)
+        {
+            _carBasicConfigurations = carBasicConfigurations.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
+        }
+    }
+
+    private async Task RefreshFleetApiLicenseInfo()
+    {
+        var licenseInfo = await CarSettingsService.GetFleetApiLicenseInfo();
+        if (licenseInfo != null)
+        {
+            _carLicenseInfo = licenseInfo;
+        }
+    }
+
+    private async Task RefreshFleetApiTokenState()
+    {
+        _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+    }
+
+    private bool IsNewSmartCarOAuthReturn()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        return query.ContainsKey(Constants.QueryParamSmartCarAdded);
+    }
+
+    private async Task OpenAddCarWizard()
+    {
+        var parameters = new DialogParameters<AddCarDialog>
+        {
+            { x => x.ReturnPage, ReturnPage },
+        };
+        var dialog = await DialogService.ShowAsync<AddCarDialog>(T(TranslationKeys.AddCarDialogTitle), parameters);
+        var result = await dialog.Result;
+        if (result == null || result.Canceled || result.Data is not AddCarResultAction action)
+        {
+            return;
+        }
+
+        switch (action)
+        {
+            case AddCarResultAction.EditNewManualCar:
+                var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
+                await EditCar(newCar);
+                break;
+            case AddCarResultAction.Refresh:
+                await RefreshData();
+                break;
+        }
+    }
+
+    private async Task EditCar(EditableItem<CarBasicConfiguration> car)
+    {
+        var parameters = new DialogParameters<CarEditDialog>
+        {
+            { x => x.Car, car },
+        };
+
+        var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarSettingsTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await RefreshData();
+        }
+    }
+
+    private async Task DeleteCar(EditableItem<CarBasicConfiguration> car)
+    {
+        var carName = car.Item.Name;
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, carName },
+            // Require the user to retype the car name before deleting, but only when there is a name to type.
+            { x => x.ConfirmationName, string.IsNullOrEmpty(carName) ? null : carName },
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.CarSettingsDeleteCarTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result == null || result.Canceled)
+        {
+            return;
+        }
+
+        // Deleting a car can take a while (large value/meter log tables), so show an overlay with progress that
+        // is polled from the server while the delete request runs.
+        var cancellationTokenSource = new CancellationTokenSource();
+        _deletionProgress = new DtoCarDeletionProgress { Value = 0, MaxValue = 7, CurrentStep = CarDeletionStep.ChargingProcesses };
+        await InvokeAsync(StateHasChanged);
+        _ = RefreshDeletionProgressForever(cancellationTokenSource.Token);
+        try
+        {
+            await CarSettingsService.DeleteCar(car.Item.Id);
+        }
+        finally
+        {
+            await cancellationTokenSource.CancelAsync();
+            _deletionProgress = null;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        await RefreshData();
+    }
+
+    private async Task RefreshDeletionProgressForever(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                var progress = await CarSettingsService.GetCarDeletionProgress();
+                // Keep the last known progress visible if the server briefly reports nothing (start/end race).
+                if (progress != null)
+                {
+                    _deletionProgress = progress;
+                    await InvokeAsync(StateHasChanged);
+                }
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    private string GetDeletionStepText(CarDeletionStep step) => step switch
+    {
+        CarDeletionStep.ChargingProcesses => T(TranslationKeys.CarDeletionStepChargingProcesses),
+        CarDeletionStep.HandledCharges => T(TranslationKeys.CarDeletionStepHandledCharges),
+        CarDeletionStep.CarValueLogs => T(TranslationKeys.CarDeletionStepCarValueLogs),
+        CarDeletionStep.MeterValues => T(TranslationKeys.CarDeletionStepMeterValues),
+        CarDeletionStep.ChargingTargets => T(TranslationKeys.CarDeletionStepChargingTargets),
+        CarDeletionStep.ConnectorAssignments => T(TranslationKeys.CarDeletionStepConnectorAssignments),
+        CarDeletionStep.Car => T(TranslationKeys.CarDeletionStepCar),
+        _ => string.Empty,
+    };
+}

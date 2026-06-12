@@ -65,6 +65,12 @@ else if (BackendTokenState != default)
 }
 
 @code {
+    /// <summary>
+    /// Raised whenever the backend token state is (re)evaluated, so a host page (e.g. the setup assistant)
+    /// can react to the connection state - for example to gate navigation until the instance is connected.
+    /// </summary>
+    [Parameter] public EventCallback<TokenState> OnConnectionStateChanged { get; set; }
+
     private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
     private bool _backendLoginIsLoading;
     private string? LoginErrorMessage { get; set; }
@@ -108,6 +114,10 @@ else if (BackendTokenState != default)
     {
         BackendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
         LoggedInUserName = await CloudConnectionCheckService.GetBackendTokenUserName();
+        if (OnConnectionStateChanged.HasDelegate && BackendTokenState != default)
+        {
+            await OnConnectionStateChanged.InvokeAsync(BackendTokenState.Value);
+        }
     }
 
     private async Task Submit()
@@ -130,10 +140,14 @@ else if (BackendTokenState != default)
         StateHasChanged();
     }
 
-    private void FakeLogout()
+    private async Task FakeLogout()
     {
         BackendTokenState = TokenState.NotAvailable;
         LoggedInUserName = default;
+        if (OnConnectionStateChanged.HasDelegate)
+        {
+            await OnConnectionStateChanged.InvokeAsync(BackendTokenState.Value);
+        }
         StateHasChanged();
     }
 

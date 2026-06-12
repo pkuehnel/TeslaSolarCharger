@@ -107,6 +107,12 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
+    /// <summary>
+    /// Relative page (without leading slash) the SmartCar OAuth flow should return to after the browser leaves
+    /// for SmartCar's consent panel, e.g. "CarSettings" or "setup".
+    /// </summary>
+    [Parameter] public string ReturnPage { get; set; } = "CarSettings";
+
     private enum Step { ChooseType, Tesla, SmartCar }
 
     private record CarTypeOption(string Icon, string Title, string Description, string Badge, Color BadgeColor, Func<Task> OnClick);
@@ -210,7 +216,7 @@
         _isBusy = true;
         // Mark the return URL so the Car Settings page can reliably tell a new-SmartCar OAuth return apart
         // from any other redirect, instead of inferring it from the absence of a VIN.
-        var baseUrl = NavigationManager.BaseUri + "CarSettings?" + Constants.QueryParamSmartCarAdded + "=true";
+        var baseUrl = NavigationManager.BaseUri + ReturnPage + "?" + Constants.QueryParamSmartCarAdded + "=true";
         var url = await CarSettingsService.GetSmartCarOAuthRedeemUrlForNewCar(baseUrl);
         if (string.IsNullOrEmpty(url))
         {
