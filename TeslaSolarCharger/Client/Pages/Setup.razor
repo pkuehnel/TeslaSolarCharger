@@ -29,6 +29,7 @@
 @inject ITemplateValueConfigurationService TemplateService
 @inject IChargePriceService ChargePriceService
 @inject IChargingStationsService ChargingStationsService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject IDateTimeProvider DateTimeProvider
 @inject IDialogService DialogService
 
@@ -48,6 +49,7 @@
                     CenterLabels="true"
                     ActiveIndex="_activeStepIndex"
                     ActiveIndexChanged="OnStepChanged"
+                    OnPreviewInteraction="OnStepPreviewInteraction"
                     CurrentStepColor="Color.Primary"
                     CompletedStepColor="Color.Success">
             <ChildContent>
@@ -286,6 +288,10 @@
             await LoadChargePrice();
         }
 
+        // The CloudConnectionLoginComponent only reports the connection state while the cloud step is rendered,
+        // so determine the initial state here to gate step navigation independently of the active step.
+        _cloudConnected = await CloudConnectionCheckService.GetBackendTokenState(true) == TokenState.UpToDate;
+
         _stationRefreshCts = new CancellationTokenSource();
         _ = RefreshStationsLoop(_stationRefreshCts.Token);
     }
@@ -310,6 +316,21 @@
     private void OnCloudConnectionStateChanged(TokenState state)
     {
         _cloudConnected = state == TokenState.UpToDate;
+    }
+
+    private Task OnStepPreviewInteraction(StepperInteractionEventArgs args)
+    {
+        // Block any navigation past the cloud connection step (Next button as well as clicking a step header)
+        // until the instance is connected. Completing or skipping a step moves to the step after it, while
+        // activating (header click) moves to the step itself.
+        var targetStepIndex = args.Action == StepAction.Activate ? args.StepIndex : args.StepIndex + 1;
+        if (!_cloudConnected && targetStepIndex > CloudConnectionStepIndex)
+        {
+            args.Cancel = true;
+            Snackbar.Add(T(TranslationKeys.SetupCloudConnectionRequiredNotification), Severity.Warning);
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task EditStation(DtoChargingStation station)
