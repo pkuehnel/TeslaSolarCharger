@@ -120,7 +120,7 @@ else
         await RefreshChargePriceProgress();
     }
 
-    public async Task RefreshChargePriceProgress()
+    private async Task RefreshChargePriceProgress()
     {
         ChargePriceUpdateProgress = await ChargePriceService.GetChargePriceUpdateProgress();
         await InvokeAsync(StateHasChanged);
@@ -134,7 +134,7 @@ else
             return;
         }
         SubmitIsLoading = true;
-        var cancellationTokenSource = new CancellationTokenSource();
+        using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         _ = RefreshChargePriceUpdateProgressForever(cancellationToken);
         try
@@ -155,13 +155,23 @@ else
 
     private async Task RefreshChargePriceUpdateProgressForever(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            await RefreshChargePriceProgress();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await RefreshChargePriceProgress();
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            }
         }
-        ChargePriceUpdateProgress = null;
+        catch (OperationCanceledException)
+        {
+            // expected on save completion
+        }
+        finally
+        {
+            ChargePriceUpdateProgress = null;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private void AddFixedPrice()

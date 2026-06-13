@@ -235,7 +235,7 @@ else
 
         // Deleting a car can take a while (large value/meter log tables), so show an overlay with progress that
         // is polled from the server while the delete request runs.
-        var cancellationTokenSource = new CancellationTokenSource();
+        using var cancellationTokenSource = new CancellationTokenSource();
         _deletionProgress = new DtoCarDeletionProgress { Value = 0, MaxValue = 7, CurrentStep = CarDeletionStep.ChargingProcesses };
         await InvokeAsync(StateHasChanged);
         _ = RefreshDeletionProgressForever(cancellationTokenSource.Token);
