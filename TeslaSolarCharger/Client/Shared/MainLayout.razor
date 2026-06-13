@@ -85,7 +85,11 @@
         var response = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
         _isFirstRun = response?.IsFirstRun ?? false;
 
-        if (_isFirstRun == true && NavigationManager.Uri.Contains("/setup", StringComparison.OrdinalIgnoreCase) == false)
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        if (_isFirstRun == true
+            && !relativePath.Equals("setup", StringComparison.OrdinalIgnoreCase)
+            && !relativePath.StartsWith("setup/", StringComparison.OrdinalIgnoreCase)
+            && !relativePath.StartsWith("setup?", StringComparison.OrdinalIgnoreCase))
         {
             NavigationManager.NavigateTo("/setup");
         }
