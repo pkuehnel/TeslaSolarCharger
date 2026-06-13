@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -13,21 +15,33 @@ public class SmartCarApiService : ISmartCarApiService
     private readonly ITokenHelper _tokenHelper;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IMemoryCache _memoryCache;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public SmartCarApiService(ILogger<SmartCarApiService> logger,
         ITokenHelper tokenHelper,
         ITeslaSolarChargerContext teslaSolarChargerContext,
-        IServiceScopeFactory serviceScopeFactory)
+        IServiceScopeFactory serviceScopeFactory,
+        IMemoryCache memoryCache,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _tokenHelper = tokenHelper;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _serviceScopeFactory = serviceScopeFactory;
+        _memoryCache = memoryCache;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     // Name given to a freshly created SmartCar car until SmartCar delivers the VIN. Used to decide
     // whether the auto-generated name may be overwritten with the VIN on backfill (a user rename is kept).
     private const string PendingCarName = "New SmartCar";
+
+    // How long after first seeing a VIN-less placeholder we keep polling uncached so the VIN backfills quickly.
+    // After this window we fall back to the normal cached poll, otherwise a placeholder that never receives a
+    // VIN would force an uncached backend call on every cycle forever.
+    private static readonly TimeSpan PlaceholderFastRefreshWindow = TimeSpan.FromMinutes(15);
+    private const string PlaceholderFirstSeenCacheKeyPrefix = "SmartCarPlaceholderFirstSeen_";
 
     public async Task UpdateSmartCarCarTypes(bool forceRefresh = false)
     {
@@ -38,9 +52,20 @@ public class SmartCarApiService : ISmartCarApiService
 
             // While a SmartCar car is still waiting for its VIN (placeholder), poll uncached so the VIN
             // backfills within one cycle of the webhook instead of waiting for the cached state to expire.
-            var hasPendingPlaceholder = dbCars.Any(c => c.CarType == CarType.SmartCar
+            // Only do this for placeholders that are still inside their fast-refresh window (see below) so a
+            // placeholder that never receives a VIN does not force an uncached backend call on every cycle.
+            var pendingPlaceholders = dbCars.Where(c => c.CarType == CarType.SmartCar
                                                         && !string.IsNullOrEmpty(c.SmartCarVehicleId)
                                                         && string.IsNullOrEmpty(c.Vin));
+            var hasPendingPlaceholder = false;
+            foreach (var placeholder in pendingPlaceholders)
+            {
+                // Evaluate every placeholder (do not short circuit) so each one's first-seen time is recorded.
+                if (IsPlaceholderWithinFastRefreshWindow(placeholder.SmartCarVehicleId!))
+                {
+                    hasPendingPlaceholder = true;
+                }
+            }
             var useCache = !forceRefresh && !hasPendingPlaceholder;
 
             var tokens = await _tokenHelper.GetSmartCarTokenStates(useCache).ConfigureAwait(false);
@@ -168,6 +193,27 @@ public class SmartCarApiService : ISmartCarApiService
             _logger.LogError(ex, "Could not get SmartCar token states");
         }
 
+    }
+
+    /// <summary>
+    /// Returns true while the placeholder for <paramref name="smartCarVehicleId"/> is still inside its
+    /// fast-refresh window. The first time a placeholder is seen its timestamp is stored in the (singleton)
+    /// memory cache; from then on the window is measured against that fixed first-seen time. A sliding
+    /// expiration keeps the entry alive only while the placeholder still exists and is polled each cycle, so it
+    /// is cleaned up automatically once the VIN backfills or the car is demoted - and a permanently VIN-less
+    /// placeholder stops forcing uncached refreshes once the window has elapsed.
+    /// </summary>
+    private bool IsPlaceholderWithinFastRefreshWindow(string smartCarVehicleId)
+    {
+        var cacheKey = PlaceholderFirstSeenCacheKeyPrefix + smartCarVehicleId;
+        var firstSeen = _memoryCache.GetOrCreate(cacheKey, entry =>
+        {
+            // Keep alive well beyond the poll interval so reading it each cycle prevents eviction (and re-arming)
+            // while the placeholder exists, but let it expire once we stop checking it.
+            entry.SlidingExpiration = PlaceholderFastRefreshWindow + TimeSpan.FromMinutes(15);
+            return _dateTimeProvider.DateTimeOffSetUtcNow();
+        });
+        return _dateTimeProvider.DateTimeOffSetUtcNow() - firstSeen < PlaceholderFastRefreshWindow;
     }
 
     private static Car CreateSmartCarCar(string smartCarVehicleId, string? vin, List<Car> existingCars)

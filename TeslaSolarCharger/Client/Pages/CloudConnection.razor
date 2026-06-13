@@ -19,7 +19,7 @@
 <h1>@T(TranslationKeys.CloudConnectionTitle)</h1>
 
 <h3>@T(TranslationKeys.CloudConnectionBackendSectionTitle)</h3>
-<CloudConnectionLoginComponent />
+<CloudConnectionLoginComponent OnConnectionStateChanged="OnBackendConnectionStateChanged" />
 
 <h3>@T(TranslationKeys.CloudConnectionTeslaFleetApiSectionTitle)</h3>
 @if (FleetApiTokenState == default)
@@ -89,6 +89,17 @@ else
     {
         BackendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
         FleetApiTokenState = await CloudConnectionCheckService.GetFleetApiTokenState(false);
+    }
+
+    // The embedded login component reports the backend connection state whenever it changes (login/logout), so
+    // keep the page's copy in sync. Otherwise the "Request Token" button stays disabled after a fresh login
+    // until the page is reloaded. A backend login also changes the Fleet API token state (e.g. from
+    // MissingPrecondition), so refresh that too.
+    private async Task OnBackendConnectionStateChanged(TokenState state)
+    {
+        BackendTokenState = state;
+        FleetApiTokenState = await CloudConnectionCheckService.GetFleetApiTokenState(false);
+        StateHasChanged();
     }
 
     private async Task GenerateFleetApiToken()

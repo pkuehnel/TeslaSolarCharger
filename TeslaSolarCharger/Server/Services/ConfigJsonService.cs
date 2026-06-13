@@ -238,7 +238,9 @@ public class ConfigJsonService(
         logger.LogTrace("Saved car {carId} to database", carId);
         if (isNewCar)
         {
-            await AddCarsToSettings(databaseCar.Id).ConfigureAwait(false);
+            //Reload all cars (not just the new one): passing a specific car id makes GetCars filter to that
+            //single car, which would replace settings.Cars and drop every other car from the in memory state.
+            await AddCarsToSettings(null).ConfigureAwait(false);
         }
         else
         {

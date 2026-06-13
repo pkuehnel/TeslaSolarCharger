@@ -269,8 +269,13 @@ else
                 }
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
+                break;
+            }
+            catch
+            {
+                // Stop polling on an unexpected error instead of leaving an orphaned background loop running.
                 break;
             }
         }
