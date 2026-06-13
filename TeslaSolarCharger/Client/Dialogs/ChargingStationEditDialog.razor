@@ -99,13 +99,26 @@
     private async Task Submit()
     {
         if (_chargingStationConnectors == null) return;
-        _isSaving = true;
 
+        // Validate every connector up front (FluentValidation) and abort before saving anything if any is
+        // invalid, so a bad value is shown inline instead of being half-saved.
+        if (_chargingStationConnectors.Any(connector => !connector.EditContext.Validate()))
+        {
+            return;
+        }
+
+        _isSaving = true;
         try
         {
+            // Stop at the first failing connector (its error is surfaced by the service) so we don't claim
+            // success when only some connectors were saved.
             foreach (var connector in _chargingStationConnectors)
             {
-                await ChargingStationsService.UpdateChargingStationConnector(connector.Item);
+                var success = await ChargingStationsService.UpdateChargingStationConnector(connector.Item);
+                if (!success)
+                {
+                    return;
+                }
             }
             Snackbar.Add(TC(TranslationKeys.ChargingStationConnectorSaved), Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

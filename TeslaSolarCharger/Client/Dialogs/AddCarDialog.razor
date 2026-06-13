@@ -45,9 +45,20 @@
             }
             else if (_step == Step.Tesla)
             {
-                @if (_fleetApiTokenState == null)
+                @if (_isLoadingTeslaState)
                 {
                     <LoadingSpinnerComponent />
+                }
+                else if (_fleetApiTokenState == null)
+                {
+                    @* The token state could not be loaded (e.g. a transient API error). Offer a retry instead of
+                       leaving the step stuck on the loading spinner forever. *@
+                    <MudAlert Severity="Severity.Error" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-3">
+                        @T(TranslationKeys.AddCarTeslaStateLoadError)
+                    </MudAlert>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadTeslaState" Disabled="_isBusy">
+                        @T(TranslationKeys.AddCarRetryButton)
+                    </MudButton>
                 }
                 else if (_fleetApiTokenState == TokenState.MissingPrecondition)
                 {
@@ -130,6 +141,8 @@
 
     private Step _step = Step.ChooseType;
     private TokenState? _fleetApiTokenState;
+    private bool _isLoadingTeslaState;
+    private bool _teslaStateLoaded;
     private bool _isBusy;
 
     private List<DtoSmartCarCompatibleVehicle>? _compatibleVehicles;
@@ -172,10 +185,22 @@
     private async Task ChooseTesla()
     {
         _step = Step.Tesla;
-        if (_fleetApiTokenState == null)
+        // Only load once on entering the step; a failed load is retried explicitly via the retry button so we
+        // never re-trigger the request on every render.
+        if (!_teslaStateLoaded)
         {
-            _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+            await LoadTeslaState();
         }
+    }
+
+    private async Task LoadTeslaState()
+    {
+        _isLoadingTeslaState = true;
+        // null means the state could not be loaded (the service surfaces the error via snackbar); the UI then
+        // shows an error with a retry button instead of an indefinite spinner.
+        _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+        _teslaStateLoaded = _fleetApiTokenState != null;
+        _isLoadingTeslaState = false;
     }
 
     private async Task ChooseSmartCar()

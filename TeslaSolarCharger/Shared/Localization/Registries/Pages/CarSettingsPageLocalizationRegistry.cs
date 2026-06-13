@@ -302,6 +302,14 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Could not generate the Tesla login URL. Please try again."),
             new TextLocalizationTranslation(LanguageCodes.German, "Die Tesla-Anmelde-URL konnte nicht erzeugt werden. Bitte versuchen Sie es erneut."));
 
+        Register(TranslationKeys.AddCarTeslaStateLoadError,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load the Tesla connection state. Please try again."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Tesla-Verbindungsstatus konnte nicht geladen werden. Bitte versuchen Sie es erneut."));
+
+        Register(TranslationKeys.AddCarRetryButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Retry"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erneut versuchen"));
+
         Register(TranslationKeys.CarOverviewTeslaTokenExpired,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla connection expired – reconnect"),
             new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Verbindung abgelaufen – neu verbinden"));

@@ -254,6 +254,9 @@
 
     // Index of the cloud connection step in the stepper. Used to gate the Next button on that step.
     private const int CloudConnectionStepIndex = 1;
+    // Index of the charging stations step. The station list is only polled while this step is active so we do
+    // not hammer the server (one request per station every few seconds) for the whole setup session.
+    private const int ChargingStationsStepIndex = 6;
 
     protected override async Task OnInitializedAsync()
     {
@@ -424,8 +427,13 @@
         {
             try
             {
-                await RefreshStationData();
-                await InvokeAsync(StateHasChanged);
+                // Only poll while the user is on the charging stations step; on every other step the station
+                // list is not shown, so refreshing it just wastes requests and re-renders.
+                if (_activeStepIndex == ChargingStationsStepIndex)
+                {
+                    await RefreshStationData();
+                    await InvokeAsync(StateHasChanged);
+                }
                 await Task.Delay(3000, ct);
             }
             catch (OperationCanceledException)
@@ -452,6 +460,14 @@
     private async Task OnStepChanged(int stepIndex)
     {
         _activeStepIndex = stepIndex;
+
+        // Load the station list right away when entering the charging stations step instead of waiting for the
+        // next poll tick.
+        if (stepIndex == ChargingStationsStepIndex)
+        {
+            await RefreshStationData();
+        }
+
         if (_dtoBaseConfiguration == null) return;
 
         // Reflect the new step in the action bar immediately, without waiting for the cache update.

@@ -129,6 +129,12 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public EditableItem<CarBasicConfiguration> Car { get; set; } = default!;
 
+    /// <summary>
+    /// Relative page (without leading slash) the SmartCar OAuth flow should return to, e.g. "CarSettings" or
+    /// "setup". Keeps the user on the page the dialog was opened from instead of always landing on Car Settings.
+    /// </summary>
+    [Parameter] public string ReturnPage { get; set; } = "CarSettings";
+
     private EditFormComponent<CarBasicConfiguration>? _editForm;
     private bool _isSaving;
 
@@ -140,10 +146,17 @@
 
     private async Task Submit()
     {
+        // Run client-side (FluentValidation) validation before hitting the server so invalid values are shown
+        // inline instead of coming back as a generic server error.
+        if (!Car.EditContext.Validate())
+        {
+            return;
+        }
+
         _isSaving = true;
         var result = await CarSettingsService.UpdateCarBasicConfiguration(Car.Item.Id, Car.Item);
         _isSaving = false;
-        
+
         if (result)
         {
             MudDialog.Close(DialogResult.Ok(true));
@@ -205,7 +218,7 @@
             return;
         }
 
-        var baseUrl = NavigationManager.BaseUri + "CarSettings?" + Constants.QueryParamVin + "=" + Uri.EscapeDataString(Car.Item.Vin);
+        var baseUrl = NavigationManager.BaseUri + ReturnPage + "?" + Constants.QueryParamVin + "=" + Uri.EscapeDataString(Car.Item.Vin);
         var url = await CarSettingsService.GetSmartCarOAuthRedeemUrl(baseUrl, Car.Item.Vin);
         if (!string.IsNullOrEmpty(url))
         {

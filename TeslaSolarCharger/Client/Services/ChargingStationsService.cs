@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Client.Helper.Contracts;
+﻿using MudBlazor;
+using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 
@@ -8,11 +9,13 @@ public class ChargingStationsService : IChargingStationsService
 {
     private readonly ILogger<ChargingStationsService> _logger;
     private readonly IHttpClientHelper _httpClientHelper;
+    private readonly ISnackbar _snackbar;
 
-    public ChargingStationsService(ILogger<ChargingStationsService> logger, IHttpClientHelper httpClientHelper)
+    public ChargingStationsService(ILogger<ChargingStationsService> logger, IHttpClientHelper httpClientHelper, ISnackbar snackbar)
     {
         _logger = logger;
         _httpClientHelper = httpClientHelper;
+        _snackbar = snackbar;
     }
 
     public async Task<List<DtoChargingStation>?> GetChargingStations()
@@ -29,10 +32,16 @@ public class ChargingStationsService : IChargingStationsService
         return response;
     }
 
-    public async Task UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
+    public async Task<bool> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
     {
         _logger.LogTrace("{method}()", nameof(UpdateChargingStationConnector));
-        await _httpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/ChargingStations/UpdateChargingStationConnector", chargingStationConnector);
+        var result = await _httpClientHelper.SendPostRequestAsync<object>("api/ChargingStations/UpdateChargingStationConnector", chargingStationConnector);
+        if (result.HasError)
+        {
+            _snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
+            return false;
+        }
+        return true;
     }
 
     public async Task DeleteChargingStation(int chargingStationId)

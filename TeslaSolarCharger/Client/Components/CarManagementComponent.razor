@@ -204,6 +204,7 @@ else
         var parameters = new DialogParameters<CarEditDialog>
         {
             { x => x.Car, car },
+            { x => x.ReturnPage, ReturnPage },
         };
 
         var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarsTitle), parameters);

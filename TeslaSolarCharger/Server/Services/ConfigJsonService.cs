@@ -285,17 +285,21 @@ public class ConfigJsonService(
 
         // Remove every row that references the car before deleting the car itself, otherwise the foreign key
         // constraints (most of which are non-cascading) would block the delete. Children are removed before
-        // their parents so no constraint is violated at any step. Everything runs in a single transaction so a
-        // failure midway leaves the car and its data intact instead of half-deleted.
-        // The big log tables (CarValueLogs, MeterValues) can take a while, so progress is published to the
-        // settings after each step and polled by the UI (see GetCarDeletionProgress).
+        // their parents so no constraint is violated at any step.
+        // This intentionally does NOT wrap everything in a single transaction: the big log tables (CarValueLogs,
+        // MeterValues) can hold millions of rows, and SQLite takes a database-wide write lock for the whole
+        // duration of a transaction. That would block the charging loop (and every other writer) for the entire,
+        // potentially long running, delete. Instead each step commits on its own and the large tables are deleted
+        // in batches, so the write lock is released between batches. A failure midway therefore leaves a partially
+        // deleted car, but the delete is idempotent: re-running it simply removes whatever is left, and the
+        // child-before-parent order keeps the database consistent at every committed step.
+        // Progress is published to the settings after each step and polled by the UI (see GetCarDeletionProgress).
         const int totalSteps = 7;
+        const int batchSize = 10_000;
         var progress = new DtoCarDeletionProgress { Value = 0, MaxValue = totalSteps, CurrentStep = CarDeletionStep.ChargingProcesses, };
         settings.CarDeletionProgress = progress;
         try
         {
-            await using var transaction = await teslaSolarChargerContext.Database.BeginTransactionAsync().ConfigureAwait(false);
-
             // Charging processes and their details.
             // A charging process can belong to both a car and an OCPP charging connector (a car charging at a
             // charging station). Those linked to a connector are charging station history and must be kept - only
@@ -324,11 +328,29 @@ public class ConfigJsonService(
                 .ExecuteDeleteAsync().ConfigureAwait(false);
             progress.Value = 2;
 
-            // Logged car values (potentially a very large table).
+            // Logged car values (potentially a very large table). Deleted in batches so SQLite's write lock is
+            // released between batches instead of being held for one huge delete statement.
             progress.CurrentStep = CarDeletionStep.CarValueLogs;
-            await teslaSolarChargerContext.CarValueLogs
-                .Where(cvl => cvl.CarId == carId)
-                .ExecuteDeleteAsync().ConfigureAwait(false);
+            while (true)
+            {
+                var batchIds = await teslaSolarChargerContext.CarValueLogs
+                    .Where(cvl => cvl.CarId == carId)
+                    .OrderBy(cvl => cvl.Id)
+                    .Select(cvl => cvl.Id)
+                    .Take(batchSize)
+                    .ToListAsync().ConfigureAwait(false);
+                if (batchIds.Count == 0)
+                {
+                    break;
+                }
+                await teslaSolarChargerContext.CarValueLogs
+                    .Where(cvl => batchIds.Contains(cvl.Id))
+                    .ExecuteDeleteAsync().ConfigureAwait(false);
+                if (batchIds.Count < batchSize)
+                {
+                    break;
+                }
+            }
             progress.Value = 3;
 
             // Meter values (potentially a very large table).
@@ -336,10 +358,28 @@ public class ConfigJsonService(
             // CK_MeterValue_CarId_Conditional check constraint ties a non-null CarId to MeterValueKind.Car, and
             // connector meter values are stored with CarId == null. So every meter value with this CarId is
             // car-only and is safe to delete (charging station meter values are not affected).
+            // Deleted in batches for the same reason as the car value logs above.
             progress.CurrentStep = CarDeletionStep.MeterValues;
-            await teslaSolarChargerContext.MeterValues
-                .Where(mv => mv.CarId == carId)
-                .ExecuteDeleteAsync().ConfigureAwait(false);
+            while (true)
+            {
+                var batchIds = await teslaSolarChargerContext.MeterValues
+                    .Where(mv => mv.CarId == carId)
+                    .OrderBy(mv => mv.Id)
+                    .Select(mv => mv.Id)
+                    .Take(batchSize)
+                    .ToListAsync().ConfigureAwait(false);
+                if (batchIds.Count == 0)
+                {
+                    break;
+                }
+                await teslaSolarChargerContext.MeterValues
+                    .Where(mv => batchIds.Contains(mv.Id))
+                    .ExecuteDeleteAsync().ConfigureAwait(false);
+                if (batchIds.Count < batchSize)
+                {
+                    break;
+                }
+            }
             progress.Value = 4;
 
             // Charging targets.
@@ -362,7 +402,6 @@ public class ConfigJsonService(
                 .Where(c => c.Id == carId)
                 .ExecuteDeleteAsync().ConfigureAwait(false);
 
-            await transaction.CommitAsync().ConfigureAwait(false);
             progress.Value = totalSteps;
 
             // Drop the car from the in-memory state so the charging loop and load point handling stop referencing it.

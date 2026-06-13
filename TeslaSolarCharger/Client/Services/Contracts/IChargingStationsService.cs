@@ -6,7 +6,7 @@ public interface IChargingStationsService
 {
     Task<List<DtoChargingStation>?> GetChargingStations();
     Task<List<DtoChargingStationConnector>?> GetChargingStationConnectors(int chargingStationId);
-    Task UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector);
+    Task<bool> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector);
     Task DeleteChargingStation(int chargingStationId);
     Task<Dictionary<int, string>?> GetCarOptions();
 }

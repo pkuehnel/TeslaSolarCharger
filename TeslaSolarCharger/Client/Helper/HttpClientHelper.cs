@@ -71,12 +71,6 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
             var result = await SendRequestCoreAsync<T>(method, url, content, cancellationToken);
             if (result.HasError)
             {
-                // Silently return if it was a startup intercept (the page is already reloading)
-                if (result.ErrorMessage == null && result.ValidationProblemDetails == null)
-                {
-                    return default;
-                }
-
                 snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
                 return default;
             }
