@@ -38,15 +38,15 @@ public class MqttResultConfigurationPropertyLocalization : PropertyLocalizationR
 
         Register(x => x.XmlAttributeHeaderName,
             new PropertyLocalizationTranslation(LanguageCodes.English, "XML Attribute Header Name", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "XML Attribut Header Name", null));
+            new PropertyLocalizationTranslation(LanguageCodes.German, "XML-Attribut Kopfzeilenname", null));
 
         Register(x => x.XmlAttributeHeaderValue,
             new PropertyLocalizationTranslation(LanguageCodes.English, "XML Attribute Header Value", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "XML Attribut Header Wert", null));
+            new PropertyLocalizationTranslation(LanguageCodes.German, "XML-Attribut Kopfzeilenwert", null));
 
         Register(x => x.XmlAttributeValueName,
             new PropertyLocalizationTranslation(LanguageCodes.English, "XML Attribute Value Name", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "XML Attribut Wert Name", null));
+            new PropertyLocalizationTranslation(LanguageCodes.German, "XML-Attribut Wertname", null));
 
         Register(x => x.CorrectionFactor,
             new PropertyLocalizationTranslation(LanguageCodes.English, "Correction Factor", null),

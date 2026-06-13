@@ -8,7 +8,7 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
     {
         Register(TranslationKeys.SetupAssistantTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Setup Assistant"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Einrichtungs-Assistent"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Einrichtungsassistent"));
 
         Register(TranslationKeys.SetupStepWelcome,
             new TextLocalizationTranslation(LanguageCodes.English, "Welcome"),

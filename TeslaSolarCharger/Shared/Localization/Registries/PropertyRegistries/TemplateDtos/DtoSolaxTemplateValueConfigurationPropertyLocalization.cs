@@ -17,9 +17,9 @@ public class DtoSolaxTemplateValueConfigurationPropertyLocalization : PropertyLo
         Register(x => x.Password,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Password",
-                "Password of your solar system (default is your wifi dongle serial number)"),
+                "Password of your solar system (default is your Wi-Fi dongle serial number)"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Passwort",
-                "Passwort Ihres PV-Systems (Standardwert ist die Seriennummer Ihres Wifi-Dongles)"));
+                "Passwort Ihres PV-Systems (Standardwert ist die Seriennummer Ihres WLAN-Dongles)"));
     }
 }

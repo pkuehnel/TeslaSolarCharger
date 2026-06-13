@@ -8,11 +8,11 @@ public class InstallationInformationLocalizationRegistry : TextLocalizationRegis
     {
         Register("Server timezone tooltip",
             new TextLocalizationTranslation(LanguageCodes.English, "This is needed to properly start charging sessions. If this timezone does not match your own timezone, check the set timezone in your docker-compose.yml"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Dies wird benötigt, um Ladesitzungen korrekt zu starten. Wenn diese Zeitzone nicht Ihrer eigenen entspricht, überprüfen Sie die in der docker-compose.yml eingestellte Zeitzone."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Dies wird benötigt, um Ladevorgänge korrekt zu starten. Wenn diese Zeitzone nicht Ihrer eigenen entspricht, überprüfen Sie die in der docker-compose.yml eingestellte Zeitzone."));
 
         Register("Server time tooltip",
             new TextLocalizationTranslation(LanguageCodes.English, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Dies wird benötigt, um Ladesitzungen korrekt zu starten. Wenn diese Zeit nicht mit Ihrer aktuellen Zeit übereinstimmt, überprüfen Sie die Serverzeit."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Dies wird benötigt, um Ladevorgänge korrekt zu starten. Wenn diese Zeit nicht mit Ihrer aktuellen Zeit übereinstimmt, überprüfen Sie die Serverzeit."));
 
         Register(TranslationKeys.InstallationInfoServerTimezone,
             new TextLocalizationTranslation(LanguageCodes.English, "Server Timezone"),

@@ -11,7 +11,7 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.German, "Basiskonfiguration"));
 
         Register(TranslationKeys.EMail,
-            new TextLocalizationTranslation(LanguageCodes.English, "EMail"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Email"),
             new TextLocalizationTranslation(LanguageCodes.German, "E-Mail"));
 
         Register(TranslationKeys.Password,
@@ -96,7 +96,7 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
 
         Register(TranslationKeys.MainLayoutUnhandledError,
             new TextLocalizationTranslation(LanguageCodes.English, "An unhandled error has occurred."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Es ist ein Fehler aufgetreten."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ein unbehandelter Fehler ist aufgetreten."));
 
         Register(TranslationKeys.MainLayoutReload,
             new TextLocalizationTranslation(LanguageCodes.English, "Reload"),
@@ -135,11 +135,11 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.German, "Ergebnisse"));
 
         Register(TranslationKeys.RestPvValueUseModbusUrlCreationTool,
-            new TextLocalizationTranslation(LanguageCodes.English, "Use Modbus Url Creation Tool"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Use Modbus URL Creation Tool"),
             new TextLocalizationTranslation(LanguageCodes.German, "Modbus-URL-Erstellungstool verwenden"));
 
         Register(TranslationKeys.RestPvValueModbusUrlCreationToolHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Use this to configure URL for Modbus plugin."),
+            new TextLocalizationTranslation(LanguageCodes.English, "Use this to configure the URL for the Modbus plugin."),
             new TextLocalizationTranslation(LanguageCodes.German, "Verwenden Sie dies, um die URL für das Modbus-Plugin zu konfigurieren."));
 
         Register(TranslationKeys.RestPvValueHeadersTitle,

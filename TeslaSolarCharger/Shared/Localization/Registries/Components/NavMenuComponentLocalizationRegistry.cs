@@ -5,8 +5,8 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
     protected override void Configure()
     {
         Register(TranslationKeys.NavMenuTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Solar Charger"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Solar Charger"));
+            new TextLocalizationTranslation(LanguageCodes.English, "TeslaSolarCharger"),
+            new TextLocalizationTranslation(LanguageCodes.German, "TeslaSolarCharger"));
 
         Register(TranslationKeys.NavMenuToggleLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Navigation menu"),

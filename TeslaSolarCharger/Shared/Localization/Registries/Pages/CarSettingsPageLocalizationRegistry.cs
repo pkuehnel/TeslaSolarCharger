@@ -59,7 +59,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, " und generieren Sie ein Tesla Fleet API Token."));
 
         Register(TranslationKeys.CarSettingsAddNonTeslaButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Add non Tesla"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Add non-Tesla"),
             new TextLocalizationTranslation(LanguageCodes.German, "Nicht-Tesla hinzufügen"));
 
         Register(TranslationKeys.CarSettingsCurrentBelow6AWarningTitle,
@@ -68,7 +68,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsCurrentBelow6AWarningContent,
             new TextLocalizationTranslation(LanguageCodes.English, "The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result in unexpected behavior like the car not charging at all."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Typ-2-Standard besagt, dass ein Mindeststrom unter 6A nicht zulässig ist. Wenn Sie diesen Wert unter 6A einstellen, kann dies zu unerwartetem Verhalten führen, z. B. dass das Auto gar nicht lädt."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Typ-2-Standard besagt, dass ein Mindeststrom unter 6A nicht zulässig ist. Wenn Sie diesen Wert unter 6A einstellen, kann dies zu unerwartetem Verhalten führen, z. B. dass das Fahrzeug gar nicht lädt."));
 
         Register(TranslationKeys.CarSettingsGpsHomeDetectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "GPS Home Detection"),
@@ -88,7 +88,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsTeslaNavHomeDetectionHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Home is detected if the car reports to be at 'Home'."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause wird erkannt, wenn das Auto meldet, 'Zuhause' zu sein."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause wird erkannt, wenn das Fahrzeug meldet, 'Zuhause' zu sein."));
 
         Register(TranslationKeys.CarSettingsTeslaNavWorkDetectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla Nav Work Detection"),
@@ -96,7 +96,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsTeslaNavWorkDetectionHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Home is detected if the car reports to be at 'Work'."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause wird erkannt, wenn das Auto meldet, bei der 'Arbeit' zu sein."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause wird erkannt, wenn das Fahrzeug meldet, bei der 'Arbeit' zu sein."));
 
         Register(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla Nav Favorite Detection"),
@@ -104,7 +104,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsTeslaNavFavoriteDetectionHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Home is detected if the car reports to be at a 'Favorite' location. Note: This might include multiple locations."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause wird erkannt, wenn das Auto meldet, an einem 'Favoriten'-Ort zu sein. Hinweis: Dies kann mehrere Orte umfassen."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause wird erkannt, wenn das Fahrzeug meldet, an einem 'Favoriten'-Ort zu sein. Hinweis: Dies kann mehrere Orte umfassen."));
 
         Register(TranslationKeys.CarSettingsHomeDetectionViaLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Home Detection via"),
@@ -116,7 +116,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsBlePairingHintStart,
             new TextLocalizationTranslation(LanguageCodes.English, "To use BLE commands you need to pair the TSC with your car. See "),
-            new TextLocalizationTranslation(LanguageCodes.German, "Um BLE-Befehle nutzen zu können, müssen Sie TSC mit Ihrem Auto koppeln. Siehe "));
+            new TextLocalizationTranslation(LanguageCodes.German, "Um BLE-Befehle nutzen zu können, müssen Sie TSC mit Ihrem Fahrzeug koppeln. Siehe "));
 
         Register(TranslationKeys.CarSettingsBlePairingLinkText,
             new TextLocalizationTranslation(LanguageCodes.English, "documentation"),
@@ -128,11 +128,11 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsBlePairingNote,
             new TextLocalizationTranslation(LanguageCodes.English, "Note: You need to be close to the car with your phone/key card to approve the pairing request."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Sie müssen sich mit Ihrem Telefon/Ihrer Schlüsselkarte in der Nähe des Autos befinden, um die Kopplungsanfrage zu genehmigen."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Sie müssen sich mit Ihrem Telefon/Ihrer Schlüsselkarte in der Nähe des Fahrzeugs befinden, um die Kopplungsanfrage zu genehmigen."));
 
         Register(TranslationKeys.CarSettingsBlePairButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Pair Car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto koppeln"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug koppeln"));
 
         Register(TranslationKeys.CarSettingsTestBleAccessTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Test BLE Access"),
@@ -156,7 +156,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsTestWakeupHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Click the button below to test if TSC can wake up the car via BLE."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Schaltfläche unten, um zu testen, ob TSC das Auto über BLE aufwecken kann."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Schaltfläche unten, um zu testen, ob TSC das Fahrzeug über BLE aufwecken kann."));
 
         Register(TranslationKeys.CarSettingsWakeUpButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Wake Up"),
@@ -175,28 +175,28 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Aufweckbefehl erfolgreich über BLE gesendet"));
 
         Register(TranslationKeys.CarSettingsSmartCarConnectTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connect to Smart Car (Car License required)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Mit Smart Car verbinden (Fahrzeuglizenz erforderlich)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect to SmartCar (Car License required)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit SmartCar verbinden (Fahrzeuglizenz erforderlich)"));
 
         Register(TranslationKeys.CarSettingsSmartCarDisconnectTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Disconnect from Smart Car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Von Smart Car trennen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Disconnect from SmartCar"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Von SmartCar trennen"));
 
         Register(TranslationKeys.CarSettingsSmartCarVinMissingError,
-            new TextLocalizationTranslation(LanguageCodes.English, "Cannot connect to Smart Car: VIN is missing."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: VIN fehlt."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot connect to SmartCar: VIN is missing."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu SmartCar nicht möglich: VIN fehlt."));
 
         Register(TranslationKeys.CarSettingsSmartCarDisconnectError,
-            new TextLocalizationTranslation(LanguageCodes.English, "Could not disconnect Smart Car: {0}"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Smart Car konnte nicht getrennt werden: {0}"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not disconnect SmartCar: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "SmartCar konnte nicht getrennt werden: {0}"));
 
         Register(TranslationKeys.CarSettingsSmartCarDisconnectSuccess,
-            new TextLocalizationTranslation(LanguageCodes.English, "Smart Car disconnected successfully."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Smart Car erfolgreich getrennt."));
+            new TextLocalizationTranslation(LanguageCodes.English, "SmartCar disconnected successfully."),
+            new TextLocalizationTranslation(LanguageCodes.German, "SmartCar erfolgreich getrennt."));
 
         Register(TranslationKeys.CarSettingsSmartCarUrlMissingError,
-            new TextLocalizationTranslation(LanguageCodes.English, "Could not connect to Smart Car: URL is missing."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu Smart Car nicht möglich: URL fehlt."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not connect to SmartCar: URL is missing."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbindung zu SmartCar nicht möglich: URL fehlt."));
 
         Register(TranslationKeys.CarSettingsAddTeslaFromAccountButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add cars from Tesla account"),
@@ -211,8 +211,8 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge konnten nicht aus Ihrem Tesla-Konto geladen werden: {0}"));
 
         Register(TranslationKeys.CarSettingsSmartCarBillingConfirmTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connect to Smart Car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Mit Smart Car verbinden"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect to SmartCar"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit SmartCar verbinden"));
 
         Register(TranslationKeys.CarSettingsSmartCarBillingConfirmText,
             new TextLocalizationTranslation(LanguageCodes.English, "In the next step you can select one or more vehicles. Any vehicle you select beyond your available car licenses is booked automatically as an additional car license and billed via Stripe (prorated). Do you want to continue?"),
@@ -224,7 +224,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.AddCarDialogTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Add car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto hinzufügen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug hinzufügen"));
 
         Register(TranslationKeys.AddCarTokenInvalidTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla Fleet API Token is not valid."),
@@ -240,11 +240,11 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarSettingsAddCarButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto hinzufügen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug hinzufügen"));
 
         Register(TranslationKeys.AddCarChooseTypeHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Choose how you want to connect your car."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Wählen Sie, wie Sie Ihr Auto verbinden möchten."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Wählen Sie, wie Sie Ihr Fahrzeug verbinden möchten."));
 
         Register(TranslationKeys.AddCarFreeBadge,
             new TextLocalizationTranslation(LanguageCodes.English, "Free"),
@@ -256,7 +256,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.AddCarManualOptionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Manual car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Manuelles Auto"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Manuelles Fahrzeug"));
 
         Register(TranslationKeys.AddCarManualOptionDescription,
             new TextLocalizationTranslation(LanguageCodes.English, "Control charging without a live data connection. You set the values yourself."),
@@ -271,20 +271,20 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Fügen Sie Teslas aus Ihrem verbundenen Tesla-Konto hinzu und streamen Sie deren Daten über Fleet Telemetry."));
 
         Register(TranslationKeys.AddCarSmartCarOptionTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Other brand (Smart Car)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Andere Marke (Smart Car)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Other brand (SmartCar)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Andere Marke (SmartCar)"));
 
         Register(TranslationKeys.AddCarSmartCarOptionDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connect a supported vehicle via Smart Car. Consumes a car license."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie ein unterstütztes Fahrzeug über Smart Car. Verbraucht eine Fahrzeuglizenz."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect a supported vehicle via SmartCar. Consumes a car license."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie ein unterstütztes Fahrzeug über SmartCar. Verbraucht eine Fahrzeuglizenz."));
 
         Register(TranslationKeys.AddCarTeslaStepHint,
             new TextLocalizationTranslation(LanguageCodes.English, "All cars found in your connected Tesla account will be added. You can remove unwanted cars afterwards."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Alle in Ihrem verbundenen Tesla-Konto gefundenen Autos werden hinzugefügt. Nicht gewünschte Autos können Sie anschließend entfernen."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Alle in Ihrem verbundenen Tesla-Konto gefundenen Fahrzeuge werden hinzugefügt. Nicht gewünschte Fahrzeuge können Sie anschließend entfernen."));
 
         Register(TranslationKeys.AddCarTeslaConnectHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Connect your Tesla account to add your Teslas. You will be redirected to Tesla to log in and your cars will be imported automatically when you return."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie Ihr Tesla-Konto, um Ihre Teslas hinzuzufügen. Sie werden zur Anmeldung zu Tesla weitergeleitet und Ihre Autos werden bei der Rückkehr automatisch importiert."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie Ihr Tesla-Konto, um Ihre Teslas hinzuzufügen. Sie werden zur Anmeldung zu Tesla weitergeleitet und Ihre Fahrzeuge werden bei der Rückkehr automatisch importiert."));
 
         Register(TranslationKeys.AddCarConnectTeslaButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Connect Tesla account"),
@@ -311,16 +311,16 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug suchen"));
 
         Register(TranslationKeys.AddCarSmartCarSearchHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Find your car's make, model and year to confirm it is supported by Smart Car."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Finden Sie Marke, Modell und Baujahr Ihres Autos, um zu bestätigen, dass es von Smart Car unterstützt wird."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Find your car's make, model and year to confirm it is supported by SmartCar."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Finden Sie Marke, Modell und Baujahr Ihres Fahrzeugs, um zu bestätigen, dass es von SmartCar unterstützt wird."));
 
         Register(TranslationKeys.AddCarSmartCarNotListed,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can't find your car? It is likely not supported by Smart Car."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Auto nicht gefunden? Es wird wahrscheinlich nicht von Smart Car unterstützt."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Can't find your car? It is likely not supported by SmartCar."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Fahrzeug nicht gefunden? Es wird wahrscheinlich nicht von SmartCar unterstützt."));
 
         Register(TranslationKeys.AddCarSmartCarConnectButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connect via Smart Car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Über Smart Car verbinden"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect via SmartCar"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Über SmartCar verbinden"));
 
         Register(TranslationKeys.AddCarBackButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Back"),
@@ -344,7 +344,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.HomeDetectionViaLocatedAtFavorite,
             new TextLocalizationTranslation(LanguageCodes.English, "At Favorite"),
-            new TextLocalizationTranslation(LanguageCodes.German, "An Favoriten"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Am Favoriten-Ort"));
 
         Register(TranslationKeys.CarOverviewManaged,
             new TextLocalizationTranslation(LanguageCodes.English, "Managed"),
@@ -392,6 +392,6 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarEditTeslaSpecific,
             new TextLocalizationTranslation(LanguageCodes.English, "Tesla Specific"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Spezifisch"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-spezifisch"));
     }
 }

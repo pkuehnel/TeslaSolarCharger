@@ -23,7 +23,7 @@ public class ChargingStationsPageLocalizationRegistry : TextLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Zum Verbinden setzen Sie die OCPP-URL wie folgt: <code>ws://IHRE-TSC-IP:7190/api/Ocpp/</code> gefolgt von einer Ladepunkt-ID."));
 
         Register(TranslationKeys.ChargingStationsHowToConnectNote,
-            new TextLocalizationTranslation(LanguageCodes.English, "Note: Many charging stations automatically add a charging point ID to the url, just make sure, that the resulting URL looks similar to the following example. Mind the single <code>/</code> after <code>Ocpp</code>"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Note: Many charging stations automatically add a charging point ID to the URL, just make sure that the resulting URL looks similar to the following example. Mind the single <code>/</code> after <code>Ocpp</code>"),
             new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Viele Ladestationen fügen automatisch eine Ladepunkt-ID zur URL hinzu. Achten Sie darauf, dass die resultierende URL wie im folgenden Beispiel aussieht. Beachten Sie den einzelnen <code>/</code> nach <code>Ocpp</code>"));
 
         Register(TranslationKeys.ChargingStationsHowToConnectExample,
@@ -52,7 +52,7 @@ public class ChargingStationsPageLocalizationRegistry : TextLocalizationRegistry
 
         Register(TranslationKeys.ChargingStationOverviewConnectors,
             new TextLocalizationTranslation(LanguageCodes.English, "Connectors"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkte"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschlüsse"));
 
         Register(TranslationKeys.ChargingStationOverviewPhaseSwitching,
             new TextLocalizationTranslation(LanguageCodes.English, "Phase Switching"),
@@ -68,6 +68,6 @@ public class ChargingStationsPageLocalizationRegistry : TextLocalizationRegistry
 
         Register(TranslationKeys.ChargingStationEditConnectors,
             new TextLocalizationTranslation(LanguageCodes.English, "Connectors"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkte"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschlüsse"));
     }
 }

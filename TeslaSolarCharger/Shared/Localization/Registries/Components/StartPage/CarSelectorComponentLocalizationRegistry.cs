@@ -8,6 +8,6 @@ public class CarSelectorComponentLocalizationRegistry : TextLocalizationRegistry
     {
         Register(TranslationKeys.CarSelectorConnectedCarLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Connected car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Verbundenes Auto"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbundenes Fahrzeug"));
     }
 }

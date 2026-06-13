@@ -32,6 +32,6 @@ public class HiddenErrorsComponentLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.HiddenErrorsOccurrenceCount,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} occurred {1} time(s)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1} mal auf"));
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1}-mal auf"));
     }
 }

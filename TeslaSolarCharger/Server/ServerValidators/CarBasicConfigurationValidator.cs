@@ -23,7 +23,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
             if (isTeslaMateDataSource)
             {
                 RuleFor(x => x.UseFleetTelemetry).Equal(false)
-                    .WithMessage("As TeslaMate is selected as DataSource in BaseConfiguration you can not enable Fleet Telemetry");
+                    .WithMessage("As TeslaMate is selected as data source in the Base Configuration, you cannot enable Fleet Telemetry.");
             }
             RuleFor(x => x.UseBle)
                 .MustAsync(async (_, useBle, context, _) =>
@@ -59,7 +59,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                 {
                     RuleFor(x => x.HomeDetectionVia)
                         .NotEqual(HomeDetectionVia.GpsLocation)
-                        .WithMessage("GPS location can not be used for home detection if tracking relevant fields are not enabled.");
+                        .WithMessage("GPS location cannot be used for home detection if tracking relevant fields are not enabled.");
                 });
 
             });

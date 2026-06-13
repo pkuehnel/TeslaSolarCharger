@@ -46,15 +46,15 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
 
         Register(TranslationKeys.ValueSourceConfigAddHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Add Header"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Header hinzufügen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Kopfzeile hinzufügen"));
 
         Register(TranslationKeys.ValueSourceConfigHeaders,
             new TextLocalizationTranslation(LanguageCodes.English, "Headers"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Header"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Kopfzeilen"));
 
         Register(TranslationKeys.ValueSourceConfigTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} Value Configuration"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} Wertkonfiguration"));
+            new TextLocalizationTranslation(LanguageCodes.German, "{0}-Wertkonfiguration"));
 
         Register(TranslationKeys.ValueSourceConfigDeleteConfirm,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete {0} Configuration"),
@@ -93,7 +93,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Werttyp"));
 
         Register(TranslationKeys.ValueSourceConfigEndianess,
-            new TextLocalizationTranslation(LanguageCodes.English, "Endianess"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Endianness"),
             new TextLocalizationTranslation(LanguageCodes.German, "Byte-Reihenfolge"));
 
         Register(TranslationKeys.ValueSourceConfigHttpMethod,
@@ -105,7 +105,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Typ"));
 
         Register(TranslationKeys.ValueSourceConfigFormNull,
-            new TextLocalizationTranslation(LanguageCodes.English, "Config form is null, can not save values"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Config form is null, cannot save values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsformular ist null, Werte können nicht gespeichert werden"));
 
         Register(TranslationKeys.ValueSourceConfigConfigNull,
@@ -145,8 +145,8 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsvalidierung fehlgeschlagen"));
 
         Register(TranslationKeys.ModbusUrlUnitIdentifier,
-            new TextLocalizationTranslation(LanguageCodes.English, "Unit Identifier"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Einheiten-ID"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Unit ID"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Unit-ID"));
 
         Register(TranslationKeys.ModbusUrlRegisterType,
             new TextLocalizationTranslation(LanguageCodes.English, "Register Type"),
@@ -189,7 +189,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Ergebnistyp"));
 
         Register(TranslationKeys.NodePatternJsonPattern,
-            new TextLocalizationTranslation(LanguageCodes.English, "{0} Json Pattern"),
+            new TextLocalizationTranslation(LanguageCodes.English, "{0} JSON Pattern"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} JSON-Muster"));
 
         Register(TranslationKeys.NodePatternXmlPattern,

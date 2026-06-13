@@ -20,19 +20,19 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.SolarValueSourcesSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Solar value sources"),
-            new TextLocalizationTranslation(LanguageCodes.German, "PV-Werte Quellen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Quellen für PV-Werte"));
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Home Geofence"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zuhause Bereich"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Home-Geofence"));
 
         Register(TranslationKeys.LocationUpdateInfoText,
             new TextLocalizationTranslation(LanguageCodes.English, "To update the location, click the save button on the bottom of the page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Um den Standort zu aktualisieren, klicken Sie auf die Schaltfläche zum Speichern am unteren Rand der Seite"));
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "The location is required to detect if an API connected car is at home and to predict the weather."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Standort ist notwendig um zu erkennen, ob Fahrzeuge zu Hause sind und um das Wetter vorherzusagen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "The location is required to detect if an API-connected car is at home and to predict the weather."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Standort ist notwendig, um zu erkennen, ob Fahrzeuge zu Hause sind und um das Wetter vorherzusagen."));
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceMapHandlingHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Click on the map to select your home geofence. Within that area TSC will regulate the charging power."),
@@ -47,8 +47,8 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.German, "So richten Sie Telegram ein"));
 
         Register(TranslationKeys.BaseConfigurationTelegramBotNote,
-            new TextLocalizationTranslation(LanguageCodes.English, "Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Der Telegram-Bot sendet aktuell nur Nachrichten, wenn etwas nicht funktioniert. Z. B. wenn das Auto nicht auf Befehle reagiert oder Solarleistungswerte nicht aktualisiert werden können ..."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Note: The Telegram bot for now only sends messages if something is not working. E.g. the car does not respond to commands or solar power values cannot be refreshed ..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Der Telegram-Bot sendet aktuell nur Nachrichten, wenn etwas nicht funktioniert. Z. B. wenn das Fahrzeug nicht auf Befehle reagiert oder Solarleistungswerte nicht aktualisiert werden können ..."));
 
         Register(TranslationKeys.BaseConfigurationSendTestMessageButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Send test message"),
