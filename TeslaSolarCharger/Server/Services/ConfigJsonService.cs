@@ -226,6 +226,14 @@ public class ConfigJsonService(
             databaseCar.MaximumSoc = 100;
             teslaSolarChargerContext.Cars.Add(databaseCar);
         }
+        else if (!carBasicConfiguration.ShouldBeManaged)
+        {
+            //An unmanaged car must not stay in any charging connector's allowed cars as it can not be unselected in the UI anymore.
+            var staleAllowedCars = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                .Where(ac => ac.CarId == carId)
+                .ToListAsync().ConfigureAwait(false);
+            teslaSolarChargerContext.ChargingStationConnectorAllowedCars.RemoveRange(staleAllowedCars);
+        }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         logger.LogTrace("Saved car {carId} to database", carId);
         if (isNewCar)
