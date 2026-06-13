@@ -21,8 +21,8 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
 
         Register(TranslationKeys.CarsTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Cars"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge"));
 
         Register(TranslationKeys.ChargeCostsListTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),
