@@ -59,12 +59,12 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>($"api/Config/DeleteCar?carId={id}");
     }
 
-    public async Task<DtoCarDeletionProgress?> GetCarDeletionProgress()
+    public async Task<DtoCarDeletionProgress?> GetCarDeletionProgress(int id)
     {
-        logger.LogTrace("{method}()", nameof(GetCarDeletionProgress));
+        logger.LogTrace("{method}({id})", nameof(GetCarDeletionProgress), id);
         // Use the non-snackbar variant: while no deletion runs the server returns null, which the helper reports
         // as an error. As this is polled every second, only log it instead of spamming error snackbars.
-        var result = await httpClientHelper.SendGetRequestAsync<DtoCarDeletionProgress?>("api/Config/GetCarDeletionProgress");
+        var result = await httpClientHelper.SendGetRequestAsync<DtoCarDeletionProgress?>($"api/Config/GetCarDeletionProgress?carId={id}");
         if (result.HasError)
         {
             logger.LogTrace("Could not get car deletion progress: {errorMessage}", result.ErrorMessage);

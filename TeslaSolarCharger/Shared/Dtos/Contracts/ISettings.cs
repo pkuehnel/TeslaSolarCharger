@@ -23,7 +23,9 @@ public interface ISettings
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
     bool IsStartupCompleted { get; set; }
     DtoProgress? ChargePricesUpdateProgress { get; set; }
-    DtoCarDeletionProgress? CarDeletionProgress { get; set; }
+    //Keyed by the id of the car currently being deleted, so concurrent deletions (e.g. multiple browser tabs)
+    //do not clobber each other's progress. An entry exists only while that car's deletion is running.
+    ConcurrentDictionary<int, DtoCarDeletionProgress> CarDeletionProgresses { get; set; }
     DateTimeOffset? StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
     bool IsPreRelease { get; set; }

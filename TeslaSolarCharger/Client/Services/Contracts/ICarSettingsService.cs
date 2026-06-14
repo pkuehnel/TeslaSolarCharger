@@ -10,7 +10,7 @@ public interface ICarSettingsService
     Task<DtoCarLicenseInfo?> GetFleetApiLicenseInfo();
     Task<bool> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration);
     Task DeleteCar(int id);
-    Task<DtoCarDeletionProgress?> GetCarDeletionProgress();
+    Task<DtoCarDeletionProgress?> GetCarDeletionProgress(int id);
     Task<TokenState?> GetFleetApiTokenState();
     Task<DtoBleCommandResult?> PairKey(string vin);
     Task<DtoBleCommandResult?> SetAmp(string vin, int amps);

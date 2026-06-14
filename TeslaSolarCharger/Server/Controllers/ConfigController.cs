@@ -87,7 +87,9 @@ namespace TeslaSolarCharger.Server.Controllers
             // Set the progress synchronously here so the very first poll already sees a running deletion (closing
             // the race where the background task has not started yet). The background task always clears it again
             // in its finally - even if DeleteCar returns early (car not found) or throws.
-            settings.CarDeletionProgress = new DtoCarDeletionProgress
+            // Progress is keyed by car id so deleting several cars (e.g. from multiple browser tabs) does not
+            // clobber each other's progress.
+            settings.CarDeletionProgresses[carId] = new DtoCarDeletionProgress
             {
                 Value = 0,
                 MaxValue = 7,
@@ -107,20 +109,21 @@ namespace TeslaSolarCharger.Server.Controllers
                 }
                 finally
                 {
-                    settings.CarDeletionProgress = null;
+                    settings.CarDeletionProgresses.TryRemove(carId, out _);
                 }
             });
             return Ok();
         }
 
         /// <summary>
-        /// Get the progress of the currently running car deletion (or null if no deletion is running).
-        /// Polled by the UI to show what is being deleted at the moment.
+        /// Get the progress of the currently running deletion of the given car (or null if no deletion is
+        /// running for it). Polled by the UI to show what is being deleted at the moment.
         /// </summary>
+        /// <param name="carId">Car Id whose deletion progress to return</param>
         [HttpGet]
-        public IActionResult GetCarDeletionProgress()
+        public IActionResult GetCarDeletionProgress(int carId)
         {
-            return Ok(settings.CarDeletionProgress);
+            return Ok(settings.CarDeletionProgresses.GetValueOrDefault(carId));
         }
     }
 }

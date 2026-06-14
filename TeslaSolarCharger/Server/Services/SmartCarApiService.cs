@@ -33,8 +33,9 @@ public class SmartCarApiService : ISmartCarApiService
         _dateTimeProvider = dateTimeProvider;
     }
 
-    // Name given to a freshly created SmartCar car until SmartCar delivers the VIN. Used to decide
-    // whether the auto-generated name may be overwritten with the VIN on backfill (a user rename is kept).
+    // Placeholder name used only when SmartCar has not yet reported the make/model of a freshly connected car.
+    // It is replaced by the make/model name on a later sync; a name the user already set is kept (never
+    // overwritten, and the VIN is never used as the name).
     private const string PendingCarName = "New SmartCar";
 
     // How long after first seeing a VIN-less placeholder we keep polling uncached so the VIN backfills quickly.
@@ -103,12 +104,13 @@ public class SmartCarApiService : ISmartCarApiService
                     }
                 }
 
-                // 3. Still nothing: create a placeholder keyed on the vehicle id (VIN may still be null).
+                // 3. Still nothing: create a placeholder keyed on the vehicle id (VIN may still be null). It is
+                //    named from the make/model when SmartCar reports them, otherwise with a placeholder name.
                 if (dbCar == default)
                 {
-                    _logger.LogInformation("Creating new SmartCar car for vehicle id {vehicleId} (VIN {vin})",
-                        connection.SmartCarVehicleId, connection.Vin);
-                    dbCar = CreateSmartCarCar(connection.SmartCarVehicleId, connection.Vin, dbCars);
+                    _logger.LogInformation("Creating new SmartCar car for vehicle id {vehicleId} (VIN {vin}, {make} {model})",
+                        connection.SmartCarVehicleId, connection.Vin, connection.Make, connection.Model);
+                    dbCar = CreateSmartCarCar(connection.SmartCarVehicleId, connection.Vin, connection.Make, connection.Model, dbCars);
                     _teslaSolarChargerContext.Cars.Add(dbCar);
                     dbCars.Add(dbCar);
                     changed = true;
@@ -117,6 +119,18 @@ public class SmartCarApiService : ISmartCarApiService
                 if (dbCar.CarType != CarType.SmartCar)
                 {
                     dbCar.CarType = CarType.SmartCar;
+                    changed = true;
+                }
+
+                // Name a still-unnamed car from its make/model as soon as SmartCar reports them. This also
+                // backfills the name of a placeholder that was created before the make/model were available.
+                // A name the user (or a previous run) already set is never overwritten, and the VIN is never
+                // used as the name.
+                var smartCarName = BuildSmartCarName(connection.Make, connection.Model);
+                if (!string.IsNullOrEmpty(smartCarName)
+                    && (string.IsNullOrEmpty(dbCar.Name) || dbCar.Name == PendingCarName))
+                {
+                    dbCar.Name = smartCarName;
                     changed = true;
                 }
 
@@ -145,11 +159,10 @@ public class SmartCarApiService : ISmartCarApiService
                     }
                     else
                     {
+                        // Only the VIN is backfilled here. The name is intentionally NOT set to the VIN: a car is
+                        // named from its make/model (see above), and an existing name is kept until the user
+                        // changes it.
                         dbCar.Vin = connection.Vin;
-                        if (string.IsNullOrEmpty(dbCar.Name) || dbCar.Name == PendingCarName)
-                        {
-                            dbCar.Name = connection.Vin;
-                        }
                     }
                     changed = true;
                 }
@@ -216,14 +229,24 @@ public class SmartCarApiService : ISmartCarApiService
         return _dateTimeProvider.DateTimeOffSetUtcNow() - firstSeen < PlaceholderFastRefreshWindow;
     }
 
-    private static Car CreateSmartCarCar(string smartCarVehicleId, string? vin, List<Car> existingCars)
+    // Builds a display name from the SmartCar make/model (e.g. "Tesla Model S"). Returns null when neither is
+    // known, so callers can fall back to the placeholder name.
+    private static string? BuildSmartCarName(string? make, string? model)
+    {
+        var name = $"{make} {model}".Trim();
+        return string.IsNullOrEmpty(name) ? null : name;
+    }
+
+    private static Car CreateSmartCarCar(string smartCarVehicleId, string? vin, string? make, string? model, List<Car> existingCars)
     {
         var highestChargingPriority = existingCars.Any() ? existingCars.Max(c => c.ChargingPriority) : 0;
         return new Car
         {
             SmartCarVehicleId = smartCarVehicleId,
             Vin = string.IsNullOrEmpty(vin) ? null : vin,
-            Name = string.IsNullOrEmpty(vin) ? PendingCarName : vin,
+            // Prefer the make/model name; fall back to the placeholder until SmartCar reports them (the name is
+            // then backfilled on a later sync). The VIN is never used as the name.
+            Name = BuildSmartCarName(make, model) ?? PendingCarName,
             CarType = CarType.SmartCar,
             ChargeMode = ChargeModeV2.Auto,
             ShouldBeManaged = false,

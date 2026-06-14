@@ -299,7 +299,7 @@ public class ConfigJsonService(
         const int totalSteps = 7;
         const int batchSize = 10_000;
         var progress = new DtoCarDeletionProgress { Value = 0, MaxValue = totalSteps, CurrentStep = CarDeletionStep.ChargingProcesses, };
-        settings.CarDeletionProgress = progress;
+        settings.CarDeletionProgresses[carId] = progress;
         try
         {
             // Charging processes and their details.
@@ -406,13 +406,17 @@ public class ConfigJsonService(
 
             progress.Value = totalSteps;
 
-            // Drop the car from the in-memory state so the charging loop and load point handling stop referencing it.
-            settings.Cars.RemoveAll(c => c.Id == carId);
-            settings.LatestLoadPointCombinations.RemoveWhere(lp => lp.CarId == carId);
+            // Drop the car from the in-memory state so the charging loop and load point handling stop referencing
+            // it. This runs on a background thread (see ConfigController.DeleteCar), so replace the collection
+            // references atomically instead of mutating them in place: a reader iterating the old collection on the
+            // charging loop thread would otherwise risk a "Collection was modified" exception.
+            settings.Cars = settings.Cars.Where(c => c.Id != carId).ToList();
+            settings.LatestLoadPointCombinations =
+                settings.LatestLoadPointCombinations.Where(lp => lp.CarId != carId).ToHashSet();
         }
         finally
         {
-            settings.CarDeletionProgress = null;
+            settings.CarDeletionProgresses.TryRemove(carId, out _);
         }
     }
 

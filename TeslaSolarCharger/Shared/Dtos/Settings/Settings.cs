@@ -51,7 +51,7 @@ public class Settings : ISettings
     public DateTimeOffset? StartupTime { get; set; }
 
     public DtoProgress? ChargePricesUpdateProgress { get; set; }
-    public DtoCarDeletionProgress? CarDeletionProgress { get; set; }
+    public ConcurrentDictionary<int, DtoCarDeletionProgress> CarDeletionProgresses { get; set; } = new();
     public int LastPvDemoCase { get; set; }
 
     public bool IsPreRelease { get; set; }

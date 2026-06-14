@@ -242,7 +242,7 @@ else
         try
         {
             await CarSettingsService.DeleteCar(car.Item.Id);
-            await PollDeletionUntilComplete();
+            await PollDeletionUntilComplete(car.Item.Id);
         }
         finally
         {
@@ -253,7 +253,7 @@ else
         await RefreshData();
     }
 
-    private async Task PollDeletionUntilComplete()
+    private async Task PollDeletionUntilComplete(int carId)
     {
         // The server sets the progress synchronously before it returns from the delete request, so by the time we
         // poll here the progress is either still set (deletion running) or already cleared (deletion finished).
@@ -264,7 +264,7 @@ else
         var deadline = DateTime.UtcNow.AddHours(1);
         while (DateTime.UtcNow < deadline)
         {
-            var progress = await CarSettingsService.GetCarDeletionProgress();
+            var progress = await CarSettingsService.GetCarDeletionProgress(carId);
             if (progress == null)
             {
                 // Deletion finished (or there was nothing to delete): stop polling.

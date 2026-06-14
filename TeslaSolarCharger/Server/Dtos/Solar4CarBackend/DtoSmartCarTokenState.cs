@@ -18,4 +18,12 @@ public class DtoSmartCarConnectionState
 {
     public string SmartCarVehicleId { get; set; } = string.Empty;
     public string? Vin { get; set; }
+
+    /// <summary>
+    /// Vehicle make and model as reported by SmartCar. Known before the VIN, so a freshly connected car can be
+    /// named immediately (e.g. "Tesla Model S") instead of with a placeholder. May be null if the backend's
+    /// live SmartCar fetch did not return them.
+    /// </summary>
+    public string? Make { get; set; }
+    public string? Model { get; set; }
 }
