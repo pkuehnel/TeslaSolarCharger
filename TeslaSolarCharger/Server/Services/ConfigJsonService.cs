@@ -285,6 +285,18 @@ public class ConfigJsonService(
             return;
         }
 
+        // Stop the charging loop and load point handling from touching this car BEFORE deleting any of its rows.
+        // Otherwise the loop keeps inserting new CarValueLogs/MeterValues for the car during the (potentially long)
+        // batched delete below, and a row inserted after its own delete step would make the final Cars delete fail
+        // on the non-cascading foreign key - which would surface to the user as a silently failed deletion (the
+        // background task swallows the exception and the progress is cleared, so the UI reports success while the
+        // car reappears). Replace the collection references atomically (this runs on a background thread, see
+        // ConfigController.DeleteCar) instead of mutating them in place: a reader iterating the old collection on
+        // the charging loop thread would otherwise risk a "Collection was modified" exception.
+        settings.Cars = settings.Cars.Where(c => c.Id != carId).ToList();
+        settings.LatestLoadPointCombinations =
+            settings.LatestLoadPointCombinations.Where(lp => lp.CarId != carId).ToHashSet();
+
         // Remove every row that references the car before deleting the car itself, otherwise the foreign key
         // constraints (most of which are non-cascading) would block the delete. Children are removed before
         // their parents so no constraint is violated at any step.
@@ -405,14 +417,6 @@ public class ConfigJsonService(
                 .ExecuteDeleteAsync().ConfigureAwait(false);
 
             progress.Value = totalSteps;
-
-            // Drop the car from the in-memory state so the charging loop and load point handling stop referencing
-            // it. This runs on a background thread (see ConfigController.DeleteCar), so replace the collection
-            // references atomically instead of mutating them in place: a reader iterating the old collection on the
-            // charging loop thread would otherwise risk a "Collection was modified" exception.
-            settings.Cars = settings.Cars.Where(c => c.Id != carId).ToList();
-            settings.LatestLoadPointCombinations =
-                settings.LatestLoadPointCombinations.Where(lp => lp.CarId != carId).ToHashSet();
         }
         finally
         {

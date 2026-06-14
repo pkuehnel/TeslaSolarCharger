@@ -35,6 +35,8 @@
 
 <PageTitle>@T(TranslationKeys.SetupAssistantTitle)</PageTitle>
 
+<ChargingStationDeletionOverlay @ref="_stationDeletionOverlay" />
+
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">@T(TranslationKeys.SetupAssistantTitle)</MudText>
 
@@ -237,6 +239,7 @@
     private Dictionary<int, int> _connectorCounts = new();
 
     private MudStepper? _stepper;
+    private ChargingStationDeletionOverlay? _stationDeletionOverlay;
     private bool _hasPvSystem = true;
     private bool _hasHomeBattery;
     // Whether the instance is connected to the Solar4Car cloud and the account has a base license. Both are
@@ -393,7 +396,10 @@
 
         if (result != null && !result.Canceled)
         {
-            await ChargingStationsService.DeleteChargingStation(station.Id);
+            if (_stationDeletionOverlay != null)
+            {
+                await _stationDeletionOverlay.DeleteAndTrackAsync(station.Id);
+            }
             await RefreshStationData();
         }
     }

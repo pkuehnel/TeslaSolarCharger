@@ -181,6 +181,14 @@ public static class TranslationKeys
     public static string ChargingStationsNotConnectedViaOcpp => nameof(ChargingStationsNotConnectedViaOcpp);
     public static string ChargingStationsEditStationTitle => nameof(ChargingStationsEditStationTitle);
     public static string ChargingStationsDeleteStationTitle => nameof(ChargingStationsDeleteStationTitle);
+    public static string ChargingStationDeleteProgressTitle => nameof(ChargingStationDeleteProgressTitle);
+    public static string ChargingStationDeletionStepChargingProcesses => nameof(ChargingStationDeletionStepChargingProcesses);
+    public static string ChargingStationDeletionStepTransactions => nameof(ChargingStationDeletionStepTransactions);
+    public static string ChargingStationDeletionStepConnectorValueLogs => nameof(ChargingStationDeletionStepConnectorValueLogs);
+    public static string ChargingStationDeletionStepMeterValues => nameof(ChargingStationDeletionStepMeterValues);
+    public static string ChargingStationDeletionStepConnectorAssignments => nameof(ChargingStationDeletionStepConnectorAssignments);
+    public static string ChargingStationDeletionStepConnectors => nameof(ChargingStationDeletionStepConnectors);
+    public static string ChargingStationDeletionStepChargingStation => nameof(ChargingStationDeletionStepChargingStation);
 
     public static string HomePageTitle => nameof(HomePageTitle);
     public static string HomePageNoCarsOrStationsHintStart => nameof(HomePageNoCarsOrStationsHintStart);

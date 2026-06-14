@@ -52,6 +52,7 @@ public class Settings : ISettings
 
     public DtoProgress? ChargePricesUpdateProgress { get; set; }
     public ConcurrentDictionary<int, DtoCarDeletionProgress> CarDeletionProgresses { get; set; } = new();
+    public ConcurrentDictionary<int, DtoChargingStationDeletionProgress> ChargingStationDeletionProgresses { get; set; } = new();
     public int LastPvDemoCase { get; set; }
 
     public bool IsPreRelease { get; set; }

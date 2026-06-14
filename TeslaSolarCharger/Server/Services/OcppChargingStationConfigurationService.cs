@@ -2,8 +2,10 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -127,6 +129,23 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         // Nullable copy for the IN clauses on the (nullable) FK columns of ChargingProcess and MeterValue.
         var nullableConnectorIds = connectorIds.Select(id => (int?)id).ToList();
 
+        // Stop the charging loop and load point handling from touching these connectors BEFORE deleting any of
+        // their rows. Otherwise the loop keeps inserting new connector value logs / meter values for them during
+        // the (potentially long) batched delete below, and a row inserted after its own delete step would make the
+        // final connector/station delete fail on the foreign key - which would surface to the user as a silently
+        // failed deletion (the background task swallows the exception and the progress is cleared, so the UI
+        // reports success while the station reappears). LatestLoadPointCombinations is replaced (not mutated in
+        // place) so a reader iterating it on the charging loop thread does not risk a "Collection was modified"
+        // exception.
+        foreach (var connectorId in connectorIds)
+        {
+            settings.OcppConnectorStates.TryRemove(connectorId, out _);
+            settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle.TryRemove(connectorId, out _);
+        }
+        settings.LatestLoadPointCombinations = settings.LatestLoadPointCombinations
+            .Where(lp => lp.ChargingConnectorId == null || !connectorIds.Contains(lp.ChargingConnectorId.Value))
+            .ToHashSet();
+
         // Remove every row that references the station's connectors before deleting the connectors and the
         // station itself, otherwise the foreign key constraints would block the delete. Children are removed
         // before their parents so no constraint is violated at any committed step. This mirrors the car deletion
@@ -135,7 +154,17 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         // database-wide write lock is released between batches instead of being held for the whole delete. A
         // failure midway leaves a partially deleted station, but the delete is idempotent (re-running removes
         // whatever is left) and the child-before-parent order keeps the database consistent at every step.
+        // The deletion can take far longer than the client's HTTP timeout, so it runs as a background task (see
+        // ChargingStationsController.DeleteChargingStation) and publishes its progress to the settings after each
+        // step, which the UI polls (see GetChargingStationDeletionProgress). The progress entry is cleared by the
+        // controller's background task once the deletion has finished (or failed).
+        const int totalSteps = 7;
         const int batchSize = 10_000;
+        var progress = new DtoChargingStationDeletionProgress
+        {
+            Value = 0, MaxValue = totalSteps, CurrentStep = ChargingStationDeletionStep.ChargingProcesses,
+        };
+        settings.ChargingStationDeletionProgresses[chargingStationId] = progress;
 
         if (connectorIds.Count > 0)
         {
@@ -144,6 +173,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             // Those linked to a car are car history and must be kept - only the connector reference is removed.
             // Charging processes without a car relation are connector-only and are deleted together with their
             // details. Details of kept (car) processes must not be deleted.
+            progress.CurrentStep = ChargingStationDeletionStep.ChargingProcesses;
             await teslaSolarChargerContext.ChargingDetails
                 .Where(cd => cd.ChargingProcess.CarId == null
                              && nullableConnectorIds.Contains(cd.ChargingProcess.OcppChargingStationConnectorId))
@@ -155,14 +185,18 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 .Where(cp => cp.CarId != null && nullableConnectorIds.Contains(cp.OcppChargingStationConnectorId))
                 .ExecuteUpdateAsync(s => s.SetProperty(cp => cp.OcppChargingStationConnectorId, (int?)null))
                 .ConfigureAwait(false);
+            progress.Value = 1;
 
             // OCPP transactions of the connectors.
+            progress.CurrentStep = ChargingStationDeletionStep.Transactions;
             await teslaSolarChargerContext.OcppTransactions
                 .Where(t => connectorIds.Contains(t.ChargingStationConnectorId))
                 .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 2;
 
             // Logged connector values (potentially a very large table). Deleted in batches so SQLite's write
             // lock is released between batches instead of being held for one huge delete statement.
+            progress.CurrentStep = ChargingStationDeletionStep.ConnectorValueLogs;
             while (true)
             {
                 var batchIds = await teslaSolarChargerContext.OcppChargingStationConnectorValueLogs
@@ -183,12 +217,14 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                     break;
                 }
             }
+            progress.Value = 3;
 
             // Meter values (potentially a very large table).
             // A meter value belongs to either a car or a connector, never both (see the CK_MeterValue_CarId
             // check constraint), so every meter value with one of these ChargingConnectorIds is connector-only
             // and safe to delete (car meter values are not affected). Deleted in batches for the same reason as
             // the connector value logs above.
+            progress.CurrentStep = ChargingStationDeletionStep.MeterValues;
             while (true)
             {
                 var batchIds = await teslaSolarChargerContext.MeterValues
@@ -209,34 +245,30 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                     break;
                 }
             }
+            progress.Value = 4;
 
             // Allowed car assignments of the connectors.
+            progress.CurrentStep = ChargingStationDeletionStep.ConnectorAssignments;
             await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
                 .Where(ac => connectorIds.Contains(ac.OcppChargingStationConnectorId))
                 .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 5;
 
             // The connectors themselves.
+            progress.CurrentStep = ChargingStationDeletionStep.Connectors;
             await teslaSolarChargerContext.OcppChargingStationConnectors
                 .Where(c => connectorIds.Contains(c.Id))
                 .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 6;
         }
 
-        // Finally the charging station itself.
+        // Finally the charging station itself. The connectors were already removed from the in-memory state at
+        // the start of this method (so the charging loop stopped touching them before any rows were deleted).
+        progress.CurrentStep = ChargingStationDeletionStep.ChargingStation;
         await teslaSolarChargerContext.OcppChargingStations
             .Where(s => s.Id == chargingStationId)
             .ExecuteDeleteAsync().ConfigureAwait(false);
-
-        // Drop the connectors from the in-memory state so the charging loop and load point handling stop
-        // referencing them. LatestLoadPointCombinations is replaced (not mutated in place) so a reader iterating
-        // it on the charging loop thread does not risk a "Collection was modified" exception.
-        foreach (var connectorId in connectorIds)
-        {
-            settings.OcppConnectorStates.TryRemove(connectorId, out _);
-            settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle.TryRemove(connectorId, out _);
-        }
-        settings.LatestLoadPointCombinations = settings.LatestLoadPointCombinations
-            .Where(lp => lp.ChargingConnectorId == null || !connectorIds.Contains(lp.ChargingConnectorId.Value))
-            .ToHashSet();
+        progress.Value = totalSteps;
     }
 
     public async Task AddChargingStationIfNotExisting(string chargepointId, CancellationToken cancellationToken)

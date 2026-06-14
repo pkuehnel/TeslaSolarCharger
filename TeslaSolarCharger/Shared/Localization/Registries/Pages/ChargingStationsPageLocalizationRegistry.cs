@@ -50,6 +50,38 @@ public class ChargingStationsPageLocalizationRegistry : TextLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "Delete charging station"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestation löschen"));
 
+        Register(TranslationKeys.ChargingStationDeleteProgressTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting charging station..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestation wird gelöscht..."));
+
+        Register(TranslationKeys.ChargingStationDeletionStepChargingProcesses,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting charging history"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladehistorie wird gelöscht"));
+
+        Register(TranslationKeys.ChargingStationDeletionStepTransactions,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting OCPP transactions"),
+            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Transaktionen werden gelöscht"));
+
+        Register(TranslationKeys.ChargingStationDeletionStepConnectorValueLogs,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting connector value logs"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschluss-Datenprotokolle werden gelöscht"));
+
+        Register(TranslationKeys.ChargingStationDeletionStepMeterValues,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting meter values"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zählerwerte werden gelöscht"));
+
+        Register(TranslationKeys.ChargingStationDeletionStepConnectorAssignments,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting allowed car assignments"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zugelassene Fahrzeug-Zuordnungen werden gelöscht"));
+
+        Register(TranslationKeys.ChargingStationDeletionStepConnectors,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting connectors"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschlüsse werden gelöscht"));
+
+        Register(TranslationKeys.ChargingStationDeletionStepChargingStation,
+            new TextLocalizationTranslation(LanguageCodes.English, "Deleting charging station"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestation wird gelöscht"));
+
         Register(TranslationKeys.ChargingStationOverviewConnectors,
             new TextLocalizationTranslation(LanguageCodes.English, "Connectors"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschlüsse"));
