@@ -441,6 +441,21 @@ public class ConfigJsonService(
         {
             dbQuery = dbQuery.Where(c => c.Id == carId);
         }
+
+        // Exclude cars whose deletion is currently running. DeleteCar removes the car from settings.Cars up
+        // front and then deletes its (potentially millions of) rows in batches, deleting the Cars row itself
+        // last. That delete can take minutes, during which a reload here (e.g. the ~59s SmartCar/Tesla sync
+        // calling AddCarsToSettings(null)) would otherwise read the still-present Cars row and re-add the car to
+        // settings.Cars - re-enabling ingestion (new CarValueLogs/MeterValues inserted after their own delete
+        // step make the final Cars delete fail on the foreign key) and leaving a ghost car pointing at a row that
+        // is about to disappear. An entry exists in CarDeletionProgresses for the whole duration of a deletion
+        // (set synchronously by ConfigController.DeleteCar before the row deletion starts, cleared in its finally).
+        var deletingCarIds = settings.CarDeletionProgresses.Keys.ToList();
+        if (deletingCarIds.Count > 0)
+        {
+            dbQuery = dbQuery.Where(c => !deletingCarIds.Contains(c.Id));
+        }
+
         var carData = await dbQuery
             .Select(c => new
             {
