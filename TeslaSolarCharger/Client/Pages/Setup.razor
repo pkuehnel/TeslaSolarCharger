@@ -154,11 +154,12 @@
                                               ShowValidSince="false" />
                 </MudStep>
 
-                <MudStep Title="@T(TranslationKeys.SetupStepCars)">
-                    <CarManagementComponent ReturnPage="setup" />
-                </MudStep>
-
                 <MudStep Title="@T(TranslationKeys.SetupStepChargingStations)">
+                    <MudAlert Severity="Severity.Info" Class="mb-4">
+                        <h5>@T(TranslationKeys.SetupChargingStationsNeedTitle)</h5>
+                        <div>@T(TranslationKeys.SetupChargingStationsNeedContent)</div>
+                    </MudAlert>
+
                     <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
                         <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
                         <div>@T(TranslationKeys.ChargingStationsHowToConnectContent)</div>
@@ -189,6 +190,10 @@
                             }
                         </MudGrid>
                     }
+                </MudStep>
+
+                <MudStep Title="@T(TranslationKeys.SetupStepCars)">
+                    <CarManagementComponent ReturnPage="setup" />
                 </MudStep>
 
                 <MudStep Title="@T(TranslationKeys.SetupStepFinish)">
@@ -259,7 +264,7 @@
     private const int CloudConnectionStepIndex = 1;
     // Index of the charging stations step. The station list is only polled while this step is active so we do
     // not hammer the server (one request per station every few seconds) for the whole setup session.
-    private const int ChargingStationsStepIndex = 6;
+    private const int ChargingStationsStepIndex = 5;
 
     protected override async Task OnInitializedAsync()
     {

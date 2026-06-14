@@ -651,6 +651,8 @@ public static class TranslationKeys
     public static string SetupLicenseInfoException => nameof(SetupLicenseInfoException);
     public static string SetupChargingStationsTitle => nameof(SetupChargingStationsTitle);
     public static string SetupChargingStationsDescription => nameof(SetupChargingStationsDescription);
+    public static string SetupChargingStationsNeedTitle => nameof(SetupChargingStationsNeedTitle);
+    public static string SetupChargingStationsNeedContent => nameof(SetupChargingStationsNeedContent);
     public static string SetupNoStationsConnected => nameof(SetupNoStationsConnected);
     public static string SetupFinishTitle => nameof(SetupFinishTitle);
     public static string SetupFinishDescription => nameof(SetupFinishDescription);
