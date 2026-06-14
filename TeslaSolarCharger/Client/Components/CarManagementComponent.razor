@@ -255,26 +255,24 @@ else
 
     private async Task PollDeletionUntilComplete()
     {
-        // The server sets the progress before it returns from the delete request, so the first poll already sees
-        // a running deletion. Keep polling until the server reports null again (deletion finished). The deadline
-        // is only a safety cap so the overlay can never stay up forever if the server never clears the progress.
-        var hasSeenProgress = false;
+        // The server sets the progress synchronously before it returns from the delete request, so by the time we
+        // poll here the progress is either still set (deletion running) or already cleared (deletion finished).
+        // A null therefore always means "finished" - there is no window where we could poll before the server has
+        // had a chance to set it, so we must not wait to "see" progress first (a fast/no-op delete would otherwise
+        // never clear the overlay). The deadline is only a safety cap so the overlay can never stay up forever if
+        // the server never clears the progress (e.g. the process crashed mid-delete).
         var deadline = DateTime.UtcNow.AddHours(1);
         while (DateTime.UtcNow < deadline)
         {
             var progress = await CarSettingsService.GetCarDeletionProgress();
-            if (progress != null)
+            if (progress == null)
             {
-                hasSeenProgress = true;
-                _deletionProgress = progress;
-                await InvokeAsync(StateHasChanged);
-            }
-            else if (hasSeenProgress)
-            {
-                // Progress was running and is now cleared: the deletion has finished.
+                // Deletion finished (or there was nothing to delete): stop polling.
                 break;
             }
 
+            _deletionProgress = progress;
+            await InvokeAsync(StateHasChanged);
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
     }
