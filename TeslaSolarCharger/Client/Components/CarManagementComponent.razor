@@ -234,19 +234,18 @@ else
             return;
         }
 
-        // Deleting a car can take a while (large value/meter log tables), so show an overlay with progress that
-        // is polled from the server while the delete request runs.
-        using var cancellationTokenSource = new CancellationTokenSource();
+        // Deleting a car can take far longer than the HTTP timeout (large value/meter log tables). The server
+        // runs the delete as a background task and returns immediately, so kick it off and then poll the
+        // progress until the server reports the deletion has finished.
         _deletionProgress = new DtoCarDeletionProgress { Value = 0, MaxValue = 7, CurrentStep = CarDeletionStep.ChargingProcesses };
         await InvokeAsync(StateHasChanged);
-        _ = RefreshDeletionProgressForever(cancellationTokenSource.Token);
         try
         {
             await CarSettingsService.DeleteCar(car.Item.Id);
+            await PollDeletionUntilComplete();
         }
         finally
         {
-            await cancellationTokenSource.CancelAsync();
             _deletionProgress = null;
             await InvokeAsync(StateHasChanged);
         }
@@ -254,30 +253,29 @@ else
         await RefreshData();
     }
 
-    private async Task RefreshDeletionProgressForever(CancellationToken cancellationToken)
+    private async Task PollDeletionUntilComplete()
     {
-        while (!cancellationToken.IsCancellationRequested)
+        // The server sets the progress before it returns from the delete request, so the first poll already sees
+        // a running deletion. Keep polling until the server reports null again (deletion finished). The deadline
+        // is only a safety cap so the overlay can never stay up forever if the server never clears the progress.
+        var hasSeenProgress = false;
+        var deadline = DateTime.UtcNow.AddHours(1);
+        while (DateTime.UtcNow < deadline)
         {
-            try
+            var progress = await CarSettingsService.GetCarDeletionProgress();
+            if (progress != null)
             {
-                var progress = await CarSettingsService.GetCarDeletionProgress();
-                // Keep the last known progress visible if the server briefly reports nothing (start/end race).
-                if (progress != null)
-                {
-                    _deletionProgress = progress;
-                    await InvokeAsync(StateHasChanged);
-                }
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                hasSeenProgress = true;
+                _deletionProgress = progress;
+                await InvokeAsync(StateHasChanged);
             }
-            catch (OperationCanceledException)
+            else if (hasSeenProgress)
             {
+                // Progress was running and is now cleared: the deletion has finished.
                 break;
             }
-            catch
-            {
-                // Stop polling on an unexpected error instead of leaving an orphaned background loop running.
-                break;
-            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
         }
     }
 

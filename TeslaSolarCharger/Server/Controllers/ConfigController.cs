@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers
@@ -12,7 +13,9 @@ namespace TeslaSolarCharger.Server.Controllers
         IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
         ICarConfigurationService carConfigurationService,
         ISmartCarApiService smartCarApiService,
-        ISettings settings)
+        ISettings settings,
+        IServiceScopeFactory serviceScopeFactory,
+        ILogger<ConfigController> logger)
         : ApiBaseController
     {
 
@@ -76,9 +79,37 @@ namespace TeslaSolarCharger.Server.Controllers
         /// </summary>
         /// <param name="carId">Car Id of the car to delete</param>
         [HttpDelete]
-        public async Task<IActionResult> DeleteCar(int carId)
+        public IActionResult DeleteCar(int carId)
         {
-            await configJsonService.DeleteCar(carId).ConfigureAwait(false);
+            // The deletion can take far longer than the client's HTTP timeout (the log/meter tables can hold
+            // millions of rows), so run it as a background task and return at once. The UI tracks completion by
+            // polling GetCarDeletionProgress, which reports null again once the deletion has finished.
+            // Set the progress synchronously here so the very first poll already sees a running deletion (closing
+            // the race where the background task has not started yet). The background task always clears it again
+            // in its finally - even if DeleteCar returns early (car not found) or throws.
+            settings.CarDeletionProgress = new DtoCarDeletionProgress
+            {
+                Value = 0,
+                MaxValue = 7,
+                CurrentStep = CarDeletionStep.ChargingProcesses,
+            };
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+                    var scopedConfigJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
+                    await scopedConfigJsonService.DeleteCar(carId).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Could not delete car {carId}", carId);
+                }
+                finally
+                {
+                    settings.CarDeletionProgress = null;
+                }
+            });
             return Ok();
         }
 
