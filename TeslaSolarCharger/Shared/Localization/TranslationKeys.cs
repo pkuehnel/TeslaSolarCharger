@@ -248,6 +248,7 @@ public static class TranslationKeys
     public static string CarSettingsSmartCarBillingConfirmButton => nameof(CarSettingsSmartCarBillingConfirmButton);
 
     public static string NavMenuTitle => nameof(NavMenuTitle);
+    public static string NavMenuFormerlyTitle => nameof(NavMenuFormerlyTitle);
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);
     public static string NavMenuOverview => nameof(NavMenuOverview);
     public static string NavMenuBackupAndRestore => nameof(NavMenuBackupAndRestore);

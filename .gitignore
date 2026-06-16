@@ -11,7 +11,7 @@
 *.sln.docstates
 
 # Claude Code local (per-developer) settings
-.claude/settings.local.json
+.claude/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

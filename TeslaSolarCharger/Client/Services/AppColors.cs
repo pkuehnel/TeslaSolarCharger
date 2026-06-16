@@ -11,10 +11,22 @@ public class AppColors : IAppColors
         _themeStateService = themeStateService;
     }
 
-    public string PrimaryColor => "#1b6ec2";
-    public string SecondaryColor => "#6c757d";
-    public string SolarPowerColor => "#F57C00";
-    public string SolarPowerPredictionColor => "#FFB300";
+    // ----- Brand palette (Solar4Car: solar green + sun amber) -----
+    public string PrimaryColor => "#1F9D57";        // solar green
+    public string PrimaryDarkenColor => "#0E7C4A";
+    public string PrimaryLightenColor => "#54B985";
+    public string SecondaryColor => "#5B6B63";      // muted slate-green
+    public string TertiaryColor => "#F5A623";       // sun amber accent
+    public string InkColor => "#13241C";            // near-black green ink (light-mode text)
+    public string AppBarBackgroundColor => "#FFFFFF";
+    public string PageBackgroundColor => "#F4F8F5"; // faint green tint behind white cards
+    public string DarkModeBackgroundColor => "#14201B"; // branded dark page
+    public string DarkModeSurfaceColor => "#1E2C25";    // cards/surfaces in dark mode
+    public string DarkModeAppBarColor => "#172019";
+
+    // ----- Energy / chart colors (harmonized with the brand palette) -----
+    public string SolarPowerColor => "#F5A623";     // PV = sun amber
+    public string SolarPowerPredictionColor => "#FFCE7A";
     public string GridColor => PrimaryColor;
     public string GridExportColor => "#4CAF50";
     public string GridImportColor => "#D32F2F";
@@ -28,7 +40,6 @@ public class AppColors : IAppColors
     public string EvChargingColor => _themeStateService.IsDarkMode ? "#636363" : "#d3d3d3";
     public string ConsumptionColor => _themeStateService.IsDarkMode ? "#780606" : "#FF8C7C";
     public string FeedInColor => _themeStateService.IsDarkMode ? "#00a000" : "#90ee90";
-    public string DarkModeBackgroundColor => "#212529";
 
     // Battery SOC Icon colors
     public string BatterySocGoodColor => _themeStateService.IsDarkMode ? "#008000" : "#00c000";
