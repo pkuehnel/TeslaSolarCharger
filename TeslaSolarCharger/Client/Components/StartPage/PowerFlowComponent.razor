@@ -1,4 +1,4 @@
-﻿@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Localization
@@ -19,51 +19,68 @@
 
 @if (_pvValues == default)
 {
-    <PlaceholderComponent Height="@($"{ThirdLineY}px")"
-                          Width="@($"{_widthInPixel}px")"
-                          Class="d-flex justify-content-center"></PlaceholderComponent>
+    <div class="pf-card">
+        <PlaceholderComponent Height="@($"{ThirdLineY}px")"
+                              Width="100%"
+                              Class="d-flex justify-content-center"></PlaceholderComponent>
+    </div>
 }
 else
 {
-    <div class="d-flex justify-content-center align-items-center">
-        <svg width="@(_widthInPixel)" height="@SvgHeight" viewBox="@($"0 0 {_widthInPixel} {SvgHeight}")">
-            <!-- Lines -->
+    <div class="pf-card">
+        <svg class="pf-svg" viewBox="@($"0 0 {_widthInPixel} {SvgHeight}")" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <!-- Soft glow used by active nodes -->
+                <filter id="pf-node-glow" x="-60%" y="-60%" width="220%" height="220%">
+                    <feGaussianBlur stdDeviation="5" />
+                </filter>
+                <!-- Directional gradient per active flow (bright at source, fades toward target) -->
+                @for (var i = 0; i < Flows.Count; i++)
+                {
+                    var flow = Flows[i];
+                    <linearGradient id="@($"pf-flow-grad-{i}")" gradientUnits="userSpaceOnUse"
+                                    x1="@flow.StartX" y1="@flow.StartY" x2="@flow.EndX" y2="@flow.EndY">
+                        <stop offset="0%" stop-color="@flow.Color" stop-opacity="0.95" />
+                        <stop offset="100%" stop-color="@flow.Color" stop-opacity="0.25" />
+                    </linearGradient>
+                }
+            </defs>
+
+            <!-- Static connection lines (faint backdrop for every existing link) -->
             <!-- Grid to Solar -->
             @if (GridLocation != default && InverterLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" />
             }
             <!-- Grid to House -->
             @if (GridLocation != default && HomeLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" />
             }
             <!-- Solar to House -->
             @if (InverterLocation != default && HomeLocation != default)
             {
-                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" />
             }
-
             <!-- Solar to Home Battery -->
             @if (InverterLocation != default && BatteryLocation != default)
             {
-                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" />
             }
             <!-- Home Battery to House -->
             @if (HomeLocation != default && BatteryLocation != default)
             {
-                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" />
             }
             <!-- Grid to Home Battery -->
             @if (GridLocation != default && BatteryLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" />
             }
-
             <!-- Home to Charger -->
             @if (HomeLocation != default && EvChargerLocation != default)
             {
-                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="currentColor" />
+                <line class="pf-link" x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" />
             }
 
             @if (HomeLocation == default)
@@ -71,130 +88,119 @@ else
                 <!-- Grid to EvCharger -->
                 @if (GridLocation != default && EvChargerLocation != default)
                 {
-                    <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="currentColor" />
+                    <line class="pf-link" x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" />
                 }
                 <!-- Solar to EVCharger -->
                 @if (InverterLocation != default && EvChargerLocation != default)
                 {
-                    <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="currentColor" />
+                    <line class="pf-link" x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" />
                 }
                 <!-- Home Battery to EVCharger -->
                 @if (EvChargerLocation != default && BatteryLocation != default)
                 {
-                    <line x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="currentColor" />
+                    <line class="pf-link" x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" />
                 }
             }
 
-
-            <!-- Animated balls -->
-            @foreach (var ball in Balls)
+            <!-- Animated gradient flow lines (direction = power flow direction) -->
+            @for (var i = 0; i < Flows.Count; i++)
             {
-                <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
-                    <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
-                    <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
-                </circle>
+                var flow = Flows[i];
+                <line class="pf-flow" x1="@flow.StartX" y1="@flow.StartY" x2="@flow.EndX" y2="@flow.EndY"
+                      stroke="@($"url(#pf-flow-grad-{i})")" />
             }
 
-            <!-- Circles -->
-            <!-- Grid -->
+            <!-- Nodes -->
             @if (GridLocation != default)
             {
-                <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
-                        fill="@(_pvValues.GridPower == 0 ? "var(--bs-body-bg)" : (_pvValues.GridPower > 0 ? AppColors.FeedInColor : AppColors.ConsumptionColor))"
-                        stroke="@AppColors.GridColor" stroke-width="4" />
+                @NodeShape(GridLocation, GridNodeColor, _pvValues.GridPower != 0)
             }
-            <!-- Solar -->
             @if (InverterLocation != default)
             {
-                <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
-                        fill="@(_pvValues.InverterPower == 0 ? "var(--bs-body-bg)" : AppColors.SolarPowerColor)"
-                        stroke="@AppColors.SolarPowerColor" stroke-width="4" />
+                @NodeShape(InverterLocation, AppColors.SolarPowerColor, _pvValues.InverterPower > 0)
             }
-            <!-- Home Battery -->
             @if (BatteryLocation != default)
             {
-                <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
-                        fill="@(_pvValues.HomeBatteryPower == 0 ? "var(--bs-body-bg)" : (_pvValues.HomeBatteryPower > 0 ? AppColors.FeedInColor : AppColors.ConsumptionColor))"
-                        stroke="@AppColors.BatteryColor" stroke-width="4" />
+                @NodeShape(BatteryLocation, BatteryNodeColor, _pvValues.HomeBatteryPower != 0)
             }
-            <!-- House -->
             @if (HomeLocation != default)
             {
-                <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
-                        fill="@(CalculateHomePower() == 0 ? "var(--bs-body-bg)" : AppColors.HomeConsumptionColor)"
-                        stroke="@AppColors.HomeConsumptionColor" stroke-width="4" />
+                @NodeShape(HomeLocation, AppColors.HomeConsumptionColor, CalculateHomePower() > 0)
             }
-            <!-- EVCharger -->
             @if (EvChargerLocation != default)
             {
-                <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
-                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "var(--bs-body-bg)" : AppColors.EvChargingColor)"
-                        stroke="@AppColors.EvChargingColor" stroke-width="4" />
+                @NodeShape(EvChargerLocation, AppColors.EvChargingColor, _pvValues.CarCombinedChargingPowerAtHome > 0)
             }
 
-            <!-- Text -->
+            <!-- Node content (icon + value + label) -->
             @if (GridLocation != default)
             {
-                <foreignObject x="@(GridLocation.X - CircleContentLocationDifference)" y="@(GridLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                    <div style="text-align: center;">
-                        <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
-                        <div>@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</div>
+                <foreignObject x="@(GridLocation.X - NodeRadius)" y="@(GridLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
+                    <div class="pf-node-content">
+                        <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Medium" />
+                        <span class="pf-node-value">@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
+                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeGrid)</span>
                     </div>
                 </foreignObject>
             }
             @if (InverterLocation != default)
             {
-                <foreignObject x="@(InverterLocation.X - CircleContentLocationDifference)" y="@(InverterLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                    <div style="text-align: center;">
-                        <MudIcon Icon="@Constants.SolarPowerIcon" Size="Size.Large" />
-                        <div>@(_pvValues.InverterPower?.ToString("N0")) @T(TranslationKeys.UnitWatts)</div>
+                <foreignObject x="@(InverterLocation.X - NodeRadius)" y="@(InverterLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
+                    <div class="pf-node-content">
+                        <MudIcon Icon="@Constants.SolarPowerIcon" Size="Size.Medium" />
+                        <span class="pf-node-value">@(_pvValues.InverterPower?.ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
+                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeSolar)</span>
                     </div>
                 </foreignObject>
             }
             @if (BatteryLocation != default)
             {
-                <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
-                    <div style="text-align: center;">
+                <foreignObject x="@(BatteryLocation.X - NodeRadius)" y="@(BatteryLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
+                    <div class="pf-node-content">
                         <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" Color="@BatteryColor" />
-                        <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0") @T(TranslationKeys.UnitWatts)</div>
+                        <span class="pf-node-value">@(Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
+                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeBattery)</span>
                     </div>
                 </foreignObject>
             }
             @if (HomeLocation != default)
             {
-                <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                    <div style="text-align: center;">
-                        <MudIcon Icon="@Constants.HomePowerIcon" Size="Size.Large" />
-                        <div>@CalculateHomePower()?.ToString("N0") @T(TranslationKeys.UnitWatts)</div>
+                <foreignObject x="@(HomeLocation.X - NodeRadius)" y="@(HomeLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
+                    <div class="pf-node-content">
+                        <MudIcon Icon="@Constants.HomePowerIcon" Size="Size.Medium" />
+                        <span class="pf-node-value">@CalculateHomePower()?.ToString("N0") @T(TranslationKeys.UnitWatts)</span>
+                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeHome)</span>
                     </div>
                 </foreignObject>
             }
             @if (EvChargerLocation != default)
             {
-                <foreignObject x="@(EvChargerLocation.X - CircleContentLocationDifference)" y="@(EvChargerLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                    <div style="text-align: center;">
-                        <MudIcon Icon="@Constants.EvPowerIcon" Size="Size.Large" />
-                        <div>@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") @T(TranslationKeys.UnitWatts)</div>
+                <foreignObject x="@(EvChargerLocation.X - NodeRadius)" y="@(EvChargerLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
+                    <div class="pf-node-content">
+                        <MudIcon Icon="@Icons.Material.Outlined.EvStation" Size="Size.Medium" />
+                        <span class="pf-node-value">@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") @T(TranslationKeys.UnitWatts)</span>
+                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeCar)</span>
                     </div>
                 </foreignObject>
             }
         </svg>
-
     </div>
 }
 
 
 @code {
-    private List<Ball> Balls { get; set; } = new();
+    private List<Flow> Flows { get; set; } = new();
 
     private DtoPvValues? _pvValues;
     private DtoDynamicMinSocSettings? _dynamicMinSocSettings;
-    private readonly int _widthInPixel = 420;
+
+    // viewBox width; the rendered width is responsive (see PowerFlowComponent.razor.css).
+    private readonly int _widthInPixel = 720;
 
     private const int BatterySocWarningThreshold = 15;
 
-
-
+    private const int NodeRadius = 42;
+    private const int NodeRingWidth = 4;
 
     private IDisposable? _subscription;
     private IDisposable? _dynamicMinSocSubscription;
@@ -228,7 +234,7 @@ else
                 try
                 {
                     _pvValues = pvValues;
-                    await UpdateBalls();
+                    await UpdateFlows();
                 }
                 catch (Exception e)
                 {
@@ -238,7 +244,7 @@ else
 
         // Get initial state
         _pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
-        await UpdateBalls();
+        await UpdateFlows();
     }
 
     private async Task OnDarkModeChangedHandler(bool isDarkMode)
@@ -249,13 +255,24 @@ else
         });
     }
 
-    private async Task UpdateBalls()
+    // Renders the visual node: optional glow (when active), themed background, brand tint and colored ring.
+    private RenderFragment NodeShape(Location loc, string color, bool active) => @<g class="@(active ? "pf-node pf-node--active" : "pf-node pf-node--idle")">
+        @if (active)
+        {
+            <circle cx="@loc.X" cy="@loc.Y" r="@NodeRadius" fill="@color" class="pf-node-glow" filter="url(#pf-node-glow)" />
+        }
+        <circle cx="@loc.X" cy="@loc.Y" r="@NodeRadius" class="pf-node-bg" />
+        <circle cx="@loc.X" cy="@loc.Y" r="@NodeRadius" fill="@color" class="pf-node-tint" />
+        <circle cx="@loc.X" cy="@loc.Y" r="@NodeRadius" fill="none" stroke="@color" stroke-width="@NodeRingWidth" class="pf-node-ring" />
+    </g>;
+
+    private async Task UpdateFlows()
     {
         if (_pvValues == default)
         {
             return;
         }
-        Balls.Clear();
+        Flows.Clear();
 
         if (_pvValues.InverterPower > 0)
         {
@@ -263,8 +280,7 @@ else
             {
                 if (GridLocation != default && _pvValues.GridPower > 0)
                 {
-                    Balls.Add(new Ball(AppColors.SolarPowerColor,
-                        CalculateDuration(InverterLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.SolarPowerColor)
                     {
                         StartX = InverterLocation.X,
                         StartY = InverterLocation.Y,
@@ -274,8 +290,7 @@ else
                 }
                 if (HomeLocation != default)
                 {
-                    Balls.Add(new Ball(AppColors.SolarPowerColor,
-                        CalculateDuration(InverterLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.SolarPowerColor)
                     {
                         StartX = InverterLocation.X,
                         StartY = InverterLocation.Y,
@@ -285,8 +300,7 @@ else
                 }
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
-                    Balls.Add(new Ball(AppColors.SolarPowerColor,
-                        CalculateDuration(InverterLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.SolarPowerColor)
                     {
                         StartX = InverterLocation.X,
                         StartY = InverterLocation.Y,
@@ -304,8 +318,7 @@ else
             {
                 if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
-                    Balls.Add(new Ball(AppColors.GridColor,
-                        CalculateDuration(GridLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.GridColor)
                     {
                         StartX = GridLocation.X,
                         StartY = GridLocation.Y,
@@ -316,8 +329,7 @@ else
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
-                    Balls.Add(new Ball(AppColors.GridColor,
-                        CalculateDuration(GridLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.GridColor)
                     {
                         StartX = GridLocation.X,
                         StartY = GridLocation.Y,
@@ -335,8 +347,7 @@ else
             {
                 if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
-                    Balls.Add(new Ball(AppColors.BatteryColor,
-                        CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.BatteryColor)
                     {
                         StartX = BatteryLocation.X,
                         StartY = BatteryLocation.Y,
@@ -346,8 +357,7 @@ else
                 }
                 if (GridLocation != default && _pvValues.GridPower > 0)
                 {
-                    Balls.Add(new Ball(AppColors.BatteryColor,
-                        CalculateDuration(BatteryLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.BatteryColor)
                     {
                         StartX = BatteryLocation.X,
                         StartY = BatteryLocation.Y,
@@ -364,8 +374,7 @@ else
             var homeLocation = HomeLocation;
             if (homeLocation != default)
             {
-                Balls.Add(new Ball(AppColors.HomeConsumptionColor,
-                    CalculateDuration(homeLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                Flows.Add(new Flow(AppColors.HomeConsumptionColor)
                 {
                     StartX = homeLocation.X,
                     StartY = homeLocation.Y,
@@ -377,8 +386,7 @@ else
             {
                 if (InverterLocation != default && _pvValues.InverterPower > 0)
                 {
-                    Balls.Add(new Ball(AppColors.SolarPowerColor,
-                        CalculateDuration(InverterLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.SolarPowerColor)
                     {
                         StartX = InverterLocation.X,
                         StartY = InverterLocation.Y,
@@ -389,8 +397,7 @@ else
 
                 if (GridLocation != default && _pvValues.GridPower < 0)
                 {
-                    Balls.Add(new Ball(AppColors.GridColor,
-                        CalculateDuration(GridLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.GridColor)
                     {
                         StartX = GridLocation.X,
                         StartY = GridLocation.Y,
@@ -401,8 +408,7 @@ else
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower < 0)
                 {
-                    Balls.Add(new Ball(AppColors.BatteryColor,
-                        CalculateDuration(BatteryLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s")
+                    Flows.Add(new Flow(AppColors.BatteryColor)
                     {
                         StartX = BatteryLocation.X,
                         StartY = BatteryLocation.Y,
@@ -414,14 +420,6 @@ else
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-    private float CalculateDuration(Location start, Location end)
-    {
-        var deltaX = start.X - end.X;
-        var deltaY = start.Y - end.Y;
-        var distance = (float)Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
-        return distance / 100;
     }
 
     private int SvgHeight
@@ -450,7 +448,7 @@ else
                 size = EvChargerLocation.Y;
             }
 
-            return size > 0 ? size + 42 : 0;
+            return size > 0 ? size + NodeRadius + 6 : 0;
         }
     }
 
@@ -611,15 +609,13 @@ else
         };
     }
 
-    private const int FirstLineY = 45;
+    private const int FirstLineY = 50;
     private const int SecondLineY = 145;
-    private const int ThirdLineY = 245;
+    private const int ThirdLineY = 240;
 
-    private const int FirstColumnX = 70;
-    private const int SecondColumnX = 210;
-    private const int ThirdColumnX = 350;
-
-    private const int CircleContentLocationDifference = 35;
+    private const int FirstColumnX = 115;
+    private const int SecondColumnX = 360;
+    private const int ThirdColumnX = 605;
 
     public class Location
     {
@@ -627,12 +623,11 @@ else
         public int Y { get; set; }
     }
 
-    public class Ball
+    public class Flow
     {
-        public Ball(string color, string duration)
+        public Flow(string color)
         {
             Color = color;
-            Duration = duration;
         }
 
         public int StartX { get; set; }
@@ -640,9 +635,6 @@ else
         public int EndX { get; set; }
         public int EndY { get; set; }
         public string Color { get; set; }
-        public string Duration { get; set; }
-        public int X => StartX;
-        public int Y => StartY;
     }
 
     private int? CalculateHomePower()
@@ -667,6 +659,32 @@ else
         return homePower;
     }
 
+
+    // Grid node colour reflects flow direction: green when feeding into the grid,
+    // red when consuming from the grid, identity colour when idle.
+    private string GridNodeColor
+    {
+        get
+        {
+            var power = _pvValues?.GridPower ?? 0;
+            if (power > 0) return AppColors.FeedInColor;
+            if (power < 0) return AppColors.ConsumptionColor;
+            return AppColors.GridColor;
+        }
+    }
+
+    // Home battery node colour reflects flow direction: green when charging,
+    // red when discharging, identity colour when idle.
+    private string BatteryNodeColor
+    {
+        get
+        {
+            var power = _pvValues?.HomeBatteryPower ?? 0;
+            if (power > 0) return AppColors.FeedInColor;
+            if (power < 0) return AppColors.ConsumptionColor;
+            return AppColors.BatteryColor;
+        }
+    }
 
     private string? BatteryColor
     {

@@ -545,6 +545,12 @@ public static class TranslationKeys
     public static string ChargingScheduleHeaderValidTo => nameof(ChargingScheduleHeaderValidTo);
     public static string ChargingScheduleHeaderEstimatedChargingPower => nameof(ChargingScheduleHeaderEstimatedChargingPower);
     public static string LegendItemUnitKwh => nameof(LegendItemUnitKwh);
+
+    public static string PowerFlowNodeSolar => nameof(PowerFlowNodeSolar);
+    public static string PowerFlowNodeGrid => nameof(PowerFlowNodeGrid);
+    public static string PowerFlowNodeHome => nameof(PowerFlowNodeHome);
+    public static string PowerFlowNodeBattery => nameof(PowerFlowNodeBattery);
+    public static string PowerFlowNodeCar => nameof(PowerFlowNodeCar);
     public static string ManualOcppErrorFormat => nameof(ManualOcppErrorFormat);
     public static string FleetApiTestKeyCheckHint => nameof(FleetApiTestKeyCheckHint);
     public static string FleetApiTestHereLink => nameof(FleetApiTestHereLink);

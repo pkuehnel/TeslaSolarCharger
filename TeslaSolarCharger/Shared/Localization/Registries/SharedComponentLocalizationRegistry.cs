@@ -149,5 +149,25 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
         Register(TranslationKeys.RestPvValueAddNewHeaderButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add new header"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neue Kopfzeile hinzufügen"));
+
+        Register(TranslationKeys.PowerFlowNodeSolar,
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar"));
+
+        Register(TranslationKeys.PowerFlowNodeGrid,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netz"));
+
+        Register(TranslationKeys.PowerFlowNodeHome,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Haus"));
+
+        Register(TranslationKeys.PowerFlowNodeBattery,
+            new TextLocalizationTranslation(LanguageCodes.English, "Battery"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Batterie"));
+
+        Register(TranslationKeys.PowerFlowNodeCar,
+            new TextLocalizationTranslation(LanguageCodes.English, "Car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Auto"));
     }
 }
