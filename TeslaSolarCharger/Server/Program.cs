@@ -362,18 +362,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var fleetApiService = startupScope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
         await fleetApiService.RefreshFleetApiTokenIfRequired().ConfigureAwait(false);
 
-        var carConfigurationService = startupScope.ServiceProvider.GetRequiredService<ICarConfigurationService>();
         if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
-            try
-            {
-                await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore this error as this could result in never taking the first token
-            }
+            // Cars are no longer auto-discovered from the Tesla account on startup. Users add cars
+            // explicitly via the "Add" wizard on the Car Settings page (which calls
+            // ICarConfigurationService.AddAllMissingCarsFromTeslaAccount for the Tesla path).
         }
 
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);

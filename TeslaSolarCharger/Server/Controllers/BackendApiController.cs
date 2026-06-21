@@ -31,7 +31,7 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetSmartCarOAuthRedeemUrl(string baseUrl, string vin)
+    public async Task<IActionResult> GetSmartCarOAuthRedeemUrl(string baseUrl, string? vin)
     {
         var result = await backendApiService.GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(baseUrl, vin);
         return Ok(result);
@@ -41,6 +41,19 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
     public async Task<DtoCarLicenseInfo> GetFleetApiLicenseInfo()
     {
         return await backendApiService.GetFleetApiLicenseInfo();
+    }
+
+    [HttpGet]
+    public async Task<DtoValue<bool>> IsBaseAppLicensed(bool useCache)
+    {
+        var result = await backendApiService.IsBaseAppLicensed(useCache);
+        return new(result.Data == true);
+    }
+
+    [HttpGet]
+    public async Task<List<DtoSmartCarCompatibleVehicle>> GetSmartCarCompatibleVehicles()
+    {
+        return await backendApiService.GetSmartCarCompatibleVehicles();
     }
 
     [HttpPost]

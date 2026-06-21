@@ -128,6 +128,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
             .AddTransient<ITokenHelper, TokenHelper>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
+            .AddTransient<ISetupCacheService, SetupCacheService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()

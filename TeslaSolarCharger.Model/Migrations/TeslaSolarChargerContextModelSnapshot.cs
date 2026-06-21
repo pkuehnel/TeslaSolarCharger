@@ -15,7 +15,7 @@ namespace TeslaSolarCharger.Model.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.4");
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.BackendNotification", b =>
                 {
@@ -148,6 +148,9 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool?>("ShouldBeManaged")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SmartCarVehicleId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("SwitchOffAtCurrent")
                         .HasColumnType("INTEGER");
 
@@ -188,6 +191,9 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SmartCarVehicleId")
+                        .IsUnique();
 
                     b.HasIndex("TeslaMateCarId")
                         .IsUnique();

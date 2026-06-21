@@ -42,6 +42,7 @@ namespace TeslaSolarCharger.Server.Middlewares
             // Return a simple HTML page with startup message and logs
             context.Response.StatusCode = 200;
             context.Response.ContentType = "text/html; charset=utf-8";
+            context.Response.Headers.Append("X-TSC-Startup", "true");
 
             var html = GetStartupHtml();
             await context.Response.WriteAsync(html);

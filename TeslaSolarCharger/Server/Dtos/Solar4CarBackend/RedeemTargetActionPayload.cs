@@ -22,10 +22,12 @@ public class RedeemTargetActionPayloadTeslaAuthentication : RedeemTargetActionPa
 
 public class RedeemTargetActionPayloadSmartCarAuthentication : RedeemTargetActionPayload
 {
-    public RedeemTargetActionPayloadSmartCarAuthentication(string localRedirectUrl, string vin) : base(localRedirectUrl)
+    public RedeemTargetActionPayloadSmartCarAuthentication(string localRedirectUrl, string? vin) : base(localRedirectUrl)
     {
         Vin = vin;
     }
 
-    public string Vin { get; set; }
+    // Null when adding a new SmartCar via the wizard (vehicle is picked in SmartCar's panel),
+    // non-null when connecting an already-added car to a specific VIN.
+    public string? Vin { get; set; }
 }

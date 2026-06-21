@@ -76,10 +76,12 @@ public class BackendApiService(
         return new(requestUrl);
     }
 
-    public async Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string vin)
+    public async Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string? vin)
     {
-        logger.LogTrace("{method}()", nameof(GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode));
-        var carId = await teslaSolarChargerContext.Cars.Where(c => c.Vin == vin).Select(c => c.Id).SingleAsync().ConfigureAwait(false);
+        logger.LogTrace("{method}({baseUrl}, {vin})", nameof(GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode), baseUrl, vin);
+        // vin == null means the user is adding a brand-new SmartCar via the wizard: there is no existing
+        // car to link and the vehicle is selected in SmartCar's own panel. With a vin, this is the legacy
+        // flow that connects an already-added car restricted to that single VIN.
         var requestUri = $"Client/GenerateBackendCookieAuthCode?redeemTargetActionType={RedeemTargetActionType.SmartCarToken}";
         var smartCarTargetActionPayload = new RedeemTargetActionPayloadSmartCarAuthentication(baseUrl, vin);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
@@ -98,13 +100,30 @@ public class BackendApiService(
             throw new InvalidOperationException("Redeem code was null even though the backend returned no error");
         }
         var requestUrl = GenerateAuthUrl(result.Data.Value);
-        if (!baseUrl.Contains(constants.QueryParamVin + "="))
+        if (!string.IsNullOrEmpty(vin) && !baseUrl.Contains(constants.QueryParamVin + "="))
         {
+            var carId = await teslaSolarChargerContext.Cars.Where(c => c.Vin == vin).Select(c => c.Id).SingleAsync().ConfigureAwait(false);
             using var scope = serviceScopeFactory.CreateScope();
             var configJsonService = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
             await configJsonService.ConnectCarToSmartCar(carId).ConfigureAwait(false);
         }
         return new(requestUrl);
+    }
+
+    public async Task<List<DtoSmartCarCompatibleVehicle>> GetSmartCarCompatibleVehicles()
+    {
+        logger.LogTrace("{method}()", nameof(GetSmartCarCompatibleVehicles));
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            throw new InvalidOperationException("Can not get compatible vehicles without backend token");
+        }
+        var result = await SendRequestToBackend<List<DtoSmartCarCompatibleVehicle>>(HttpMethod.Get, token.AccessToken, "SmartCarRequests/GetCompatibleVehicles", null).ConfigureAwait(false);
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+        return result.Data ?? new List<DtoSmartCarCompatibleVehicle>();
     }
 
     public async Task ConnectCarToSmartCarByVin(string vin)

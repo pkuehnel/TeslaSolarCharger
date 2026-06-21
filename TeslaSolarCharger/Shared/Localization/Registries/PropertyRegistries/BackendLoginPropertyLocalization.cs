@@ -7,7 +7,7 @@ public class BackendLoginPropertyLocalization : PropertyLocalizationRegistry<Dto
     protected override void Configure()
     {
         Register(x => x.EMail,
-            new PropertyLocalizationTranslation(LanguageCodes.English, "E-Mail", null),
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Email", null),
             new PropertyLocalizationTranslation(LanguageCodes.German, "E-Mail", null));
 
         Register(x => x.Password,

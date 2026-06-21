@@ -10,7 +10,10 @@
 @inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
 
-<h4>@TF(TranslationKeys.GenericValueConfigurationSources, SourceName)</h4>
+@if (ShowHeading)
+{
+    <h4>@TF(TranslationKeys.GenericValueConfigurationSources, SourceName)</h4>
+}
 <div class="d-flex flex-wrap justify-content-evenly">
     @if (ConfigurationOverviews == null)
     {
@@ -113,7 +116,7 @@
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            @TF(TranslationKeys.GenericValueConfigurationAddNewSource, SourceName)
+                            @T(TranslationKeys.GenericValueConfigurationAddNewSource)
                         </MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
@@ -135,6 +138,9 @@
 @code {
     [Parameter]
     public string SourceName { get; set; }
+
+    [Parameter]
+    public bool ShowHeading { get; set; } = true;
 
     [Parameter]
     public List<DtoValueConfigurationOverview>? ConfigurationOverviews { get; set; }

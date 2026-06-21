@@ -44,6 +44,7 @@ public interface IConstants
     string BackendTokenStateKey { get; }
     string IsBaseAppLicensedKey { get; }
     string IsFleetApiLicensedKey { get; }
+    string SetupCacheKey { get; }
     int FleetTelemetryReconfigurationBufferHours { get; }
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervallHours { get; }
@@ -73,6 +74,9 @@ public interface IConstants
 
     string QueryParamSuccess { get; }
     string QueryParamMessage { get; }
+    string QueryParamWarning { get; }
     string QueryParamError { get; }
     string QueryParamVin { get; }
+    string QueryParamSmartCarAdded { get; }
+    string QueryParamTeslaConnected { get; }
 }

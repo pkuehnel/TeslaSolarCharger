@@ -226,11 +226,21 @@ public class ConfigJsonService(
             databaseCar.MaximumSoc = 100;
             teslaSolarChargerContext.Cars.Add(databaseCar);
         }
+        else if (!carBasicConfiguration.ShouldBeManaged)
+        {
+            //An unmanaged car must not stay in any charging connector's allowed cars as it can not be unselected in the UI anymore.
+            var staleAllowedCars = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                .Where(ac => ac.CarId == carId)
+                .ToListAsync().ConfigureAwait(false);
+            teslaSolarChargerContext.ChargingStationConnectorAllowedCars.RemoveRange(staleAllowedCars);
+        }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         logger.LogTrace("Saved car {carId} to database", carId);
         if (isNewCar)
         {
-            await AddCarsToSettings(databaseCar.Id).ConfigureAwait(false);
+            //Reload all cars (not just the new one): passing a specific car id makes GetCars filter to that
+            //single car, which would replace settings.Cars and drop every other car from the in memory state.
+            await AddCarsToSettings(null).ConfigureAwait(false);
         }
         else
         {
@@ -265,6 +275,155 @@ public class ConfigJsonService(
         await SetCarTypeTo(carId, CarType.Manual).ConfigureAwait(false);
     }
 
+    public async Task DeleteCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(DeleteCar), carId);
+        var carExists = await teslaSolarChargerContext.Cars.AnyAsync(c => c.Id == carId).ConfigureAwait(false);
+        if (!carExists)
+        {
+            logger.LogWarning("Car with id {carId} does not exist, nothing to delete.", carId);
+            return;
+        }
+
+        // Stop the charging loop and load point handling from touching this car BEFORE deleting any of its rows.
+        // Otherwise the loop keeps inserting new CarValueLogs/MeterValues for the car during the (potentially long)
+        // batched delete below, and a row inserted after its own delete step would make the final Cars delete fail
+        // on the non-cascading foreign key - which would surface to the user as a silently failed deletion (the
+        // background task swallows the exception and the progress is cleared, so the UI reports success while the
+        // car reappears). Replace the collection references atomically (this runs on a background thread, see
+        // ConfigController.DeleteCar) instead of mutating them in place: a reader iterating the old collection on
+        // the charging loop thread would otherwise risk a "Collection was modified" exception.
+        settings.Cars = settings.Cars.Where(c => c.Id != carId).ToList();
+        settings.LatestLoadPointCombinations =
+            settings.LatestLoadPointCombinations.Where(lp => lp.CarId != carId).ToHashSet();
+
+        // Remove every row that references the car before deleting the car itself, otherwise the foreign key
+        // constraints (most of which are non-cascading) would block the delete. Children are removed before
+        // their parents so no constraint is violated at any step.
+        // This intentionally does NOT wrap everything in a single transaction: the big log tables (CarValueLogs,
+        // MeterValues) can hold millions of rows, and SQLite takes a database-wide write lock for the whole
+        // duration of a transaction. That would block the charging loop (and every other writer) for the entire,
+        // potentially long running, delete. Instead each step commits on its own and the large tables are deleted
+        // in batches, so the write lock is released between batches. A failure midway therefore leaves a partially
+        // deleted car, but the delete is idempotent: re-running it simply removes whatever is left, and the
+        // child-before-parent order keeps the database consistent at every committed step.
+        // Progress is published to the settings after each step and polled by the UI (see GetCarDeletionProgress).
+        const int totalSteps = 7;
+        const int batchSize = 10_000;
+        var progress = new DtoCarDeletionProgress { Value = 0, MaxValue = totalSteps, CurrentStep = CarDeletionStep.ChargingProcesses, };
+        settings.CarDeletionProgresses[carId] = progress;
+        try
+        {
+            // Charging processes and their details.
+            // A charging process can belong to both a car and an OCPP charging connector (a car charging at a
+            // charging station). Those linked to a connector are charging station history and must be kept - only
+            // the car reference is removed. Charging processes without a connector relation are car-only and are
+            // deleted together with their details. Details of kept (connector) processes must not be deleted.
+            progress.CurrentStep = CarDeletionStep.ChargingProcesses;
+            await teslaSolarChargerContext.ChargingDetails
+                .Where(cd => cd.ChargingProcess.CarId == carId && cd.ChargingProcess.OcppChargingStationConnectorId == null)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            await teslaSolarChargerContext.ChargingProcesses
+                .Where(cp => cp.CarId == carId && cp.OcppChargingStationConnectorId == null)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            await teslaSolarChargerContext.ChargingProcesses
+                .Where(cp => cp.CarId == carId && cp.OcppChargingStationConnectorId != null)
+                .ExecuteUpdateAsync(s => s.SetProperty(cp => cp.CarId, (int?)null))
+                .ConfigureAwait(false);
+            progress.Value = 1;
+
+            // Handled charges and their power distributions.
+            progress.CurrentStep = CarDeletionStep.HandledCharges;
+            await teslaSolarChargerContext.PowerDistributions
+                .Where(pd => pd.HandledCharge.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            await teslaSolarChargerContext.HandledCharges
+                .Where(hc => hc.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 2;
+
+            // Logged car values (potentially a very large table). Deleted in batches so SQLite's write lock is
+            // released between batches instead of being held for one huge delete statement.
+            progress.CurrentStep = CarDeletionStep.CarValueLogs;
+            while (true)
+            {
+                var batchIds = await teslaSolarChargerContext.CarValueLogs
+                    .Where(cvl => cvl.CarId == carId)
+                    .OrderBy(cvl => cvl.Id)
+                    .Select(cvl => cvl.Id)
+                    .Take(batchSize)
+                    .ToListAsync().ConfigureAwait(false);
+                if (batchIds.Count == 0)
+                {
+                    break;
+                }
+                await teslaSolarChargerContext.CarValueLogs
+                    .Where(cvl => batchIds.Contains(cvl.Id))
+                    .ExecuteDeleteAsync().ConfigureAwait(false);
+                if (batchIds.Count < batchSize)
+                {
+                    break;
+                }
+            }
+            progress.Value = 3;
+
+            // Meter values (potentially a very large table).
+            // A meter value belongs to either a car or a charging connector, never both: the
+            // CK_MeterValue_CarId_Conditional check constraint ties a non-null CarId to MeterValueKind.Car, and
+            // connector meter values are stored with CarId == null. So every meter value with this CarId is
+            // car-only and is safe to delete (charging station meter values are not affected).
+            // Deleted in batches for the same reason as the car value logs above.
+            progress.CurrentStep = CarDeletionStep.MeterValues;
+            while (true)
+            {
+                var batchIds = await teslaSolarChargerContext.MeterValues
+                    .Where(mv => mv.CarId == carId)
+                    .OrderBy(mv => mv.Id)
+                    .Select(mv => mv.Id)
+                    .Take(batchSize)
+                    .ToListAsync().ConfigureAwait(false);
+                if (batchIds.Count == 0)
+                {
+                    break;
+                }
+                await teslaSolarChargerContext.MeterValues
+                    .Where(mv => batchIds.Contains(mv.Id))
+                    .ExecuteDeleteAsync().ConfigureAwait(false);
+                if (batchIds.Count < batchSize)
+                {
+                    break;
+                }
+            }
+            progress.Value = 4;
+
+            // Charging targets.
+            progress.CurrentStep = CarDeletionStep.ChargingTargets;
+            await teslaSolarChargerContext.CarChargingTargets
+                .Where(cct => cct.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 5;
+
+            // Charging connector assignments.
+            progress.CurrentStep = CarDeletionStep.ConnectorAssignments;
+            await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                .Where(ac => ac.CarId == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+            progress.Value = 6;
+
+            // Finally the car itself.
+            progress.CurrentStep = CarDeletionStep.Car;
+            await teslaSolarChargerContext.Cars
+                .Where(c => c.Id == carId)
+                .ExecuteDeleteAsync().ConfigureAwait(false);
+
+            progress.Value = totalSteps;
+        }
+        finally
+        {
+            settings.CarDeletionProgresses.TryRemove(carId, out _);
+        }
+    }
+
     private async Task SetCarTypeTo(int carId, CarType carType)
     {
         logger.LogTrace("{method}({carId}, {carType})", nameof(SetCarTypeTo), carId, carType);
@@ -282,6 +441,21 @@ public class ConfigJsonService(
         {
             dbQuery = dbQuery.Where(c => c.Id == carId);
         }
+
+        // Exclude cars whose deletion is currently running. DeleteCar removes the car from settings.Cars up
+        // front and then deletes its (potentially millions of) rows in batches, deleting the Cars row itself
+        // last. That delete can take minutes, during which a reload here (e.g. the ~59s SmartCar/Tesla sync
+        // calling AddCarsToSettings(null)) would otherwise read the still-present Cars row and re-add the car to
+        // settings.Cars - re-enabling ingestion (new CarValueLogs/MeterValues inserted after their own delete
+        // step make the final Cars delete fail on the foreign key) and leaving a ghost car pointing at a row that
+        // is about to disappear. An entry exists in CarDeletionProgresses for the whole duration of a deletion
+        // (set synchronously by ConfigController.DeleteCar before the row deletion starts, cleared in its finally).
+        var deletingCarIds = settings.CarDeletionProgresses.Keys.ToList();
+        if (deletingCarIds.Count > 0)
+        {
+            dbQuery = dbQuery.Where(c => !deletingCarIds.Contains(c.Id));
+        }
+
         var carData = await dbQuery
             .Select(c => new
             {

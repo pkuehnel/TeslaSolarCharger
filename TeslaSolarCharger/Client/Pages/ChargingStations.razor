@@ -6,15 +6,21 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @using Microsoft.AspNetCore.Components
+@using TeslaSolarCharger.Client.Dialogs
 
 @inject IChargingStationsService ChargingStationsService
 @inject ITextLocalizationService TextLocalizer
+@inject IDialogService DialogService
 
+<PageTitle>@T(TranslationKeys.ChargingStationsTitle)</PageTitle>
 <h1>@T(TranslationKeys.ChargingStationsTitle)</h1>
+
+<ChargingStationDeletionOverlay @ref="_deletionOverlay" />
 
 <MudAlert Severity="Severity.Info"
           NoIcon="true"
-          ContentAlignment="HorizontalAlignment.Left">
+          ContentAlignment="HorizontalAlignment.Left"
+          Class="mb-4">
     <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
     <div>@T(TranslationKeys.ChargingStationsHowToConnectContent)</div>
     <div>@((MarkupString)T(TranslationKeys.ChargingStationsHowToConnectUrlFormat))</div>
@@ -24,7 +30,6 @@
 
 @if (_chargingStations == default)
 {
-
     <PlaceholderComponent Count="5"></PlaceholderComponent>
 }
 else if (_chargingStations.Count == 0)
@@ -33,41 +38,76 @@ else if (_chargingStations.Count == 0)
 }
 else
 {
-    foreach (var chargingStation in _chargingStations)
-    {
-        <div class="shadow p-3 mb-5 rounded">
-            <MudText Typo="Typo.h6" GutterBottom="true">
-                @chargingStation.ChargepointId
-                @if (chargingStation.IsConnected)
-                {
-                    <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsConnectedViaOcpp)' Color="Color.Success" Size="Size.Small" Class="ml-2" />
-                }
-                else
-                {
-                    <MudChip T="string" Text='@T(TranslationKeys.ChargingStationsNotConnectedViaOcpp)' Color="Color.Error" Size="Size.Small" Class="ml-2" />
-                }
-            </MudText>
-            <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"
-                                                AutoPhaseSwitchingSupported="@(chargingStation.CanSwitchBetween1And3Phases == true)"
-                                                IsOcppConnected="chargingStation.IsConnected"></ChargingStationConnectorsComponent>
-        </div>
-    }
+    <MudGrid>
+        @foreach (var chargingStation in _chargingStations)
+        {
+            <MudItem xs="12" md="6" xl="4">
+                <ChargingStationOverviewComponent ChargingStation="chargingStation"
+                                                  ConnectorsCount="@(_connectorCounts.GetValueOrDefault(chargingStation.Id))"
+                                                  OnEditRequested="() => EditStation(chargingStation)"
+                                                  OnDeleteRequested="() => DeleteStation(chargingStation)" />
+            </MudItem>
+        }
+    </MudGrid>
 }
-
 
 @code {
     private List<DtoChargingStation>? _chargingStations;
+    private Dictionary<int, int> _connectorCounts = new();
+    private ChargingStationDeletionOverlay? _deletionOverlay;
 
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-        await RefreshChargingStations();
-
+        await RefreshData();
     }
 
-    private async Task RefreshChargingStations()
+    private async Task RefreshData()
     {
         _chargingStations = await ChargingStationsService.GetChargingStations();
+        if (_chargingStations != null)
+        {
+            foreach (var station in _chargingStations)
+            {
+                var connectors = await ChargingStationsService.GetChargingStationConnectors(station.Id);
+                _connectorCounts[station.Id] = connectors?.Count ?? 0;
+            }
+        }
+    }
+
+    private async Task EditStation(DtoChargingStation station)
+    {
+        var parameters = new DialogParameters<ChargingStationEditDialog>
+        {
+            { x => x.ChargingStation, station }
+        };
+
+        var dialog = await DialogService.ShowAsync<ChargingStationEditDialog>(T(TranslationKeys.ChargingStationsEditStationTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await RefreshData();
+        }
+    }
+
+    private async Task DeleteStation(DtoChargingStation station)
+    {
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, station.ChargepointId }
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.ChargingStationsDeleteStationTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            if (_deletionOverlay != null)
+            {
+                await _deletionOverlay.DeleteAndTrackAsync(station.Id);
+            }
+            await RefreshData();
+        }
     }
 
     private string T(string key) =>

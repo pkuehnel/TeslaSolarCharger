@@ -21,6 +21,13 @@ public class CloudConnectionCheckService(ILogger<CloudConnectionCheckService> lo
         return response?.Value;
     }
 
+    public async Task<bool> IsBaseAppLicensed(bool useCache)
+    {
+        logger.LogTrace("{method}({useCache})", nameof(IsBaseAppLicensed), useCache);
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<bool>>($"api/BackendApi/IsBaseAppLicensed?useCache={useCache}");
+        return response?.Value ?? false;
+    }
+
     public async Task<TokenState> GetFleetApiTokenState(bool useCache)
     {
         logger.LogTrace("{method}({useCache})", nameof(GetFleetApiTokenState), useCache);

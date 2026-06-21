@@ -42,7 +42,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.RestartNeeded, "TSC restart needed",
         "Due to configuration changes a restart of TSC is needed.", settings.RestartNeeded).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.CrashedOnStartup, "TSC crashed on startup",
-            $"Exeption Message: <code>{settings.StartupCrashMessage}</code>", settings.CrashedOnStartup).ConfigureAwait(false);
+            $"Exception Message: <code>{settings.StartupCrashMessage}</code>", settings.CrashedOnStartup).ConfigureAwait(false);
 
 
         var pvValueUpdateAge = dateTimeProvider.DateTimeOffSetUtcNow() - settings.LastPvValueUpdate;
@@ -57,7 +57,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         var backendTokenUpToDate = backendTokenState == TokenState.UpToDate;
         var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
         await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backend API Token not up to date",
-            "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> login with your <a href=\"https://solar4car.com/\">solar4car.com</a> account.",
+            "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> page and log in with your <a href=\"https://solar4car.com/\">solar4car.com</a> account.",
                 !backendTokenUpToDate).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
             "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
@@ -149,7 +149,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                 && carSettings?.CarType == CarType.Tesla)
             {
                 await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet API not licensed for car {car.Vin}",
-                    "Fleet API is not licensed. Enable BLE for the car and disable include tracking relevant or buy a Fleet API license for that car. Note: After buying a Fleet API license you need to restart TSC as otherwise it takes up to six hours until TSC detects the change.", issueKeys.FleetApiNotLicensed, car.Vin, null);
+                    "Fleet API is not licensed. Enable BLE for the car and disable include tracking relevant fields, or buy a Fleet API license for that car. Note: After buying a Fleet API license you need to restart TSC as otherwise it takes up to six hours until TSC detects the change.", issueKeys.FleetApiNotLicensed, car.Vin, null);
             }
             else
             {

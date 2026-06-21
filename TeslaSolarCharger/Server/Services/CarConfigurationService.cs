@@ -98,6 +98,11 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 logger.LogInformation("Car with VIN {vin} is not available in Tesla account anymore.", teslaSolarChargerCar.Vin);
                 teslaSolarChargerCar.IsAvailableInTeslaAccount = false;
                 teslaSolarChargerCar.ShouldBeManaged = false;
+                //An unmanaged car must not stay in any charging connector's allowed cars as it can not be unselected in the UI anymore.
+                var staleAllowedCars = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                    .Where(ac => ac.CarId == teslaSolarChargerCar.Id)
+                    .ToListAsync();
+                teslaSolarChargerContext.ChargingStationConnectorAllowedCars.RemoveRange(staleAllowedCars);
                 await teslaSolarChargerContext.SaveChangesAsync();
             }
         }

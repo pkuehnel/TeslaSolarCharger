@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationService, TextLocalizationService>()
             .AddSingleton<ITextLocalizationRegistry, SharedComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BaseConfigurationPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, SetupPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarSettingsPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeCostDetailPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeCostsListPageLocalizationRegistry>()

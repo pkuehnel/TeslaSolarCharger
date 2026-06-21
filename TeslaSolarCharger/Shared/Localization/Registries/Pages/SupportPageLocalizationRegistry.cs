@@ -16,11 +16,11 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportNeverShareLogsPubliclyTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Never share logs publicly"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gib Protokolle niemals öffentlich weiter"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie Protokolle niemals öffentlich weiter"));
 
         Register(TranslationKeys.SupportNeverShareLogsPubliclyContent,
             new TextLocalizationTranslation(LanguageCodes.English, "Logs might contain sensitive information like your vehicle's location. Do not share logs publicly."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Protokolle können sensible Informationen wie den Standort deines Fahrzeugs enthalten. Teile Protokolle nicht öffentlich."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Protokolle können sensible Informationen wie den Standort Ihres Fahrzeugs enthalten. Teilen Sie Protokolle nicht öffentlich."));
 
         Register(TranslationKeys.SupportDownloadServerLogsButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Download Server Logs"),
@@ -28,7 +28,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportConfigurationWarning,
             new TextLocalizationTranslation(LanguageCodes.English, "Do not change the configuration as this might lead to extremely high memory usage. All Settings will be reset after a restart."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ändere die Konfiguration nicht, da dies zu extrem hohem Speicherverbrauch führen kann. Alle Einstellungen werden nach einem Neustart zurückgesetzt."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ändern Sie die Konfiguration nicht, da dies zu extrem hohem Speicherverbrauch führen kann. Alle Einstellungen werden nach einem Neustart zurückgesetzt."));
 
         Register(TranslationKeys.SupportInMemoryLogLevelLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "In Memory Log Level"),
@@ -112,7 +112,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportConnectorFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} Connector: {1} ({2})"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} Anschluss: {1} ({2})"));
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} Ladeanschluss: {1} ({2})"));
 
         Register(TranslationKeys.SupportChargingCurrentToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Current to set"),
@@ -128,7 +128,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportChargingPhasesToSetHelperText,
             new TextLocalizationTranslation(LanguageCodes.English, "When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Beim Starten eines Ladevorgangs oder beim Ändern des Stroms wird dieser Wert verwendet. Hinweis: Das Ladegerät kann die Anforderung ablehnen, wenn es keine Phasenumschaltung unterstützt oder du 3 auswählst, obwohl das Ladegerät nur an eine Phase angeschlossen ist. Leer lassen, um keinen Wert für das Ladegerät zu setzen."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Beim Starten eines Ladevorgangs oder beim Ändern des Stroms wird dieser Wert verwendet. Hinweis: Die Ladestation kann die Anforderung ablehnen, wenn sie keine Phasenumschaltung unterstützt oder Sie 3 auswählen, obwohl die Ladestation nur an eine Phase angeschlossen ist. Leer lassen, um keinen Wert für die Ladestation zu setzen."));
 
         Register(TranslationKeys.SupportStartChargingButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Start Charging"),
@@ -148,23 +148,23 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportGetConnectorStateButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get ConnectorState"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Anschlussstatus abrufen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschluss-Status abrufen"));
 
         Register(TranslationKeys.SupportGetConfigurationKeyButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get Configuration Key"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsschlüssel abrufen"));
 
         Register(TranslationKeys.SupportSetMeterDataConfigurationButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter data configuration"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Meterdatenkonfiguration setzen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter Data Configuration"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zählerdatenkonfiguration setzen"));
 
         Register(TranslationKeys.SupportSetMeterIntervalConfigurationButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter interval Configuration"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter Interval Configuration"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zählerintervall-Konfiguration setzen"));
 
         Register(TranslationKeys.SupportRebootChargerButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Reboot Charger"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladegerät neu starten"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestation neu starten"));
 
         Register(TranslationKeys.SupportTriggerStatusNotificationButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Trigger Status Notification"),
@@ -172,7 +172,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportCommandResultTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Command Result:"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Befehlergebnis:"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Befehlsergebnis:"));
 
         Register(TranslationKeys.SupportMeterValuesSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "MeterValues"),
@@ -180,7 +180,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportMeterValuesLoadingMessage,
             new TextLocalizationTranslation(LanguageCodes.English, "Depending on your database size and hardware this might take a few minutes, please wait..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Je nach Datenbankgröße und Hardware kann dies einige Minuten dauern. Bitte warte..."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Je nach Datenbankgröße und Hardware kann dies einige Minuten dauern. Bitte warten Sie..."));
 
         Register(TranslationKeys.SupportGetLatestMeterValuesButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get latest Meter values"),
@@ -198,21 +198,25 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Reload page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Seite neu laden"));
 
+        Register(TranslationKeys.SupportClearTeslaTokenEncryptionKeyButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Clear Tesla Token Encryption Key"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Token-Verschlüsselungsschlüssel zurücksetzen"));
+
         Register(TranslationKeys.SupportVinUnknownError,
             new TextLocalizationTranslation(LanguageCodes.English, "VIN is unknown"),
             new TextLocalizationTranslation(LanguageCodes.German, "FIN ist unbekannt"));
 
         Register(TranslationKeys.SupportCarNotPartOfTeslaAccountTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can not check config as car is not part of Tesla account"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht geprüft werden, da das Auto nicht Teil des Tesla-Kontos ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot check config as car is not part of Tesla account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht geprüft werden, da das Fahrzeug nicht Teil des Tesla-Kontos ist."));
 
         Register(TranslationKeys.SupportVinUnknownTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can not check config as Vin is unknown"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot check config as VIN is unknown"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht geprüft werden, da die FIN unbekannt ist."));
 
         Register(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can not set config as car is not part of Tesla account"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht gesetzt werden, da das Auto nicht Teil des Tesla-Kontos ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot set config as car is not part of Tesla account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht gesetzt werden, da das Fahrzeug nicht Teil des Tesla-Kontos ist."));
 
         Register(TranslationKeys.SupportLogLevelUpdatedNotification,
             new TextLocalizationTranslation(LanguageCodes.English, "Log level updated"),

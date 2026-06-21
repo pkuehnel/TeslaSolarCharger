@@ -981,7 +981,7 @@ public class ConfigurationWrapper(
 
             if (!File.Exists(filePath))
             {
-                var baseConfiguration = new DtoBaseConfiguration();
+                var baseConfiguration = new DtoBaseConfiguration { IsFirstRun = true };
                 var baseConfigurationJson = JsonConvert.SerializeObject(baseConfiguration);
                 await File.WriteAllTextAsync(filePath, baseConfigurationJson).ConfigureAwait(false);
             }

@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.ChargingStation;
+﻿using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 
 namespace TeslaSolarCharger.Client.Services.Contracts;
 
@@ -6,5 +7,8 @@ public interface IChargingStationsService
 {
     Task<List<DtoChargingStation>?> GetChargingStations();
     Task<List<DtoChargingStationConnector>?> GetChargingStationConnectors(int chargingStationId);
+    Task<bool> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector);
+    Task DeleteChargingStation(int chargingStationId);
+    Task<DtoChargingStationDeletionProgress?> GetChargingStationDeletionProgress(int chargingStationId);
     Task<Dictionary<int, string>?> GetCarOptions();
 }

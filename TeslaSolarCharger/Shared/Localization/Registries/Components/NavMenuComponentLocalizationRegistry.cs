@@ -5,8 +5,12 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
     protected override void Configure()
     {
         Register(TranslationKeys.NavMenuTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Solar Charger"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Solar Charger"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar4Car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car"));
+
+        Register(TranslationKeys.NavMenuFormerlyTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "formerly TeslaSolarCharger"),
+            new TextLocalizationTranslation(LanguageCodes.German, "ehemals TeslaSolarCharger"));
 
         Register(TranslationKeys.NavMenuToggleLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Navigation menu"),
@@ -20,9 +24,9 @@ public class NavMenuComponentLocalizationRegistry : TextLocalizationRegistry<Nav
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
 
-        Register(TranslationKeys.CarSettingsTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
+        Register(TranslationKeys.CarsTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cars"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge"));
 
         Register(TranslationKeys.ChargeCostsListTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Prices"),

@@ -31,11 +31,45 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoCarLicenseInfo>("api/BackendApi/GetFleetApiLicenseInfo");
     }
 
-    public async Task<TokenState> GetFleetApiTokenState()
+    public async Task<TokenState?> GetFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
         var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState");
-        return response?.Value ?? TokenState.MissingPrecondition;
+        return response?.Value;
+    }
+
+    public async Task<bool> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration)
+    {
+        logger.LogTrace("{method}({id})", nameof(UpdateCarBasicConfiguration), id);
+        // The endpoint returns an empty 200 body, so check for success via the Result instead of a
+        // deserialized payload (deserializing an empty body would be reported as an error).
+        var result = await httpClientHelper.SendPostRequestAsync($"api/Config/UpdateCarBasicConfiguration?carId={id}", configuration);
+        if (result.HasError)
+        {
+            snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
+            return false;
+        }
+
+        return true;
+    }
+
+    public async Task DeleteCar(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteCar), id);
+        await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>($"api/Config/DeleteCar?carId={id}");
+    }
+
+    public async Task<DtoCarDeletionProgress?> GetCarDeletionProgress(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(GetCarDeletionProgress), id);
+        // Use the non-snackbar variant: while no deletion runs the server returns null, which the helper reports
+        // as an error. As this is polled every second, only log it instead of spamming error snackbars.
+        var result = await httpClientHelper.SendGetRequestAsync<DtoCarDeletionProgress?>($"api/Config/GetCarDeletionProgress?carId={id}");
+        if (result.HasError)
+        {
+            logger.LogTrace("Could not get car deletion progress: {errorMessage}", result.ErrorMessage);
+        }
+        return result.Data;
     }
 
     public async Task<DtoBleCommandResult?> PairKey(string vin)
@@ -79,5 +113,38 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         var url = $"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}&vin={Uri.EscapeDataString(vin)}";
         var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>(url);
         return response?.Value;
+    }
+
+    public async Task<string?> GetSmartCarOAuthRedeemUrlForNewCar(string baseUrl)
+    {
+        logger.LogTrace("{method}({baseUrl})", nameof(GetSmartCarOAuthRedeemUrlForNewCar), baseUrl);
+        var url = $"/api/BackendApi/GetSmartCarOAuthRedeemUrl?baseUrl={Uri.EscapeDataString(baseUrl)}";
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>(url);
+        return response?.Value;
+    }
+
+    public async Task<List<DtoSmartCarCompatibleVehicle>?> GetSmartCarCompatibleVehicles()
+    {
+        logger.LogTrace("{method}()", nameof(GetSmartCarCompatibleVehicles));
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoSmartCarCompatibleVehicle>>("api/BackendApi/GetSmartCarCompatibleVehicles");
+    }
+
+    public async Task SyncSmartCarCars()
+    {
+        logger.LogTrace("{method}()", nameof(SyncSmartCarCars));
+        await httpClientHelper.SendPostRequestAsync<object>("api/Config/SyncSmartCarCars", null);
+    }
+
+    public async Task<bool> RefreshTeslaCarsFromAccount()
+    {
+        logger.LogTrace("{method}()", nameof(RefreshTeslaCarsFromAccount));
+        var result = await httpClientHelper.SendPostRequestAsync<object>("api/Config/RefreshTeslaCarsFromAccount", null);
+        if (result.HasError)
+        {
+            snackbar.Add(TF(TranslationKeys.CarSettingsAddTeslaFromAccountError, result.ErrorMessage ?? string.Empty), Severity.Error);
+            return false;
+        }
+        snackbar.Add(TF(TranslationKeys.CarSettingsAddTeslaFromAccountSuccess), Severity.Success);
+        return true;
     }
 }

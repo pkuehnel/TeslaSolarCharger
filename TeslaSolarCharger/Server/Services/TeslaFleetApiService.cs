@@ -807,7 +807,7 @@ public class TeslaFleetApiService(
                         logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback until {fallbackUntil}.", fallbackUntilLocalTimeString);
                         await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                             $"Using Fleet API as BLE fallback for car {car.Vin}",
-                            $"As the BLE command did not succeed, Fleet API is used as fallback until {fallbackUntilLocalTimeString}. Note: During this time it is not possible to retry BLE automatically you need to go to the car settings page and test BLE access manually.",
+                            $"As the BLE command did not succeed, Fleet API is used as fallback until {fallbackUntilLocalTimeString}. Note: During this time it is not possible to retry BLE automatically. You need to go to the car settings page and test BLE access manually.",
                             issueKeys.UsingFleetApiAsBleFallback, car.Vin, null).ConfigureAwait(false);
                     }
                     else

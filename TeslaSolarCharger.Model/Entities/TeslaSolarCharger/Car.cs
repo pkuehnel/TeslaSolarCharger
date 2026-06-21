@@ -8,6 +8,13 @@ public class Car
     public int? TeslaMateCarId { get; set; }
     public string? Name { get; set; }
     public string? Vin { get; set; }
+
+    /// <summary>
+    /// SmartCar's internal vehicle id. Known the moment a SmartCar connection exists (before the VIN),
+    /// so it is the stable join key for SmartCar cars while the <see cref="Vin"/> backfills.
+    /// </summary>
+    public string? SmartCarVehicleId { get; set; }
+
     public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
     public bool IsFleetTelemetryHardwareIncompatible { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }

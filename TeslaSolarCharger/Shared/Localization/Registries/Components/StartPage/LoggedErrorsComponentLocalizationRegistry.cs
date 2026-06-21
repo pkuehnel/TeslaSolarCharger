@@ -15,7 +15,7 @@ public class LoggedErrorsComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.German, "Die Liste wird nur einmal pro Minute aktualisiert"));
 
         Register(TranslationKeys.LoggedErrorsOccurrenceCount,
-            new TextLocalizationTranslation(LanguageCodes.English, "{0} occured {1} time(s)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1} mal auf"));
+            new TextLocalizationTranslation(LanguageCodes.English, "{0} occurred {1} time(s)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1}-mal auf"));
     }
 }
