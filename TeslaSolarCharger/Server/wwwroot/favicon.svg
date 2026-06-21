@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Solar4Car">
+  <title>Solar4Car</title>
+  <rect width="64" height="64" rx="14" fill="#1F9D57"/>
+  <text x="32" y="42" text-anchor="middle"
+        font-family="'Segoe UI Semibold','Segoe UI',system-ui,'Poppins',Arial,sans-serif"
+        font-size="29" font-weight="600" letter-spacing="-0.5" fill="#FFFFFF">S<tspan fill="#F5A623">4</tspan>C</text>
+</svg>
