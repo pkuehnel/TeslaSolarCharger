@@ -77,15 +77,17 @@
     fill-opacity: .26;
 }
 
-/* ----- Node content (icon + value + label, centred inside the ring) ----- */
+/* ----- Node content (icon + value + label, centred inside the ring) -----
+   The width/height are set inline in the markup (NodeContentSizeStyle) with
+   explicit pixels rather than 100%: Safari/WebKit does not resolve percentage
+   dimensions for HTML inside a <foreignObject>, which let the labels overflow
+   the node on iOS. ----- */
 .pf-node-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 1px;
-    width: 100%;
-    height: 100%;
     text-align: center;
     line-height: 1.05;
     color: var(--mud-palette-text-primary);

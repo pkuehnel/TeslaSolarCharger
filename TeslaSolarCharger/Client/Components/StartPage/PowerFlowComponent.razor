@@ -140,7 +140,7 @@ else
             @if (GridLocation != default)
             {
                 <foreignObject x="@(GridLocation.X - NodeRadius)" y="@(GridLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
-                    <div class="pf-node-content">
+                    <div class="pf-node-content" style="@NodeContentSizeStyle" xmlns="http://www.w3.org/1999/xhtml">
                         <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
                         <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeGrid)</span>
@@ -150,7 +150,7 @@ else
             @if (InverterLocation != default)
             {
                 <foreignObject x="@(InverterLocation.X - NodeRadius)" y="@(InverterLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
-                    <div class="pf-node-content">
+                    <div class="pf-node-content" style="@NodeContentSizeStyle" xmlns="http://www.w3.org/1999/xhtml">
                         <MudIcon Icon="@Constants.SolarPowerIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@(_pvValues.InverterPower?.ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
                         <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeSolar)</span>
@@ -160,7 +160,7 @@ else
             @if (BatteryLocation != default)
             {
                 <foreignObject x="@(BatteryLocation.X - NodeRadius)" y="@(BatteryLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
-                    <div class="pf-node-content">
+                    <div class="pf-node-content" style="@NodeContentSizeStyle" xmlns="http://www.w3.org/1999/xhtml">
                         <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" Color="@BatteryColor" />
                         <span class="pf-node-value">@(Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
                         <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeBattery)</span>
@@ -170,7 +170,7 @@ else
             @if (HomeLocation != default)
             {
                 <foreignObject x="@(HomeLocation.X - NodeRadius)" y="@(HomeLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
-                    <div class="pf-node-content">
+                    <div class="pf-node-content" style="@NodeContentSizeStyle" xmlns="http://www.w3.org/1999/xhtml">
                         <MudIcon Icon="@Constants.HomePowerIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@CalculateHomePower()?.ToString("N0") @T(TranslationKeys.UnitWatts)</span>
                         <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeHome)</span>
@@ -180,7 +180,7 @@ else
             @if (EvChargerLocation != default)
             {
                 <foreignObject x="@(EvChargerLocation.X - NodeRadius)" y="@(EvChargerLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
-                    <div class="pf-node-content">
+                    <div class="pf-node-content" style="@NodeContentSizeStyle" xmlns="http://www.w3.org/1999/xhtml">
                         <MudIcon Icon="@Icons.Material.Outlined.EvStation" Size="Size.Medium" />
                         <span class="pf-node-value">@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") @T(TranslationKeys.UnitWatts)</span>
                         <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeCar)</span>
@@ -206,6 +206,13 @@ else
 
     private const int NodeRadius = 42;
     private const int NodeRingWidth = 4;
+
+    // WebKit/Safari does not resolve percentage width/height for HTML inside a
+    // <foreignObject>, so the node content collapses and its labels overflow the
+    // circle. Pinning explicit pixel dimensions (in SVG user units, which scale
+    // with the viewBox) keeps the flex box constrained and clipped on iOS too.
+    private static string NodeContentSizeStyle =>
+        $"width:{NodeRadius * 2}px;height:{NodeRadius * 2}px;";
 
     private IDisposable? _subscription;
     private IDisposable? _dynamicMinSocSubscription;
