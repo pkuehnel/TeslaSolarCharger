@@ -27,8 +27,12 @@
 }
 else
 {
+    var bounds = ViewBoxBounds;
     <div class="pf-card">
-        <svg class="pf-svg" viewBox="@($"0 0 {_widthInPixel} {SvgHeight}")" preserveAspectRatio="xMidYMid meet">
+        <svg class="pf-svg"
+             viewBox="@($"{bounds.X} {bounds.Y} {bounds.Width} {bounds.Height}")"
+             style="@($"max-width: {bounds.Width}px;")"
+             preserveAspectRatio="xMidYMid meet">
             <defs>
                 <!-- Soft glow used by active nodes -->
                 <filter id="pf-node-glow" x="-60%" y="-60%" width="220%" height="220%">
@@ -194,7 +198,8 @@ else
     private DtoPvValues? _pvValues;
     private DtoDynamicMinSocSettings? _dynamicMinSocSettings;
 
-    // viewBox width; the rendered width is responsive (see PowerFlowComponent.razor.css).
+    // Fallback canvas size; only used before any node positions exist. The real
+    // viewBox is cropped to the node bounding box (see ViewBoxBounds).
     private readonly int _widthInPixel = 720;
 
     private const int BatterySocWarningThreshold = 15;
@@ -424,33 +429,26 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private int SvgHeight
+    // Tight bounding box around all visible nodes (plus padding for the ring and
+    // glow). Used as the SVG viewBox so the diagram fills the available width
+    // instead of floating inside a fixed, oversized canvas (which made it tiny on
+    // narrow/mobile screens).
+    private (int X, int Y, int Width, int Height) ViewBoxBounds
     {
         get
         {
-            var size = 0;
-            if (InverterLocation?.Y > size)
+            var nodes = NodeLayout.Values;
+            if (nodes.Count == 0)
             {
-                size = InverterLocation.Y;
-            }
-            if (GridLocation?.Y > size)
-            {
-                size = GridLocation.Y;
-            }
-            if (BatteryLocation?.Y > size)
-            {
-                size = BatteryLocation.Y;
-            }
-            if (HomeLocation?.Y > size)
-            {
-                size = HomeLocation.Y;
-            }
-            if (EvChargerLocation?.Y > size)
-            {
-                size = EvChargerLocation.Y;
+                return (0, 0, _widthInPixel, _widthInPixel);
             }
 
-            return size > 0 ? size + NodeRadius + 6 : 0;
+            const int padding = 18;
+            var minX = nodes.Min(n => n.X) - NodeRadius - padding;
+            var maxX = nodes.Max(n => n.X) + NodeRadius + padding;
+            var minY = nodes.Min(n => n.Y) - NodeRadius - padding;
+            var maxY = nodes.Max(n => n.Y) + NodeRadius + padding;
+            return (minX, minY, maxX - minX, maxY - minY);
         }
     }
 
@@ -552,7 +550,7 @@ else
     // Vertical centre-to-centre distance between rows.
     private const int RowSpacing = 110;
 
-    // Horizontal centre of the diagram (the viewBox is _widthInPixel wide).
+    // Horizontal centre the nodes are laid out around (the viewBox is cropped to fit them).
     private const int CenterX = 360;
     // Centre-to-centre distance between the two nodes of a paired row. Upper rows
     // are spread wider than the bottom row so vertical links turn into longer diagonals.
