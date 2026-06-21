@@ -20,7 +20,7 @@
 @if (_pvValues == default)
 {
     <div class="pf-card">
-        <PlaceholderComponent Height="@($"{ThirdLineY}px")"
+        <PlaceholderComponent Height="@($"{PlaceholderHeight}px")"
                               Width="100%"
                               Class="d-flex justify-content-center"></PlaceholderComponent>
     </div>
@@ -272,6 +272,8 @@ else
         {
             return;
         }
+        // Positions depend on which nodes are present, which changes with the PV values.
+        _nodeLayout = null;
         Flows.Clear();
 
         if (_pvValues.InverterPower > 0)
@@ -452,170 +454,113 @@ else
         }
     }
 
-    private Location? InverterLocation
+    // Power-flow nodes in the fixed priority order used for placement.
+    private enum PowerFlowNode
     {
-        get
-        {
-            if (_pvValues?.InverterPower != default)
-            {
-                return new Location()
-                {
-                    X = SecondColumnX,
-                    Y = FirstLineY,
-                };
-            }
-            return null;
-        }
+        Solar,
+        Grid,
+        Battery,
+        Home,
+        Car,
     }
 
-    private Location? GridLocation
+    // Computed positions of every visible node. Rebuilt whenever the PV values change.
+    private Dictionary<PowerFlowNode, Location>? _nodeLayout;
+
+    private Dictionary<PowerFlowNode, Location> NodeLayout => _nodeLayout ??= BuildNodeLayout();
+
+    // Convenience accessors so the markup and flow logic keep reading per-node locations.
+    private Location? InverterLocation => NodeLayout.GetValueOrDefault(PowerFlowNode.Solar);
+    private Location? GridLocation => NodeLayout.GetValueOrDefault(PowerFlowNode.Grid);
+    private Location? BatteryLocation => NodeLayout.GetValueOrDefault(PowerFlowNode.Battery);
+    private Location? HomeLocation => NodeLayout.GetValueOrDefault(PowerFlowNode.Home);
+    private Location? EvChargerLocation => NodeLayout.GetValueOrDefault(PowerFlowNode.Car);
+
+    // Places the circles symmetrically. The present nodes are taken in the fixed
+    // priority order (Solar, Grid, Battery, Home, Car) and arranged into centered
+    // rows of at most two, so the diagram stays balanced for any number of nodes
+    // and later nodes move up into the spot of any missing earlier node.
+    private Dictionary<PowerFlowNode, Location> BuildNodeLayout()
     {
-        get
-        {
-            if (_pvValues?.GridPower == default)
-            {
-                return null;
-            }
-
-            var y = SecondLineY;
-            if (_pvValues?.InverterPower == default)
-            {
-                y = FirstLineY;
-            }
-
-            return new Location()
-            {
-                X = FirstColumnX,
-                Y = y,
-            };
-        }
-    }
-
-    private Location? BatteryLocation
-    {
-        get
-        {
-            if (_pvValues?.HomeBatteryPower == default)
-            {
-                return null;
-            }
-            var y = SecondLineY;
-            if (_pvValues?.InverterPower == default)
-            {
-                y = FirstLineY;
-            }
-            return new Location()
-            {
-                X = ThirdColumnX,
-                Y = y,
-            };
-        }
-    }
-
-    private Location? HomeLocation
-    {
-        get
-        {
-            var homePower = CalculateHomePower();
-            if (homePower == default || _pvValues == default)
-            {
-                return null;
-            }
-            var location = GetFreePlaceAfterSolarGridAndBattery();
-            if (location?.Y == ThirdLineY)
-            {
-                location.X = (SecondColumnX - FirstColumnX) / 2 + FirstColumnX;
-            }
-
-            return location;
-        }
-    }
-
-    private Location? EvChargerLocation
-    {
-        get
-        {
-            if (_pvValues == default)
-            {
-                return null;
-            }
-            var homeLocation = HomeLocation;
-            if (homeLocation == default)
-            {
-                return GetFreePlaceAfterSolarGridAndBattery();
-            }
-
-            if (homeLocation.Y == SecondLineY)
-            {
-                if (homeLocation.X == SecondColumnX)
-                {
-                    return new Location()
-                    {
-                        X = ThirdColumnX,
-                        Y = SecondLineY,
-                    };
-                }
-                else
-                {
-                    return new Location()
-                    {
-                        X = SecondColumnX,
-                        Y = ThirdLineY,
-                    };
-                }
-
-            }
-
-            return new Location()
-            {
-                X = (ThirdColumnX - SecondColumnX) / 2 + SecondColumnX,
-                Y = ThirdLineY,
-            };
-        }
-    }
-
-    private Location? GetFreePlaceAfterSolarGridAndBattery()
-    {
-        var lineNumber = 1;
+        var layout = new Dictionary<PowerFlowNode, Location>();
         if (_pvValues == default)
         {
-            return null;
-        }
-        if (_pvValues.InverterPower != default)
-        {
-            lineNumber++;
-        }
-        if (_pvValues.GridPower != default && _pvValues.HomeBatteryPower != default)
-        {
-            lineNumber++;
+            return layout;
         }
 
-        var yCoordinate = lineNumber switch
+        var present = new List<PowerFlowNode>();
+        if (_pvValues.InverterPower != default)
         {
-            1 => FirstLineY,
-            2 => SecondLineY,
-            3 => ThirdLineY,
-            _ => throw new ArgumentOutOfRangeException(nameof(lineNumber), lineNumber, "Value must be 1, 2 or 3."),
-        };
-        var xCoordinate = SecondColumnX;
-        if (_pvValues.GridPower == default)
-        {
-            xCoordinate = ThirdColumnX;
+            present.Add(PowerFlowNode.Solar);
         }
-        return new Location()
+        if (_pvValues.GridPower != default)
         {
-            X = xCoordinate,
-            Y = yCoordinate,
-        };
+            present.Add(PowerFlowNode.Grid);
+        }
+        if (_pvValues.HomeBatteryPower != default)
+        {
+            present.Add(PowerFlowNode.Battery);
+        }
+        if (CalculateHomePower() != default)
+        {
+            present.Add(PowerFlowNode.Home);
+        }
+        // The charger node is always shown once PV values are available.
+        present.Add(PowerFlowNode.Car);
+
+        var rowSizes = BuildRowSizes(present.Count);
+        var nodeIndex = 0;
+        for (var rowIndex = 0; rowIndex < rowSizes.Count; rowIndex++)
+        {
+            var nodesInRow = rowSizes[rowIndex];
+            var y = FirstLineY + (rowIndex * RowSpacing);
+            // The bottom row is narrower than the rows above it, so links running
+            // down into it (e.g. Grid -> Home) become longer, diagonal lines.
+            var isLastRow = rowIndex == rowSizes.Count - 1;
+            var columnSpacing = isLastRow ? NarrowColumnSpacing : WideColumnSpacing;
+            for (var column = 0; column < nodesInRow; column++)
+            {
+                var x = nodesInRow == 1
+                    ? CenterX
+                    : CenterX + (column == 0 ? -columnSpacing / 2 : columnSpacing / 2);
+                layout[present[nodeIndex]] = new Location { X = x, Y = y };
+                nodeIndex++;
+            }
+        }
+
+        return layout;
+    }
+
+    // Splits a number of nodes into centered rows of at most two. An odd count
+    // puts a single node on the first row; the remaining nodes are paired.
+    private static List<int> BuildRowSizes(int count)
+    {
+        var rowSizes = new List<int>();
+        if (count % 2 == 1)
+        {
+            rowSizes.Add(1);
+            count--;
+        }
+        for (var i = 0; i < count; i += 2)
+        {
+            rowSizes.Add(2);
+        }
+        return rowSizes;
     }
 
     private const int FirstLineY = 50;
-    private const int SecondLineY = 145;
-    private const int ThirdLineY = 240;
+    // Vertical centre-to-centre distance between rows.
+    private const int RowSpacing = 110;
 
-    private const int FirstColumnX = 115;
-    private const int SecondColumnX = 360;
-    private const int ThirdColumnX = 605;
+    // Horizontal centre of the diagram (the viewBox is _widthInPixel wide).
+    private const int CenterX = 360;
+    // Centre-to-centre distance between the two nodes of a paired row. Upper rows
+    // are spread wider than the bottom row so vertical links turn into longer diagonals.
+    private const int WideColumnSpacing = 340;
+    private const int NarrowColumnSpacing = 180;
+
+    // Height reserved for the loading placeholder (≈ a three-row diagram).
+    private const int PlaceholderHeight = FirstLineY + (2 * RowSpacing);
 
     public class Location
     {

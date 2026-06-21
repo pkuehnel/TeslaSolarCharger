@@ -870,6 +870,8 @@ public class PvValueService(
             }
             
             
+            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+            await NotifyPvValuesChangedAsync().ConfigureAwait(false);
             return;
         }
 
@@ -901,6 +903,11 @@ public class PvValueService(
         settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
             SafeToInt(homeBatterySoc) : null;
         settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        await NotifyPvValuesChangedAsync().ConfigureAwait(false);
+    }
+
+    private async Task NotifyPvValuesChangedAsync()
+    {
         int? powerBuffer = configurationWrapper.PowerBuffer();
         if (settings.InverterPower == null && settings.Overage == null)
         {
