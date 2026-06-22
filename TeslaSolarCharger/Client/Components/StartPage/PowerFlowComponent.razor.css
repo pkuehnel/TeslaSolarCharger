@@ -106,6 +106,10 @@
     letter-spacing: .4px;
     text-transform: uppercase;
     opacity: .6;
+    /* Must shrink-wrap like .pf-node-value: WebKit/Safari mis-resolves the width
+       of a wrappable child inside a <foreignObject> (against the SVG canvas
+       instead of the parent), which pushed the labels out of their node on iOS. */
+    white-space: nowrap;
 }
 
 /* keep the MudBlazor icons inheriting the themed text colour and a tidy size */
