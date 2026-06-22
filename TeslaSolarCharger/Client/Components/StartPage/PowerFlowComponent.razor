@@ -140,7 +140,7 @@ else
             @if (GridLocation != default)
             {
                 <foreignObject x="@(GridLocation.X - NodeRadius)" y="@(GridLocation.Y - NodeRadius)" width="@(NodeRadius * 2)" height="@(NodeRadius * 2)">
-                    <div class="pf-node-content pf-node-grid">
+                    <div class="pf-node-content">
                         <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
                     </div>

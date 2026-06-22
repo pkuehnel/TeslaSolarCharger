@@ -119,16 +119,6 @@
     transform: translateY(-5px);
 }
 
-/* The grid/pole icon is a tall custom SVG (viewBox 0 0 83.77 122.88) that fills
-   its box top-to-bottom, unlike the square, padded Material icons. Give just
-   this icon a slightly smaller box (so its edge-to-edge glyph visually matches
-   the others) and a gentler lift so its tip stays inside the node. */
-.pf-node-grid ::deep > svg.mud-icon-root {
-    width: 1.6rem;
-    height: 1.6rem;
-    transform: translateY(-3px);
-}
-
 @media (prefers-reduced-motion: reduce) {
     .pf-flow {
         animation: none;
