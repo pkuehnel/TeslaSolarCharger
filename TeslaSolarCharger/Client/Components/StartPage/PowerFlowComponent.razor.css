@@ -77,17 +77,15 @@
     fill-opacity: .26;
 }
 
-/* ----- Node content (icon + value + label, centred inside the ring) -----
-   The width/height are set inline in the markup (NodeContentSizeStyle) with
-   explicit pixels rather than 100%: Safari/WebKit does not resolve percentage
-   dimensions for HTML inside a <foreignObject>, which let the labels overflow
-   the node on iOS. ----- */
+/* ----- Node content (icon + value, centred inside the ring) ----- */
 .pf-node-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 1px;
+    width: 100%;
+    height: 100%;
     text-align: center;
     line-height: 1.05;
     color: var(--mud-palette-text-primary);
@@ -95,29 +93,40 @@
 }
 
 .pf-node-value {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
-    white-space: nowrap;
-}
-
-.pf-node-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: .4px;
-    text-transform: uppercase;
-    opacity: .6;
-    /* Must shrink-wrap like .pf-node-value: WebKit/Safari mis-resolves the width
-       of a wrappable child inside a <foreignObject> (against the SVG canvas
-       instead of the parent), which pushed the labels out of their node on iOS. */
     white-space: nowrap;
 }
 
 /* keep the MudBlazor icons inheriting the themed text colour and a tidy size */
 .pf-node-content ::deep .mud-icon-root {
-    font-size: 1.4rem;
-    width: 1.4rem;
-    height: 1.4rem;
+    font-size: 1.9rem;
+    width: 1.9rem;
+    height: 1.9rem;
     color: currentColor;
+}
+
+/* Lift the icon a few px to open up breathing room above the wattage, without
+   nudging the value lower: a transform shifts the icon visually but keeps the
+   value at its centred position. That matters because the circle narrows toward
+   the bottom, so 5-digit values (e.g. "1,799 W") need the wider room near the
+   vertical centre.
+   NB: only the DIRECT-child icon svg is targeted (> svg). MudBlazor wraps a
+   custom full-SVG icon (the grid/pole) in its own <svg class="mud-icon-root">,
+   so the grid node has a nested svg; a plain "::deep svg" would transform both
+   the outer and the inner svg and lift the pole twice as far, clipping it. */
+.pf-node-content ::deep > svg {
+    transform: translateY(-5px);
+}
+
+/* The grid/pole icon is a tall custom SVG (viewBox 0 0 83.77 122.88) that fills
+   its box top-to-bottom, unlike the square, padded Material icons. Give just
+   this icon a slightly smaller box (so its edge-to-edge glyph visually matches
+   the others) and a gentler lift so its tip stays inside the node. */
+.pf-node-grid ::deep > svg.mud-icon-root {
+    width: 1.6rem;
+    height: 1.6rem;
+    transform: translateY(-3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
