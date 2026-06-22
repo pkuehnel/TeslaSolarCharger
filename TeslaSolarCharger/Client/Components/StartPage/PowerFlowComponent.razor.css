@@ -83,7 +83,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1px;
+    gap: 5px;
     width: 100%;
     height: 100%;
     text-align: center;
@@ -106,18 +106,11 @@
     color: currentColor;
 }
 
-/* Lift the icon a few px to open up breathing room above the wattage, without
-   nudging the value lower: a transform shifts the icon visually but keeps the
-   value at its centred position. That matters because the circle narrows toward
-   the bottom, so 5-digit values (e.g. "1,799 W") need the wider room near the
-   vertical centre.
-   NB: only the DIRECT-child icon svg is targeted (> svg). MudBlazor wraps a
-   custom full-SVG icon (the grid/pole) in its own <svg class="mud-icon-root">,
-   so the grid node has a nested svg; a plain "::deep svg" would transform both
-   the outer and the inner svg and lift the pole twice as far, clipping it. */
-.pf-node-content ::deep > svg {
-    transform: translateY(-5px);
-}
+/* The icon↔value breathing room comes from the flex `gap` above, NOT a CSS
+   transform on the icon. A `transform: translateY()` on the icon <svg> is
+   resolved against the SVG view-box coordinate space inside a <foreignObject>
+   on WebKit/iOS, which threw the icons out of position there (Chrome/Blink was
+   fine). `gap` is plain flex layout, so it behaves the same on every browser. */
 
 @media (prefers-reduced-motion: reduce) {
     .pf-flow {
