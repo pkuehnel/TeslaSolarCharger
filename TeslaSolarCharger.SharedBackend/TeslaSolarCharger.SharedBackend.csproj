@@ -13,8 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="LanguageExt.Core" Version="5.0.0-beta-34" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.11" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
