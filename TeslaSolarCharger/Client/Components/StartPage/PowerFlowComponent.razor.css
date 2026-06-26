@@ -77,13 +77,13 @@
     fill-opacity: .26;
 }
 
-/* ----- Node content (icon + value + label, centred inside the ring) ----- */
+/* ----- Node content (icon + value, centred inside the ring) ----- */
 .pf-node-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1px;
+    gap: 5px;
     width: 100%;
     height: 100%;
     text-align: center;
@@ -93,26 +93,24 @@
 }
 
 .pf-node-value {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     white-space: nowrap;
 }
 
-.pf-node-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: .4px;
-    text-transform: uppercase;
-    opacity: .6;
-}
-
 /* keep the MudBlazor icons inheriting the themed text colour and a tidy size */
 .pf-node-content ::deep .mud-icon-root {
-    font-size: 1.4rem;
-    width: 1.4rem;
-    height: 1.4rem;
+    font-size: 1.9rem;
+    width: 1.9rem;
+    height: 1.9rem;
     color: currentColor;
 }
+
+/* The icon↔value breathing room comes from the flex `gap` above, NOT a CSS
+   transform on the icon. A `transform: translateY()` on the icon <svg> is
+   resolved against the SVG view-box coordinate space inside a <foreignObject>
+   on WebKit/iOS, which threw the icons out of position there (Chrome/Blink was
+   fine). `gap` is plain flex layout, so it behaves the same on every browser. */
 
 @media (prefers-reduced-motion: reduce) {
     .pf-flow {

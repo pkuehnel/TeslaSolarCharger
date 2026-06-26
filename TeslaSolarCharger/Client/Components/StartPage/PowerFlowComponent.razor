@@ -143,7 +143,6 @@ else
                     <div class="pf-node-content">
                         <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@(Math.Abs(_pvValues.GridPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
-                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeGrid)</span>
                     </div>
                 </foreignObject>
             }
@@ -153,7 +152,6 @@ else
                     <div class="pf-node-content">
                         <MudIcon Icon="@Constants.SolarPowerIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@(_pvValues.InverterPower?.ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
-                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeSolar)</span>
                     </div>
                 </foreignObject>
             }
@@ -163,7 +161,6 @@ else
                     <div class="pf-node-content">
                         <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" Color="@BatteryColor" />
                         <span class="pf-node-value">@(Math.Abs(_pvValues.HomeBatteryPower ?? 0).ToString("N0")) @T(TranslationKeys.UnitWatts)</span>
-                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeBattery)</span>
                     </div>
                 </foreignObject>
             }
@@ -173,7 +170,6 @@ else
                     <div class="pf-node-content">
                         <MudIcon Icon="@Constants.HomePowerIcon" Size="Size.Medium" />
                         <span class="pf-node-value">@CalculateHomePower()?.ToString("N0") @T(TranslationKeys.UnitWatts)</span>
-                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeHome)</span>
                     </div>
                 </foreignObject>
             }
@@ -183,7 +179,6 @@ else
                     <div class="pf-node-content">
                         <MudIcon Icon="@Icons.Material.Outlined.EvStation" Size="Size.Medium" />
                         <span class="pf-node-value">@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") @T(TranslationKeys.UnitWatts)</span>
-                        <span class="pf-node-label">@T(TranslationKeys.PowerFlowNodeCar)</span>
                     </div>
                 </foreignObject>
             }
