@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Mvc;
 using MudBlazor;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Client.Dtos;
