@@ -244,7 +244,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 35, 0);
+            var correctVersion = new Version(2, 36, 0);
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)
@@ -273,6 +273,57 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                     issueKeys.BleVersionCompatibility, vin, ex.StackTrace).ConfigureAwait(false);
             }
             return "BLE container is not reachable. Looks like the url is not correct or BLE container is not online.";
+        }
+    }
+
+    public List<DtoBleContainer> GetBleContainers()
+    {
+        logger.LogTrace("{method}()", nameof(GetBleContainers));
+        return settings.Cars
+            .Where(c => c.UseBle && !string.IsNullOrWhiteSpace(c.BleApiBaseUrl))
+            .GroupBy(c => c.BleApiBaseUrl!)
+            .Select(g => new DtoBleContainer
+            {
+                BleApiBaseUrl = g.Key,
+                CarNames = g.Select(c => c.Name ?? c.Vin).ToList(),
+            })
+            .ToList();
+    }
+
+    public async Task<Stream?> DownloadLogs(string bleApiBaseUrl)
+    {
+        logger.LogTrace("{method}({bleApiBaseUrl})", nameof(DownloadLogs), bleApiBaseUrl);
+        // Only allow URLs that are actually configured on a BLE enabled car to avoid being used as a request proxy.
+        var isConfigured = settings.Cars.Any(c => c.UseBle && c.BleApiBaseUrl == bleApiBaseUrl);
+        if (!isConfigured)
+        {
+            logger.LogWarning("BLE base url {bleApiBaseUrl} is not configured for any car. Not downloading logs.", bleApiBaseUrl);
+            return null;
+        }
+        var baseUrl = GetBleBaseUrlFromConfiguredUrl(bleApiBaseUrl);
+        if (string.IsNullOrEmpty(baseUrl))
+        {
+            return null;
+        }
+        var url = baseUrl + "Debug/DownloadInMemoryLogs";
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+        try
+        {
+            var response = await client.GetAsync(url).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError("Failed to download BLE logs from {url}. StatusCode: {statusCode}", url, response.StatusCode);
+                return null;
+            }
+            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            return new MemoryStream(bytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to download BLE logs from {url}.", url);
+            return null;
         }
     }
 

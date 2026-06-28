@@ -37,6 +37,9 @@ public static class TranslationKeys
     public static string SupportInMemoryLogCapacityLabel => nameof(SupportInMemoryLogCapacityLabel);
     public static string SupportFileLogLevelLabel => nameof(SupportFileLogLevelLabel);
     public static string SupportDownloadServerFileLogsButton => nameof(SupportDownloadServerFileLogsButton);
+    public static string SupportBleContainerLogsSectionTitle => nameof(SupportBleContainerLogsSectionTitle);
+    public static string SupportBleContainerUsedByFormat => nameof(SupportBleContainerUsedByFormat);
+    public static string SupportDownloadBleContainerLogsButtonFormat => nameof(SupportDownloadBleContainerLogsButtonFormat);
     public static string SupportUiLogsSectionTitle => nameof(SupportUiLogsSectionTitle);
     public static string SupportFetchedLogsFormat => nameof(SupportFetchedLogsFormat);
     public static string SupportCopyLogsToClipboardButton => nameof(SupportCopyLogsToClipboardButton);

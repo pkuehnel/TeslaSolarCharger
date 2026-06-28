@@ -17,4 +17,8 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PkSoftwareService.Custom.Backend\PkSoftwareService.Custom.Backend.csproj" />
+  </ItemGroup>
+
 </Project>

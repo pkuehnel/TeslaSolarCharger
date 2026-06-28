@@ -46,6 +46,18 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Download Server File Logs"),
             new TextLocalizationTranslation(LanguageCodes.German, "Server-Dateiprotokolle herunterladen"));
 
+        Register(TranslationKeys.SupportBleContainerLogsSectionTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "BLE Container Logs"),
+            new TextLocalizationTranslation(LanguageCodes.German, "BLE-Container-Protokolle"));
+
+        Register(TranslationKeys.SupportBleContainerUsedByFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Used by: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verwendet von: {0}"));
+
+        Register(TranslationKeys.SupportDownloadBleContainerLogsButtonFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Download BLE Logs ({0})"),
+            new TextLocalizationTranslation(LanguageCodes.German, "BLE-Protokolle herunterladen ({0})"));
+
         Register(TranslationKeys.SupportUiLogsSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "UI Logs"),
             new TextLocalizationTranslation(LanguageCodes.German, "UI-Protokolle"));
