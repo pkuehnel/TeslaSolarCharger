@@ -17,6 +17,13 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current.
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
     - [Install and setup BLE API](#install-and-setup-ble-api)
+- [Setting up solar power values](#setting-up-solar-power-values)
+  - [Templates](#templates)
+  - [REST values](#rest-values)
+  - [Modbus values](#modbus-values)
+  - [JSON Path](#json-path)
+  - [XML Path](#xml-path)
+  - [Correction Factors](#correction-factors)
 - [Often used optional settings](#often-used-optional-settings)
   - [Power Buffer](#power-buffer)
   - [Home Battery](#home-battery)
@@ -56,7 +63,7 @@ Depending on your system, you have to install Docker first. To do this on a Rasp
     ```
 If any issues occur, try to identify them using [this more detailed instruction](https://www.simplilearn.com/tutorials/docker-tutorial/raspberry-pi-docker).
 
-If you are using a Windows host, install the Software from [here](https://docs.docker.com/desktop/install/windows-install/). Windows 11 is highly recommended. Select Linux Containers in the installation process. Note: The SMA plugin is not supported on Docker on Windows.
+If you are using a Windows host, install the Software from [here](https://docs.docker.com/desktop/install/windows-install/). Windows 11 is highly recommended. Select Linux Containers in the installation process. Note: The SMA Energy Meter template is not supported on Docker on Windows.
 
 ### Setting up TeslaSolarCharger
 
@@ -64,12 +71,15 @@ To set up TeslaSolarCharger, you must create a `docker-compose.yml` (name is imp
 
 #### docker-compose.yml content
 
-The required content of your `docker-compose.yml` depends on your inverter. By default, TeslaSolarCharger can consume JSON/XML REST APIs, MQTT messages or Modbus TCP. To get the software running on [SMA](https://www.sma.de/), [SolarEdge](https://www.solaredge.com/) or Solax based inverters, you can use specific plugins which create the required JSON API.
+In most cases TeslaSolarCharger only needs its own container. You configure your inverter, energy meter or home battery later directly in the web interface using a **Template** or a generic **REST**, **Modbus** or **MQTT** source (see [Setting up solar power values](#setting-up-solar-power-values)).
+
+**SMA**, **Solax** and **Tesla Powerwall** are supported through built-in templates and need no extra container. **SolarEdge** is integrated through a dedicated [plugin container](#content-using-solaredge-plugin).
+
 To edit files with Linux, you can either use your normal Linux desktop environment, or when accessing via SSH, you can use the [nano editor](https://linuxize.com/post/how-to-use-nano-text-editor/), or when accessing from a Windows PC, you can use [WinSCP](https://winscp.net/eng/download.php).
 
-##### Content without using a plugin
+##### Standard docker-compose.yml
 
-Below you can see the content for your `docker-compose.yml` if you are not using any plugin. Note: I recommend changing as few things as possible on this file as this will increase the effort to set everything up but feel free to change the Timezone.
+Below you can see the content for your `docker-compose.yml`. This is everything most users need; the inverter/battery is added later via the web interface. Note: I recommend changing as few things as possible on this file as this will increase the effort to set everything up but feel free to change the Timezone.
 
 ```yaml
 services:
@@ -93,73 +103,6 @@ volumes:
   teslasolarcharger-configs:
 
 ```
-
-##### Content using SMA plugin
-
-[![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersmaplugin)
-[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersmaplugin)
-[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersmaplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersmaplugin)
-
-The SMA plugin is used to access your EnergyMeter (or Sunny Home Manager 2.0) values.
-To use the plugin, add these lines before the volumes section of your `docker-compose.yml`. Note: The SMA plugin is not supported on Docker on Windows.
-
-```yaml
-  smaplugin:
-    image: pkuehnel/teslasolarchargersmaplugin:latest
-    container_name: teslasolarcharger_smaplugin
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "5"
-            max-size: "10m"
-    restart: always
-    network_mode: host
-    environment:
-      - ASPNETCORE_URLS=http://+:7192
-
-```
-
-You can also copy the complete content from here:
-<details>
-  <summary>Complete file using SMA plugin</summary>
-
-```yaml
-services:
-  teslasolarcharger:
-    image: pkuehnel/teslasolarcharger:latest
-    container_name: teslasolarcharger
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "10"
-            max-size: "100m"
-    restart: always
-    network_mode: host
-    environment:
-      - TZ=Europe/Berlin ##You can change your Timezone here
-      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
-    volumes:
-      - teslasolarcharger-configs:/app/configs
-  
-  smaplugin:
-    image: pkuehnel/teslasolarchargersmaplugin:latest
-    container_name: teslasolarcharger_smaplugin
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "5"
-            max-size: "10m"
-    restart: always
-    network_mode: host
-    environment:
-      - ASPNETCORE_URLS=http://+:7192
-
-volumes:
-  teslasolarcharger-configs:
-
-```
-  
-</details>
 
 ##### Content using SolarEdge plugin
 
@@ -167,9 +110,9 @@ volumes:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 
-The SolarEdge Plugin uses the cloud API, which is limited to 300 which is reset after 15 minutes. When the limit is reached the SolarEdge API does not gather any new values. This results in TSC displaying 0 grid and home battery power until 15 minutes are over.
+SolarEdge is integrated through a dedicated plugin container. The SolarEdge Plugin uses the cloud API, which is limited to 300 requests which are reset after 15 minutes. When the limit is reached the SolarEdge API does not gather any new values. This results in TSC displaying 0 grid and home battery power until 15 minutes are over.
 
-To use the plugin, just add these lines before the volumes section of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
+To use the plugin, just add these lines before the volumes section of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable. The plugin is later added in TSC as a [REST source](#rest-values).
 
 ```yaml
   solaredgeplugin:
@@ -231,292 +174,26 @@ volumes:
   
 </details>
 
-##### Content using Solax plugin
-
-[![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
-[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
-[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaxplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
-
-To use the Solax plugin, just add these lines before the volumes section of your `docker-compose.yml`. Note: You have to specify your solar system's IP address and password.
-
-```yaml
-  solaxplugin:
-    image: pkuehnel/teslasolarchargersolaxplugin:latest
-    container_name: teslasolarcharger_solaxplugin
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "5"
-            max-size: "10m"
-    restart: always
-    environment:
-      - SolarSystemBaseUrl=http://192.168.1.50 ##Change IP Address to your solar system
-      - SolarSystemPassword=AD5TSVGR51 ##Change this to the password of your solar system (wifi dongle serial number)
-    ports:
-      - 7194:80
-
-```
-
-You can also copy the complete content from here:
-<details>
-  <summary>Complete file using Solax plugin</summary>
-
-```yaml
-services:
-  teslasolarcharger:
-    image: pkuehnel/teslasolarcharger:latest
-    container_name: teslasolarcharger
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "10"
-            max-size: "100m"
-    restart: always
-    network_mode: host
-    environment:
-      - TZ=Europe/Berlin ##You can change your Timezone here
-      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
-    volumes:
-      - teslasolarcharger-configs:/app/configs
-  
-  solaxplugin:
-    image: pkuehnel/teslasolarchargersolaxplugin:latest
-    container_name: teslasolarcharger_solaxplugin
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "5"
-            max-size: "10m"
-    restart: always
-    environment:
-      - SolarSystemBaseUrl=http://192.168.1.50 ##Change IP Address to your solar system
-      - SolarSystemPassword=AD5TSVGR51 ##Change this to the password of your solar system (wifi dongle serial number)
-    ports:
-      - 7194:80
-
-volumes:
-  teslasolarcharger-configs:
-```
-  
-</details>
-
-##### Using the Tesla Powerwall plugin
-
-Although Tesla offers the "Charge on Solar" feature to charge the car with solar energy, using the TeslaSolarCharger can still be beneficial, especially when taking advantage of a dynamic electricity tariff. With the help of the external Powerwall plugin, the Tesla Powerwall can easily be integrated into the TeslaSolarCharger. The documentation for the plugin can be found here: https://github.com/jbuchner/pwgateway
-
-```yaml
-pwplugin:
-    image: jbuchner/pwplugin:latest
-    container_name: pwplugin
-    restart: always
-    environment:
-      - POWERWALL=<Host or IP>
-      - USER_EMAIL=<Email>
-      - USER_PASSWORD=<Password>
-      - TZ=<TZ>
-    ports:
-      - 8081:80
-    logging:
-      driver: "json-file"
-      options:
-        max-file: "5"
-        max-size: "10m"
-```
-Replace the variables `<Host or IP>`, `<Email>`, `<Password>` and `<TZ>` with the appropriate values for your Powerwall.
-
-Note: `<Email>` and `<Password>` are not the credentials for your Tesla account (which you use in your car and your app), but different credentials for your Powerwall.
-
-As value for `<TZ>` use the appropriate time zone identifier from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. For example, use the value `Europe/Berlin` for Germany.
-
-You can also copy the complete content from here:
-<details>
-  <summary>Complete file using Tesla Powerwall plugin</summary>
-
-```yaml
-services:
-  teslasolarcharger:
-    image: pkuehnel/teslasolarcharger:latest
-    container_name: teslasolarcharger
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "10"
-            max-size: "100m"
-    restart: always
-    network_mode: host
-    environment:
-      - TZ=Europe/Berlin ##You can change your Timezone here
-      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
-    volumes:
-      - teslasolarcharger-configs:/app/configs
-  
-  pwplugin:
-    image: jbuchner/pwplugin:latest
-    container_name: pwplugin
-    restart: always
-    environment:
-      - POWERWALL=<Host or IP>
-      - USER_EMAIL=<Email>
-      - USER_PASSWORD=<Password>
-      - TZ=<TZ>
-    ports:
-      - 8081:80
-    logging:
-      driver: "json-file"
-      options:
-        max-file: "5"
-        max-size: "10m"
-```
-  
-</details>
-
 #### First startup of the application
 
 1. Move to your above created directory with your `docker-compose.yml`.
 1. Start all containers using the command `docker compose up -d`.
-1. Open `http://your-ip-address:7190`
-1. Go to `Base Configuration` (if you are on a mobile device, it is behind the menu button).
-1. Generate a Fleet API token
-1. Again go to `Base Configuration`
-1. Use the map to select your home area. This is the area where TSC will start charging your car based on solar power.
-1. Click on `Save` at the bottom of the page.
-1. Go to `Car Settings` and reload the page until the message `Restart TSC to add new cars` is displayed.
-1. Restart the container with `docker compose restart teslasolarcharger` (you need to be in the directory of your `docker-compose.yml`).
-1. Wake up the car by opening a car door. Now the SoC values, car name,... should be displayed on the `Overview` page:
+1. Open `http://your-ip-address:7190`. On the first start, you are automatically redirected to the **Setup Assistant** (`/setup`), which guides you through all required settings step by step:
+    1. **Welcome**
+    1. **Cloud Connection**: Log in to your [Solar4Car](https://solar4car.com/) account to connect your installation to the cloud and generate a Tesla Fleet API token. A base license is required to use TeslaSolarCharger — you can check pricing at [solar4car.com/subscriptions](https://solar4car.com/subscriptions). You cannot continue past this step until your installation is connected and licensed.
+    1. **Solar & Battery**: Configure where TSC gets your solar power (and optionally home battery) values from. Use a [Template](#templates) for supported devices, or a generic [REST](#rest-values), [Modbus](#modbus-values) or MQTT source. See [Setting up solar power values](#setting-up-solar-power-values).
+    1. **Location**: Use the map to select your home area. This is the area where TSC starts charging your car based on solar power.
+    1. **Charge Prices**: Configure your grid and solar energy prices.
+    1. **Charging Stations**: Optionally connect OCPP charging stations.
+    1. **Cars**: Add and configure the cars TSC should manage.
+    1. **Finish**
+1. After finishing the setup, wake up the car by opening a car door. Now the SoC values, car name,... should be displayed on the `Overview` page:
 ![image](https://github.com/user-attachments/assets/8ba58c08-f66f-4b4a-897b-439b83a8b04a)
 1. If there are any messages displayed below your car name, just follow the instructions.
 
+You can change all of these settings later at any time via the menu (`Cloud Connection`, `Base Configuration`, `Car Settings`, …).
+
 If you only want to charge based on Spot Price, you are done now.
-
-##### Setting up solar power values
-
-To let the TeslaSolarCharger know how much power there is to charge the car, you need to set TSC up to gather the solar values
-
-###### REST values including vendor specific plugins
-To set up a REST API click on `Add new REST source` on the `Base Configuration` page and fill out the fields.
-
-If you are using a plugin, you need to use the following values:
-- SMA Plugin:
-  - Url: `http://<IP of your Docker host>:7192/api/CurrentPower/GetAllValues` (Note: the serial number in the screenshot is optional in case you have multiple SMA EnergyMeter/Homa Managers)
-  - Node Pattern Type: JSON
-  - Add a result with the configuration seen in the screenshot
-![SMA plugin](https://github.com/user-attachments/assets/2785c050-e51e-404c-8c61-898f72177374)
-  If you do not get values from your Home Manager, you probably need to add the IP address of your Raspberry Pi to your sunnyportal configuration. You can do that like described [here](https://tff-forum.de/t/teslasolarcharger-pv-ueberschussladen-mit-beliebiger-wallbox-teil-1/170369/2001?u=mane123). 
-
-- SolarEdge Plugin:
-  - Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
-  - Set Result types to json and use the following json patterns:
-    - Grid Power: `$.gridPower`
-    - Inverter Power: `$.inverterPower`
-    - Home Battery SoC: `$.homeBatterySoc`
-    - Home Battery Power: `$.homeBatteryPower`
-- Solax Plugin:
-  - Url: `http://solaxplugin/api/CurrentValues/GetCurrentPvValues`
-  - Set Result types to json and use the following json patterns:
-    - Grid Power: `$.gridPower`
-    - Inverter Power: `$.inverterPower`
-    - Home Battery SoC: `$.homeBatterySoc`
-    - Home Battery Power: `$.homeBatteryPower`
-  - The result should look like this:
-![Solax Plugin](https://github.com/user-attachments/assets/d8d3324b-2988-4532-bb56-2ef4a8b4f52e)
-
-
-
-###### Modbus values
-To set up Modbus values, click on `Add new Modbus source` on the `Base Configuration` page and fill out the fields according to the documentation of your inverter:
-
-- `unitIdentifier`: Internal ID of your inverter (in most cases, 3 or 1)
-- `Host`: IP Address or hostname of your inverter
-- `port`: Modbus TCP Port of your inverter (default: 502)
-- `Connect Delay Milliseconds`: Delay before communicating the first time (you should use 1000)
-- `Read Timeout Milliseconds`: Timeout until returning an error if the inverter is not responding (you should use 1000)
-- `Address`: Register address of the value you want to extract.
-- `Length`: Number of registers to read from (for integer values should be 2)
-- `Correction Factor`: Factor to multiply the resulting value with. The result should be Watt, so if your inverter returns Watt, you can leave 1. If your inverter returns 0.1W, you have to use 10.
-
-
-###### JSON Path
-
-If you have the following JSON result:
-
-```json
-{
-  "request": {
-    "method": "get",
-    "key": "asdf"
-  },
-  "code": 0,
-  "type": "call",
-  "data": {
-    "value": 14
-  }
-}
-```
-
-You can use `$.data.value` as `Json Pattern`.
-
-###### XML Path
-
-If your energy monitoring device or inverter has no JSON, but an XML API, use the following instructions: Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns the following XML:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Device Name="PIKO 4.6-2 MP plus" Type="Inverter" Platform="Net16" HmiPlatform="HMI17" NominalPower="4600" UserPowerLimit="nan" CountryPowerLimit="nan" Serial="XXXXXXXXXXXXXXXXXXXX" OEMSerial="XXXXXXXX" BusAddress="1" NetBiosName="XXXXXXXXXXXXXXX" WebPortal="PIKO Solar Portal" ManufacturerURL="kostal-solar-electric.com" IpAddress="192.168.XXX.XXX" DateTime="2022-06-08T19:33:25" MilliSeconds="806">
-  <Measurements>
-    <Measurement Value="231.3" Unit="V" Type="AC_Voltage"/>
-    <Measurement Value="1.132" Unit="A" Type="AC_Current"/>
-    <Measurement Value="256.1" Unit="W" Type="AC_Power"/>
-    <Measurement Value="264.3" Unit="W" Type="AC_Power_fast"/>
-    <Measurement Value="49.992" Unit="Hz" Type="AC_Frequency"/>
-    <Measurement Value="474.2" Unit="V" Type="DC_Voltage"/>
-    <Measurement Value="0.594" Unit="A" Type="DC_Current"/>
-    <Measurement Value="473.5" Unit="V" Type="LINK_Voltage"/>
-    <Measurement Value="18.7" Unit="W" Type="GridPower"/>
-    <Measurement Value="0.0" Unit="W" Type="GridConsumedPower"/>
-    <Measurement Value="18.7" Unit="W" Type="GridInjectedPower"/>
-    <Measurement Value="237.3" Unit="W" Type="OwnConsumedPower"/>
-    <Measurement Value="100.0" Unit="%" Type="Derating"/>
-  </Measurements>
-</Device>
-```
-
-Grid Power:
-Assuming the `Measurement` node with `Type` `GridPower` is the power your house feeds to the grid, you need the following values in your Base configuration:
-
-```yaml
-- Url=http://192.168.xxx.xxx/measurements.xml
-- CurrentPowerToGridXmlPattern=Device/Measurements/Measurement
-- CurrentPowerToGridXmlAttributeHeaderName=Type
-- CurrentPowerToGridXmlAttributeHeaderValue=GridPower
-- CurrentPowerToGridXmlAttributeValueName=Value
-```
-
-Inverter Power:
-Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverter is currently feeding, you can use the following  values in your Base configuration:
-
-```yaml
-- Url=http://192.168.xxx.xxx/measurements.xml
-- CurrentInverterPowerXmlPattern=Device/Measurements/Measurement
-- CurrentInverterPowerAttributeHeaderName=Type
-- CurrentInverterPowerAttributeHeaderValue=AC_Power
-- CurrentInverterPowerAttributeValueName=Value
-```
-
-#### Correction Factors
-The correction factor is used to *multiply* the input value so that the results correspond with what TeslaSolarCharger expects.
-
-|Input|Expected Value|
-|-----|--------------|
-|Inverter Power|A measurement of solar power generated as a positive number in Watts (W)|
-|Grid Power| A measurement of grid power export/ import in Watts (W). A export to the grid should be positive and an import from the grid should be negative.|
-|Home Battery Power|A measurement of home battery power charge/ discharge in Watts (W). If the battery is charging, this should be positive and if it is discharging this should be negative.|
-|Home Battery SoC|A measurement of the percentage charge of your home battery from 0-100%|
-
-You can use the correction factors to scale/ correct these values as appropriate. For example:
-
-- Grid Power input expresses a positive integer as an import and a negative as an export: Select `Minus` as operator and `1` for the correction factor (this multiplies by -1).
-- Inverter Power is expressed as kW instead of W: Select `Plus` for the operator and 1000 for the correction factor (this multiplies by 1000).
-- Home Battery expresses its state of charge as an absolute value in kWh: Select `Plus` for the operator and a correction factor of  1/(Full Charge Capacity) e.g. if the battery has a full charge capacity of 100kWh the correction factor is 1/100 or 0.01
 
 #### Install and setup BLE API
 To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car. Even if it is working when being a few meters away or in different rooms, I can guarantee you, that you will have issues sooner or later. The device needs to be in one room with the car without any walls between them.
@@ -616,11 +293,136 @@ volumes:
 ```
 
 ##### Setup BLE (same device and separate device)
-After starting the BLE API, you need to add the BLE API Base URL to your TeslaSolarCharger configuration. The URL is `http://<IP of device with BLE API running>:7210/`
-
-Now you can pair each car by going to the `Car Settings` enable "Use BLE", click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeded, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
+The BLE API Base URL is configured per car. Go to `Car Settings`, open the car you want to control, enable `Use BLE` and enter the BLE API Base URL `http://<IP of device with BLE API running>:7210/`. Click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeded, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
 
 
+
+## Setting up solar power values
+
+To let the TeslaSolarCharger know how much power there is to charge the car, you need to set TSC up to gather the solar values. This is done on the `Base Configuration` page (or during the [Setup Assistant](#first-startup-of-the-application)) in the `Solar value sources` section.
+
+You have four ways to add a value source:
+- [Template](#templates) (recommended for supported devices)
+- [REST](#rest-values) (JSON/XML APIs, also used by the SolarEdge plugin)
+- [Modbus](#modbus-values)
+- MQTT
+
+### Templates
+
+Templates are the easiest way to integrate a supported device — no extra container and almost no configuration is required. In the `Template sources` section, click `Add new source`, choose the matching type and fill in the few required fields. The following templates are available:
+
+- **Sma Energy Meter**: Reads the grid power directly from the SMA EnergyMeter's (or Sunny Home Manager 2.0's) Speedwire multicast messages. The only (optional) field is the serial number, which you need in case you have multiple SMA EnergyMeter/Home Managers in your network. Note: As this listens to multicast messages, the TeslaSolarCharger container needs `network_mode: host` (which is the case in the docker-compose files above) and it is not supported on Docker on Windows.
+- **Sma Inverter Modbus** / **Sma Hybrid Inverter Modbus**: Reads the values directly from your SMA inverter via Modbus TCP. Enter the `Host` (IP address or hostname), `Port` (Modbus TCP port, default 502) and `Unit Id` of your inverter.
+- **Solax Api**: Reads the values directly from your Solax inverter. Enter the `Host` (IP address of your inverter/Wi-Fi dongle) and the `Password` (the Wi-Fi dongle's serial number).
+- **Kostal Hybrid Inverter Modbus**: Reads the values from a Kostal hybrid inverter via Modbus TCP. Enter the `Host`, `Port` and `Unit Id`.
+- **Tesla Powerwall Fleet Api**: Reads your Powerwall/home battery values via the Tesla Fleet API. You need to be connected to the Solar4Car cloud and have generated a Fleet API token (see [First startup](#first-startup-of-the-application)). Afterwards just select your energy site from the list.
+
+### REST values
+To set up a REST API click on `Add new source` in the `REST sources` section on the `Base Configuration` page and fill out the fields.
+
+If you are using the SolarEdge plugin, you need to use the following values:
+- Url: `http://<IP of your Docker host>:7193/api/CurrentValues/GetCurrentPvValues`
+- Set Result types to json and use the following json patterns:
+  - Grid Power: `$.gridPower`
+  - Inverter Power: `$.inverterPower`
+  - Home Battery SoC: `$.homeBatterySoc`
+  - Home Battery Power: `$.homeBatteryPower`
+
+### Modbus values
+To set up Modbus values, click on `Add new source` in the `Modbus sources` section on the `Base Configuration` page and fill out the fields according to the documentation of your inverter:
+
+- `unitIdentifier`: Internal ID of your inverter (in most cases, 3 or 1)
+- `Host`: IP Address or hostname of your inverter
+- `port`: Modbus TCP Port of your inverter (default: 502)
+- `Connect Delay Milliseconds`: Delay before communicating the first time (you should use 1000)
+- `Read Timeout Milliseconds`: Timeout until returning an error if the inverter is not responding (you should use 1000)
+- `Address`: Register address of the value you want to extract.
+- `Length`: Number of registers to read from (for integer values should be 2)
+- `Correction Factor`: Factor to multiply the resulting value with. The result should be Watt, so if your inverter returns Watt, you can leave 1. If your inverter returns 0.1W, you have to use 10.
+
+
+### JSON Path
+
+If you have the following JSON result:
+
+```json
+{
+  "request": {
+    "method": "get",
+    "key": "asdf"
+  },
+  "code": 0,
+  "type": "call",
+  "data": {
+    "value": 14
+  }
+}
+```
+
+You can use `$.data.value` as `Json Pattern`.
+
+### XML Path
+
+If your energy monitoring device or inverter has no JSON, but an XML API, use the following instructions: Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns the following XML:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Device Name="PIKO 4.6-2 MP plus" Type="Inverter" Platform="Net16" HmiPlatform="HMI17" NominalPower="4600" UserPowerLimit="nan" CountryPowerLimit="nan" Serial="XXXXXXXXXXXXXXXXXXXX" OEMSerial="XXXXXXXX" BusAddress="1" NetBiosName="XXXXXXXXXXXXXXX" WebPortal="PIKO Solar Portal" ManufacturerURL="kostal-solar-electric.com" IpAddress="192.168.XXX.XXX" DateTime="2022-06-08T19:33:25" MilliSeconds="806">
+  <Measurements>
+    <Measurement Value="231.3" Unit="V" Type="AC_Voltage"/>
+    <Measurement Value="1.132" Unit="A" Type="AC_Current"/>
+    <Measurement Value="256.1" Unit="W" Type="AC_Power"/>
+    <Measurement Value="264.3" Unit="W" Type="AC_Power_fast"/>
+    <Measurement Value="49.992" Unit="Hz" Type="AC_Frequency"/>
+    <Measurement Value="474.2" Unit="V" Type="DC_Voltage"/>
+    <Measurement Value="0.594" Unit="A" Type="DC_Current"/>
+    <Measurement Value="473.5" Unit="V" Type="LINK_Voltage"/>
+    <Measurement Value="18.7" Unit="W" Type="GridPower"/>
+    <Measurement Value="0.0" Unit="W" Type="GridConsumedPower"/>
+    <Measurement Value="18.7" Unit="W" Type="GridInjectedPower"/>
+    <Measurement Value="237.3" Unit="W" Type="OwnConsumedPower"/>
+    <Measurement Value="100.0" Unit="%" Type="Derating"/>
+  </Measurements>
+</Device>
+```
+
+Grid Power:
+Assuming the `Measurement` node with `Type` `GridPower` is the power your house feeds to the grid, you need the following values in your Base configuration:
+
+```yaml
+- Url=http://192.168.xxx.xxx/measurements.xml
+- CurrentPowerToGridXmlPattern=Device/Measurements/Measurement
+- CurrentPowerToGridXmlAttributeHeaderName=Type
+- CurrentPowerToGridXmlAttributeHeaderValue=GridPower
+- CurrentPowerToGridXmlAttributeValueName=Value
+```
+
+Inverter Power:
+Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverter is currently feeding, you can use the following  values in your Base configuration:
+
+```yaml
+- Url=http://192.168.xxx.xxx/measurements.xml
+- CurrentInverterPowerXmlPattern=Device/Measurements/Measurement
+- CurrentInverterPowerAttributeHeaderName=Type
+- CurrentInverterPowerAttributeHeaderValue=AC_Power
+- CurrentInverterPowerAttributeValueName=Value
+```
+
+### Correction Factors
+The correction factor is used to *multiply* the input value so that the results correspond with what TeslaSolarCharger expects.
+
+|Input|Expected Value|
+|-----|--------------|
+|Inverter Power|A measurement of solar power generated as a positive number in Watts (W)|
+|Grid Power| A measurement of grid power export/ import in Watts (W). A export to the grid should be positive and an import from the grid should be negative.|
+|Home Battery Power|A measurement of home battery power charge/ discharge in Watts (W). If the battery is charging, this should be positive and if it is discharging this should be negative.|
+|Home Battery SoC|A measurement of the percentage charge of your home battery from 0-100%|
+
+You can use the correction factors to scale/ correct these values as appropriate. For example:
+
+- Grid Power input expresses a positive integer as an import and a negative as an export: Select `Minus` as operator and `1` for the correction factor (this multiplies by -1).
+- Inverter Power is expressed as kW instead of W: Select `Plus` for the operator and 1000 for the correction factor (this multiplies by 1000).
+- Home Battery expresses its state of charge as an absolute value in kWh: Select `Plus` for the operator and a correction factor of  1/(Full Charge Capacity) e.g. if the battery has a full charge capacity of 100kWh the correction factor is 1/100 or 0.01
 
 ## Often used optional settings
 
@@ -683,28 +485,20 @@ Currently, there are four different charge modes available:
 
 ## Generate logfiles
 
-To generate logfiles, you must write each container's logs to a separate logfile. 
-**Note:** To create a more detailed logfile, you must add `- Serilog__MinimumLevel__Default=Verbose` as environment variable.
-The commands if you used the docker-compose.yml files from above:<br />
-For the main **TeslaSolarCharger** container:
+You can download the logs of the **TeslaSolarCharger** container directly from the web interface: open the `Support` page from the menu. In the `Logging` section you can:
+- **Download Server Logs**: downloads the most recent in-memory logs.
+- **Download Server File Logs**: downloads the logs written to disk.
+- Change the `In Memory Log Level` and `File Log Level` (e.g. set them to `Verbose` to create a more detailed logfile). These settings are reset to their defaults after a restart.
 
-```bash
-docker logs teslasolarcharger > teslasolarcharger.log
-```
+**Note:** Logs might contain sensitive information like your vehicle's location. Do not share logs publicly.
 
-For the **SmaPlugin**:
-
-```bash
-docker logs teslasolarcharger_smaplugin > teslasolarcharger_smaplugin.log
-```
-
-For the **SolaredgePlugin**:
+If you need the logs of a plugin container (e.g. the SolarEdge plugin), you can grab them via the Docker CLI:
 
 ```bash
 docker logs teslasolarcharger_solaredgeplugin > teslasolarcharger_solaredgeplugin.log
 ```
 
-If you get an error like `Error: No such container:` you can look up the containernames with
+If you get an error like `Error: No such container:` you can look up the container names with
 
 ```bash
 docker ps
