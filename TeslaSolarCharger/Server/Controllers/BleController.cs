@@ -30,4 +30,18 @@ public class BleController (IBleService bleService) : ApiBaseController
 
     [HttpGet]
     public Task<DtoBleCommandResult> GetDriveState(string vin) => bleService.GetDriveState(vin);
+
+    [HttpGet]
+    public ActionResult<List<DtoBleContainer>> GetBleContainers() => bleService.GetBleContainers();
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadLogs(string bleApiBaseUrl)
+    {
+        var stream = await bleService.DownloadLogs(bleApiBaseUrl);
+        if (stream == default)
+        {
+            return NotFound("Could not download logs from the BLE container. Make sure the BLE URL is configured for a car and the container is reachable and up to date.");
+        }
+        return File(stream, "text/plain", "ble-logs.log");
+    }
 }

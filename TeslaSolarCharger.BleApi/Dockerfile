@@ -15,6 +15,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-amd64 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["TeslaSolarCharger.BleApi/TeslaSolarCharger.BleApi.csproj", "TeslaSolarCharger.BleApi/"]
+COPY ["PkSoftwareService.Custom.Backend/PkSoftwareService.Custom.Backend.csproj", "PkSoftwareService.Custom.Backend/"]
 RUN dotnet restore "./TeslaSolarCharger.BleApi/TeslaSolarCharger.BleApi.csproj"
 COPY . .
 WORKDIR "/src/TeslaSolarCharger.BleApi"

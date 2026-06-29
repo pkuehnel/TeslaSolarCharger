@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.Ble
 @using TeslaSolarCharger.Shared.Dtos.Support
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
@@ -87,6 +88,21 @@
         </div>
     }
 </div>
+
+@if (_bleContainers is { Count: > 0 })
+{
+    <h4>@T(TranslationKeys.SupportBleContainerLogsSectionTitle)</h4>
+    @foreach (var bleContainer in _bleContainers)
+    {
+        <div class="mb-2">
+            <div>@Format(TranslationKeys.SupportBleContainerUsedByFormat, string.Join(", ", bleContainer.CarNames))</div>
+            <RightAlignedButtonComponent ButtonText="@Format(TranslationKeys.SupportDownloadBleContainerLogsButtonFormat, bleContainer.BleApiBaseUrl)"
+                                         StartIcon="@Icons.Material.Filled.Download"
+                                         OnButtonClicked="@(_ => NavigationManager.NavigateTo($"api/Ble/DownloadLogs?bleApiBaseUrl={Uri.EscapeDataString(bleContainer.BleApiBaseUrl)}", true))"></RightAlignedButtonComponent>
+        </div>
+    }
+}
+
 <hr />
 
 <MudExpansionPanels>
@@ -299,6 +315,8 @@ else
     private DtoValue<string>? _fileLogLevel;
     private string? _fileLogLevelSetErrorMessage;
 
+    private List<DtoBleContainer>? _bleContainers;
+
     private bool _loadingMeterValues;
     private string? _meterValueDetails;
 
@@ -332,6 +350,7 @@ else
         _inMemoryLogLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetInMemoryLogLevel");
         _fileLogLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetFileLogLevel");
         _inMemoryLogCapacity = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<int>>("api/Debug/GetInMemoryLogCapacity");
+        _bleContainers = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoBleContainer>>("api/Ble/GetBleContainers");
     }
 
     private async Task RefreshChargingConnectors()
