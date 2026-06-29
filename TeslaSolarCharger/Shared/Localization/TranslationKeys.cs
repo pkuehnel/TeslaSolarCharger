@@ -383,6 +383,7 @@ public static class TranslationKeys
     public static string CarDeletionStepCar => nameof(CarDeletionStepCar);
     public static string AddCarChooseTypeHint => nameof(AddCarChooseTypeHint);
     public static string AddCarFreeBadge => nameof(AddCarFreeBadge);
+    public static string AddCarTeslaFreeBadge => nameof(AddCarTeslaFreeBadge);
     public static string AddCarLicenseBadge => nameof(AddCarLicenseBadge);
     public static string AddCarManualOptionTitle => nameof(AddCarManualOptionTitle);
     public static string AddCarManualOptionDescription => nameof(AddCarManualOptionDescription);
