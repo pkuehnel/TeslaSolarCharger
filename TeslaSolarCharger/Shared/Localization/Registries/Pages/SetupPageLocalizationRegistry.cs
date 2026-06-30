@@ -122,18 +122,6 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.English, "Cars"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge"));
 
-        Register(TranslationKeys.SetupLicenseInfoTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "How your cars are controlled"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Steuerung Ihrer Fahrzeuge"));
-
-        Register(TranslationKeys.SetupLicenseInfoContent,
-            new TextLocalizationTranslation(LanguageCodes.English, "Teslas can be controlled either directly via Bluetooth (BLE), which is free, or via the Tesla API for €2.99 per month."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Teslas können entweder direkt über Bluetooth (BLE), was kostenlos ist, oder über die Tesla-API für 2,99 € pro Monat gesteuert werden."));
-
-        Register(TranslationKeys.SetupLicenseInfoException,
-            new TextLocalizationTranslation(LanguageCodes.English, "All other car brands and models cannot be controlled directly — they require a charging station."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Alle anderen Fahrzeugmarken und -modelle können nicht direkt gesteuert werden – sie benötigen eine Ladestation."));
-
         Register(TranslationKeys.SetupChargingStationsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
@@ -141,14 +129,6 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
         Register(TranslationKeys.SetupChargingStationsDescription,
             new TextLocalizationTranslation(LanguageCodes.English, "As soon as a charging station connects via OCPP, it will appear here in real-time."),
             new TextLocalizationTranslation(LanguageCodes.German, "Sobald sich eine Ladestation über OCPP verbindet, erscheint sie hier in Echtzeit."));
-
-        Register(TranslationKeys.SetupChargingStationsNeedTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Do you need a charging station?"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Benötigen Sie eine Ladestation?"));
-
-        Register(TranslationKeys.SetupChargingStationsNeedContent,
-            new TextLocalizationTranslation(LanguageCodes.English, "If you only own Teslas, you don't necessarily need one — Teslas can be controlled either directly via Bluetooth (BLE), which is free, or via the Tesla API for €2.99 per month. All other car brands and models require a charging station to be controlled by TeslaSolarCharger."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Wenn Sie ausschließlich Teslas besitzen, benötigen Sie nicht zwingend eine – Teslas können entweder direkt über Bluetooth (BLE), was kostenlos ist, oder über die Tesla-API für 2,99 € pro Monat gesteuert werden. Alle anderen Fahrzeugmarken und -modelle benötigen eine Ladestation, um von TeslaSolarCharger gesteuert zu werden."));
 
         Register(TranslationKeys.SetupNoStationsConnected,
             new TextLocalizationTranslation(LanguageCodes.English, "No charging stations connected yet..."),

@@ -155,10 +155,7 @@
                 </MudStep>
 
                 <MudStep Title="@T(TranslationKeys.SetupStepChargingStations)">
-                    <MudAlert Severity="Severity.Info" Class="mb-4">
-                        <h5>@T(TranslationKeys.SetupChargingStationsNeedTitle)</h5>
-                        <div>@T(TranslationKeys.SetupChargingStationsNeedContent)</div>
-                    </MudAlert>
+                    <CarControlCapabilityComponent Class="mb-4" />
 
                     <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
                         <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>

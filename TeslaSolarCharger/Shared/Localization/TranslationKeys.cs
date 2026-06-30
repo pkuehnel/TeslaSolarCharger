@@ -657,19 +657,32 @@ public static class TranslationKeys
     public static string SetupPricesTitle => nameof(SetupPricesTitle);
     public static string SetupPricesDescription => nameof(SetupPricesDescription);
     public static string SetupCarsTitle => nameof(SetupCarsTitle);
-    public static string SetupLicenseInfoTitle => nameof(SetupLicenseInfoTitle);
-    public static string SetupLicenseInfoContent => nameof(SetupLicenseInfoContent);
-    public static string SetupLicenseInfoException => nameof(SetupLicenseInfoException);
     public static string SetupChargingStationsTitle => nameof(SetupChargingStationsTitle);
     public static string SetupChargingStationsDescription => nameof(SetupChargingStationsDescription);
-    public static string SetupChargingStationsNeedTitle => nameof(SetupChargingStationsNeedTitle);
-    public static string SetupChargingStationsNeedContent => nameof(SetupChargingStationsNeedContent);
     public static string SetupNoStationsConnected => nameof(SetupNoStationsConnected);
     public static string SetupFinishTitle => nameof(SetupFinishTitle);
     public static string SetupFinishDescription => nameof(SetupFinishDescription);
     public static string SetupSuccessInfo => nameof(SetupSuccessInfo);
     public static string SetupFinishButton => nameof(SetupFinishButton);
     public static string SetupSuccessNotification => nameof(SetupSuccessNotification);
+
+    public static string CarControlCapabilityTitle => nameof(CarControlCapabilityTitle);
+    public static string CarControlCapabilityIntro => nameof(CarControlCapabilityIntro);
+    public static string CarControlCapabilityColConnection => nameof(CarControlCapabilityColConnection);
+    public static string CarControlCapabilityColControl => nameof(CarControlCapabilityColControl);
+    public static string CarControlCapabilityColBattery => nameof(CarControlCapabilityColBattery);
+    public static string CarControlCapabilityColCost => nameof(CarControlCapabilityColCost);
+    public static string CarControlCapabilityColWorksWith => nameof(CarControlCapabilityColWorksWith);
+    public static string CarControlCapabilityRowChargingStation => nameof(CarControlCapabilityRowChargingStation);
+    public static string CarControlCapabilityRowTeslaBle => nameof(CarControlCapabilityRowTeslaBle);
+    public static string CarControlCapabilityRowTeslaFleetApi => nameof(CarControlCapabilityRowTeslaFleetApi);
+    public static string CarControlCapabilityCostFree => nameof(CarControlCapabilityCostFree);
+    public static string CarControlCapabilityCostFleetApi => nameof(CarControlCapabilityCostFleetApi);
+    public static string CarControlCapabilityWorksAnyCar => nameof(CarControlCapabilityWorksAnyCar);
+    public static string CarControlCapabilityWorksTeslas => nameof(CarControlCapabilityWorksTeslas);
+    public static string CarControlCapabilityFootnote => nameof(CarControlCapabilityFootnote);
+    public static string CarControlCapabilityYes => nameof(CarControlCapabilityYes);
+    public static string CarControlCapabilityNo => nameof(CarControlCapabilityNo);
 
     public static string CarOverviewManaged => nameof(CarOverviewManaged);
     public static string CarOverviewAmpere => nameof(CarOverviewAmpere);
