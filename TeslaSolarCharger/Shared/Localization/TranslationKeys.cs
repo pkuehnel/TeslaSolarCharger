@@ -636,6 +636,7 @@ public static class TranslationKeys
     public static string SetupStepPrices => nameof(SetupStepPrices);
     public static string SetupStepCars => nameof(SetupStepCars);
     public static string SetupStepChargingStations => nameof(SetupStepChargingStations);
+    public static string SetupStepCarsAndCharging => nameof(SetupStepCarsAndCharging);
     public static string SetupStepFinish => nameof(SetupStepFinish);
     public static string SetupWelcomeTitle => nameof(SetupWelcomeTitle);
     public static string SetupWelcomeDescription => nameof(SetupWelcomeDescription);
@@ -683,6 +684,36 @@ public static class TranslationKeys
     public static string CarControlCapabilityFootnote => nameof(CarControlCapabilityFootnote);
     public static string CarControlCapabilityYes => nameof(CarControlCapabilityYes);
     public static string CarControlCapabilityNo => nameof(CarControlCapabilityNo);
+
+    public static string CarChargingSetupIntro => nameof(CarChargingSetupIntro);
+    public static string CarChargingSetupQuestionCarCount => nameof(CarChargingSetupQuestionCarCount);
+    public static string CarChargingSetupQuestionTeslaCount => nameof(CarChargingSetupQuestionTeslaCount);
+    public static string CarChargingSetupQuestionStation => nameof(CarChargingSetupQuestionStation);
+    public static string CarChargingSetupQuestionBle => nameof(CarChargingSetupQuestionBle);
+    public static string CarChargingSetupAnswerYes => nameof(CarChargingSetupAnswerYes);
+    public static string CarChargingSetupAnswerNo => nameof(CarChargingSetupAnswerNo);
+    public static string CarChargingSetupAnswerNotSure => nameof(CarChargingSetupAnswerNotSure);
+    public static string CarChargingSetupBleYes => nameof(CarChargingSetupBleYes);
+    public static string CarChargingSetupBleNo => nameof(CarChargingSetupBleNo);
+    public static string CarChargingSetupPlanHeading => nameof(CarChargingSetupPlanHeading);
+    public static string CarChargingSetupPlanNoCarsTitle => nameof(CarChargingSetupPlanNoCarsTitle);
+    public static string CarChargingSetupPlanNoCarsBody => nameof(CarChargingSetupPlanNoCarsBody);
+    public static string CarChargingSetupPlanTeslaBleTitle => nameof(CarChargingSetupPlanTeslaBleTitle);
+    public static string CarChargingSetupPlanTeslaBleBody => nameof(CarChargingSetupPlanTeslaBleBody);
+    public static string CarChargingSetupPlanTeslaApiTitle => nameof(CarChargingSetupPlanTeslaApiTitle);
+    public static string CarChargingSetupPlanTeslaApiBody => nameof(CarChargingSetupPlanTeslaApiBody);
+    public static string CarChargingSetupPlanTeslaPendingTitle => nameof(CarChargingSetupPlanTeslaPendingTitle);
+    public static string CarChargingSetupPlanTeslaPendingBody => nameof(CarChargingSetupPlanTeslaPendingBody);
+    public static string CarChargingSetupPlanOtherStationTitle => nameof(CarChargingSetupPlanOtherStationTitle);
+    public static string CarChargingSetupPlanOtherStationBody => nameof(CarChargingSetupPlanOtherStationBody);
+    public static string CarChargingSetupPlanOtherNoStationTitle => nameof(CarChargingSetupPlanOtherNoStationTitle);
+    public static string CarChargingSetupPlanOtherNoStationBody => nameof(CarChargingSetupPlanOtherNoStationBody);
+    public static string CarChargingSetupPlanOtherNotSureExtra => nameof(CarChargingSetupPlanOtherNotSureExtra);
+    public static string CarChargingSetupPlanOtherPendingTitle => nameof(CarChargingSetupPlanOtherPendingTitle);
+    public static string CarChargingSetupPlanOtherPendingBody => nameof(CarChargingSetupPlanOtherPendingBody);
+    public static string CarChargingSetupPlanStationAlsoTitle => nameof(CarChargingSetupPlanStationAlsoTitle);
+    public static string CarChargingSetupPlanStationAlsoBody => nameof(CarChargingSetupPlanStationAlsoBody);
+    public static string CarChargingSetupHowItWorks => nameof(CarChargingSetupHowItWorks);
 
     public static string CarOverviewManaged => nameof(CarOverviewManaged);
     public static string CarOverviewAmpere => nameof(CarOverviewAmpere);

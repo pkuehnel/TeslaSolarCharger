@@ -21,9 +21,12 @@
 @inject IOAuthNotificationService OAuthNotificationService
 @inject IDialogService DialogService
 
-<div class="mb-3">
-    <CarControlCapabilityComponent Class="mt-3" />
-</div>
+@if (ShowControlCapabilityInfo)
+{
+    <div class="mb-3">
+        <CarControlCapabilityComponent Class="mt-3" />
+    </div>
+}
 
 
 <MudOverlay Visible="@(_deletionProgress != null)" DarkBackground="true" ZIndex="9999">
@@ -73,6 +76,12 @@ else
     /// started from instead of always landing on the Car Settings page.
     /// </summary>
     [Parameter] public string ReturnPage { get; set; } = "CarSettings";
+
+    /// <summary>
+    /// Whether to render the car-control capability explainer at the top. Hidden in the setup assistant, where the
+    /// merged "Cars &amp; charging" step already offers it behind a "How does this work?" expander.
+    /// </summary>
+    [Parameter] public bool ShowControlCapabilityInfo { get; set; } = true;
 
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private TokenState? _fleetApiTokenState;

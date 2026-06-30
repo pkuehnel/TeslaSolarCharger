@@ -38,6 +38,10 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
 
+        Register(TranslationKeys.SetupStepCarsAndCharging,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cars & Charging"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge & Laden"));
+
         Register(TranslationKeys.SetupStepFinish,
             new TextLocalizationTranslation(LanguageCodes.English, "Finish"),
             new TextLocalizationTranslation(LanguageCodes.German, "Abschluss"));

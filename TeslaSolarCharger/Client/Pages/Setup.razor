@@ -154,8 +154,11 @@
                                               ShowValidSince="false" />
                 </MudStep>
 
-                <MudStep Title="@T(TranslationKeys.SetupStepChargingStations)">
-                    <CarControlCapabilityComponent Class="mb-4" />
+                <MudStep Title="@T(TranslationKeys.SetupStepCarsAndCharging)">
+                    <CarChargingSetupComponent Answers="_setupAnswers" OnAnswersChanged="PersistSetupAnswers" />
+
+                    <MudDivider Class="my-6" />
+                    <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupStepChargingStations)</MudText>
 
                     <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
                         <h5>@T(TranslationKeys.ChargingStationsHowToConnectTitle)</h5>
@@ -187,10 +190,11 @@
                             }
                         </MudGrid>
                     }
-                </MudStep>
 
-                <MudStep Title="@T(TranslationKeys.SetupStepCars)">
-                    <CarManagementComponent ReturnPage="setup" />
+                    <MudDivider Class="my-6" />
+                    <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupStepCars)</MudText>
+
+                    <CarManagementComponent ReturnPage="setup" ShowControlCapabilityInfo="false" />
                 </MudStep>
 
                 <MudStep Title="@T(TranslationKeys.SetupStepFinish)">
@@ -239,6 +243,7 @@
     private List<FixedPrice> _fixedPrices = new();
     private List<DtoChargingStation>? _chargingStations;
     private Dictionary<int, int> _connectorCounts = new();
+    private DtoCarsChargingSetupAnswers _setupAnswers = new();
 
     private MudStepper? _stepper;
     private ChargingStationDeletionOverlay? _stationDeletionOverlay;
@@ -259,9 +264,9 @@
 
     // Index of the cloud connection step in the stepper. Used to gate the Next button on that step.
     private const int CloudConnectionStepIndex = 1;
-    // Index of the charging stations step. The station list is only polled while this step is active so we do
-    // not hammer the server (one request per station every few seconds) for the whole setup session.
-    private const int ChargingStationsStepIndex = 5;
+    // Index of the merged "Cars & charging" step. The station list is only polled while this step is active so we
+    // do not hammer the server (one request per station every few seconds) for the whole setup session.
+    private const int CarsAndChargingStepIndex = 5;
 
     protected override async Task OnInitializedAsync()
     {
@@ -274,6 +279,7 @@
             _hasHomeBattery = cachedData.HasHomeBattery;
             _activeStepIndex = cachedData.CurrentStep;
             _completedStepIndexes = cachedData.CompletedSteps;
+            _setupAnswers = cachedData.CarsChargingSetup;
 
             // Restore the in-progress charge price from the cache so edits survive a reload. The price is only
             // persisted to the server on Finish, so without this the prices step would reset to defaults.
@@ -435,9 +441,9 @@
         {
             try
             {
-                // Only poll while the user is on the charging stations step; on every other step the station
+                // Only poll while the user is on the cars & charging step; on every other step the station
                 // list is not shown, so refreshing it just wastes requests and re-renders.
-                if (_activeStepIndex == ChargingStationsStepIndex)
+                if (_activeStepIndex == CarsAndChargingStepIndex)
                 {
                     await RefreshStationData();
                     await InvokeAsync(StateHasChanged);
@@ -469,9 +475,9 @@
     {
         _activeStepIndex = stepIndex;
 
-        // Load the station list right away when entering the charging stations step instead of waiting for the
+        // Load the station list right away when entering the cars & charging step instead of waiting for the
         // next poll tick.
-        if (stepIndex == ChargingStationsStepIndex)
+        if (stepIndex == CarsAndChargingStepIndex)
         {
             await RefreshStationData();
         }
@@ -481,20 +487,29 @@
         // Reflect the new step in the action bar immediately, without waiting for the cache update.
         StateHasChanged();
 
-        var cache = new DtoSetupCache
-        {
-            CurrentStep = stepIndex,
-            CompletedSteps = GetCompletedStepIndexes(),
-            HasPvSystem = _hasPvSystem,
-            HasHomeBattery = _hasHomeBattery,
-            Configuration = _dtoBaseConfiguration.Item,
-            // Snapshot the in-progress price too, so navigating between steps and reloading keeps the edits.
-            ChargePrice = _chargePrice?.Item,
-            FixedPrices = _fixedPrices,
-        };
-
-        await SetupService.UpdateSetupCache(cache);
+        await SetupService.UpdateSetupCache(BuildSetupCache(stepIndex));
     }
+
+    // Persists the latest cars & charging answers as the user changes them, so the tailored plan survives a
+    // reload like the other setup fields. Keeps the current step unchanged.
+    private async Task PersistSetupAnswers()
+    {
+        if (_dtoBaseConfiguration == null) return;
+        await SetupService.UpdateSetupCache(BuildSetupCache(_activeStepIndex));
+    }
+
+    private DtoSetupCache BuildSetupCache(int stepIndex) => new()
+    {
+        CurrentStep = stepIndex,
+        CompletedSteps = GetCompletedStepIndexes(),
+        HasPvSystem = _hasPvSystem,
+        HasHomeBattery = _hasHomeBattery,
+        Configuration = _dtoBaseConfiguration!.Item,
+        // Snapshot the in-progress price too, so navigating between steps and reloading keeps the edits.
+        ChargePrice = _chargePrice?.Item,
+        FixedPrices = _fixedPrices,
+        CarsChargingSetup = _setupAnswers,
+    };
 
     private List<int> GetCompletedStepIndexes()
     {
