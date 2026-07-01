@@ -157,9 +157,21 @@
         var result = await CarSettingsService.UpdateCarBasicConfiguration(Car.Item.Id, Car.Item);
         _isSaving = false;
 
-        if (result)
+        if (!result.HasError)
         {
             MudDialog.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        // Server-side validation errors (e.g. rules that only exist in the server validator) are shown
+        // on the affected fields; anything else is a generic error the user can't fix inline.
+        if (result.ValidationProblemDetails?.Errors.Any() == true)
+        {
+            Car.ApplyValidationErrors(result.ValidationProblemDetails.Errors);
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
         }
     }
 

@@ -1,4 +1,5 @@
 using MudBlazor;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -38,19 +39,13 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         return response?.Value;
     }
 
-    public async Task<bool> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration)
+    public async Task<Result<object>> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration)
     {
         logger.LogTrace("{method}({id})", nameof(UpdateCarBasicConfiguration), id);
         // The endpoint returns an empty 200 body, so check for success via the Result instead of a
-        // deserialized payload (deserializing an empty body would be reported as an error).
-        var result = await httpClientHelper.SendPostRequestAsync($"api/Config/UpdateCarBasicConfiguration?carId={id}", configuration);
-        if (result.HasError)
-        {
-            snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
-            return false;
-        }
-
-        return true;
+        // deserialized payload (deserializing an empty body would be reported as an error). The full
+        // Result is returned so callers can display ValidationProblemDetails on the form fields.
+        return await httpClientHelper.SendPostRequestAsync($"api/Config/UpdateCarBasicConfiguration?carId={id}", configuration);
     }
 
     public async Task DeleteCar(int id)

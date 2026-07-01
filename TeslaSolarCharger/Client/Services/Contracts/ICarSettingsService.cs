@@ -1,3 +1,4 @@
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Enums;
@@ -8,7 +9,7 @@ public interface ICarSettingsService
 {
     Task<List<CarBasicConfiguration>?> GetCarBasicConfigurations();
     Task<DtoCarLicenseInfo?> GetFleetApiLicenseInfo();
-    Task<bool> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration);
+    Task<Result<object>> UpdateCarBasicConfiguration(int id, CarBasicConfiguration configuration);
     Task DeleteCar(int id);
     Task<DtoCarDeletionProgress?> GetCarDeletionProgress(int id);
     Task<TokenState?> GetFleetApiTokenState();

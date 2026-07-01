@@ -1,4 +1,5 @@
 using ApexCharts;
+using FluentValidation;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using MudBlazor.Services;
@@ -58,6 +59,10 @@ builder.Services.AddTransient<IApexChartHelper, ApexChartHelper>();
 builder.Services.AddSingleton<ISignalRStateService, SignalRStateService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
+// Blazilla's FluentValidator (used in EditFormComponent) resolves validators from DI only — unlike the
+// previously used Blazored.FluentValidation there is no assembly-scanning fallback at render time, so
+// without this registration no client-side validation runs at all.
+builder.Services.AddValidatorsFromAssemblyContaining<TeslaSolarCharger.Shared.Dtos.CarBasicConfigurationValidator>(ServiceLifetime.Singleton);
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>
 {
