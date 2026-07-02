@@ -300,6 +300,9 @@ public static class TranslationKeys
     public static string ValueSourceConfigResultDeleted => nameof(ValueSourceConfigResultDeleted);
     public static string ValueSourceConfigCurrentRestStringFailed => nameof(ValueSourceConfigCurrentRestStringFailed);
     public static string ValueSourceConfigConfigurationValidationFailed => nameof(ValueSourceConfigConfigurationValidationFailed);
+    public static string ValueSourceConfigLoadFailed => nameof(ValueSourceConfigLoadFailed);
+    public static string ValueSourceConfigSaveFailed => nameof(ValueSourceConfigSaveFailed);
+    public static string ValueSourceConfigDeleteFailed => nameof(ValueSourceConfigDeleteFailed);
     public static string TeslaPowerwallEditFormError => nameof(TeslaPowerwallEditFormError);
     public static string TeslaPowerwallEditFormCloudConnectionLink => nameof(TeslaPowerwallEditFormCloudConnectionLink);
     public static string TeslaPowerwallEditFormErrorSuffix => nameof(TeslaPowerwallEditFormErrorSuffix);

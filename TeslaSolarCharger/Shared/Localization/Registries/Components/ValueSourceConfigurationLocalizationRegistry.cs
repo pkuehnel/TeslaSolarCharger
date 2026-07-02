@@ -144,6 +144,18 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.English, "Configuration validation failed"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsvalidierung fehlgeschlagen"));
 
+        Register(TranslationKeys.ValueSourceConfigLoadFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load configuration: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration konnte nicht geladen werden: {0}"));
+
+        Register(TranslationKeys.ValueSourceConfigSaveFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not save configuration: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration konnte nicht gespeichert werden: {0}"));
+
+        Register(TranslationKeys.ValueSourceConfigDeleteFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not delete configuration: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration konnte nicht gelöscht werden: {0}"));
+
         Register(TranslationKeys.ModbusUrlUnitIdentifier,
             new TextLocalizationTranslation(LanguageCodes.English, "Unit ID"),
             new TextLocalizationTranslation(LanguageCodes.German, "Unit-ID"));

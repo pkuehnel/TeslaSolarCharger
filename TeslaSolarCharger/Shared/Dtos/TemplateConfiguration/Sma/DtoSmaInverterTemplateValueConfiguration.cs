@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
+﻿using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
 
@@ -12,14 +11,6 @@ public class DtoSmaInverterTemplateValueConfiguration : DtoModbusConfigurationBa
     }
 }
 
-//public class DtoSmaInverterTemplateValueConfigurationValidator : AbstractValidator<DtoSmaInverterTemplateValueConfiguration>
-//{
-//    public DtoSmaInverterTemplateValueConfigurationValidator()
-//    {
-//        RuleFor(x => x.Host).NotEmpty();
-//        RuleFor(x => x.Port).NotEmpty();
-//        RuleFor(x => x.UnitId).NotEmpty();
-//        RuleFor(x => x.Port).GreaterThanOrEqualTo(0);
-//        RuleFor(x => x.Port).LessThanOrEqualTo(65535);
-//    }
-//}
+public class DtoSmaInverterTemplateValueConfigurationValidator : DtoModbusConfigurationBaseValidator<DtoSmaInverterTemplateValueConfiguration>
+{
+}
