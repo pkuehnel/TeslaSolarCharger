@@ -194,6 +194,15 @@ else
               ContentAlignment="HorizontalAlignment.Left">
         @T(TranslationKeys.SupportHomeBatteryValidationHint)
     </MudAlert>
+    @if (_homeBatteryControlState.ManualOverrideMode == HomeBatteryMode.Charge
+         && _homeBatteryControlState.HomeBatterySoc >= _homeBatteryControlState.MaxChargeSoc)
+    {
+        <MudAlert Severity="Severity.Warning"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            @Format(TranslationKeys.SupportHomeBatteryChargeDemotedWarningFormat, _homeBatteryControlState.HomeBatterySoc, _homeBatteryControlState.MaxChargeSoc)
+        </MudAlert>
+    }
     <div class="mt-2">@Format(TranslationKeys.SupportHomeBatteryCurrentModeFormat, GetHomeBatteryModeDisplayName(_homeBatteryControlState.CurrentMode))</div>
     @if (_homeBatteryControlState.ManualOverrideMode != default)
     {

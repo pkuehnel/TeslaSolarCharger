@@ -15,5 +15,11 @@ public interface IModbusClientHandlingService
     Task WriteByteArray(byte unitIdentifier, string host, int port, ModbusEndianess endianess, TimeSpan connectDelay,
         TimeSpan writeTimeout, ushort address, byte[] valueBytesInMachineOrder, bool ignoreBackoff);
 
+    /// <summary>
+    /// Writes a single holding register using modbus function code 6.
+    /// </summary>
+    Task WriteSingleRegister(byte unitIdentifier, string host, int port, ModbusEndianess endianess, TimeSpan connectDelay,
+        TimeSpan writeTimeout, ushort address, ushort value, bool ignoreBackoff);
+
     Task RemoveClient(string host, int port);
 }

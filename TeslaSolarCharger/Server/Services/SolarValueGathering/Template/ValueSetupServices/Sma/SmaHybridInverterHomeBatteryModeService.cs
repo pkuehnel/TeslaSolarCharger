@@ -90,7 +90,8 @@ public class SmaHybridInverterHomeBatteryModeService : IHomeBatteryModeSetupServ
                     {
                         ct.ThrowIfCancellationRequested();
                         await modbusValueExecutionService
-                            .WriteValue(modbusConfig, ModbusValueType.UInt, registerWrite.Address, registerWrite.Value, false)
+                            .WriteValue(modbusConfig, ModbusValueType.UInt, registerWrite.Address, registerWrite.Value,
+                                ModbusWriteFunction.WriteMultipleRegisters, false)
                             .ConfigureAwait(false);
                     }
                 },

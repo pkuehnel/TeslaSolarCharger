@@ -126,6 +126,46 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
         }
     }
 
+    public async Task WriteSingleRegister(byte unitIdentifier, string host, int port, ModbusEndianess endianess, TimeSpan connectDelay,
+        TimeSpan writeTimeout, ushort address, ushort value, bool ignoreBackoff)
+    {
+        logger.LogTrace("{method}({unitIdentifier}, {host}, {port}, {endianess}, {connectDelay}, {writeTimeout}, {address}, {value}, {ignoreBackoff})",
+            nameof(WriteSingleRegister), unitIdentifier, host, port, endianess, connectDelay, writeTimeout, address, value, ignoreBackoff);
+        if (!ignoreBackoff)
+        {
+            EnsureNoBackoffRequired(host, port);
+        }
+        IModbusTcpClient client;
+        try
+        {
+            client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay, writeTimeout);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get connected Modbus client for host {host} and port {port}", host, port);
+            IncrementRetryCount(host, port);
+            throw;
+        }
+        try
+        {
+            await client.WriteSingleHoldingRegister(unitIdentifier, address, value, writeTimeout);
+            ResetRetryCount(host, port);
+        }
+        catch (NullReferenceException ex)
+        {
+            logger.LogError(ex, "NullReferenceException while writing to Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
+            IncrementRetryCount(host, port);
+            await SetClientToNull(host, port).ConfigureAwait(false);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while writing to Modbus TCP client for host {host} and port {port}.", host, port);
+            IncrementRetryCount(host, port);
+            throw;
+        }
+    }
+
     public async Task RemoveClient(string host, int port)
     {
         logger.LogTrace("{method}({host}, {port})", nameof(RemoveClient), host, port);

@@ -358,6 +358,10 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "To validate the configuration set hold mode while the battery is discharging (battery power should go to about 0 W) or charge mode (battery power should go to about the configured max charge power). The override automatically expires after the configured duration and normal mode is restored."),
             new TextLocalizationTranslation(LanguageCodes.German, "Zur Überprüfung der Konfiguration setzen Sie den Halten-Modus, während die Batterie entlädt (Batterieleistung sollte auf ca. 0 W gehen), oder den Lade-Modus (Batterieleistung sollte auf ca. die konfigurierte maximale Ladeleistung gehen). Die Übersteuerung läuft nach der konfigurierten Dauer automatisch ab und der Normalmodus wird wiederhergestellt."));
 
+        Register(TranslationKeys.SupportHomeBatteryChargeDemotedWarningFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Forced charging is suppressed because the battery SoC ({0} %) has reached the configured max charge SoC ({1} %). Hold mode is applied instead. To test forced charging, increase the Home Battery Max Charge SoC in the base configuration or wait until the battery is discharged below the limit."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erzwungenes Laden wird unterdrückt, da der Batterie-Ladestand ({0} %) den konfigurierten maximalen Lade-Ladestand ({1} %) erreicht hat. Stattdessen wird der Halten-Modus angewendet. Um erzwungenes Laden zu testen, erhöhen Sie den maximalen Lade-Ladestand der Heimbatterie in der Basiskonfiguration oder warten Sie, bis die Batterie unter die Grenze entladen ist."));
+
         Register(TranslationKeys.HomeBatteryModeUnknown,
             new TextLocalizationTranslation(LanguageCodes.English, "Unknown (not modified by TSC)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Unbekannt (nicht durch TSC verändert)"));

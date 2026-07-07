@@ -191,12 +191,17 @@ public class HomeBatteryModeService : IHomeBatteryModeService
             return;
         }
         var requiredMode = GetActiveOverrideMode(_manualOverrideMode, _manualOverrideValidUntil, now);
+        var maxChargeSoc = _configurationWrapper.HomeBatteryMaxChargeSoc();
         if (requiredMode == HomeBatteryMode.Charge && _settings.HomeBatterySoc == default)
         {
             _logger.LogWarning("Home battery soc is unknown, can not validate max charge soc while charge mode is active");
         }
-        var modeToWrite = CalculateModeToWrite(_currentMode, requiredMode, _settings.HomeBatterySoc,
-            _configurationWrapper.HomeBatteryMaxChargeSoc());
+        if (requiredMode == HomeBatteryMode.Charge && _settings.HomeBatterySoc >= maxChargeSoc)
+        {
+            _logger.LogInformation("Home battery charge mode is demoted to hold as soc {soc} reached max charge soc {maxChargeSoc}",
+                _settings.HomeBatterySoc, maxChargeSoc);
+        }
+        var modeToWrite = CalculateModeToWrite(_currentMode, requiredMode, _settings.HomeBatterySoc, maxChargeSoc);
         if (modeToWrite != default)
         {
             _logger.LogInformation("Setting home battery mode to {mode}", modeToWrite);

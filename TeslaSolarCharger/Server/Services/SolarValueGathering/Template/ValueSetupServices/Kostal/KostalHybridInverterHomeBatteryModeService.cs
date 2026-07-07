@@ -81,7 +81,8 @@ public class KostalHybridInverterHomeBatteryModeService : IHomeBatteryModeSetupS
                     {
                         ct.ThrowIfCancellationRequested();
                         await modbusValueExecutionService
-                            .WriteValue(modbusConfig, ModbusValueType.Float, registerWrite.Address, registerWrite.Value, false)
+                            .WriteValue(modbusConfig, ModbusValueType.Float, registerWrite.Address, registerWrite.Value,
+                                ModbusWriteFunction.WriteMultipleRegisters, false)
                             .ConfigureAwait(false);
                     }
                 },

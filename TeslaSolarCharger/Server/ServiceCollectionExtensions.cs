@@ -35,8 +35,10 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericModbus;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Fronius;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Solax;
@@ -208,12 +210,16 @@ public static class ServiceCollectionExtensions
             .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
             .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
             .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericModbusTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, FroniusSolarApiSetupService>()
 
             //Needs to be singleton as it tracks the mode currently applied to the home battery devices
             .AddSingleton<IHomeBatteryModeService, HomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, SmaHybridInverterHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, KostalHybridInverterHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, TeslaPowerwallHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericModbusHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, FroniusSolarApiHomeBatteryModeService>()
 
             .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
             .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()

@@ -190,6 +190,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Minimaler Ladestand der Heimbatterie",
                 "Legen Sie fest, bis zu welchem Ladestand die Heimbatterie geladen wird, bevor Fahrzeuge mit voller Leistung laden. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
 
+        Register(x => x.HomeBatteryMaxChargeSoc,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Home Battery Max Charge SoC",
+                "When TSC actively forces the home battery to charge, charging stops at this SoC to protect the battery from being overcharged."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Maximaler Lade-Ladestand der Heimbatterie",
+                "Wenn TSC das Laden der Heimbatterie aktiv erzwingt, wird das Laden bei diesem Ladestand gestoppt, um die Batterie vor Überladung zu schützen."));
+
         Register(x => x.HomeBatteryMinDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Min Dynamic Min Soc",

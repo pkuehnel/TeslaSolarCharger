@@ -115,6 +115,7 @@ public static class TranslationKeys
     public static string SupportHomeBatteryLastWriteFormat => nameof(SupportHomeBatteryLastWriteFormat);
     public static string SupportHomeBatteryLastErrorFormat => nameof(SupportHomeBatteryLastErrorFormat);
     public static string SupportHomeBatteryValidationHint => nameof(SupportHomeBatteryValidationHint);
+    public static string SupportHomeBatteryChargeDemotedWarningFormat => nameof(SupportHomeBatteryChargeDemotedWarningFormat);
     public static string HomeBatteryModeUnknown => nameof(HomeBatteryModeUnknown);
     public static string HomeBatteryModeNormal => nameof(HomeBatteryModeNormal);
     public static string HomeBatteryModeHold => nameof(HomeBatteryModeHold);
