@@ -57,6 +57,7 @@ public class JobManager(
         var databaseBufferedValuesSaveJob = JobBuilder.Create<DatabaseBufferedValuesSaveJob>().WithIdentity(nameof(DatabaseBufferedValuesSaveJob)).Build();
         var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
+        var homeBatteryModeJob = JobBuilder.Create<HomeBatteryModeJob>().WithIdentity(nameof(HomeBatteryModeJob)).Build();
         var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
         var manualCarsDataClearingJob = JobBuilder.Create<ManualCarsDataClearingJob>().WithIdentity(nameof(ManualCarsDataClearingJob)).Build();
 
@@ -149,6 +150,11 @@ public class JobManager(
             .StartAt(currentDate.Add(TimeSpan.FromMinutes(1)))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.HomeBatteryMinSocRefreshIntervalMinutes)).Build();
 
+        var homeBatteryModeTrigger = TriggerBuilder.Create().WithIdentity("homeBatteryModeTrigger")
+            //Delay start so solar values are available before the first mode evaluation
+            .StartAt(currentDate.AddSeconds(20))
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.HomeBatteryModeJobIntervalSeconds)).Build();
+
         var refreshableValuesRefreshTrigger = TriggerBuilder.Create().WithIdentity("refreshableValuesRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.RefreshableValuesRefreshIntervalSeconds)).Build();
         var manualCarsDataClearingTrigger = TriggerBuilder.Create().WithIdentity("manualCarsDataClearingTrigger")
@@ -193,6 +199,7 @@ public class JobManager(
             {databaseBufferedValuesSaveJob, new HashSet<ITrigger> {databaseBufferedValuesSaveTrigger}},
             {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
+            {homeBatteryModeJob, new HashSet<ITrigger> {homeBatteryModeTrigger}},
             {refreshableValuesRefreshJob, new HashSet<ITrigger> {refreshableValuesRefreshTrigger}},
             {manualCarsDataClearingJob, new HashSet<ITrigger> {manualCarsDataClearingTrigger}},
         };

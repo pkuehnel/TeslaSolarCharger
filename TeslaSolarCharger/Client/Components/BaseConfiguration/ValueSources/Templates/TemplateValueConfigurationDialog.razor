@@ -67,6 +67,7 @@ else
                             break;
                         case TemplateValueGatherType.SmaHybridInverterModbus:
                             <SmaInverterEditForm Configuration="@(GetSmaConfig())"
+                                                 ShowHomeBatteryControlFields="true"
                                                  @ref="ConfigurationComponent" />
                             break;
                         case TemplateValueGatherType.TeslaPowerwallFleetApi:

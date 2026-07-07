@@ -23,6 +23,8 @@ using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
@@ -206,6 +208,12 @@ public static class ServiceCollectionExtensions
             .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
             .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
             .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
+
+            //Needs to be singleton as it tracks the mode currently applied to the home battery devices
+            .AddSingleton<IHomeBatteryModeService, HomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, SmaHybridInverterHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, KostalHybridInverterHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, TeslaPowerwallHomeBatteryModeService>()
 
             .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
             .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()

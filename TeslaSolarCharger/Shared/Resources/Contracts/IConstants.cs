@@ -54,6 +54,7 @@ public interface IConstants
     string OcppChargePointConnectorIdDelimiter { get; }
     string DefaultIdTag { get; }
     int HomeBatteryMinSocRefreshIntervalMinutes { get; }
+    int HomeBatteryModeJobIntervalSeconds { get; }
     string SunriseIcon { get; }
     string SunsetIcon { get; }
     string UnknownCarName { get; }

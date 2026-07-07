@@ -90,6 +90,35 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
         return inversionValue == 0 ? rawValue : -rawValue;
     }
 
+    public async Task WriteValue(DtoModbusConfiguration modbusConfig, ModbusValueType valueType, int address, decimal value, bool ignoreBackoff)
+    {
+        logger.LogTrace("{method}({modbusConfig}, {valueType}, {address}, {value}, {ignoreBackoff})",
+            nameof(WriteValue), modbusConfig, valueType, address, value, ignoreBackoff);
+        var machineOrderBytes = GetMachineOrderBytes(valueType, value);
+        await modbusClientHandlingService.WriteByteArray((byte)modbusConfig.UnitIdentifier!, modbusConfig.Host,
+            modbusConfig.Port, modbusConfig.Endianess, TimeSpan.FromMilliseconds(modbusConfig.ConnectDelayMilliseconds),
+            TimeSpan.FromMilliseconds(modbusConfig.ReadTimeoutMilliseconds), (ushort)address, machineOrderBytes,
+            ignoreBackoff).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Converts a value to bytes in machine order (little endian), which is the same order <see cref="GetValue"/>
+    /// expects bytes in.
+    /// </summary>
+    public static byte[] GetMachineOrderBytes(ModbusValueType valueType, decimal value)
+    {
+        return valueType switch
+        {
+            ModbusValueType.Int => BitConverter.GetBytes(Convert.ToInt32(value)),
+            ModbusValueType.UInt => BitConverter.GetBytes(Convert.ToUInt32(value)),
+            ModbusValueType.Short => BitConverter.GetBytes(Convert.ToInt16(value)),
+            ModbusValueType.UShort => BitConverter.GetBytes(Convert.ToUInt16(value)),
+            ModbusValueType.Ulong => BitConverter.GetBytes(Convert.ToUInt64(value)),
+            ModbusValueType.Float => BitConverter.GetBytes((float)value),
+            _ => throw new ArgumentOutOfRangeException(nameof(valueType), valueType, "Value type can not be written"),
+        };
+    }
+
     public string GetBinaryString(byte[] byteArray)
     {
         var stringbuilder = new StringBuilder();

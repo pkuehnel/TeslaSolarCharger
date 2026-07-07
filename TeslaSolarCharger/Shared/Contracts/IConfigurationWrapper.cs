@@ -59,6 +59,7 @@ public interface IConfigurationWrapper
     string? HomeBatteryPowerXmlAttributeValueName();
     decimal HomeBatteryPowerCorrectionFactor();
     int? HomeBatteryMinSoc();
+    int HomeBatteryMaxChargeSoc();
     int? HomeBatteryChargingPower();
     string SqliteFileFullName();
     string? SolarMqttServer();

@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPropertyLocalizationRegistry, ChargePricePropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoModbusConfigurationBasePropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, DtoSmaInverterTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSolaxTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoKostalModbusConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoTeslaPowerwallTemplateValueConfigurationPropertyLocalization>()
