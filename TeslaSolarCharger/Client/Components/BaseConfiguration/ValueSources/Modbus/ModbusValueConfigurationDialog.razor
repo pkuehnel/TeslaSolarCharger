@@ -64,19 +64,17 @@ else
                                             <GenericInput For="() => editableResultConfig.Item.Id" IsDisabledParameter="true"></GenericInput>
                                         }
                                         <div class="p-2">
-                                            <MudSelectExtended T="ValueUsage"
-                                                               Variant="Variant.Outlined"
-                                                               AnchorOrigin="Origin.BottomCenter"
-                                                               @bind-Value="@editableResultConfig.Item.UsedFor"
-                                                               Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
-                                                               Margin="Constants.InputMargin">
-                                                <MudSelectItemGroupExtended T="ValueUsage" Text="@T(TranslationKeys.ValueSourceConfigSolar)" Nested="true" InitiallyExpanded="false">
-                                                    @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
-                                                    {
-                                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
-                                                    }
-                                                </MudSelectItemGroupExtended>
-                                            </MudSelectExtended>
+                                            <MudSelect T="ValueUsage"
+                                                       Class="@Constants.DefaultMargin"
+                                                       Variant="Variant.Outlined"
+                                                       @bind-Value="@editableResultConfig.Item.UsedFor"
+                                                       Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
+                                                       Margin="Constants.InputMargin">
+                                                @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
+                                                {
+                                                    <MudSelectItem T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                }
+                                            </MudSelect>
                                         </div>
                                         <div class="px-2 pt-2">
                                             <MudSelect T="ModbusRegisterType"

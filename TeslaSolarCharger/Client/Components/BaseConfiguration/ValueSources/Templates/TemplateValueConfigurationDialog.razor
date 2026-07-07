@@ -45,9 +45,14 @@ else
                                        Label="@T(TranslationKeys.ValueSourceConfigType)"
                                        Margin="Constants.InputMargin"
                                        ValueChanged="TypeChanged">
-                        @foreach (TemplateValueGatherType item in Enum.GetValues(typeof(TemplateValueGatherType)))
+                        @foreach (var vendorGroup in Enum.GetValues<TemplateValueGatherType>().GroupBy(GetVendorGroup))
                         {
-                            <MudSelectItemExtended T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)item)">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                            <MudSelectItemGroupExtended T="TemplateValueGatherType?" Text="@vendorGroup.Key" Nested="false">
+                                @foreach (var item in vendorGroup)
+                                {
+                                    <MudSelectItemExtended T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)item)">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                                }
+                            </MudSelectItemGroupExtended>
                         }
                     </MudSelectExtended>
                     @switch (TemplateValueConfiguration.Item.GatherType)
@@ -168,6 +173,17 @@ else
     {
         return TemplateValueConfiguration?.Item.Configuration?.ToObject<DtoSmaInverterTemplateValueConfiguration>();
     }
+
+    private static string GetVendorGroup(TemplateValueGatherType type) => type switch
+    {
+        TemplateValueGatherType.SmaEnergyMeter
+            or TemplateValueGatherType.SmaInverterModbus
+            or TemplateValueGatherType.SmaHybridInverterModbus => "SMA",
+        TemplateValueGatherType.TeslaPowerwallFleetApi => "Tesla",
+        TemplateValueGatherType.SolaxApi => "Solax",
+        TemplateValueGatherType.KostalHybridInverterModbus => "Kostal",
+        _ => "Other",
+    };
 
     private string T(string key) =>
         TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)

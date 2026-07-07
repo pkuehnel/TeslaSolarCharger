@@ -80,10 +80,6 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.English, "Operator"),
             new TextLocalizationTranslation(LanguageCodes.German, "Operator"));
 
-        Register(TranslationKeys.ValueSourceConfigSolar,
-            new TextLocalizationTranslation(LanguageCodes.English, "Solar"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Solar"));
-
         Register(TranslationKeys.ValueSourceConfigRegisterType,
             new TextLocalizationTranslation(LanguageCodes.English, "Register Type"),
             new TextLocalizationTranslation(LanguageCodes.German, "Registertyp"));

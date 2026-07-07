@@ -283,7 +283,6 @@ public static class TranslationKeys
     public static string ValueSourceConfigNodePatternType => nameof(ValueSourceConfigNodePatternType);
     public static string ValueSourceConfigUsedFor => nameof(ValueSourceConfigUsedFor);
     public static string ValueSourceConfigOperator => nameof(ValueSourceConfigOperator);
-    public static string ValueSourceConfigSolar => nameof(ValueSourceConfigSolar);
     public static string ValueSourceConfigRegisterType => nameof(ValueSourceConfigRegisterType);
     public static string ValueSourceConfigValueType => nameof(ValueSourceConfigValueType);
     public static string ValueSourceConfigEndianess => nameof(ValueSourceConfigEndianess);
