@@ -1,0 +1,184 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+
+<div class="@Class">
+    <MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.CarChargingSetupIntro)</MudText>
+
+    <div class="d-flex flex-column" style="gap: 16px;">
+        <div class="d-flex align-center" style="gap: 12px;">
+            <MudText Typo="Typo.body1" Class="flex-grow-1">@T(TranslationKeys.CarChargingSetupQuestionCarCount)</MudText>
+            <MudNumericField T="int?" Value="Answers.ElectricCarCount" ValueChanged="OnCarCountChanged"
+                             Min="0" Max="50" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 110px;" />
+        </div>
+
+        @if (Answers.ElectricCarCount is > 0)
+        {
+            <div class="d-flex align-center" style="gap: 12px;">
+                <MudText Typo="Typo.body1" Class="flex-grow-1">@T(TranslationKeys.CarChargingSetupQuestionTeslaCount)</MudText>
+                <MudNumericField T="int?" Value="Answers.TeslaCount" ValueChanged="OnTeslaCountChanged"
+                                 Min="0" Max="@Answers.ElectricCarCount" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 110px;" />
+            </div>
+        }
+
+        @if (Answers.TeslaCount != null && OthersCount > 0)
+        {
+            <div>
+                <MudText Typo="Typo.body1" Class="mb-2">@T(TranslationKeys.CarChargingSetupQuestionStation)</MudText>
+                <div class="d-flex flex-wrap" style="gap: 8px;">
+                    @StationButton(SetupOcppStationAnswer.Yes, TranslationKeys.CarChargingSetupAnswerYes)
+                    @StationButton(SetupOcppStationAnswer.No, TranslationKeys.CarChargingSetupAnswerNo)
+                    @StationButton(SetupOcppStationAnswer.NotSure, TranslationKeys.CarChargingSetupAnswerNotSure)
+                </div>
+            </div>
+        }
+
+        @if (Answers.TeslaCount != null && TeslaCount > 0)
+        {
+            <div>
+                <MudText Typo="Typo.body1" Class="mb-2">@T(TranslationKeys.CarChargingSetupQuestionBle)</MudText>
+                <div class="d-flex flex-wrap" style="gap: 8px;">
+                    @BleButton(true, TranslationKeys.CarChargingSetupBleYes)
+                    @BleButton(false, TranslationKeys.CarChargingSetupBleNo)
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (ShowPlan)
+    {
+        <MudText Typo="Typo.subtitle2" Class="mt-6 mb-2" Style="font-weight: bold">@T(TranslationKeys.CarChargingSetupPlanHeading)</MudText>
+        <div class="d-flex flex-column" style="gap: 10px;">
+            @foreach (var card in BuildPlan())
+            {
+                <MudAlert Severity="card.Severity" ContentAlignment="HorizontalAlignment.Left">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@card.Title</MudText>
+                    <MudText Typo="Typo.body2">@card.Body</MudText>
+                </MudAlert>
+            }
+        </div>
+    }
+
+    <MudExpansionPanels Class="mt-4" Elevation="0">
+        <MudExpansionPanel Text="@T(TranslationKeys.CarChargingSetupHowItWorks)">
+            <CarControlCapabilityComponent />
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+</div>
+
+@code {
+    [Parameter] public DtoCarsChargingSetupAnswers Answers { get; set; } = new();
+    [Parameter] public EventCallback OnAnswersChanged { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private int TeslaCount => Answers.TeslaCount ?? 0;
+    private int OthersCount => Math.Max(0, (Answers.ElectricCarCount ?? 0) - (Answers.TeslaCount ?? 0));
+
+    // The plan is shown once the user has answered enough to make it meaningful: either there are no cars at all,
+    // or the car count and the Tesla split are both known.
+    private bool ShowPlan => Answers.ElectricCarCount == 0
+                             || (Answers.ElectricCarCount is > 0 && Answers.TeslaCount != null);
+
+    private record PlanCard(Severity Severity, string Title, string Body);
+
+    private async Task OnCarCountChanged(int? value)
+    {
+        Answers.ElectricCarCount = value;
+        // Teslas can never exceed the total, so clamp the (already entered) Tesla count down when the total shrinks.
+        if (value != null && Answers.TeslaCount > value)
+        {
+            Answers.TeslaCount = value;
+        }
+        await OnAnswersChanged.InvokeAsync();
+    }
+
+    private async Task OnTeslaCountChanged(int? value)
+    {
+        Answers.TeslaCount = value;
+        await OnAnswersChanged.InvokeAsync();
+    }
+
+    private async Task SetStation(SetupOcppStationAnswer value)
+    {
+        Answers.HasOcppChargingStation = value;
+        await OnAnswersChanged.InvokeAsync();
+    }
+
+    private async Task SetBle(bool value)
+    {
+        Answers.CanPlaceBleDeviceNearTesla = value;
+        await OnAnswersChanged.InvokeAsync();
+    }
+
+    private RenderFragment StationButton(SetupOcppStationAnswer value, string labelKey) => @<MudButton
+        Variant="@(Answers.HasOcppChargingStation == value ? Variant.Filled : Variant.Outlined)"
+        Color="@(Answers.HasOcppChargingStation == value ? Color.Primary : Color.Default)"
+        OnClick="@(() => SetStation(value))">@T(labelKey)</MudButton>;
+
+    private RenderFragment BleButton(bool value, string labelKey) => @<MudButton
+        Variant="@(Answers.CanPlaceBleDeviceNearTesla == value ? Variant.Filled : Variant.Outlined)"
+        Color="@(Answers.CanPlaceBleDeviceNearTesla == value ? Color.Primary : Color.Default)"
+        OnClick="@(() => SetBle(value))">@T(labelKey)</MudButton>;
+
+    private List<PlanCard> BuildPlan()
+    {
+        var cards = new List<PlanCard>();
+        var total = Answers.ElectricCarCount ?? 0;
+        if (total == 0)
+        {
+            cards.Add(new(Severity.Info, T(TranslationKeys.CarChargingSetupPlanNoCarsTitle), T(TranslationKeys.CarChargingSetupPlanNoCarsBody)));
+            return cards;
+        }
+
+        if (TeslaCount > 0)
+        {
+            if (Answers.CanPlaceBleDeviceNearTesla == true)
+            {
+                cards.Add(new(Severity.Success, T(TranslationKeys.CarChargingSetupPlanTeslaBleTitle), T(TranslationKeys.CarChargingSetupPlanTeslaBleBody)));
+            }
+            else if (Answers.CanPlaceBleDeviceNearTesla == false)
+            {
+                cards.Add(new(Severity.Info, T(TranslationKeys.CarChargingSetupPlanTeslaApiTitle), T(TranslationKeys.CarChargingSetupPlanTeslaApiBody)));
+            }
+            else
+            {
+                cards.Add(new(Severity.Normal, T(TranslationKeys.CarChargingSetupPlanTeslaPendingTitle), T(TranslationKeys.CarChargingSetupPlanTeslaPendingBody)));
+            }
+        }
+
+        if (OthersCount > 0)
+        {
+            switch (Answers.HasOcppChargingStation)
+            {
+                case SetupOcppStationAnswer.Yes:
+                    cards.Add(new(Severity.Info, T(TranslationKeys.CarChargingSetupPlanOtherStationTitle), T(TranslationKeys.CarChargingSetupPlanOtherStationBody)));
+                    break;
+                case SetupOcppStationAnswer.No:
+                    cards.Add(new(Severity.Warning, T(TranslationKeys.CarChargingSetupPlanOtherNoStationTitle), T(TranslationKeys.CarChargingSetupPlanOtherNoStationBody)));
+                    break;
+                case SetupOcppStationAnswer.NotSure:
+                    cards.Add(new(Severity.Warning, T(TranslationKeys.CarChargingSetupPlanOtherNoStationTitle),
+                        T(TranslationKeys.CarChargingSetupPlanOtherNoStationBody) + " " + T(TranslationKeys.CarChargingSetupPlanOtherNotSureExtra)));
+                    break;
+                default:
+                    cards.Add(new(Severity.Normal, T(TranslationKeys.CarChargingSetupPlanOtherPendingTitle), T(TranslationKeys.CarChargingSetupPlanOtherPendingBody)));
+                    break;
+            }
+        }
+
+        if (TeslaCount > 0 && OthersCount == 0 && Answers.HasOcppChargingStation == SetupOcppStationAnswer.Yes)
+        {
+            cards.Add(new(Severity.Normal, T(TranslationKeys.CarChargingSetupPlanStationAlsoTitle), T(TranslationKeys.CarChargingSetupPlanStationAlsoBody)));
+        }
+
+        return cards;
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarChargingSetupComponentLocalizationRegistry>(key)
+        ?? key;
+}

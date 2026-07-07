@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <PackageReference Include="Blazilla" Version="2.4.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Blazor-ApexCharts" Version="6.1.0" />
     <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="10.0.9" />

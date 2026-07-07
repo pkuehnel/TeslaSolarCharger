@@ -56,6 +56,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, CustomIconLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarDetailsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarSelectorComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, CarControlCapabilityComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, CarChargingSetupComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, GenericValueConfigurationComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BackendInformationDisplayComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeSummaryComponentLocalizationRegistry>()

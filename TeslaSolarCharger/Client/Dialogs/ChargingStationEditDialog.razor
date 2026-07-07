@@ -110,13 +110,22 @@
         _isSaving = true;
         try
         {
-            // Stop at the first failing connector (its error is surfaced by the service) so we don't claim
-            // success when only some connectors were saved.
+            // Stop at the first failing connector so we don't claim success when only some connectors were
+            // saved. Server-side validation errors are shown on the affected fields; anything else is a
+            // generic error the user can't fix inline.
             foreach (var connector in _chargingStationConnectors)
             {
-                var success = await ChargingStationsService.UpdateChargingStationConnector(connector.Item);
-                if (!success)
+                var result = await ChargingStationsService.UpdateChargingStationConnector(connector.Item);
+                if (result.HasError)
                 {
+                    if (result.ValidationProblemDetails?.Errors.Any() == true)
+                    {
+                        connector.ApplyValidationErrors(result.ValidationProblemDetails.Errors);
+                    }
+                    else
+                    {
+                        Snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
+                    }
                     return;
                 }
             }

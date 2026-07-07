@@ -164,9 +164,21 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
             {
                 var resultString = await response.Content.ReadAsStringAsync(cancellationToken);
                 var problemDetails = JsonConvert.DeserializeObject<ValidationProblemDetails>(resultString);
-                var message = problemDetails != null
-                    ? $"Error: {problemDetails.Detail}"
-                    : "An error occurred on the server.";
+                // Validation error responses usually have no Detail but per-field messages in Errors, so
+                // fall back to those instead of showing a message consisting of only "Error:".
+                string message;
+                if (!string.IsNullOrEmpty(problemDetails?.Detail))
+                {
+                    message = $"Error: {problemDetails.Detail}";
+                }
+                else if (problemDetails?.Errors.Any() == true)
+                {
+                    message = string.Join(" ", problemDetails.Errors.SelectMany(e => e.Value));
+                }
+                else
+                {
+                    message = "An error occurred on the server.";
+                }
                 return new Result<T>(default, message, problemDetails);
             }
         }

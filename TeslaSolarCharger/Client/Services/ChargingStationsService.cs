@@ -1,4 +1,5 @@
 ﻿using MudBlazor;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -33,16 +34,11 @@ public class ChargingStationsService : IChargingStationsService
         return response;
     }
 
-    public async Task<bool> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
+    public async Task<Result<object>> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
     {
         _logger.LogTrace("{method}()", nameof(UpdateChargingStationConnector));
-        var result = await _httpClientHelper.SendPostRequestAsync<object>("api/ChargingStations/UpdateChargingStationConnector", chargingStationConnector);
-        if (result.HasError)
-        {
-            _snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
-            return false;
-        }
-        return true;
+        // The full Result is returned so callers can display ValidationProblemDetails on the form fields.
+        return await _httpClientHelper.SendPostRequestAsync<object>("api/ChargingStations/UpdateChargingStationConnector", chargingStationConnector);
     }
 
     public async Task DeleteChargingStation(int chargingStationId)

@@ -1,0 +1,62 @@
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="@Class">
+    <MudText Typo="Typo.subtitle1" Style="font-weight: bold">@T(TranslationKeys.CarControlCapabilityTitle)</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1">@T(TranslationKeys.CarControlCapabilityIntro)</MudText>
+
+    <div style="overflow-x: auto;" class="mt-3">
+        <MudSimpleTable Dense="true" Hover="false" Bordered="false" Striped="false" Elevation="0" Style="background: transparent;">
+            <thead>
+                <tr>
+                    <th>@T(TranslationKeys.CarControlCapabilityColConnection)</th>
+                    <th style="text-align: center;">@T(TranslationKeys.CarControlCapabilityColControl)</th>
+                    <th style="text-align: center;">@T(TranslationKeys.CarControlCapabilityColBattery)</th>
+                    <th style="text-align: center;">@T(TranslationKeys.CarControlCapabilityColCost)</th>
+                    <th>@T(TranslationKeys.CarControlCapabilityColWorksWith)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@T(TranslationKeys.CarControlCapabilityRowChargingStation)</td>
+                    <td style="text-align: center;">@YesIcon</td>
+                    <td style="text-align: center;">@NoIcon</td>
+                    <td style="text-align: center;">@T(TranslationKeys.CarControlCapabilityCostFree)</td>
+                    <td>@T(TranslationKeys.CarControlCapabilityWorksAnyCar)</td>
+                </tr>
+                <tr>
+                    <td>@T(TranslationKeys.CarControlCapabilityRowTeslaBle)</td>
+                    <td style="text-align: center;">@YesIcon</td>
+                    <td style="text-align: center;">@YesIcon</td>
+                    <td style="text-align: center;">@T(TranslationKeys.CarControlCapabilityCostFree)</td>
+                    <td>@T(TranslationKeys.CarControlCapabilityWorksTeslas)</td>
+                </tr>
+                <tr>
+                    <td>@T(TranslationKeys.CarControlCapabilityRowTeslaFleetApi)</td>
+                    <td style="text-align: center;">@YesIcon</td>
+                    <td style="text-align: center;">@YesIcon</td>
+                    <td style="text-align: center;">@T(TranslationKeys.CarControlCapabilityCostFleetApi)</td>
+                    <td>@T(TranslationKeys.CarControlCapabilityWorksTeslas)</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </div>
+
+    <MudText Typo="Typo.caption" Class="mt-2 d-block">@T(TranslationKeys.CarControlCapabilityFootnote)</MudText>
+</MudAlert>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+
+    // The capability ticks/dashes are pure UI, so they are inlined as render fragments rather than translated
+    // strings. The Title still carries a localized "yes"/"no" for screen readers.
+    private RenderFragment YesIcon => @<MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" Title="@T(TranslationKeys.CarControlCapabilityYes)" />;
+    private RenderFragment NoIcon => @<MudIcon Icon="@Icons.Material.Filled.Remove" Color="Color.Default" Size="Size.Small" Title="@T(TranslationKeys.CarControlCapabilityNo)" />;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarControlCapabilityComponentLocalizationRegistry>(key)
+        ?? key;
+}

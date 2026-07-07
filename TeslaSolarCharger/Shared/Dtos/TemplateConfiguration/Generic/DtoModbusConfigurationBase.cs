@@ -9,7 +9,13 @@ public abstract class DtoModbusConfigurationBase
     public int UnitId { get; set; }
 }
 
-public class DtoModbusConfigurationBaseValidator : AbstractValidator<DtoModbusConfigurationBase>
+/// <summary>
+/// Validator resolution (Blazilla on the client) looks up IValidator&lt;T&gt; for the exact model type without
+/// considering base classes, so this validator is generic: every DTO deriving from
+/// <see cref="DtoModbusConfigurationBase"/> that is edited in a form needs its own subclass of this validator
+/// (see e.g. DtoKostalModbusConfigurationValidator), which the assembly scan then registers for the exact type.
+/// </summary>
+public class DtoModbusConfigurationBaseValidator<T> : AbstractValidator<T> where T : DtoModbusConfigurationBase
 {
     public DtoModbusConfigurationBaseValidator()
     {

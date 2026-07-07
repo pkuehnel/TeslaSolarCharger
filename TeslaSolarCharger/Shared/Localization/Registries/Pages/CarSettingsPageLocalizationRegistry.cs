@@ -250,6 +250,10 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Free"),
             new TextLocalizationTranslation(LanguageCodes.German, "Kostenlos"));
 
+        Register(TranslationKeys.AddCarTeslaFreeBadge,
+            new TextLocalizationTranslation(LanguageCodes.English, "Free with BLE"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Kostenlos mit BLE"));
+
         Register(TranslationKeys.AddCarLicenseBadge,
             new TextLocalizationTranslation(LanguageCodes.English, "Car license required"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuglizenz erforderlich"));
@@ -263,12 +267,12 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Steuern Sie das Laden ohne Live-Datenverbindung. Sie legen die Werte selbst fest."));
 
         Register(TranslationKeys.AddCarTeslaOptionTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla (Fleet Telemetry)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla (Fleet Telemetry)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla"));
 
         Register(TranslationKeys.AddCarTeslaOptionDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Add Teslas from your connected Tesla account and stream their data via Fleet Telemetry."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fügen Sie Teslas aus Ihrem verbundenen Tesla-Konto hinzu und streamen Sie deren Daten über Fleet Telemetry."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Add Teslas from your connected Tesla account. Controlling them via Bluetooth (BLE) is free; using the Tesla API costs €2.99 per month."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fügen Sie Teslas aus Ihrem verbundenen Tesla-Konto hinzu. Die Steuerung über Bluetooth (BLE) ist kostenlos; die Nutzung der Tesla-API kostet 2,99 € pro Monat."));
 
         Register(TranslationKeys.AddCarSmartCarOptionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Other brand (SmartCar)"),

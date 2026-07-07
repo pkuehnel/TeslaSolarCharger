@@ -36,7 +36,7 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
 
         Register(TranslationKeys.FleetApiTestNotTested,
             new TextLocalizationTranslation(LanguageCodes.English, "You did not test the Fleet API connection, yet. Wake up the car by opening a door, wait about 30 seconds and click"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben die Fleet-API-Verbindung noch nicht getestet. Wecken Sie das Fahrzeug auf, indem Sie eine Tür öffnen, warten Sie etwa 30 Sekunden und klicken Sie auf"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben die Fleet-API-Verbindung noch nicht getestet. Wecken Sie das Fahrzeug auf, indem Sie eine Tür öffnen, warten Sie etwa 30 Sekunden und klicken Sie"));
 
         Register(TranslationKeys.FleetApiTestTestConnectionLinkSuffix,
             new TextLocalizationTranslation(LanguageCodes.English, "to test the connection."),

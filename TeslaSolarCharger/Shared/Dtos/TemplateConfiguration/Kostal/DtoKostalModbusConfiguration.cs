@@ -10,3 +10,7 @@ public class DtoKostalModbusConfiguration : DtoModbusConfigurationBase
         UnitId = 71;
     }
 }
+
+public class DtoKostalModbusConfigurationValidator : DtoModbusConfigurationBaseValidator<DtoKostalModbusConfiguration>
+{
+}

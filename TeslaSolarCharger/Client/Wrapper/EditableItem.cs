@@ -27,6 +27,27 @@ public class EditableItem<T>
     }
 
     /// <summary>
+    /// Displays server-side validation errors (e.g. from a ValidationProblemDetails response) on the
+    /// corresponding form fields. Replaces all previously applied messages.
+    /// </summary>
+    /// <param name="errors">Errors keyed by property name as returned by the server.</param>
+    public void ApplyValidationErrors(IDictionary<string, string[]> errors)
+    {
+        MessageStore.Clear();
+
+        foreach (var fieldWithErrors in errors)
+        {
+            var fieldIdentifier = new FieldIdentifier(Item!, fieldWithErrors.Key);
+            foreach (var errorMessage in fieldWithErrors.Value)
+            {
+                MessageStore.Add(fieldIdentifier, errorMessage);
+            }
+        }
+
+        EditContext.NotifyValidationStateChanged();
+    }
+
+    /// <summary>
     /// Removes all validation errors for the specified property name.
     /// </summary>
     /// <param name="propertyNames">The names of the properties for which to clear errors.</param>

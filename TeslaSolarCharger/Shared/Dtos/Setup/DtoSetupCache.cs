@@ -13,4 +13,5 @@ public class DtoSetupCache
     public DtoBaseConfiguration Configuration { get; set; } = new();
     public DtoChargePrice? ChargePrice { get; set; }
     public List<FixedPrice> FixedPrices { get; set; } = new();
+    public DtoCarsChargingSetupAnswers CarsChargingSetup { get; set; } = new();
 }
