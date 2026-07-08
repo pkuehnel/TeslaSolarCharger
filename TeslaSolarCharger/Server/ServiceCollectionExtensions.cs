@@ -36,6 +36,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericModbus;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Fronius;
@@ -211,6 +212,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
             .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
             .AddTransient<IRefreshableValueSetupService, GenericModbusTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericJsonRestTemplateValueSetupService>()
             .AddTransient<IRefreshableValueSetupService, FroniusSolarApiSetupService>()
 
             //Needs to be singleton as it tracks the mode currently applied to the home battery devices
@@ -219,6 +221,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IHomeBatteryModeSetupService, KostalHybridInverterHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, TeslaPowerwallHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, GenericModbusHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericJsonRestHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, FroniusSolarApiHomeBatteryModeService>()
 
             .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()

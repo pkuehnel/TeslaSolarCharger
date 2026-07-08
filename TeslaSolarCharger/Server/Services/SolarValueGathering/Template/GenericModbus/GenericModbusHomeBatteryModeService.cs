@@ -108,6 +108,7 @@ public class GenericModbusHomeBatteryModeService : IHomeBatteryModeSetupService
             BatteryModeWriteValueSource.CurrentSoc => Math.Min(100, Math.Max(
                 currentSoc ?? throw new InvalidOperationException("Home battery soc is required to write the current soc"),
                 minSoc)),
+            BatteryModeWriteValueSource.Random => System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 32000),
             _ => throw new ArgumentOutOfRangeException(nameof(write), write.Source, "Unknown battery mode write value source"),
         };
         return Math.Round(rawValue * write.Factor);

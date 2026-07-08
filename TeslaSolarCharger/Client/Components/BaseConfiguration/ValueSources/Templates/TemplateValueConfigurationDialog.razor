@@ -97,6 +97,13 @@ else
                                                                GatherType="TemplateValueConfiguration.Item.GatherType.Value"
                                                                @ref="ConfigurationComponent" />
                             }
+                            else if (TemplateValueConfiguration.Item.GatherType != default
+                                     && GenericRestTemplateSettings.IsGenericRestType(TemplateValueConfiguration.Item.GatherType.Value))
+                            {
+                                <GenericRestEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoGenericRestTemplateValueConfiguration>())"
+                                                     GatherType="TemplateValueConfiguration.Item.GatherType.Value"
+                                                     @ref="ConfigurationComponent" />
+                            }
                             break;
                     }
                 </div>
@@ -196,25 +203,66 @@ else
         TemplateValueGatherType.SmaEnergyMeter
             or TemplateValueGatherType.SmaInverterModbus
             or TemplateValueGatherType.SmaHybridInverterModbus
-            or TemplateValueGatherType.SmaSunnyBoyStorageModbus => "SMA",
+            or TemplateValueGatherType.SmaSunnyBoyStorageModbus
+            or TemplateValueGatherType.SmaSunnyIslandModbus
+            or TemplateValueGatherType.SmaDataManagerModbus
+            or TemplateValueGatherType.SmaWebBoxModbus => "SMA",
         TemplateValueGatherType.TeslaPowerwallFleetApi => "Tesla",
         TemplateValueGatherType.SolaxApi
             or TemplateValueGatherType.SolaxHybridInverterModbus => "Solax",
-        TemplateValueGatherType.KostalHybridInverterModbus => "Kostal",
+        TemplateValueGatherType.KostalHybridInverterModbus
+            or TemplateValueGatherType.KostalKsemInverterModbus
+            or TemplateValueGatherType.KostalPikoApi => "Kostal",
         TemplateValueGatherType.SungrowHybridInverterModbus
-            or TemplateValueGatherType.SungrowInverterModbus => "Sungrow",
+            or TemplateValueGatherType.SungrowInverterModbus
+            or TemplateValueGatherType.SungrowIhmModbus => "Sungrow",
         TemplateValueGatherType.HuaweiSun2000HybridInverterModbus
-            or TemplateValueGatherType.HuaweiSun2000InverterModbus => "Huawei",
+            or TemplateValueGatherType.HuaweiSun2000InverterModbus
+            or TemplateValueGatherType.HuaweiSmartLoggerModbus
+            or TemplateValueGatherType.HuaweiEmmaModbus => "Huawei",
         TemplateValueGatherType.GoodweHybridInverterModbus
             or TemplateValueGatherType.GoodweDtInverterModbus => "GoodWe",
         TemplateValueGatherType.GrowattSphHybridInverterModbus
             or TemplateValueGatherType.GrowattTlxhHybridInverterModbus => "Growatt",
-        TemplateValueGatherType.DeyeHybridInverterModbus => "Deye",
-        TemplateValueGatherType.FoxEssH3HybridInverterModbus => "FoxESS",
+        TemplateValueGatherType.DeyeHybridInverterModbus
+            or TemplateValueGatherType.DeyeStorageModbus
+            or TemplateValueGatherType.DeyeStringInverterModbus => "Deye",
+        TemplateValueGatherType.FoxEssH3HybridInverterModbus
+            or TemplateValueGatherType.FoxEssH1Modbus
+            or TemplateValueGatherType.FoxEssH3SmartModbus
+            or TemplateValueGatherType.FoxEssAvocadoModbus => "FoxESS",
         TemplateValueGatherType.AlphaEssSmileModbus => "Alpha ESS",
         TemplateValueGatherType.SajH2HybridInverterModbus => "SAJ",
         TemplateValueGatherType.MarstekVenusModbus => "Marstek",
         TemplateValueGatherType.FroniusSolarApiV1 => "Fronius",
+        TemplateValueGatherType.SofarSolarModbus
+            or TemplateValueGatherType.SofarSolarG3HybridModbus => "Sofar Solar",
+        TemplateValueGatherType.VartaModbus => "Varta",
+        TemplateValueGatherType.SaxPowerModbus => "SAX",
+        TemplateValueGatherType.MtecEbGen3Modbus => "M-TEC",
+        TemplateValueGatherType.SolarmaxMaxStorageModbus
+            or TemplateValueGatherType.SolarmaxSmtInverterModbus => "Solarmax",
+        TemplateValueGatherType.VictronGxModbus => "Victron",
+        TemplateValueGatherType.IntilionScaleblocModbus => "Intilion",
+        TemplateValueGatherType.SiemensJunelightModbus => "Siemens",
+        TemplateValueGatherType.StoraxeModbus => "Ads-tec",
+        TemplateValueGatherType.SolintegModbus => "Solinteg",
+        TemplateValueGatherType.AforeHybridModbus => "Afore",
+        TemplateValueGatherType.AnkerSolixX1Modbus => "Anker",
+        TemplateValueGatherType.IbcHomeOneModbus => "IBC",
+        TemplateValueGatherType.EcoflowPowerOceanModbus => "EcoFlow",
+        TemplateValueGatherType.SenergyInverterModbus => "Senergy",
+        TemplateValueGatherType.SolarlogModbus => "Solar-Log",
+        TemplateValueGatherType.PlexlogModbus => "Plexlog",
+        TemplateValueGatherType.PowerdogModbus => "Powerdog",
+        TemplateValueGatherType.SonnenBatterieApi => "Sonnen",
+        TemplateValueGatherType.SessySmartBatteryApi => "Sessy",
+        TemplateValueGatherType.BatterXApi => "batterX",
+        TemplateValueGatherType.ApsystemsEz1Api => "APsystems",
+        TemplateValueGatherType.HoymilesOpenDtuApi
+            or TemplateValueGatherType.HoymilesAhoyDtuApi
+            or TemplateValueGatherType.HoymilesDtuGatewayApi => "Hoymiles",
+        TemplateValueGatherType.SmartfoxApi => "Smartfox",
         _ => "Other",
     };
 

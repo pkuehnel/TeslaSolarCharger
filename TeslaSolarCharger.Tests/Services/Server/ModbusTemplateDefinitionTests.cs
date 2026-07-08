@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericModbus;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.SharedModel.Enums;
@@ -69,17 +70,105 @@ public class ModbusTemplateDefinitionTests : TestBase
             {
                 continue;
             }
-            foreach (var mode in new[] { HomeBatteryMode.Normal, HomeBatteryMode.Hold, HomeBatteryMode.Charge })
+            //Normal and hold need to be supported by every controllable device, an empty charge list marks
+            //forced charging as not supported.
+            Assert.NotEmpty(definition.BatteryControl.NormalWrites);
+            Assert.NotEmpty(definition.BatteryControl.HoldWrites);
+            var allWrites = definition.BatteryControl.NormalWrites
+                .Concat(definition.BatteryControl.HoldWrites)
+                .Concat(definition.BatteryControl.ChargeWrites);
+            foreach (var write in allWrites)
             {
-                var writes = definition.BatteryControl.GetWrites(mode);
-                Assert.NotEmpty(writes);
-                foreach (var write in writes)
+                if (write.WriteFunction == ModbusWriteFunction.WriteSingleRegister)
                 {
-                    if (write.WriteFunction == ModbusWriteFunction.WriteSingleRegister)
-                    {
-                        Assert.True(write.ValueType is ModbusValueType.UShort or ModbusValueType.Short,
-                            $"{gatherType} single register write to {write.Address} uses {write.ValueType}");
-                    }
+                    Assert.True(write.ValueType is ModbusValueType.UShort or ModbusValueType.Short,
+                        $"{gatherType} single register write to {write.Address} uses {write.ValueType}");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void UnsupportedChargeModeThrowsNotSupported()
+    {
+        var definition = ModbusTemplateDefinitions.Definitions[TemplateValueGatherType.VartaModbus];
+        Assert.Throws<NotSupportedException>(() => definition.BatteryControl!.GetWrites(HomeBatteryMode.Charge));
+    }
+
+    [Fact]
+    public void EveryRestDefinitionHasClientSideDefaults()
+    {
+        foreach (var gatherType in JsonRestTemplateDefinitions.Definitions.Keys)
+        {
+            Assert.True(GenericRestTemplateSettings.IsGenericRestType(gatherType),
+                $"Missing client side defaults for {gatherType}");
+        }
+        foreach (var gatherType in GenericRestTemplateSettings.GenericRestTypes)
+        {
+            Assert.True(JsonRestTemplateDefinitions.Definitions.ContainsKey(gatherType),
+                $"Missing value map for {gatherType}");
+        }
+    }
+
+    [Fact]
+    public void RestBatteryControlAvailabilityMatchesClientSideDefaults()
+    {
+        foreach (var (gatherType, definition) in JsonRestTemplateDefinitions.Definitions)
+        {
+            var defaults = GenericRestTemplateSettings.GetDefaults(gatherType);
+            Assert.Equal(defaults.SupportsHomeBatteryControl, definition.BatteryControl != default);
+            if (definition.BatteryControl != default)
+            {
+                Assert.NotEmpty(definition.BatteryControl.NormalRequests);
+                Assert.NotEmpty(definition.BatteryControl.HoldRequests);
+            }
+        }
+    }
+
+    [Fact]
+    public void RestUriTemplatesResolvePlaceholders()
+    {
+        var config = new TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic.DtoGenericRestTemplateValueConfiguration
+        {
+            Host = "192.168.1.5",
+            Port = 8080,
+            DeviceId = 2,
+            MaxBatteryChargePowerW = 3000,
+        };
+        var resolved = TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest
+            .GenericJsonRestTemplateValueSetupService.ResolveUriTemplate("http://{host}:{port}/api/{deviceId}?p={maxChargePowerW}", config);
+        Assert.Equal("http://192.168.1.5:8080/api/2?p=3000", resolved);
+    }
+
+    [Fact]
+    public void NoRestUriTemplateContainsUnknownPlaceholders()
+    {
+        var config = new TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic.DtoGenericRestTemplateValueConfiguration
+        {
+            Host = "h",
+        };
+        foreach (var (gatherType, definition) in JsonRestTemplateDefinitions.Definitions)
+        {
+            var templates = definition.ValueReads.Select(r => r.UriTemplate);
+            if (definition.BatteryControl != default)
+            {
+                templates = templates
+                    .Concat(definition.BatteryControl.NormalRequests.Select(r => r.UriTemplate))
+                    .Concat(definition.BatteryControl.HoldRequests.Select(r => r.UriTemplate))
+                    .Concat(definition.BatteryControl.ChargeRequests.Select(r => r.UriTemplate))
+                    .Concat(definition.BatteryControl.NormalRequests.Select(r => r.JsonBodyTemplate ?? string.Empty))
+                    .Concat(definition.BatteryControl.HoldRequests.Select(r => r.JsonBodyTemplate ?? string.Empty))
+                    .Concat(definition.BatteryControl.ChargeRequests.Select(r => r.JsonBodyTemplate ?? string.Empty));
+            }
+            var knownPlaceholders = new[] { "{host}", "{port}", "{deviceId}", "{maxChargePowerW}" };
+            foreach (var template in templates)
+            {
+                var resolved = TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest
+                    .GenericJsonRestTemplateValueSetupService.ResolveUriTemplate(template, config);
+                foreach (var placeholder in knownPlaceholders)
+                {
+                    Assert.False(resolved.Contains(placeholder),
+                        $"{gatherType} template '{template}' contains unresolved placeholder {placeholder}");
                 }
             }
         }

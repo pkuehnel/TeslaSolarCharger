@@ -22,10 +22,19 @@ public class ModbusTemplateRegister
     public ValueOperator Operator { get; init; } = ValueOperator.Plus;
     public decimal CorrectionFactor { get; init; } = 1;
     /// <summary>
-    /// Raw register value (before applying the correction factor) that marks the value as currently not available,
-    /// e.g. 0x8000... for signed and 0xFF... for unsigned "NaN" encodings.
+    /// Added to the raw register value before the correction factor is applied, e.g. for devices reporting
+    /// values with a fixed offset.
+    /// </summary>
+    public decimal Offset { get; init; }
+    /// <summary>
+    /// Raw register value (before applying offset and correction factor) that marks the value as currently not
+    /// available, e.g. 0x8000... for signed and 0xFF... for unsigned "NaN" encodings.
     /// </summary>
     public decimal? NotAvailableValue { get; init; }
+    /// <summary>
+    /// Some devices expose different data behind different Modbus unit identifiers on the same connection.
+    /// </summary>
+    public int? UnitIdOverride { get; init; }
 }
 
 public class ModbusBatteryControlDefinition
@@ -41,13 +50,19 @@ public class ModbusBatteryControlDefinition
 
     public List<ModbusBatteryModeWrite> GetWrites(HomeBatteryMode mode)
     {
-        return mode switch
+        var writes = mode switch
         {
             HomeBatteryMode.Normal => NormalWrites,
             HomeBatteryMode.Hold => HoldWrites,
             HomeBatteryMode.Charge => ChargeWrites,
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Mode can not be written"),
         };
+        //An empty write list marks the mode as not supported by the device, e.g. devices that can only block discharging.
+        if (writes.Count == 0)
+        {
+            throw new NotSupportedException($"Mode {mode} is not supported by this device");
+        }
+        return writes;
     }
 }
 
@@ -68,6 +83,10 @@ public enum BatteryModeWriteValueSource
     /// Current home battery soc, clamped between min soc and 100. Used for reserve based hold implementations.
     /// </summary>
     CurrentSoc,
+    /// <summary>
+    /// Random positive 16 bit value. Some devices require a changing trigger value so setpoint writes are applied.
+    /// </summary>
+    Random,
 }
 
 public class ModbusBatteryModeWrite

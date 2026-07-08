@@ -29,6 +29,10 @@ public static class TemplateValueConfigurationTypeHelper
         {
             return typeof(DtoGenericModbusTemplateValueConfiguration);
         }
+        if (GenericRestTemplateSettings.IsGenericRestType(gatherType))
+        {
+            return typeof(DtoGenericRestTemplateValueConfiguration);
+        }
         return GatherTypeToConfigType.GetValueOrDefault(gatherType);
     }
 }

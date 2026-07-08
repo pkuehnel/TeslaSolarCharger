@@ -96,10 +96,17 @@ public class GenericModbusTemplateValueSetupService : IRefreshableValueSetupServ
                             var valueKey = new ValueKey(register.UsedFor, null, resultId);
                             try
                             {
+                                var registerModbusConfiguration = modbusConfiguration;
+                                if (register.UnitIdOverride != default)
+                                {
+                                    registerModbusConfiguration = CreateModbusConfiguration(config.Id, typedConfig, definition);
+                                    registerModbusConfiguration.UnitIdentifier = register.UnitIdOverride;
+                                }
                                 var byteArray = await modbusValueExecutionService
-                                    .GetResult(modbusConfiguration, resultConfiguration, false)
+                                    .GetResult(registerModbusConfiguration, resultConfiguration, false)
                                     .ConfigureAwait(false);
-                                if (register.NotAvailableValue != default)
+                                decimal value;
+                                if (register.NotAvailableValue != default || register.Offset != 0)
                                 {
                                     var neutralConfiguration = new DtoModbusValueResultConfiguration
                                     {
@@ -110,15 +117,20 @@ public class GenericModbusTemplateValueSetupService : IRefreshableValueSetupServ
                                     };
                                     var rawValue = await modbusValueExecutionService
                                         .GetValue(byteArray, neutralConfiguration).ConfigureAwait(false);
-                                    if (rawValue == register.NotAvailableValue.Value)
+                                    if (rawValue == register.NotAvailableValue)
                                     {
                                         throw new InvalidDataException(
                                             $"Register {register.Address} returned its not available sentinel value");
                                     }
+                                    value = (rawValue + register.Offset) * register.CorrectionFactor
+                                            * (register.Operator == ValueOperator.Minus ? -1 : 1);
                                 }
-                                var value = await modbusValueExecutionService
-                                    .GetValue(byteArray, resultConfiguration)
-                                    .ConfigureAwait(false);
+                                else
+                                {
+                                    value = await modbusValueExecutionService
+                                        .GetValue(byteArray, resultConfiguration)
+                                        .ConfigureAwait(false);
+                                }
                                 values.TryAdd(valueKey, 0m);
                                 values[valueKey] += value;
                             }
