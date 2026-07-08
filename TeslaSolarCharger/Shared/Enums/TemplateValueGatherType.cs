@@ -69,4 +69,6 @@ public enum TemplateValueGatherType
     SunSpecMeter = 6002,
     FroniusGen24 = 6101,
     KostalPlenticoreGen2 = 6201,
+    SolarEdgeInverter = 6301,
+    SolarEdgeHybrid = 6302,
 }

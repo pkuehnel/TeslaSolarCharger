@@ -148,6 +148,86 @@ public static class SunSpecTemplateDefinitions
                 },
             }
         },
+        //evcc template solaredge-inverter (grid + pv, no battery). Grid via SunSpec meter (subdevice 1), pv via
+        //SunSpec inverter AC power. SolarEdge meter W is export positive (evcc applies -1 to reach import positive).
+        {
+            TemplateValueGatherType.SolarEdgeInverter, new()
+            {
+                ValueReads = new()
+                {
+                    new()
+                    {
+                        UsedFor = ValueUsage.GridPower,
+                        Components = new() { SunSpecValueComponent.Point(pointFallbacks: new[] { "203:W", "201:W" }) },
+                    },
+                    new()
+                    {
+                        UsedFor = ValueUsage.InverterPower,
+                        Components = new() { SunSpecValueComponent.Point(pointFallbacks: new[] { "101:W", "103:W" }) },
+                    },
+                },
+            }
+        },
+        //evcc template solaredge-hybrid. Battery power/soc and control use SolarEdge proprietary registers
+        //(little endian float32, NaN when not available). StorageConf_CtrlMode (0xE004) must be set to 4 "Remote".
+        {
+            TemplateValueGatherType.SolarEdgeHybrid, new()
+            {
+                ValueReads = new()
+                {
+                    new()
+                    {
+                        UsedFor = ValueUsage.GridPower,
+                        Components = new() { SunSpecValueComponent.Point(pointFallbacks: new[] { "203:W", "201:W" }) },
+                    },
+                    new()
+                    {
+                        //PV = inverter DC power + battery power (SolarEdge specific formula)
+                        UsedFor = ValueUsage.InverterPower,
+                        Components = new()
+                        {
+                            SunSpecValueComponent.Point(pointFallbacks: new[] { "101:DCW", "103:DCW" }),
+                            SunSpecValueComponent.PlainRegister(0xF574, ModbusValueType.Float, ModbusEndianess.LittleEndian, optionalIfMissing: true),
+                        },
+                    },
+                    new()
+                    {
+                        //0xE174 battery power is charge positive (evcc applies -1 to reach discharge positive)
+                        UsedFor = ValueUsage.HomeBatteryPower,
+                        Components = new() { SunSpecValueComponent.PlainRegister(0xE174, ModbusValueType.Float, ModbusEndianess.LittleEndian) },
+                    },
+                    new()
+                    {
+                        //0xE184 battery state of energy (soc %)
+                        UsedFor = ValueUsage.HomeBatterySoc,
+                        Components = new() { SunSpecValueComponent.PlainRegister(0xE184, ModbusValueType.Float, ModbusEndianess.LittleEndian) },
+                    },
+                },
+                BatteryControl = new()
+                {
+                    RewriteInterval = TimeSpan.FromSeconds(60),
+                    NormalWrites = new()
+                    {
+                        //0xE00D command mode 7 = maximize self consumption
+                        SunSpecBatteryModeWrite.PlainConstant(0xE00D, ModbusValueType.UShort, 7, ModbusEndianess.BigEndian, ModbusWriteFunction.WriteSingleRegister),
+                        //0xE010 discharge limit restored
+                        SunSpecBatteryModeWrite.PlainSource(0xE010, ModbusValueType.Float, SunSpecWriteValueSource.MaxDischargePowerW, ModbusEndianess.LittleEndian),
+                    },
+                    HoldWrites = new()
+                    {
+                        SunSpecBatteryModeWrite.PlainConstant(0xE00D, ModbusValueType.UShort, 7, ModbusEndianess.BigEndian, ModbusWriteFunction.WriteSingleRegister),
+                        //Discharge limit 0 blocks discharging
+                        SunSpecBatteryModeWrite.PlainConstant(0xE010, ModbusValueType.Float, 0, ModbusEndianess.LittleEndian),
+                    },
+                    ChargeWrites = new()
+                    {
+                        //0xE00D command mode 3 = charge from PV + AC at the inverter's max battery power
+                        SunSpecBatteryModeWrite.PlainConstant(0xE00D, ModbusValueType.UShort, 3, ModbusEndianess.BigEndian, ModbusWriteFunction.WriteSingleRegister),
+                        SunSpecBatteryModeWrite.PlainConstant(0xE010, ModbusValueType.Float, 0, ModbusEndianess.LittleEndian),
+                    },
+                },
+            }
+        },
     };
 
     private static SunSpecBatteryControlDefinition Model124BatteryControl()

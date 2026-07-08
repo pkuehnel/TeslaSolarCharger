@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.SunSpec.Contracts;
@@ -69,11 +70,12 @@ public class GenericSunSpecTemplateValueSetupService : IRefreshableValueSetupSer
                     var sunSpecClient = executionScope.ServiceProvider.GetRequiredService<ISunSpecClient>();
                     var values = new Dictionary<ValueKey, decimal>();
                     var resultId = 0;
+                    var modbusValueExecutionService = executionScope.ServiceProvider.GetRequiredService<IModbusValueExecutionService>();
                     foreach (var valueRead in definition.ValueReads)
                     {
                         ct.ThrowIfCancellationRequested();
                         resultId++;
-                        var value = await ReadValueAsync(sunSpecClient, modbusConfiguration, valueRead, ct).ConfigureAwait(false);
+                        var value = await ReadValueAsync(sunSpecClient, modbusValueExecutionService, modbusConfiguration, valueRead, ct).ConfigureAwait(false);
                         if (value == default)
                         {
                             continue;
@@ -91,14 +93,14 @@ public class GenericSunSpecTemplateValueSetupService : IRefreshableValueSetupSer
         return result;
     }
 
-    private async Task<decimal?> ReadValueAsync(ISunSpecClient sunSpecClient, DtoModbusConfiguration modbusConfiguration,
-        SunSpecValueRead valueRead, CancellationToken cancellationToken)
+    private async Task<decimal?> ReadValueAsync(ISunSpecClient sunSpecClient, IModbusValueExecutionService modbusValueExecutionService,
+        DtoModbusConfiguration modbusConfiguration, SunSpecValueRead valueRead, CancellationToken cancellationToken)
     {
         decimal sum = 0;
         var anyComponentRead = false;
         foreach (var component in valueRead.Components)
         {
-            var componentValue = await ReadComponentAsync(sunSpecClient, modbusConfiguration, component, cancellationToken)
+            var componentValue = await ReadComponentAsync(sunSpecClient, modbusValueExecutionService, modbusConfiguration, component, cancellationToken)
                 .ConfigureAwait(false);
             if (componentValue == default)
             {
@@ -115,9 +117,14 @@ public class GenericSunSpecTemplateValueSetupService : IRefreshableValueSetupSer
         return anyComponentRead ? sum : default(decimal?);
     }
 
-    private async Task<decimal?> ReadComponentAsync(ISunSpecClient sunSpecClient, DtoModbusConfiguration modbusConfiguration,
-        SunSpecValueComponent component, CancellationToken cancellationToken)
+    private async Task<decimal?> ReadComponentAsync(ISunSpecClient sunSpecClient, IModbusValueExecutionService modbusValueExecutionService,
+        DtoModbusConfiguration modbusConfiguration, SunSpecValueComponent component, CancellationToken cancellationToken)
     {
+        if (component.PlainRegisterAddress != default)
+        {
+            return await ReadPlainRegisterAsync(modbusValueExecutionService, modbusConfiguration, component, cancellationToken)
+                .ConfigureAwait(false);
+        }
         foreach (var pointReference in component.PointFallbacks)
         {
             var value = await sunSpecClient.ReadValueAsync(modbusConfiguration, pointReference, cancellationToken)
@@ -128,6 +135,46 @@ public class GenericSunSpecTemplateValueSetupService : IRefreshableValueSetupSer
             }
         }
         return default;
+    }
+
+    private static async Task<decimal?> ReadPlainRegisterAsync(IModbusValueExecutionService modbusValueExecutionService,
+        DtoModbusConfiguration sunSpecConfiguration, SunSpecValueComponent component, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        //Plain vendor registers (e.g. SolarEdge battery registers) may use a different endianess than the SunSpec reads
+        var plainConfiguration = new DtoModbusConfiguration
+        {
+            Host = sunSpecConfiguration.Host,
+            Port = sunSpecConfiguration.Port,
+            UnitIdentifier = sunSpecConfiguration.UnitIdentifier,
+            Endianess = component.PlainRegisterEndianess,
+            ConnectDelayMilliseconds = sunSpecConfiguration.ConnectDelayMilliseconds,
+            ReadTimeoutMilliseconds = sunSpecConfiguration.ReadTimeoutMilliseconds,
+            Id = sunSpecConfiguration.Id,
+        };
+        var length = component.PlainRegisterValueType is ModbusValueType.Int or ModbusValueType.UInt or ModbusValueType.Float ? 2 : 1;
+        var resultConfiguration = new DtoModbusValueResultConfiguration
+        {
+            Id = 1,
+            RegisterType = ModbusRegisterType.HoldingRegister,
+            ValueType = component.PlainRegisterValueType,
+            Address = component.PlainRegisterAddress!.Value,
+            Length = length,
+            Operator = ValueOperator.Plus,
+            CorrectionFactor = 1,
+        };
+        var byteArray = await modbusValueExecutionService.GetResult(plainConfiguration, resultConfiguration, false).ConfigureAwait(false);
+        //SolarEdge float32 registers return NaN when the value is not available (e.g. no battery installed)
+        if (component.PlainRegisterValueType == ModbusValueType.Float)
+        {
+            var floatValue = BitConverter.ToSingle(byteArray, 0);
+            if (float.IsNaN(floatValue) || float.IsInfinity(floatValue))
+            {
+                return default;
+            }
+            return (decimal)floatValue;
+        }
+        return await modbusValueExecutionService.GetValue(byteArray, resultConfiguration).ConfigureAwait(false);
     }
 
     public static DtoModbusConfiguration CreateModbusConfiguration(int configurationId, DtoSunSpecTemplateValueConfiguration typedConfig)

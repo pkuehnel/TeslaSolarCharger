@@ -18,6 +18,11 @@ public class DtoSunSpecTemplateValueConfiguration : DtoModbusConfigurationBase
     /// Max charge power in watts for vendors using plain register control (e.g. Kostal Plenticore Gen2).
     /// </summary>
     public int MaxBatteryChargePowerW { get; set; } = 4200;
+    /// <summary>
+    /// Max discharge power in watts that is restored in normal mode for vendors using a discharge limit
+    /// (e.g. SolarEdge).
+    /// </summary>
+    public int MaxBatteryDischargePowerW { get; set; } = 5000;
 }
 
 public class DtoSunSpecTemplateValueConfigurationValidator : DtoModbusConfigurationBaseValidator<DtoSunSpecTemplateValueConfiguration>

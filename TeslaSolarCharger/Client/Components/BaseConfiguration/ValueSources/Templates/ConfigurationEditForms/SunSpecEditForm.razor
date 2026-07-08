@@ -18,13 +18,17 @@
             <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
             @if (wrapped.Item.EnableHomeBatteryControl)
             {
-                @if (Defaults.UsesPlainRegisterControl)
+                @switch (Defaults.ControlConfigKind)
                 {
-                    <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
-                }
-                else
-                {
-                    <GenericInput For="() => wrapped.Item.MaxChargeRatePercent"></GenericInput>
+                    case SunSpecControlConfigKind.ChargeRatePercent:
+                        <GenericInput For="() => wrapped.Item.MaxChargeRatePercent"></GenericInput>
+                        break;
+                    case SunSpecControlConfigKind.ChargePowerW:
+                        <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
+                        break;
+                    case SunSpecControlConfigKind.DischargePowerW:
+                        <GenericInput For="() => wrapped.Item.MaxBatteryDischargePowerW"></GenericInput>
+                        break;
                 }
             }
         }

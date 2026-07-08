@@ -139,11 +139,12 @@ public class SunSpecTemplateTests : TestBase
     }
 
     [Theory]
-    [InlineData(SunSpecWriteValueSource.Constant, 42, 100, 4000, 42)]
-    [InlineData(SunSpecWriteValueSource.NegativeMaxChargeRatePercent, 0, 80, 4000, -80)]
-    [InlineData(SunSpecWriteValueSource.NegativeMaxChargePowerW, 0, 100, 4000, -4000)]
+    [InlineData(SunSpecWriteValueSource.Constant, 42, 100, 4000, 5000, 42)]
+    [InlineData(SunSpecWriteValueSource.NegativeMaxChargeRatePercent, 0, 80, 4000, 5000, -80)]
+    [InlineData(SunSpecWriteValueSource.NegativeMaxChargePowerW, 0, 100, 4000, 5000, -4000)]
+    [InlineData(SunSpecWriteValueSource.MaxDischargePowerW, 0, 100, 4000, 5000, 5000)]
     public void ResolvesWriteValues(SunSpecWriteValueSource source, decimal constantValue, int maxChargeRatePercent,
-        int maxChargePowerW, decimal expected)
+        int maxChargePowerW, int maxDischargePowerW, decimal expected)
     {
         var write = new SunSpecBatteryModeWrite
         {
@@ -152,8 +153,34 @@ public class SunSpecTemplateTests : TestBase
             Source = source,
             ConstantValue = constantValue,
         };
-        var result = GenericSunSpecHomeBatteryModeService.ResolveWriteValue(write, maxChargeRatePercent, maxChargePowerW);
+        var result = GenericSunSpecHomeBatteryModeService.ResolveWriteValue(write, maxChargeRatePercent, maxChargePowerW, maxDischargePowerW);
         Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void PlainRegisterAndSunSpecPointComponentsAreMutuallyExclusive()
+    {
+        foreach (var (gatherType, definition) in SunSpecTemplateDefinitions.Definitions)
+        {
+            foreach (var component in definition.ValueReads.SelectMany(v => v.Components))
+            {
+                //A component reads either SunSpec points or a plain register, never both
+                Assert.True(component.PlainRegisterAddress != default ^ component.PointFallbacks.Count > 0,
+                    $"{gatherType} has a component that mixes plain register and SunSpec point reads");
+            }
+        }
+    }
+
+    [Fact]
+    public void SolarEdgeHybridControlsBatteryViaPlainRegisters()
+    {
+        var definition = SunSpecTemplateDefinitions.Definitions[TemplateValueGatherType.SolarEdgeHybrid];
+        var allWrites = definition.BatteryControl!.NormalWrites
+            .Concat(definition.BatteryControl.HoldWrites)
+            .Concat(definition.BatteryControl.ChargeWrites);
+        Assert.All(allWrites, w => Assert.NotNull(w.PlainRegisterAddress));
+        //Charge mode uses command mode 3
+        Assert.Contains(definition.BatteryControl.ChargeWrites, w => w.PlainRegisterAddress == 0xE00D && w.ConstantValue == 3);
     }
 
     private static void AssertPointExists(TemplateValueGatherType gatherType, string pointReference)

@@ -23,14 +23,37 @@ public class SunSpecValueRead
 public class SunSpecValueComponent
 {
     /// <summary>
-    /// Point references tried in order, e.g. ["203:W", "213:W", "201:W", "211:W"].
+    /// SunSpec point references tried in order, e.g. ["203:W", "213:W", "201:W", "211:W"]. Empty when the component
+    /// reads a plain vendor register instead (see <see cref="PlainRegisterAddress"/>).
     /// </summary>
-    public required List<string> PointFallbacks { get; init; }
+    public List<string> PointFallbacks { get; init; } = new();
+    /// <summary>
+    /// Plain (non SunSpec) holding register address for vendors that expose some values outside SunSpec (e.g. the
+    /// SolarEdge battery registers). Set this or <see cref="PointFallbacks"/>.
+    /// </summary>
+    public int? PlainRegisterAddress { get; init; }
+    public ModbusValueType PlainRegisterValueType { get; init; }
+    public ModbusEndianess PlainRegisterEndianess { get; init; } = ModbusEndianess.BigEndian;
     public ValueOperator Operator { get; init; } = ValueOperator.Plus;
     /// <summary>
-    /// When true a missing point (e.g. an unused MPPT string) contributes 0 instead of failing the whole value.
+    /// When true a missing point (e.g. an unused MPPT string) or a not available (NaN) register contributes 0
+    /// instead of failing the whole value.
     /// </summary>
     public bool OptionalIfMissing { get; init; }
+
+    public static SunSpecValueComponent Point(ValueOperator @operator = ValueOperator.Plus, bool optionalIfMissing = false, params string[] pointFallbacks)
+        => new() { PointFallbacks = pointFallbacks.ToList(), Operator = @operator, OptionalIfMissing = optionalIfMissing };
+
+    public static SunSpecValueComponent PlainRegister(int address, ModbusValueType valueType, ModbusEndianess endianess,
+        ValueOperator @operator = ValueOperator.Plus, bool optionalIfMissing = false)
+        => new()
+        {
+            PlainRegisterAddress = address,
+            PlainRegisterValueType = valueType,
+            PlainRegisterEndianess = endianess,
+            Operator = @operator,
+            OptionalIfMissing = optionalIfMissing,
+        };
 }
 
 public class SunSpecBatteryControlDefinition
@@ -68,6 +91,10 @@ public enum SunSpecWriteValueSource
     /// Negative of the configured max charge power in watts (for plain register charge setpoints).
     /// </summary>
     NegativeMaxChargePowerW,
+    /// <summary>
+    /// Configured max discharge power in watts (for plain register discharge limits, e.g. SolarEdge normal mode).
+    /// </summary>
+    MaxDischargePowerW,
 }
 
 public class SunSpecBatteryModeWrite
@@ -97,4 +124,7 @@ public class SunSpecBatteryModeWrite
 
     public static SunSpecBatteryModeWrite PlainNegativeChargePower(int address, ModbusValueType valueType, ModbusEndianess endianess, ModbusWriteFunction writeFunction = ModbusWriteFunction.WriteMultipleRegisters)
         => new() { PlainRegisterAddress = address, PlainRegisterValueType = valueType, PlainRegisterEndianess = endianess, WriteFunction = writeFunction, Source = SunSpecWriteValueSource.NegativeMaxChargePowerW };
+
+    public static SunSpecBatteryModeWrite PlainSource(int address, ModbusValueType valueType, SunSpecWriteValueSource source, ModbusEndianess endianess, ModbusWriteFunction writeFunction = ModbusWriteFunction.WriteMultipleRegisters)
+        => new() { PlainRegisterAddress = address, PlainRegisterValueType = valueType, PlainRegisterEndianess = endianess, WriteFunction = writeFunction, Source = source };
 }

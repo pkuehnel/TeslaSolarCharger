@@ -63,6 +63,7 @@ public class GenericSunSpecHomeBatteryModeService : IHomeBatteryModeSetupService
             var modbusConfiguration = GenericSunSpecTemplateValueSetupService.CreateModbusConfiguration(config.Id, typedConfig);
             var maxChargeRatePercent = typedConfig.MaxChargeRatePercent;
             var maxChargePowerW = typedConfig.MaxBatteryChargePowerW;
+            var maxDischargePowerW = typedConfig.MaxBatteryDischargePowerW;
             var serviceScopeFactory = _serviceScopeFactory;
             result.Add(new DtoHomeBatteryModeController(config.Id, config.Name ?? string.Empty,
                 async (mode, ct) =>
@@ -73,7 +74,7 @@ public class GenericSunSpecHomeBatteryModeService : IHomeBatteryModeSetupService
                     foreach (var write in batteryControl.GetWrites(mode))
                     {
                         ct.ThrowIfCancellationRequested();
-                        var value = ResolveWriteValue(write, maxChargeRatePercent, maxChargePowerW);
+                        var value = ResolveWriteValue(write, maxChargeRatePercent, maxChargePowerW, maxDischargePowerW);
                         if (write.SunSpecPointReference != default)
                         {
                             await sunSpecClient.WriteValueAsync(modbusConfiguration, write.SunSpecPointReference, value,
@@ -94,13 +95,14 @@ public class GenericSunSpecHomeBatteryModeService : IHomeBatteryModeSetupService
         return result;
     }
 
-    public static decimal ResolveWriteValue(SunSpecBatteryModeWrite write, int maxChargeRatePercent, int maxChargePowerW)
+    public static decimal ResolveWriteValue(SunSpecBatteryModeWrite write, int maxChargeRatePercent, int maxChargePowerW, int maxDischargePowerW)
     {
         return write.Source switch
         {
             SunSpecWriteValueSource.Constant => write.ConstantValue,
             SunSpecWriteValueSource.NegativeMaxChargeRatePercent => -maxChargeRatePercent,
             SunSpecWriteValueSource.NegativeMaxChargePowerW => -maxChargePowerW,
+            SunSpecWriteValueSource.MaxDischargePowerW => maxDischargePowerW,
             _ => throw new ArgumentOutOfRangeException(nameof(write), write.Source, "Unknown SunSpec write value source"),
         };
     }

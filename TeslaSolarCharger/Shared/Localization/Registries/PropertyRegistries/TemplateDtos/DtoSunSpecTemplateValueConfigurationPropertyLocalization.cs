@@ -29,5 +29,13 @@ public class DtoSunSpecTemplateValueConfigurationPropertyLocalization : Property
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Maximale Batterieladeleistung",
                 "Leistung in Watt, die verwendet wird, wenn TSC das Laden der Batterie erzwingt."));
+
+        Register(x => x.MaxBatteryDischargePowerW,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Max battery discharge power",
+                "Discharge power limit in watts that is restored when TSC does not force a battery mode."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Maximale Batterieentladeleistung",
+                "Entladeleistungsgrenze in Watt, die wiederhergestellt wird, wenn TSC keinen Batteriemodus erzwingt."));
     }
 }
