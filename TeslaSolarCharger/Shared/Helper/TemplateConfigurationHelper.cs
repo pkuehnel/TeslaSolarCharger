@@ -33,6 +33,10 @@ public static class TemplateValueConfigurationTypeHelper
         {
             return typeof(DtoGenericRestTemplateValueConfiguration);
         }
+        if (SunSpecTemplateSettings.IsSunSpecType(gatherType))
+        {
+            return typeof(DtoSunSpecTemplateValueConfiguration);
+        }
         return GatherTypeToConfigType.GetValueOrDefault(gatherType);
     }
 }

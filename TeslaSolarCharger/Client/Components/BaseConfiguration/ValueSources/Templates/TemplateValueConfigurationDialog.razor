@@ -104,6 +104,13 @@ else
                                                      GatherType="TemplateValueConfiguration.Item.GatherType.Value"
                                                      @ref="ConfigurationComponent" />
                             }
+                            else if (TemplateValueConfiguration.Item.GatherType != default
+                                     && SunSpecTemplateSettings.IsSunSpecType(TemplateValueConfiguration.Item.GatherType.Value))
+                            {
+                                <SunSpecEditForm Configuration="@(TemplateValueConfiguration.Item.Configuration?.ToObject<DtoSunSpecTemplateValueConfiguration>())"
+                                                 GatherType="TemplateValueConfiguration.Item.GatherType.Value"
+                                                 @ref="ConfigurationComponent" />
+                            }
                             break;
                     }
                 </div>
@@ -212,7 +219,8 @@ else
             or TemplateValueGatherType.SolaxHybridInverterModbus => "Solax",
         TemplateValueGatherType.KostalHybridInverterModbus
             or TemplateValueGatherType.KostalKsemInverterModbus
-            or TemplateValueGatherType.KostalPikoApi => "Kostal",
+            or TemplateValueGatherType.KostalPikoApi
+            or TemplateValueGatherType.KostalPlenticoreGen2 => "Kostal",
         TemplateValueGatherType.SungrowHybridInverterModbus
             or TemplateValueGatherType.SungrowInverterModbus
             or TemplateValueGatherType.SungrowIhmModbus => "Sungrow",
@@ -234,7 +242,8 @@ else
         TemplateValueGatherType.AlphaEssSmileModbus => "Alpha ESS",
         TemplateValueGatherType.SajH2HybridInverterModbus => "SAJ",
         TemplateValueGatherType.MarstekVenusModbus => "Marstek",
-        TemplateValueGatherType.FroniusSolarApiV1 => "Fronius",
+        TemplateValueGatherType.FroniusSolarApiV1
+            or TemplateValueGatherType.FroniusGen24 => "Fronius",
         TemplateValueGatherType.SofarSolarModbus
             or TemplateValueGatherType.SofarSolarG3HybridModbus => "Sofar Solar",
         TemplateValueGatherType.VartaModbus => "Varta",
@@ -263,6 +272,8 @@ else
             or TemplateValueGatherType.HoymilesAhoyDtuApi
             or TemplateValueGatherType.HoymilesDtuGatewayApi => "Hoymiles",
         TemplateValueGatherType.SmartfoxApi => "Smartfox",
+        TemplateValueGatherType.SunSpecInverter
+            or TemplateValueGatherType.SunSpecMeter => "SunSpec (generic)",
         _ => "Other",
     };
 

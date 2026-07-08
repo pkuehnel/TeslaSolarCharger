@@ -1,0 +1,69 @@
+@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Helper
+
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+<TemplateEditFormComponentBase TConfiguration="DtoSunSpecTemplateValueConfiguration"
+                               Configuration="ConfigurationWithDefaults"
+                               @ref="TemplateEditForm">
+    <ChildContent Context="wrapped">
+        <GenericInput For="() => wrapped.Item.Host"></GenericInput>
+        <GenericInput For="() => wrapped.Item.Port"></GenericInput>
+        <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
+        @if (Defaults.SupportsHomeBatteryControl)
+        {
+            <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+            @if (wrapped.Item.EnableHomeBatteryControl)
+            {
+                @if (Defaults.UsesPlainRegisterControl)
+                {
+                    <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
+                }
+                else
+                {
+                    <GenericInput For="() => wrapped.Item.MaxChargeRatePercent"></GenericInput>
+                }
+            }
+        }
+    </ChildContent>
+</TemplateEditFormComponentBase>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DtoSunSpecTemplateValueConfiguration? Configuration { get; set; }
+
+    [Parameter, EditorRequired]
+    public TemplateValueGatherType GatherType { get; set; }
+
+    private TemplateEditFormComponentBase<DtoSunSpecTemplateValueConfiguration>? TemplateEditForm { get; set; }
+
+    private SunSpecTemplateDefaults Defaults => SunSpecTemplateSettings.GetDefaults(GatherType);
+
+    private DtoSunSpecTemplateValueConfiguration? ConfigurationWithDefaults { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        //Keep the same instance across re-renders so edits are not lost
+        ConfigurationWithDefaults ??= Configuration ?? new DtoSunSpecTemplateValueConfiguration
+        {
+            Port = Defaults.Port,
+            UnitId = Defaults.UnitId,
+        };
+    }
+
+    public bool Validate()
+    {
+        return TemplateEditForm?.Validate() ?? false;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
+}

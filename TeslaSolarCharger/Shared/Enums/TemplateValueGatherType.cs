@@ -65,4 +65,8 @@ public enum TemplateValueGatherType
     HoymilesAhoyDtuApi = 5402,
     HoymilesDtuGatewayApi = 5403,
     SmartfoxApi = 5501,
+    SunSpecInverter = 6001,
+    SunSpecMeter = 6002,
+    FroniusGen24 = 6101,
+    KostalPlenticoreGen2 = 6201,
 }
