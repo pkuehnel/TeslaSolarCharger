@@ -222,6 +222,22 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Berechnungspuffer für dynamischen Mindest-Ladestand",
                 "Sorgt dafür, dass die Heimbatterie nicht leer wird, selbst wenn Wetterprognosen falsch liegen oder der Energiebedarf höher als erwartet ist."));
 
+        Register(x => x.HoldHomeBatteryChargeSocBuffer,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Hold Home Battery Charge Soc Buffer",
+                "Buffer used when dynamically calculating the Hold Home Battery Charge Soc. If left empty, a well-tested default value is used. Leaving it empty is recommended."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Puffer für dynamischen Halte-Ladestand der Heimbatterie",
+                "Puffer, der bei der dynamischen Berechnung des Halte-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
+
+        Register(x => x.ChargeHomeBatterySocBuffer,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Charge Home Battery Soc Buffer",
+                "Buffer used when dynamically calculating the Charge Home Battery Soc. If left empty, a well-tested default value is used. Leaving it empty is recommended."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Puffer für dynamischen Lade-Ladestand der Heimbatterie",
+                "Puffer, der bei der dynamischen Berechnung des Lade-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
+
         Register(x => x.ForceFullHomeBatteryBySunset,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Force Full Home Battery By Sunset",

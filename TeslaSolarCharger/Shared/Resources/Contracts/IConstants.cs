@@ -80,4 +80,7 @@ public interface IConstants
     string QueryParamVin { get; }
     string QueryParamSmartCarAdded { get; }
     string QueryParamTeslaConnected { get; }
+
+    int DefaultHoldHomeBatteryChargeSocBuffer { get; }
+    int DefaultChargeHomeBatterySocBuffer { get; }
 }

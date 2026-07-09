@@ -9,6 +9,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
@@ -18,7 +19,8 @@ public class ConfigurationWrapper(
     IConfiguration configuration,
     INodePatternTypeHelper nodePatternTypeHelper,
     IDateTimeProvider dateTimeProvider,
-    ISettings settings)
+    ISettings settings,
+    IConstants constants)
     : IConfigurationWrapper
 {
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
@@ -628,6 +630,28 @@ public class ConfigurationWrapper(
     public int DynamicMinSocCalculationBufferInPercent()
     {
         return GetBaseConfiguration().DynamicMinSocCalculationBuffer;
+    }
+
+    public int? HoldHomeBatteryChargeSoc()
+    {
+        return GetBaseConfiguration().HoldHomeBatteryChargeSoc;
+    }
+
+    public int? ChargeHomeBatterySoc()
+    {
+        return GetBaseConfiguration().ChargeHomeBatterySoc;
+    }
+
+    public int HoldHomeBatteryChargeSocBufferInPercent()
+    {
+        var stored = GetBaseConfiguration().HoldHomeBatteryChargeSocBuffer;
+        return stored ?? constants.DefaultHoldHomeBatteryChargeSocBuffer;
+    }
+
+    public int ChargeHomeBatterySocBufferInPercent()
+    {
+        var stored = GetBaseConfiguration().ChargeHomeBatterySocBuffer;
+        return stored ?? constants.DefaultChargeHomeBatterySocBuffer;
     }
 
     public bool ForceFullHomeBatteryBySunset()
