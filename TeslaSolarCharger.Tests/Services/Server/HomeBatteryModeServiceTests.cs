@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.TeslaPowerwall;
+using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 using Xunit;
@@ -71,6 +73,93 @@ public class HomeBatteryModeServiceTests : TestBase
     {
         var result = HomeBatteryModeService.GetActiveOverrideMode(null, CurrentFakeDate.AddMinutes(5), CurrentFakeDate);
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void AutomaticMode_NoWindows_ReturnsNull()
+    {
+        var result = HomeBatteryModeService.CalculateAutomaticMode(new List<DtoHomeBatteryScheduleWindow>(), CurrentFakeDate, 50, false);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void AutomaticMode_InactiveWindows_ReturnNull()
+    {
+        var windows = new List<DtoHomeBatteryScheduleWindow>
+        {
+            CreateWindow(HomeBatteryMode.Hold, CurrentFakeDate.AddHours(1), CurrentFakeDate.AddHours(2)),
+            CreateWindow(HomeBatteryMode.Charge, CurrentFakeDate.AddHours(-2), CurrentFakeDate.AddHours(-1)),
+        };
+        var result = HomeBatteryModeService.CalculateAutomaticMode(windows, CurrentFakeDate, 50, false);
+        Assert.Null(result);
+    }
+
+    [Theory]
+    //Soc at or below the guard -> window applies
+    [InlineData(30, 40, HomeBatteryMode.Hold)]
+    [InlineData(40, 40, HomeBatteryMode.Hold)]
+    //Soc above the guard -> energy is not needed, window is skipped
+    [InlineData(41, 40, null)]
+    //Unknown soc -> guarded window is skipped to be safe
+    [InlineData(null, 40, null)]
+    public void AutomaticMode_HoldWindowSocGuard(int? homeBatterySoc, int guardSoc, HomeBatteryMode? expectedMode)
+    {
+        var window = CreateWindow(HomeBatteryMode.Hold, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5));
+        window.OnlyWhileSocAtOrBelowPercent = guardSoc;
+        var result = HomeBatteryModeService.CalculateAutomaticMode(new List<DtoHomeBatteryScheduleWindow> { window, },
+            CurrentFakeDate, homeBatterySoc, false);
+        Assert.Equal(expectedMode, result);
+    }
+
+    [Theory]
+    //Below the target soc -> keep charging
+    [InlineData(30, HomeBatteryMode.Charge)]
+    //Target soc reached -> demote to hold to keep the bought energy without buying more
+    [InlineData(40, HomeBatteryMode.Hold)]
+    [InlineData(50, HomeBatteryMode.Hold)]
+    //Unknown soc -> keep charging, the max charge soc guard in CalculateModeToWrite already warns
+    [InlineData(null, HomeBatteryMode.Charge)]
+    public void AutomaticMode_ChargeWindowTargetSoc(int? homeBatterySoc, HomeBatteryMode expectedMode)
+    {
+        var window = CreateWindow(HomeBatteryMode.Charge, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5));
+        window.TargetSocPercent = 40;
+        var result = HomeBatteryModeService.CalculateAutomaticMode(new List<DtoHomeBatteryScheduleWindow> { window, },
+            CurrentFakeDate, homeBatterySoc, false);
+        Assert.Equal(expectedMode, result);
+    }
+
+    [Fact]
+    public void AutomaticMode_ChargeWinsOverOverlappingHold()
+    {
+        var windows = new List<DtoHomeBatteryScheduleWindow>
+        {
+            CreateWindow(HomeBatteryMode.Hold, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5)),
+            CreateWindow(HomeBatteryMode.Charge, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5)),
+        };
+        var result = HomeBatteryModeService.CalculateAutomaticMode(windows, CurrentFakeDate, 20, false);
+        Assert.Equal(HomeBatteryMode.Charge, result);
+    }
+
+    [Fact]
+    public void AutomaticMode_ActiveHomeBatteryDischarging_SuppressesWindows()
+    {
+        var windows = new List<DtoHomeBatteryScheduleWindow>
+        {
+            CreateWindow(HomeBatteryMode.Hold, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5)),
+            CreateWindow(HomeBatteryMode.Charge, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5)),
+        };
+        var result = HomeBatteryModeService.CalculateAutomaticMode(windows, CurrentFakeDate, 20, true);
+        Assert.Null(result);
+    }
+
+    private static DtoHomeBatteryScheduleWindow CreateWindow(HomeBatteryMode mode, DateTimeOffset validFrom, DateTimeOffset validTo)
+    {
+        return new DtoHomeBatteryScheduleWindow
+        {
+            ValidFrom = validFrom,
+            ValidTo = validTo,
+            Mode = mode,
+        };
     }
 
     [Theory]

@@ -362,6 +362,54 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Forced charging is suppressed because the battery SoC ({0} %) has reached the configured max charge SoC ({1} %). Hold mode is applied instead. To test forced charging, increase the Home Battery Max Charge SoC in the base configuration or wait until the battery is discharged below the limit."),
             new TextLocalizationTranslation(LanguageCodes.German, "Erzwungenes Laden wird unterdrückt, da der Batterie-Ladestand ({0} %) den konfigurierten maximalen Lade-Ladestand ({1} %) erreicht hat. Stattdessen wird der Halten-Modus angewendet. Um erzwungenes Laden zu testen, erhöhen Sie den maximalen Lade-Ladestand der Heimbatterie in der Basiskonfiguration oder warten Sie, bis die Batterie unter die Grenze entladen ist."));
 
+        Register(TranslationKeys.SupportHomeBatteryAutomaticControlEnabledMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price based home battery control is enabled."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreisbasierte Heimbatteriesteuerung ist aktiviert."));
+
+        Register(TranslationKeys.SupportHomeBatteryPlannedWindowsTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Planned hold/charge windows"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geplante Halte-/Ladefenster"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoPlannedWindowsMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No hold or charge windows are planned. The battery stays in normal mode."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Es sind keine Halte- oder Ladefenster geplant. Die Batterie bleibt im Normalmodus."));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowFromHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "From"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Von"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowToHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "To"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bis"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowModeHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Mode"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Modus"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowReasonHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Reason"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Grund"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowEnergyHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Energy"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energie"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowPriceHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonCarGridCharging,
+            new TextLocalizationTranslation(LanguageCodes.English, "Car charges from grid"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Auto lädt aus dem Netz"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonPreserveForDeficit,
+            new TextLocalizationTranslation(LanguageCodes.English, "Preserve energy for later"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energie für später aufheben"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonGridChargeForDeficit,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge at cheap grid price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bei günstigem Netzpreis laden"));
+
         Register(TranslationKeys.HomeBatteryModeUnknown,
             new TextLocalizationTranslation(LanguageCodes.English, "Unknown (not modified by TSC)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Unbekannt (nicht durch TSC verändert)"));

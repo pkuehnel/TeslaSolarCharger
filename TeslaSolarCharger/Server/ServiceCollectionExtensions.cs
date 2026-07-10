@@ -222,6 +222,7 @@ public static class ServiceCollectionExtensions
 
             //Needs to be singleton as it tracks the mode currently applied to the home battery devices
             .AddSingleton<IHomeBatteryModeService, HomeBatteryModeService>()
+            .AddTransient<IHomeBatteryScheduleService, HomeBatteryScheduleService>()
             .AddTransient<IHomeBatteryModeSetupService, SmaHybridInverterHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, KostalHybridInverterHomeBatteryModeService>()
             .AddTransient<IHomeBatteryModeSetupService, TeslaPowerwallHomeBatteryModeService>()

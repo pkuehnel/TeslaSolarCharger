@@ -1,3 +1,4 @@
+using TeslaSolarCharger.Server.Dtos.HomeBatteryControl;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared;
@@ -127,6 +128,20 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
 
         return await GetDynamicMinSocAtTime(targetTime, homeBatteryUsableEnergy.Value, nextSunrise.Value, nextSunset.Value, nextSunEvent, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DtoHomeBatterySurplusPrediction?> GetSurplusPrediction(DateTimeOffset targetTime, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({targetTime})", nameof(GetSurplusPrediction), targetTime);
+        var (nextSunrise, nextSunset, nextSunEvent) = GetNextSunEvent(targetTime);
+        if (nextSunrise == default || nextSunset == default)
+        {
+            _logger.LogWarning("Can not create surplus prediction as sun events are unknown.");
+            return null;
+        }
+        var (predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise) = await GetSurplusPredictionData(targetTime,
+            nextSunrise.Value, nextSunset.Value, nextSunEvent, cancellationToken).ConfigureAwait(false);
+        return new DtoHomeBatterySurplusPrediction(predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise);
     }
 
     /// <summary>

@@ -14,6 +14,7 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -330,5 +331,7 @@ public class ChargingServiceV2Tests : TestBase
         // Assert
         Mock.Mock<ITeslaService>().Verify(t => t.StartCharging(1, 10), Times.Once);
         Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(It.IsAny<StateUpdateDto>()), Times.Once);
+        Mock.Mock<IHomeBatteryScheduleService>().Verify(s => s.PlanScheduleWindows(currentDate,
+            It.Is<List<DtoChargingSchedule>>(schedules => schedules.Count == 1), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

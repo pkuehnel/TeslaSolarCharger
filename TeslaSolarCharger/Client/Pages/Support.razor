@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.Ble
+@using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl
 @using TeslaSolarCharger.Shared.Dtos.Support
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
@@ -215,6 +216,43 @@ else
     <div>@Format(TranslationKeys.SupportHomeBatterySocFormat, _homeBatteryControlState.HomeBatterySoc?.ToString() ?? T(TranslationKeys.SupportNoData))</div>
     <div>@Format(TranslationKeys.SupportHomeBatteryPowerFormat, _homeBatteryControlState.HomeBatteryPower?.ToString() ?? T(TranslationKeys.SupportNoData))</div>
     <div>@Format(TranslationKeys.SupportHomeBatteryMaxChargeSocFormat, _homeBatteryControlState.MaxChargeSoc)</div>
+    @if (_homeBatteryControlState.AutomaticControlEnabled)
+    {
+        <div class="mt-2">@T(TranslationKeys.SupportHomeBatteryAutomaticControlEnabledMessage)</div>
+        <h5 class="mt-2">@T(TranslationKeys.SupportHomeBatteryPlannedWindowsTitle)</h5>
+        @if (_homeBatteryControlState.PlannedWindows.Count == 0)
+        {
+            <div>@T(TranslationKeys.SupportHomeBatteryNoPlannedWindowsMessage)</div>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true">
+                <thead>
+                    <tr>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowFromHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowToHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowModeHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowReasonHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowEnergyHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowPriceHeader)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var plannedWindow in _homeBatteryControlState.PlannedWindows)
+                    {
+                        <tr>
+                            <td>@plannedWindow.ValidFrom.LocalDateTime.ToString("g")</td>
+                            <td>@plannedWindow.ValidTo.LocalDateTime.ToString("g")</td>
+                            <td>@GetHomeBatteryModeDisplayName(plannedWindow.Mode)</td>
+                            <td>@GetHomeBatteryWindowReasonDisplayName(plannedWindow.Reason)</td>
+                            <td>@(plannedWindow.PlannedEnergyWh > 0 ? $"{plannedWindow.PlannedEnergyWh} Wh" : "-")</td>
+                            <td>@plannedWindow.GridPricePerKwh.ToString("0.00##")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
     @foreach (var homeBatteryController in _homeBatteryControlState.Controllers)
     {
         <div class="mt-2">
@@ -462,6 +500,14 @@ else
         HomeBatteryMode.Hold => T(TranslationKeys.HomeBatteryModeHold),
         HomeBatteryMode.Charge => T(TranslationKeys.HomeBatteryModeCharge),
         _ => T(TranslationKeys.HomeBatteryModeUnknown),
+    };
+
+    private string GetHomeBatteryWindowReasonDisplayName(HomeBatteryScheduleWindowReason reason) => reason switch
+    {
+        HomeBatteryScheduleWindowReason.CarGridCharging => T(TranslationKeys.HomeBatteryWindowReasonCarGridCharging),
+        HomeBatteryScheduleWindowReason.PreserveForDeficit => T(TranslationKeys.HomeBatteryWindowReasonPreserveForDeficit),
+        HomeBatteryScheduleWindowReason.GridChargeForDeficit => T(TranslationKeys.HomeBatteryWindowReasonGridChargeForDeficit),
+        _ => reason.ToString(),
     };
 
     private async Task SetHomeBatteryMode()

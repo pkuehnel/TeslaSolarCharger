@@ -133,4 +133,6 @@ public interface IConfigurationWrapper
 
     int HoldHomeBatteryChargeSocBufferInPercent();
     int ChargeHomeBatterySocBufferInPercent();
+    bool GridPriceBasedHomeBatteryControl();
+    decimal HomeBatteryUsageCostsPerKwh();
 }

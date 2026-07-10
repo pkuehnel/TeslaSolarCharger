@@ -238,6 +238,22 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Puffer für dynamischen Lade-Ladestand der Heimbatterie",
                 "Puffer, der bei der dynamischen Berechnung des Lade-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
 
+        Register(x => x.GridPriceBasedHomeBatteryControl,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Grid Price Based Home Battery Control",
+                "Automatically holds the home battery charge or even charges the home battery from the grid when grid prices are low and the battery would not last until solar power can supply the house again. Requires a configured home battery control and grid prices."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Netzpreisbasierte Heimbatteriesteuerung",
+                "Hält automatisch den Ladestand der Heimbatterie oder lädt sie sogar aus dem Netz, wenn die Netzpreise niedrig sind und die Batterie nicht reicht, bis Solarstrom das Haus wieder versorgen kann. Benötigt eine konfigurierte Heimbatteriesteuerung und Netzpreise."));
+
+        Register(x => x.HomeBatteryUsageCostsPerKwh,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Home Battery Usage Costs Per kWh",
+                "Additional costs per kWh taken from the home battery, covering battery wear and charging losses. Used to decide if holding or grid charging the home battery is cheaper than using energy from the battery. Example: with 0.05 and a cheapest grid price of 0.18, energy from the battery is assumed to cost 0.23."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Nutzungskosten der Heimbatterie pro kWh",
+                "Zusätzliche Kosten pro aus der Heimbatterie entnommener kWh für Batterieverschleiß und Ladeverluste. Wird verwendet, um zu entscheiden, ob Halten oder Netzladen der Heimbatterie günstiger ist als Energie aus der Batterie zu nutzen. Beispiel: Bei 0,05 und einem günstigsten Netzpreis von 0,18 werden für Energie aus der Batterie 0,23 angesetzt."));
+
         Register(x => x.ForceFullHomeBatteryBySunset,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Force Full Home Battery By Sunset",

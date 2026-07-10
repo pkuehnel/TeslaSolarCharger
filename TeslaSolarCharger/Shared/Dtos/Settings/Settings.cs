@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -26,6 +27,7 @@ public class Settings : ISettings
 
     public DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
     public DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
+    public ConcurrentBag<DtoHomeBatteryScheduleWindow> HomeBatteryScheduleWindows { get; set; } = new();
 
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 

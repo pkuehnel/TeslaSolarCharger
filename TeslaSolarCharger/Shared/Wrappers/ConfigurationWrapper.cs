@@ -644,6 +644,16 @@ public class ConfigurationWrapper(
         return stored ?? constants.DefaultChargeHomeBatterySocBuffer;
     }
 
+    public bool GridPriceBasedHomeBatteryControl()
+    {
+        return GetBaseConfiguration().GridPriceBasedHomeBatteryControl;
+    }
+
+    public decimal HomeBatteryUsageCostsPerKwh()
+    {
+        return GetBaseConfiguration().HomeBatteryUsageCostsPerKwh;
+    }
+
     public bool ForceFullHomeBatteryBySunset()
     {
         return GetBaseConfiguration().ForceFullHomeBatteryBySunset;

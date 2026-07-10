@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
@@ -38,6 +39,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IChargingScheduleService _chargingScheduleService;
     private readonly IConstants _constants;
+    private readonly IHomeBatteryScheduleService _homeBatteryScheduleService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -54,7 +56,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         ITargetChargingValueCalculationService targetChargingValueCalculationService,
         IAppStateNotifier appStateNotifier,
         IChargingScheduleService chargingScheduleService,
-        IConstants constants)
+        IConstants constants,
+        IHomeBatteryScheduleService homeBatteryScheduleService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -72,6 +75,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _appStateNotifier = appStateNotifier;
         _chargingScheduleService = chargingScheduleService;
         _constants = constants;
+        _homeBatteryScheduleService = homeBatteryScheduleService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -121,6 +125,17 @@ public class ChargingServiceV2 : IChargingServiceV2
             Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
         };
         await _appStateNotifier.NotifyStateUpdateAsync(chargingScheduleChange).ConfigureAwait(false);
+
+        try
+        {
+            //Plan home battery hold/charge windows based on the just generated charging schedules.
+            await _homeBatteryScheduleService.PlanScheduleWindows(currentDate, chargingSchedules, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            //Home battery planning must never prevent car charging control.
+            _logger.LogError(ex, "Error while planning home battery schedule windows");
+        }
 
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();

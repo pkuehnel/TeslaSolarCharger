@@ -110,6 +110,8 @@ public class BaseConfigurationBase
     public int? HoldHomeBatteryChargeSocBuffer { get; set; }
     [Postfix("%")]
     public int? ChargeHomeBatterySocBuffer { get; set; }
+    public bool GridPriceBasedHomeBatteryControl { get; set; }
+    public decimal HomeBatteryUsageCostsPerKwh { get; set; } = 0.05M;
     [Postfix("%")]
     public int HomeBatteryMaxChargeSoc { get; set; } = 95;
     [Postfix("W")]

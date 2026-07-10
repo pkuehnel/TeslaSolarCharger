@@ -1,3 +1,4 @@
+using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.Support;
@@ -11,6 +12,8 @@ public class DtoHomeBatteryControlState
     public int? HomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
     public int MaxChargeSoc { get; set; }
+    public bool AutomaticControlEnabled { get; set; }
+    public List<DtoHomeBatteryScheduleWindow> PlannedWindows { get; set; } = new();
     public List<DtoHomeBatteryControllerState> Controllers { get; set; } = new();
 }
 

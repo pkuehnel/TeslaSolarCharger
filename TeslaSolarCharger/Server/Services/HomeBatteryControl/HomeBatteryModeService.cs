@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 using TeslaSolarCharger.Shared.Dtos.Support;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -109,6 +110,8 @@ public class HomeBatteryModeService : IHomeBatteryModeService
             HomeBatterySoc = _settings.HomeBatterySoc,
             HomeBatteryPower = _settings.HomeBatteryPower,
             MaxChargeSoc = _configurationWrapper.HomeBatteryMaxChargeSoc(),
+            AutomaticControlEnabled = _configurationWrapper.GridPriceBasedHomeBatteryControl(),
+            PlannedWindows = _settings.HomeBatteryScheduleWindows.OrderBy(w => w.ValidFrom).ToList(),
             Controllers = controllers.Select(c => new DtoHomeBatteryControllerState
             {
                 TemplateConfigurationId = c.TemplateConfigurationId,
@@ -174,6 +177,37 @@ public class HomeBatteryModeService : IHomeBatteryModeService
         return overrideMode != null && validUntil > now ? overrideMode : null;
     }
 
+    /// <summary>
+    /// Determines the mode required by the planned schedule windows. Returns null when no window requires a mode.
+    /// Windows with a SoC guard are only applied while the battery SoC is at or below the guard, so energy the battery
+    /// does not need is not held back. Charge windows are demoted to hold once their target SoC is reached, so the
+    /// bought energy is preserved but no unneeded energy is bought. While the home battery is actively discharged into
+    /// cars, no window is applied as that would contradict the discharging.
+    /// </summary>
+    public static HomeBatteryMode? CalculateAutomaticMode(IEnumerable<DtoHomeBatteryScheduleWindow> scheduleWindows,
+        DateTimeOffset now, int? homeBatterySoc, bool isHomeBatteryDischargingActive)
+    {
+        if (isHomeBatteryDischargingActive)
+        {
+            return null;
+        }
+        var activeWindows = scheduleWindows
+            .Where(w => w.ValidFrom <= now && w.ValidTo > now)
+            .Where(w => w.OnlyWhileSocAtOrBelowPercent == default
+                        || (homeBatterySoc != default && homeBatterySoc <= w.OnlyWhileSocAtOrBelowPercent))
+            .ToList();
+        var chargeWindow = activeWindows.FirstOrDefault(w => w.Mode == HomeBatteryMode.Charge);
+        if (chargeWindow != default)
+        {
+            if (homeBatterySoc >= chargeWindow.TargetSocPercent)
+            {
+                return HomeBatteryMode.Hold;
+            }
+            return HomeBatteryMode.Charge;
+        }
+        return activeWindows.Any(w => w.Mode == HomeBatteryMode.Hold) ? HomeBatteryMode.Hold : null;
+    }
+
     private async Task ApplyRequiredModeInternalAsync(CancellationToken cancellationToken)
     {
         var now = _dateTimeProvider.DateTimeOffSetUtcNow();
@@ -191,6 +225,15 @@ public class HomeBatteryModeService : IHomeBatteryModeService
             return;
         }
         var requiredMode = GetActiveOverrideMode(_manualOverrideMode, _manualOverrideValidUntil, now);
+        if (requiredMode == default && _configurationWrapper.GridPriceBasedHomeBatteryControl())
+        {
+            requiredMode = CalculateAutomaticMode(_settings.HomeBatteryScheduleWindows, now, _settings.HomeBatterySoc,
+                _settings.IsHomeBatteryDischargingActive);
+            if (requiredMode != default)
+            {
+                _logger.LogTrace("Automatic home battery mode from planned schedule windows: {mode}", requiredMode);
+            }
+        }
         var maxChargeSoc = _configurationWrapper.HomeBatteryMaxChargeSoc();
         if (requiredMode == HomeBatteryMode.Charge && _settings.HomeBatterySoc == default)
         {
