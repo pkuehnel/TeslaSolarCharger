@@ -131,8 +131,6 @@ public interface IConfigurationWrapper
     bool DischargeHomeBatteryToMinSocDuringDay();
     decimal ChargingSwitchCosts();
 
-    int? HoldHomeBatteryChargeSoc();
-    int? ChargeHomeBatterySoc();
     int HoldHomeBatteryChargeSocBufferInPercent();
     int ChargeHomeBatterySocBufferInPercent();
 }

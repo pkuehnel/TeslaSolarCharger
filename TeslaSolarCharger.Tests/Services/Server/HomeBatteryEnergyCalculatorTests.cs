@@ -1,3 +1,4 @@
+using Moq;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -5,7 +6,7 @@ using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
@@ -26,7 +27,6 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
 
         var capacity = 10000; // 10kWh usable
         var minSoc = 5;
-        var minEnergy = capacity * minSoc / 100; // 500
 
         // All positive surplus, no deficit
         var slices = new Dictionary<DateTimeOffset, int>
@@ -40,12 +40,13 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
 
         // Act
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(
-            slices, capacity, minSoc, 50, targetTime, buffer);
+            slices, capacity, minSoc, minSoc, targetTime, buffer);
 
         // Assert
         Assert.Equal(minSoc, result.RequiredInitialSocPercent);
         Assert.Null(result.FirstBreachTime);
         Assert.Equal(0, result.AdditionalEnergyRequiredWh);
+        Assert.Equal(targetTime, result.SelfSufficiencyTime);
     }
 
     [Fact]
@@ -77,6 +78,7 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         Assert.Equal(25, result.RequiredInitialSocPercent); // 500 + 2000 = 2500 / 10000 = 25%
         Assert.Equal(new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero), result.FirstBreachTime);
         Assert.Equal(2000, result.AdditionalEnergyRequiredWh);
+        Assert.Equal(targetTime, result.SelfSufficiencyTime);
     }
 
     [Fact]
@@ -134,9 +136,6 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         Assert.Equal(600, result.AdditionalEnergyRequiredWh);
     }
 
-    // Dynamic wrapper test omitted for simplicity; core logic covered by CalculateRequired* tests.
-    // The clamping and result propagation can be verified via integration in Refresh if needed.
-
     [Fact]
     public void CalculateRequiredInitialStateOfChargePercent_TargetNotReached_IncreasesMissing()
     {
@@ -146,7 +145,6 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         var capacity = 10000;
         var minSoc = 5;
         var targetSoc = 50; // want to reach 50% by targetTime
-        var targetEnergy = capacity * targetSoc / 100; // 5000
 
         var slices = new Dictionary<DateTimeOffset, int>
         {
@@ -188,5 +186,70 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
 
         Assert.Equal(5, result.RequiredInitialSocPercent);
         Assert.Equal(0, result.AdditionalEnergyRequiredWh);
+    }
+
+    [Fact]
+    public async Task RefreshHomeBatteryMinSoc_StoresHoldAndChargeTargetsInSettings_FetchesPredictionOnlyOnce()
+    {
+        // Arrange
+        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
+        Mock.Mock<ISettings>().SetupAllProperties();
+
+        var nextSunset = new DateTimeOffset(2023, 2, 2, 17, 0, 0, TimeSpan.Zero);
+        var nextSunrise = new DateTimeOffset(2023, 2, 3, 7, 0, 0, TimeSpan.Zero);
+        Mock.Mock<ISunCalculator>()
+            .Setup(s => s.NextSunset(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Returns(nextSunset);
+        Mock.Mock<ISunCalculator>()
+            .Setup(s => s.NextSunrise(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Returns(nextSunrise);
+
+        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
+        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryMinDynamicMinSoc()).Returns(5);
+        configurationWrapperMock.Setup(c => c.HomeBatteryMaxDynamicMinSoc()).Returns(95);
+        configurationWrapperMock.Setup(c => c.HoldHomeBatteryChargeSocBufferInPercent()).Returns(50);
+        configurationWrapperMock.Setup(c => c.ChargeHomeBatterySocBufferInPercent()).Returns(100);
+        // DynamicHomeBatteryMinSoc and ForceFullHomeBatteryBySunset stay at their mock default (false)
+
+        // Deficit before sunrise, first positive surplus one hour after sunrise
+        var breachSlice = new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero);
+        var expectedSelfSufficiencyTime = new DateTimeOffset(2023, 2, 3, 8, 0, 0, TimeSpan.Zero);
+        var slices = new Dictionary<DateTimeOffset, int>
+        {
+            { breachSlice, -1000 },
+            { expectedSelfSufficiencyTime, 2000 },
+        };
+        Mock.Mock<IEnergyDataService>()
+            .Setup(e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(slices);
+
+        // Act
+        await calculator.RefreshHomeBatteryMinSoc(CancellationToken.None);
+
+        // Assert
+        Mock.Mock<IEnergyDataService>().Verify(
+            e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        var settings = Mock.Mock<ISettings>().Object;
+        // Floor 500 Wh, -1000 -> -500 => 1000 Wh missing at the breach slice
+        var holdTarget = settings.HomeBatteryHoldTarget;
+        Assert.NotNull(holdTarget);
+        Assert.Equal(20, holdTarget.RequiredInitialSocPercent); // (500 + 1000 * 1.5) / 10000
+        Assert.Equal(1500, holdTarget.AdditionalEnergyRequiredWh);
+        Assert.Equal(breachSlice, holdTarget.FirstBreachTime);
+        Assert.Equal(expectedSelfSufficiencyTime, holdTarget.SelfSufficiencyTime);
+        Assert.Equal(CurrentFakeDate, holdTarget.CalculatedAt);
+
+        var chargeTarget = settings.HomeBatteryChargeTarget;
+        Assert.NotNull(chargeTarget);
+        Assert.Equal(25, chargeTarget.RequiredInitialSocPercent); // (500 + 1000 * 2) / 10000
+        Assert.Equal(2000, chargeTarget.AdditionalEnergyRequiredWh);
+        Assert.Equal(breachSlice, chargeTarget.FirstBreachTime);
+        Assert.Equal(expectedSelfSufficiencyTime, chargeTarget.SelfSufficiencyTime);
+        Assert.Equal(CurrentFakeDate, chargeTarget.CalculatedAt);
     }
 }

@@ -24,6 +24,9 @@ public class Settings : ISettings
 
     public bool IsHomeBatteryDischargingActive { get; set; } = true;
 
+    public DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
+    public DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
+
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 
     public List<DtoCar> Cars { get; set; } = new();

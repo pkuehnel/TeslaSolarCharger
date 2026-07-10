@@ -632,16 +632,6 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().DynamicMinSocCalculationBuffer;
     }
 
-    public int? HoldHomeBatteryChargeSoc()
-    {
-        return GetBaseConfiguration().HoldHomeBatteryChargeSoc;
-    }
-
-    public int? ChargeHomeBatterySoc()
-    {
-        return GetBaseConfiguration().ChargeHomeBatterySoc;
-    }
-
     public int HoldHomeBatteryChargeSocBufferInPercent()
     {
         var stored = GetBaseConfiguration().HoldHomeBatteryChargeSocBuffer;

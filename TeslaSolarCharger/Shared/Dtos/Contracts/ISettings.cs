@@ -48,4 +48,6 @@ public interface ISettings
     ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }
     NextSunEvent NextSunEvent { get; set; }
     bool IsHomeBatteryDischargingActive { get; set; }
+    DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
+    DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
 }
