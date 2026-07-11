@@ -334,4 +334,74 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<IHomeBatteryScheduleService>().Verify(s => s.PlanScheduleWindows(currentDate,
             It.Is<List<DtoChargingSchedule>>(schedules => schedules.Count == 1), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    //Test plan case 13: home battery schedule planning must never prevent car charging control. When it throws, the
+    //exception is swallowed and the charging commands are still sent.
+    [Fact]
+    public async Task SetNewChargingValues_HomeBatterySchedulePlanningThrows_CarChargingControlStillProceeds()
+    {
+        // Arrange: same full flow as SetNewChargingValues_FullFlow_WithSchedules_AndTargetValues
+        var currentDate = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(currentDate);
+        Mock.Mock<IBackendApiService>().Setup(s => s.IsBaseAppLicensed(true)).ReturnsAsync(new Result<bool?>(true, null, null));
+
+        Mock.Mock<ILoadPointManagementService>().Setup(s => s.GetLoadPointsToManage())
+            .ReturnsAsync(new List<DtoLoadPointOverview>
+            {
+                new DtoLoadPointOverview { CarId = 1, ChargingPriority = 1, ManageChargingPowerByCar = true }
+            });
+
+        Mock.Mock<ILoadPointManagementService>().Setup(s => s.GetLoadPointsWithChargingDetails())
+            .ReturnsAsync(new List<DtoLoadPointWithCurrentChargingValues>());
+
+        Mock.Mock<IPowerToControlCalculationService>().Setup(p => p.CalculatePowerToControl(It.IsAny<List<DtoLoadPointWithCurrentChargingValues>>()))
+            .Returns(5000);
+
+        Mock.Mock<IPowerToControlCalculationService>().Setup(p => p.HasTooLateChanges(It.IsAny<DtoLoadPointWithCurrentChargingValues>(), It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>()))
+            .Returns(false);
+
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.SkipPowerChangesOnLastAdjustmentNewerThan()).Returns(TimeSpan.FromSeconds(10));
+
+        Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
+
+        var dtoCar = new DtoCar
+        {
+            Id = 1,
+            IsHomeGeofence = new DtoTimeStampedValue<bool?>(currentDate, true),
+            PluggedIn = new DtoTimeStampedValue<bool?>(currentDate, true)
+        };
+
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar> { dtoCar });
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { dtoCar });
+        Mock.Mock<ISettings>().SetupSet(s => s.ChargingSchedules = It.IsAny<ConcurrentBag<DtoChargingSchedule>>());
+
+        Mock.Mock<IChargingScheduleService>().Setup(s => s.GenerateChargingSchedulesForLoadPoint(It.IsAny<DtoLoadPointOverview>(), It.IsAny<List<DtoTimeZonedChargingTarget>>(), It.IsAny<Dictionary<DateTimeOffset, int>>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>(), It.IsAny<List<DtoChargingSchedule>>()))
+            .ReturnsAsync(new List<DtoChargingSchedule>
+            {
+                new DtoChargingSchedule { ValidFrom = currentDate.AddHours(-1), ValidTo = currentDate.AddHours(1), TargetMinPower = 1000 }
+            });
+
+        Mock.Mock<ITargetChargingValueCalculationService>()
+            .Setup(s => s.AppendTargetValues(It.IsAny<List<DtoTargetChargingValues>>(), It.IsAny<List<DtoChargingSchedule>>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<List<DtoTargetChargingValues>, List<DtoChargingSchedule>, DateTimeOffset, int, int, CancellationToken>((targets, _, _, _, _, _) =>
+            {
+                foreach (var t in targets)
+                {
+                    t.TargetValues = new TargetValues { StartCharging = true, TargetCurrent = 10 };
+                }
+            });
+
+        // The home battery schedule planning fails
+        Mock.Mock<IHomeBatteryScheduleService>()
+            .Setup(s => s.PlanScheduleWindows(It.IsAny<DateTimeOffset>(), It.IsAny<List<DtoChargingSchedule>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Home battery planning failed"));
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        // Act: must not throw
+        await service.SetNewChargingValues(CancellationToken.None);
+
+        // Assert: car charging control still happened
+        Mock.Mock<ITeslaService>().Verify(t => t.StartCharging(1, 10), Times.Once);
+    }
 }

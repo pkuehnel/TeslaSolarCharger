@@ -1,10 +1,19 @@
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.TeslaPowerwall;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
@@ -150,6 +159,91 @@ public class HomeBatteryModeServiceTests : TestBase
         };
         var result = HomeBatteryModeService.CalculateAutomaticMode(windows, CurrentFakeDate, 20, true);
         Assert.Null(result);
+    }
+
+    //Test plan case 14: full service wiring of ApplyRequiredModeAsync: an active planned hold window is written to the
+    //controllers when grid price based control is enabled.
+    [Fact]
+    public async Task ApplyRequiredMode_ActiveHoldWindow_WritesHoldToControllers()
+    {
+        var writtenModes = SetupSingleControllerCapturingWrites();
+        SetupAutomaticControl(gridPriceBasedControlEnabled: true);
+        var service = Mock.Create<HomeBatteryModeService>();
+
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+
+        Assert.Equal(new[] { HomeBatteryMode.Hold, }, writtenModes);
+    }
+
+    //Test plan case 14: a manual override wins over the automatic mode from planned schedule windows, and an unchanged
+    //mode is not rewritten on the next apply.
+    [Fact]
+    public async Task ApplyRequiredMode_ManualOverride_WinsOverScheduleWindows()
+    {
+        var writtenModes = SetupSingleControllerCapturingWrites();
+        SetupAutomaticControl(gridPriceBasedControlEnabled: true);
+        var service = Mock.Create<HomeBatteryModeService>();
+
+        //The windows require hold, but the user manually forces charge.
+        await service.SetManualModeAsync(HomeBatteryMode.Charge, TimeSpan.FromMinutes(30), CancellationToken.None);
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+
+        Assert.Equal(new[] { HomeBatteryMode.Charge, }, writtenModes);
+    }
+
+    //Test plan case 14: with grid price based control disabled, leftover schedule windows from a previous toggle-on
+    //period are ignored and no mode is written.
+    [Fact]
+    public async Task ApplyRequiredMode_AutomaticControlDisabled_IgnoresLeftoverScheduleWindows()
+    {
+        var writtenModes = SetupSingleControllerCapturingWrites();
+        SetupAutomaticControl(gridPriceBasedControlEnabled: false);
+        var service = Mock.Create<HomeBatteryModeService>();
+
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+
+        Assert.Empty(writtenModes);
+    }
+
+    /// <summary>
+    /// Sets up settings with an active hold window and the configuration for automatic home battery control.
+    /// </summary>
+    private void SetupAutomaticControl(bool gridPriceBasedControlEnabled)
+    {
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GridPriceBasedHomeBatteryControl()).Returns(gridPriceBasedControlEnabled);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryMaxChargeSoc()).Returns(95);
+        var settingsMock = Mock.Mock<ISettings>();
+        settingsMock.SetupAllProperties();
+        settingsMock.Object.HomeBatterySoc = 50;
+        settingsMock.Object.IsHomeBatteryDischargingActive = false;
+        settingsMock.Object.HomeBatteryScheduleWindows = new ConcurrentBag<DtoHomeBatteryScheduleWindow>
+        {
+            CreateWindow(HomeBatteryMode.Hold, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5)),
+        };
+    }
+
+    /// <summary>
+    /// Provides a single home battery mode controller through the scoped setup services and captures all mode writes.
+    /// </summary>
+    private List<HomeBatteryMode> SetupSingleControllerCapturingWrites()
+    {
+        var writtenModes = new List<HomeBatteryMode>();
+        var controller = new DtoHomeBatteryModeController(1, "TestController", (mode, _) =>
+        {
+            writtenModes.Add(mode);
+            return Task.CompletedTask;
+        }, null);
+        var setupServiceMock = new Mock<IHomeBatteryModeSetupService>();
+        setupServiceMock.Setup(s => s.GetControllersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DtoHomeBatteryModeController> { controller, });
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock.Setup(p => p.GetService(typeof(IEnumerable<IHomeBatteryModeSetupService>)))
+            .Returns(new[] { setupServiceMock.Object, });
+        var scopeMock = new Mock<IServiceScope>();
+        scopeMock.Setup(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+        Mock.Mock<IServiceScopeFactory>().Setup(f => f.CreateScope()).Returns(scopeMock.Object);
+        return writtenModes;
     }
 
     private static DtoHomeBatteryScheduleWindow CreateWindow(HomeBatteryMode mode, DateTimeOffset validFrom, DateTimeOffset validTo)
