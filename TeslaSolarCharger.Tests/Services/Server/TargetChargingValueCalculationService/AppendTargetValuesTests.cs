@@ -142,7 +142,8 @@ public class AppendTargetValuesTests : TestBase
         // The home battery covers the complete energy the car needs, so no grid power may be used:
         // the car may only get the part of TargetHomeBatteryPower that is not already needed elsewhere
         // (house consumption), which is expressed by the negative powerToControl.
-        var estimatedChargingPower = targetValues.TargetCurrent.Value * Voltage * Phases;
+        // Rounded to whole watts as converting power -> current -> power introduces decimal representation noise.
+        var estimatedChargingPower = Math.Round(targetValues.TargetCurrent.Value * Voltage * Phases);
         var maxPowerWithoutGridConsumption = powerToControl + targetHomeBatteryPower; // 9_470W
         Assert.True(estimatedChargingPower <= maxPowerWithoutGridConsumption,
             $"Charging power {estimatedChargingPower}W exceeds the maximum power of {maxPowerWithoutGridConsumption}W that is possible without using grid power. " +

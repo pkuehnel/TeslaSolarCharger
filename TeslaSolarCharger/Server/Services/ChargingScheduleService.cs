@@ -232,10 +232,16 @@ public class ChargingScheduleService : IChargingScheduleService
                                 homeBatteryEnergyToCharge -= addedEnergy;
                                 minimumEnergyToCharge -= addedEnergy;
                                 //As we want to discharge the complete home battery to min soc if DischargeHomeBatteryToMinSoc is set, we do not break here when minimumEnergyToCharge <= 0
+                                if (addedEnergy < 1)
+                                {
+                                    _logger.LogTrace("Breaking home battery discharge planning as the time window until the target is fully scheduled. Remaining homeBatteryEnergyToCharge={remainingEnergy}", homeBatteryEnergyToCharge);
+                                    break;
+                                }
                             }
                             else
                             {
                                 _logger.LogTrace("Skipping home battery discharge schedule because scheduleStart >= scheduleEnd (start={scheduleStart}, end={scheduleEnd})", currentDate, scheduleEnd);
+                                break;
                             }
                         }
                         _logger.LogTrace("Finished home battery discharge planning for target {@target}. Remaining homeBatteryEnergyToCharge={homeBatteryEnergyToCharge}, minimumEnergyToCharge={minimumEnergyToCharge}", nextTarget, homeBatteryEnergyToCharge, minimumEnergyToCharge);

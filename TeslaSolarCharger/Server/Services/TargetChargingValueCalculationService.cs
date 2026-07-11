@@ -108,17 +108,20 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     new(TranslationKeys.NotChargingReasonCarNotAllowing));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
-            var chargingSchedulePower = chargingSchedule.TargetMinPower;
-            if (chargingSchedule.TargetHomeBatteryPower > chargingSchedulePower)
+            //TargetHomeBatteryPower is a discharge power budget, not a fixed charging power: powerToControl already
+            //includes the current home battery power, so adding the budget on top makes the loadpoint consume exactly
+            //the budget from the home battery while other consumers like the house are covered without using grid power.
+            var homeBatteryDischargeBudget = 0;
+            if ((chargingSchedule.TargetHomeBatteryPower > 0)
+                && (_settings.HomeBatterySoc > _configurationWrapper.HomeBatteryMinSoc()))
             {
-                chargingSchedulePower = chargingSchedule.TargetHomeBatteryPower.Value;
+                homeBatteryDischargeBudget = chargingSchedule.TargetHomeBatteryPower.Value;
             }
 
-            var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
-                ? chargingSchedulePower
-                : powerToControlIncludingHomeBatteryDischargePower;
+            var targetPower = Math.Max(chargingSchedule.TargetMinPower,
+                powerToControlIncludingHomeBatteryDischargePower + homeBatteryDischargeBudget);
 
-            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, carElements, ocppElements, currentDate);
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, targetPower, carElements, ocppElements, currentDate);
 
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
