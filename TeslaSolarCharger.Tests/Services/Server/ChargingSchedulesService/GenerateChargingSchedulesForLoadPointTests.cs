@@ -86,6 +86,78 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
         Assert.Equal(HomeBatteryDischargePower - PredictedHouseConsumptionPower, batteryOnlySchedule.EstimatedHomeBatteryPowerForCar);
     }
 
+    /// <summary>
+    /// When the home battery is below its min SoC, the execution side reserves the home battery charging power from the
+    /// solar surplus before the car gets anything. Solar based planning must mirror this: the energy the home battery
+    /// needs to reach its min SoC must not be credited to the car, otherwise too little grid charging is planned and
+    /// the car misses its target SoC.
+    /// </summary>
+    [Fact]
+    public async Task SolarSchedules_ReserveSurplusForHomeBattery_WhenBelowMinSoc()
+    {
+        // Car needs 6000Wh. Predicted surplus is 5000Wh in each of the two slices until the target.
+        // Home battery deficit: (80 - 65) * 30000 / 100 = 4500Wh, charging power cap 3000Wh per slice
+        // => slice 1: 5000 - 3000 = 2000Wh for the car, slice 2: 5000 - 1500 = 3500Wh for the car
+        // => 5500Wh solar credited, 500Wh must be planned from the grid
+        await SetupScenario(carSoc: 50);
+        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
+        configurationWrapperMock.Setup(c => c.UsePredictedSolarPowerGenerationForChargingSchedules()).Returns(true);
+        configurationWrapperMock.Setup(c => c.HomeBatteryMinSoc()).Returns(80);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(3_000);
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var surplusSlices = new Dictionary<DateTimeOffset, int>
+        {
+            { CurrentFakeDate, 5_000 },
+            { CurrentFakeDate.AddHours(1), 5_000 },
+        };
+
+        var schedules = await service.GenerateChargingSchedulesForLoadPoint(CreateLoadPoint(),
+            CreateTargets(targetSoc: 60, dischargeHomeBatteryToMinSoc: false), surplusSlices, CurrentFakeDate,
+            CancellationToken.None, new());
+
+        Assert.Contains(schedules, s => s.EstimatedSolarPower == 2_000);
+        Assert.Contains(schedules, s => s.EstimatedSolarPower == 3_500);
+        Assert.DoesNotContain(schedules, s => s.EstimatedSolarPower == 5_000);
+        //The 500Wh not covered by solar must be planned from the grid before the target time
+        Assert.Contains(schedules, s => s.TargetMinPower == MaxPower);
+        var totalPlannedEnergy = schedules
+            .Where(s => s.ValidTo <= CurrentFakeDate.AddHours(2))
+            .Sum(s => s.EstimatedEnergy);
+        Assert.InRange(totalPlannedEnergy, 5_900, 6_100);
+    }
+
+    /// <summary>
+    /// When the home battery is at or above its min SoC, the full predicted surplus is available for the car and no
+    /// grid charging must be planned when the surplus covers the energy to charge.
+    /// </summary>
+    [Fact]
+    public async Task SolarSchedules_UseFullSurplus_WhenHomeBatteryAtMinSoc()
+    {
+        // Car needs 6000Wh, predicted surplus is 2 x 5000Wh and fully available as the battery is above min SoC
+        await SetupScenario(carSoc: 50);
+        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
+        configurationWrapperMock.Setup(c => c.UsePredictedSolarPowerGenerationForChargingSchedules()).Returns(true);
+        configurationWrapperMock.Setup(c => c.HomeBatteryMinSoc()).Returns(65);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(3_000);
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var surplusSlices = new Dictionary<DateTimeOffset, int>
+        {
+            { CurrentFakeDate, 5_000 },
+            { CurrentFakeDate.AddHours(1), 5_000 },
+        };
+
+        var schedules = await service.GenerateChargingSchedulesForLoadPoint(CreateLoadPoint(),
+            CreateTargets(targetSoc: 60, dischargeHomeBatteryToMinSoc: false), surplusSlices, CurrentFakeDate,
+            CancellationToken.None, new());
+
+        Assert.Contains(schedules, s => s.EstimatedSolarPower == 5_000);
+        Assert.DoesNotContain(schedules, s => s.TargetMinPower == MaxPower);
+        var totalPlannedEnergy = schedules
+            .Where(s => s.ValidTo <= CurrentFakeDate.AddHours(2))
+            .Sum(s => s.EstimatedEnergy);
+        Assert.InRange(totalPlannedEnergy, 5_900, 6_100);
+    }
+
     private async Task SetupScenario(int carSoc)
     {
         Context.Cars.Add(new Car
@@ -157,7 +229,7 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
         };
     }
 
-    private List<DtoTimeZonedChargingTarget> CreateTargets(int targetSoc)
+    private List<DtoTimeZonedChargingTarget> CreateTargets(int targetSoc, bool dischargeHomeBatteryToMinSoc = true)
     {
         return new List<DtoTimeZonedChargingTarget>
         {
@@ -166,7 +238,7 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
                 Id = 1,
                 CarId = CarId,
                 TargetSoc = targetSoc,
-                DischargeHomeBatteryToMinSoc = true,
+                DischargeHomeBatteryToMinSoc = dischargeHomeBatteryToMinSoc,
                 NextExecutionTime = CurrentFakeDate.AddHours(2),
             },
         };
