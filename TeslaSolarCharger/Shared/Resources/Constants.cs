@@ -54,6 +54,8 @@ public class Constants : IConstants
     public string MeterValueEstimatesCreated => "MeterValueEstimatesCreated";
     public int MeterValueDatabaseSaveIntervalMinutes => 6;
     public int HomeBatteryMinSocRefreshIntervalMinutes => 8;
+    //Needs to be smaller than half of the smallest controller rewrite interval so device side watchdogs do not expire.
+    public int HomeBatteryModeJobIntervalSeconds => 15;
     public int WeatherPredictionInFutureDays => 7;
     public int CarCapabilityMaxCurrentAboveMeasuredCurrent => 2;
     public string OcppChargePointConnectorIdDelimiter => "_";
@@ -76,6 +78,9 @@ public class Constants : IConstants
     public int ManualCarMinutesUntilForgetSoc => 10;
     public int RefreshableValuesRefreshIntervalSeconds => 1;
     public int SolarPowerSurplusPredictionIntervalHours => 1;
+
+    public int DefaultHoldHomeBatteryChargeSocBuffer => 0;
+    public int DefaultChargeHomeBatterySocBuffer => -25;
 
     public string QueryParamSuccess => "success";
     public string QueryParamMessage => "message";

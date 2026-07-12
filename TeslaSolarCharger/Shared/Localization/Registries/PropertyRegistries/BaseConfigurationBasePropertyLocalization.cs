@@ -190,6 +190,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Minimaler Ladestand der Heimbatterie",
                 "Legen Sie fest, bis zu welchem Ladestand die Heimbatterie geladen wird, bevor Fahrzeuge mit voller Leistung laden. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
 
+        Register(x => x.HomeBatteryMaxChargeSoc,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Home Battery Max Charge SoC",
+                "When TSC actively forces the home battery to charge, charging stops at this SoC to protect the battery from being overcharged."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Maximaler Lade-Ladestand der Heimbatterie",
+                "Wenn TSC das Laden der Heimbatterie aktiv erzwingt, wird das Laden bei diesem Ladestand gestoppt, um die Batterie vor Überladung zu schützen."));
+
         Register(x => x.HomeBatteryMinDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Min Dynamic Min Soc",
@@ -213,6 +221,38 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Berechnungspuffer für dynamischen Mindest-Ladestand",
                 "Sorgt dafür, dass die Heimbatterie nicht leer wird, selbst wenn Wetterprognosen falsch liegen oder der Energiebedarf höher als erwartet ist."));
+
+        Register(x => x.HoldHomeBatteryChargeSocBuffer,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Hold Home Battery Charge Soc Buffer",
+                "Buffer used when dynamically calculating the Hold Home Battery Charge Soc. If left empty, a well-tested default value is used. Leaving it empty is recommended."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Puffer für dynamischen Halte-Ladestand der Heimbatterie",
+                "Puffer, der bei der dynamischen Berechnung des Halte-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
+
+        Register(x => x.ChargeHomeBatterySocBuffer,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Charge Home Battery Soc Buffer",
+                "Buffer used when dynamically calculating the Charge Home Battery Soc. If left empty, a well-tested default value is used. Leaving it empty is recommended."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Puffer für dynamischen Lade-Ladestand der Heimbatterie",
+                "Puffer, der bei der dynamischen Berechnung des Lade-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
+
+        Register(x => x.GridPriceBasedHomeBatteryControl,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Grid Price Based Home Battery Control",
+                "Automatically holds the home battery charge or even charges the home battery from the grid when grid prices are low and the battery would not last until solar power can supply the house again. Requires a configured home battery control and grid prices."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Netzpreisbasierte Heimbatteriesteuerung",
+                "Hält automatisch den Ladestand der Heimbatterie oder lädt sie sogar aus dem Netz, wenn die Netzpreise niedrig sind und die Batterie nicht reicht, bis Solarstrom das Haus wieder versorgen kann. Benötigt eine konfigurierte Heimbatteriesteuerung und Netzpreise."));
+
+        Register(x => x.HomeBatteryUsageCostsPerKwh,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Home Battery Usage Costs Per kWh",
+                "Additional costs per kWh taken from the home battery, covering battery wear and charging losses. Used to decide if holding or grid charging the home battery is cheaper than using energy from the battery. Example: with 0.05 and a cheapest grid price of 0.18, energy from the battery is assumed to cost 0.23."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Nutzungskosten der Heimbatterie pro kWh",
+                "Zusätzliche Kosten pro aus der Heimbatterie entnommener kWh für Batterieverschleiß und Ladeverluste. Wird verwendet, um zu entscheiden, ob Halten oder Netzladen der Heimbatterie günstiger ist als Energie aus der Batterie zu nutzen. Beispiel: Bei 0,05 und einem günstigsten Netzpreis von 0,18 werden für Energie aus der Batterie 0,23 angesetzt."));
 
         Register(x => x.ForceFullHomeBatteryBySunset,
             new PropertyLocalizationTranslation(LanguageCodes.English,

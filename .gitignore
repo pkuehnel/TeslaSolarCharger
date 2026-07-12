@@ -13,6 +13,9 @@
 # Claude Code local (per-developer) settings
 .claude/
 
+# MCP (Model Context Protocol) servers and local tool configurations (per-developer)
+mcps/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

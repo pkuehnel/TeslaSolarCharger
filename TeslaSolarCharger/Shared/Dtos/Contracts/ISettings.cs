@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -48,4 +49,7 @@ public interface ISettings
     ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }
     NextSunEvent NextSunEvent { get; set; }
     bool IsHomeBatteryDischargingActive { get; set; }
+    DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
+    DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
+    ConcurrentBag<DtoHomeBatteryScheduleWindow> HomeBatteryScheduleWindows { get; set; }
 }

@@ -59,6 +59,7 @@ public interface IConfigurationWrapper
     string? HomeBatteryPowerXmlAttributeValueName();
     decimal HomeBatteryPowerCorrectionFactor();
     int? HomeBatteryMinSoc();
+    int HomeBatteryMaxChargeSoc();
     int? HomeBatteryChargingPower();
     string SqliteFileFullName();
     string? SolarMqttServer();
@@ -129,4 +130,9 @@ public interface IConfigurationWrapper
     int DynamicMinSocCalculationBufferInPercent();
     bool DischargeHomeBatteryToMinSocDuringDay();
     decimal ChargingSwitchCosts();
+
+    int HoldHomeBatteryChargeSocBufferInPercent();
+    int ChargeHomeBatterySocBufferInPercent();
+    bool GridPriceBasedHomeBatteryControl();
+    decimal HomeBatteryUsageCostsPerKwh();
 }

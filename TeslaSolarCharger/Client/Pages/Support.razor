@@ -5,11 +5,13 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.Ble
+@using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl
 @using TeslaSolarCharger.Shared.Dtos.Support
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.SharedModel.Enums
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
@@ -173,6 +175,123 @@ else
     </MudExpansionPanels>
 }
 
+<h3>@T(TranslationKeys.SupportHomeBatterySectionTitle)</h3>
+@if (_homeBatteryControlState == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else if (_homeBatteryControlState.Controllers.Count == 0)
+{
+    <MudAlert Severity="Severity.Info"
+              NoIcon="true"
+              ContentAlignment="HorizontalAlignment.Left">
+        @T(TranslationKeys.SupportHomeBatteryNoControllersMessage)
+    </MudAlert>
+}
+else
+{
+    <MudAlert Severity="Severity.Info"
+              NoIcon="true"
+              ContentAlignment="HorizontalAlignment.Left">
+        @T(TranslationKeys.SupportHomeBatteryValidationHint)
+    </MudAlert>
+    @if (_homeBatteryControlState.ManualOverrideMode == HomeBatteryMode.Charge
+         && _homeBatteryControlState.HomeBatterySoc >= _homeBatteryControlState.MaxChargeSoc)
+    {
+        <MudAlert Severity="Severity.Warning"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            @Format(TranslationKeys.SupportHomeBatteryChargeDemotedWarningFormat, _homeBatteryControlState.HomeBatterySoc, _homeBatteryControlState.MaxChargeSoc)
+        </MudAlert>
+    }
+    <div class="mt-2">@Format(TranslationKeys.SupportHomeBatteryCurrentModeFormat, GetHomeBatteryModeDisplayName(_homeBatteryControlState.CurrentMode))</div>
+    @if (_homeBatteryControlState.ManualOverrideMode != default)
+    {
+        <div>@Format(TranslationKeys.SupportHomeBatteryOverrideFormat, GetHomeBatteryModeDisplayName(_homeBatteryControlState.ManualOverrideMode.Value), _homeBatteryControlState.ManualOverrideValidUntil?.LocalDateTime.ToLongTimeString())</div>
+    }
+    else
+    {
+        <div>@T(TranslationKeys.SupportHomeBatteryNoOverrideMessage)</div>
+    }
+    <div>@Format(TranslationKeys.SupportHomeBatterySocFormat, _homeBatteryControlState.HomeBatterySoc?.ToString() ?? T(TranslationKeys.SupportNoData))</div>
+    <div>@Format(TranslationKeys.SupportHomeBatteryPowerFormat, _homeBatteryControlState.HomeBatteryPower?.ToString() ?? T(TranslationKeys.SupportNoData))</div>
+    <div>@Format(TranslationKeys.SupportHomeBatteryMaxChargeSocFormat, _homeBatteryControlState.MaxChargeSoc)</div>
+    @if (_homeBatteryControlState.AutomaticControlEnabled)
+    {
+        <div class="mt-2">@T(TranslationKeys.SupportHomeBatteryAutomaticControlEnabledMessage)</div>
+        <h5 class="mt-2">@T(TranslationKeys.SupportHomeBatteryPlannedWindowsTitle)</h5>
+        @if (_homeBatteryControlState.PlannedWindows.Count == 0)
+        {
+            <div>@T(TranslationKeys.SupportHomeBatteryNoPlannedWindowsMessage)</div>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true">
+                <thead>
+                    <tr>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowFromHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowToHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowModeHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowReasonHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowEnergyHeader)</th>
+                        <th>@T(TranslationKeys.SupportHomeBatteryWindowPriceHeader)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var plannedWindow in _homeBatteryControlState.PlannedWindows)
+                    {
+                        <tr>
+                            <td>@plannedWindow.ValidFrom.LocalDateTime.ToString("g")</td>
+                            <td>@plannedWindow.ValidTo.LocalDateTime.ToString("g")</td>
+                            <td>@GetHomeBatteryModeDisplayName(plannedWindow.Mode)</td>
+                            <td>@GetHomeBatteryWindowReasonDisplayName(plannedWindow.Reason)</td>
+                            <td>@(plannedWindow.PlannedEnergyWh > 0 ? $"{plannedWindow.PlannedEnergyWh} Wh" : "-")</td>
+                            <td>@plannedWindow.GridPricePerKwh.ToString("0.00##")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+    @foreach (var homeBatteryController in _homeBatteryControlState.Controllers)
+    {
+        <div class="mt-2">
+            <div><b>@homeBatteryController.Name</b>@(homeBatteryController.RequiresPeriodicRewrite ? $" ({T(TranslationKeys.SupportHomeBatteryPeriodicRewriteText)})" : string.Empty)</div>
+            <div>@Format(TranslationKeys.SupportHomeBatteryLastWriteFormat, homeBatteryController.LastSuccessfulWrite?.LocalDateTime.ToString() ?? T(TranslationKeys.SupportNoData))</div>
+            @if (!string.IsNullOrEmpty(homeBatteryController.LastError))
+            {
+                <MudAlert Severity="Severity.Error"
+                          NoIcon="true"
+                          ContentAlignment="HorizontalAlignment.Left">
+                    @Format(TranslationKeys.SupportHomeBatteryLastErrorFormat, homeBatteryController.LastError)
+                </MudAlert>
+            }
+        </div>
+    }
+    <div class="row">
+        <div class="col">
+            <GenericInput For="() => _homeBatteryModeToSet.Value"
+                          LabelName='@T(TranslationKeys.SupportHomeBatteryModeToSetLabel)'
+                          StringIdDropDownOptions="HomeBatteryModeOptions" />
+        </div>
+        <div class="col">
+            <GenericInput For="() => _homeBatteryOverrideDurationMinutes.Value"
+                          LabelName='@T(TranslationKeys.SupportHomeBatteryDurationLabel)' />
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportHomeBatterySetModeButton)'
+                                     IsLoading="@_homeBatteryCommandLoading"
+                                     OnButtonClicked="SetHomeBatteryMode"></RightAlignedButtonComponent>
+        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportHomeBatteryClearOverrideButton)'
+                                     IsLoading="@_homeBatteryCommandLoading"
+                                     OnButtonClicked="ClearHomeBatteryOverride"></RightAlignedButtonComponent>
+        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportHomeBatteryRefreshButton)'
+                                     IsLoading="@_homeBatteryCommandLoading"
+                                     OnButtonClicked="RefreshHomeBatteryControlState"></RightAlignedButtonComponent>
+    </div>
+}
+
 <h3>@T(TranslationKeys.SupportChargingStationDebugDetailsSectionTitle)</h3>
 @if (_debugChargingConnectors == default)
 {
@@ -326,8 +445,20 @@ else
     private bool _loadingClearEncryptionKeys;
     private string? _clearEncryptionKeysResult;
 
+    private DtoHomeBatteryControlState? _homeBatteryControlState;
+    private readonly DtoValue<string> _homeBatteryModeToSet = new(nameof(HomeBatteryMode.Hold));
+    private readonly DtoValue<int> _homeBatteryOverrideDurationMinutes = new(10);
+    private bool _homeBatteryCommandLoading;
+
     public DateTime? ChargingPricesFrom { get; set; }
     public DateTime? ChargingPricesTo { get; set; }
+
+    private Dictionary<string, string> HomeBatteryModeOptions => new()
+    {
+        { nameof(HomeBatteryMode.Normal), T(TranslationKeys.HomeBatteryModeNormal) },
+        { nameof(HomeBatteryMode.Hold), T(TranslationKeys.HomeBatteryModeHold) },
+        { nameof(HomeBatteryMode.Charge), T(TranslationKeys.HomeBatteryModeCharge) },
+    };
 
     private Dictionary<string, string> LogLevelOptions => new()
     {
@@ -351,6 +482,65 @@ else
         _fileLogLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetFileLogLevel");
         _inMemoryLogCapacity = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<int>>("api/Debug/GetInMemoryLogCapacity");
         _bleContainers = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoBleContainer>>("api/Ble/GetBleContainers");
+        await RefreshHomeBatteryControlState();
+    }
+
+    private async Task RefreshHomeBatteryControlState()
+    {
+        var state = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoHomeBatteryControlState>("api/Debug/GetHomeBatteryControlState");
+        if (state != default)
+        {
+            _homeBatteryControlState = state;
+        }
+    }
+
+    private string GetHomeBatteryModeDisplayName(HomeBatteryMode mode) => mode switch
+    {
+        HomeBatteryMode.Normal => T(TranslationKeys.HomeBatteryModeNormal),
+        HomeBatteryMode.Hold => T(TranslationKeys.HomeBatteryModeHold),
+        HomeBatteryMode.Charge => T(TranslationKeys.HomeBatteryModeCharge),
+        _ => T(TranslationKeys.HomeBatteryModeUnknown),
+    };
+
+    private string GetHomeBatteryWindowReasonDisplayName(HomeBatteryScheduleWindowReason reason) => reason switch
+    {
+        HomeBatteryScheduleWindowReason.CarGridCharging => T(TranslationKeys.HomeBatteryWindowReasonCarGridCharging),
+        HomeBatteryScheduleWindowReason.PreserveForDeficit => T(TranslationKeys.HomeBatteryWindowReasonPreserveForDeficit),
+        HomeBatteryScheduleWindowReason.GridChargeForDeficit => T(TranslationKeys.HomeBatteryWindowReasonGridChargeForDeficit),
+        _ => reason.ToString(),
+    };
+
+    private async Task SetHomeBatteryMode()
+    {
+        if (string.IsNullOrEmpty(_homeBatteryModeToSet.Value))
+        {
+            return;
+        }
+        _homeBatteryCommandLoading = true;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoHomeBatteryControlState>(
+            $"api/Debug/SetHomeBatteryMode?mode={Uri.EscapeDataString(_homeBatteryModeToSet.Value)}&durationMinutes={_homeBatteryOverrideDurationMinutes.Value}", null);
+        _homeBatteryCommandLoading = false;
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SupportNoError), Severity.Error);
+            return;
+        }
+        _homeBatteryControlState = result.Data;
+        Snackbar.Add(T(TranslationKeys.SupportHomeBatteryModeSetNotification), Severity.Success);
+    }
+
+    private async Task ClearHomeBatteryOverride()
+    {
+        _homeBatteryCommandLoading = true;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoHomeBatteryControlState>("api/Debug/ClearHomeBatteryMode", null);
+        _homeBatteryCommandLoading = false;
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SupportNoError), Severity.Error);
+            return;
+        }
+        _homeBatteryControlState = result.Data;
+        Snackbar.Add(T(TranslationKeys.SupportHomeBatteryOverrideClearedNotification), Severity.Success);
     }
 
     private async Task RefreshChargingConnectors()

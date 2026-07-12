@@ -4,8 +4,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
@@ -14,13 +16,37 @@ public class DebugController(
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService,
-    ITscOnlyChargingCostService tscOnlyChargingCostService) : ApiBaseController
+    ITscOnlyChargingCostService tscOnlyChargingCostService,
+    IHomeBatteryModeService homeBatteryModeService) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
     {
         Formatting = Formatting.Indented, Converters = new List<JsonConverter> { new StringEnumConverter(), },
     };
+
+    [HttpGet]
+    public async Task<IActionResult> GetHomeBatteryControlState()
+    {
+        var state = await homeBatteryModeService.GetControlStateAsync(HttpContext.RequestAborted);
+        return Ok(state);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetHomeBatteryMode(HomeBatteryMode mode, int durationMinutes)
+    {
+        await homeBatteryModeService.SetManualModeAsync(mode, TimeSpan.FromMinutes(durationMinutes), HttpContext.RequestAborted);
+        var state = await homeBatteryModeService.GetControlStateAsync(HttpContext.RequestAborted);
+        return Ok(state);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ClearHomeBatteryMode()
+    {
+        await homeBatteryModeService.ClearManualModeAsync(HttpContext.RequestAborted);
+        var state = await homeBatteryModeService.GetControlStateAsync(HttpContext.RequestAborted);
+        return Ok(state);
+    }
 
     /// <summary>
     /// Gets the current startup logs

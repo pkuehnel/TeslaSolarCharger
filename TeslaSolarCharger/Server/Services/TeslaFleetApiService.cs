@@ -1188,6 +1188,46 @@ public class TeslaFleetApiService(
         }
     }
 
+    public async Task<DtoBackendApiTeslaResponse> SetEnergySiteBackupReserve(string energySiteId, int backupReservePercent)
+    {
+        logger.LogTrace("{method}({energySiteId}, {backupReservePercent})", nameof(SetEnergySiteBackupReserve), energySiteId, backupReservePercent);
+        var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (accessToken == default)
+        {
+            logger.LogError("Can not set backup reserve as no Backend token was found.");
+            throw new InvalidOperationException("Can not set backup reserve as no Backend token was found.");
+        }
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("Decryption key not found do not send command");
+        }
+        var requestUri = $"FleetApiRequests/SetEnergySiteBackupReserve?encryptionKey={Uri.EscapeDataString(decryptionKey)}&energySiteId={Uri.EscapeDataString(energySiteId)}&backupReservePercent={backupReservePercent}";
+        try
+        {
+            var backendResponse = await backendApiService.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Post,
+                accessToken.AccessToken, requestUri, null);
+            if (backendResponse.HasError)
+            {
+                logger.LogError("Error while setting backup reserve: {errorMessage}", backendResponse.ErrorMessage);
+                throw new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
+            }
+            var teslaBackendResult = backendResponse.Data;
+            if (teslaBackendResult == null)
+            {
+                logger.LogError("Could not deserialize Solar4CarBackend response body");
+                throw new InvalidOperationException("Could not deserialize response body");
+            }
+            return teslaBackendResult;
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogError(e, "An HTTP request error occured");
+            throw;
+        }
+    }
+
     public async Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount()
     {
         logger.LogTrace("{method}()", nameof(GetAllCarsFromAccount));

@@ -63,6 +63,57 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
         }
     }
 
+    public async Task WriteHoldingRegisters(byte unitIdentifier, ushort startingAddress, byte[] data, TimeSpan writeTimeout)
+    {
+        logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {dataLength} bytes)", nameof(WriteHoldingRegisters), unitIdentifier, startingAddress, data.Length);
+        await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+        using var cts = new CancellationTokenSource((int)writeTimeout.TotalMilliseconds);
+        try
+        {
+            ReadTimeout = (int)writeTimeout.TotalMilliseconds;
+            WriteTimeout = (int)writeTimeout.TotalMilliseconds;
+            await base.WriteMultipleRegistersAsync(unitIdentifier, startingAddress, data, cts.Token);
+        }
+        catch (OperationCanceledException ex)
+        {
+            logger.LogWarning(ex, "Write operation for {unitIdentifier}, {startingAddress} was canceled due to timeout. Disconnecting modbus client.", unitIdentifier, startingAddress);
+            Disconnect();
+            logger.LogDebug("Modbus Client disconnected.");
+            throw;
+        }
+        finally
+        {
+            _semaphoreSlim.Release();
+            logger.LogTrace("Semaphore released");
+        }
+    }
+
+    public async Task WriteSingleHoldingRegister(byte unitIdentifier, ushort address, ushort value, TimeSpan writeTimeout)
+    {
+        logger.LogTrace("{method}({unitIdentifier}, {address}, {value})", nameof(WriteSingleHoldingRegister), unitIdentifier, address, value);
+        await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+        using var cts = new CancellationTokenSource((int)writeTimeout.TotalMilliseconds);
+        try
+        {
+            ReadTimeout = (int)writeTimeout.TotalMilliseconds;
+            WriteTimeout = (int)writeTimeout.TotalMilliseconds;
+            //Wire order of single register writes is handled by FluentModbus, no endianess conversion required.
+            await base.WriteSingleRegisterAsync(unitIdentifier, address, value, cts.Token);
+        }
+        catch (OperationCanceledException ex)
+        {
+            logger.LogWarning(ex, "Write operation for {unitIdentifier}, {address} was canceled due to timeout. Disconnecting modbus client.", unitIdentifier, address);
+            Disconnect();
+            logger.LogDebug("Modbus Client disconnected.");
+            throw;
+        }
+        finally
+        {
+            _semaphoreSlim.Release();
+            logger.LogTrace("Semaphore released");
+        }
+    }
+
     public async Task Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess, TimeSpan connectTimeout)
     {
         logger.LogTrace("{method}({ipEndPoint}, {endianess}, {connectTimeout})", nameof(Connect), ipEndPoint, endianess, connectTimeout);

@@ -281,5 +281,149 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
         Register(TranslationKeys.SupportGetPriceValuesButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get Price Values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Preiswerte abrufen"));
+
+        Register(TranslationKeys.SupportHomeBatterySectionTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home Battery Control"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeichersteuerung"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoControllersMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No controllable home battery configured. Enable home battery control in a supported solar value source configuration (SMA Hybrid Inverter, Kostal Hybrid Inverter or Tesla Powerwall)."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Kein steuerbarer Heimspeicher konfiguriert. Aktivieren Sie die Heimspeichersteuerung in einer unterstützten Solarwert-Quellenkonfiguration (SMA-Hybrid-Wechselrichter, Kostal-Hybrid-Wechselrichter oder Tesla Powerwall)."));
+
+        Register(TranslationKeys.SupportHomeBatteryCurrentModeFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Current mode: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktueller Modus: {0}"));
+
+        Register(TranslationKeys.SupportHomeBatteryOverrideFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Manual override {0} active until {1}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Manuelle Übersteuerung {0} aktiv bis {1}"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoOverrideMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No manual override active"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Keine manuelle Übersteuerung aktiv"));
+
+        Register(TranslationKeys.SupportHomeBatterySocFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Battery SoC: {0} %"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Batterie-Ladestand: {0} %"));
+
+        Register(TranslationKeys.SupportHomeBatteryPowerFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Battery power: {0} W (positive = charging)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Batterieleistung: {0} W (positiv = lädt)"));
+
+        Register(TranslationKeys.SupportHomeBatteryMaxChargeSocFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Max charge SoC: {0} % (charge mode is demoted to hold when reached)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Maximaler Lade-SoC: {0} % (Lademodus wird bei Erreichen auf Halten zurückgestuft)"));
+
+        Register(TranslationKeys.SupportHomeBatteryModeToSetLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Mode to set"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Modus"));
+
+        Register(TranslationKeys.SupportHomeBatteryDurationLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Override duration in minutes"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Dauer der Übersteuerung in Minuten"));
+
+        Register(TranslationKeys.SupportHomeBatterySetModeButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Set mode"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Modus setzen"));
+
+        Register(TranslationKeys.SupportHomeBatteryClearOverrideButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Clear override"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Übersteuerung aufheben"));
+
+        Register(TranslationKeys.SupportHomeBatteryRefreshButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Refresh state"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Status aktualisieren"));
+
+        Register(TranslationKeys.SupportHomeBatteryModeSetNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home battery mode set"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeichermodus gesetzt"));
+
+        Register(TranslationKeys.SupportHomeBatteryOverrideClearedNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "Manual override cleared"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Manuelle Übersteuerung aufgehoben"));
+
+        Register(TranslationKeys.SupportHomeBatteryPeriodicRewriteText,
+            new TextLocalizationTranslation(LanguageCodes.English, "Setpoints are rewritten periodically"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sollwerte werden periodisch neu geschrieben"));
+
+        Register(TranslationKeys.SupportHomeBatteryLastWriteFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last successful write: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Letzter erfolgreicher Schreibvorgang: {0}"));
+
+        Register(TranslationKeys.SupportHomeBatteryLastErrorFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last error: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Letzter Fehler: {0}"));
+
+        Register(TranslationKeys.SupportHomeBatteryValidationHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "To validate the configuration set hold mode while the battery is discharging (battery power should go to about 0 W) or charge mode (battery power should go to about the configured max charge power). The override automatically expires after the configured duration and normal mode is restored."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zur Überprüfung der Konfiguration setzen Sie den Halten-Modus, während die Batterie entlädt (Batterieleistung sollte auf ca. 0 W gehen), oder den Lade-Modus (Batterieleistung sollte auf ca. die konfigurierte maximale Ladeleistung gehen). Die Übersteuerung läuft nach der konfigurierten Dauer automatisch ab und der Normalmodus wird wiederhergestellt."));
+
+        Register(TranslationKeys.SupportHomeBatteryChargeDemotedWarningFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Forced charging is suppressed because the battery SoC ({0} %) has reached the configured max charge SoC ({1} %). Hold mode is applied instead. To test forced charging, increase the Home Battery Max Charge SoC in the base configuration or wait until the battery is discharged below the limit."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erzwungenes Laden wird unterdrückt, da der Batterie-Ladestand ({0} %) den konfigurierten maximalen Lade-Ladestand ({1} %) erreicht hat. Stattdessen wird der Halten-Modus angewendet. Um erzwungenes Laden zu testen, erhöhen Sie den maximalen Lade-Ladestand der Heimbatterie in der Basiskonfiguration oder warten Sie, bis die Batterie unter die Grenze entladen ist."));
+
+        Register(TranslationKeys.SupportHomeBatteryAutomaticControlEnabledMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price based home battery control is enabled."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreisbasierte Heimbatteriesteuerung ist aktiviert."));
+
+        Register(TranslationKeys.SupportHomeBatteryPlannedWindowsTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Planned hold/charge windows"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geplante Halte-/Ladefenster"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoPlannedWindowsMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No hold or charge windows are planned. The battery stays in normal mode."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Es sind keine Halte- oder Ladefenster geplant. Die Batterie bleibt im Normalmodus."));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowFromHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "From"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Von"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowToHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "To"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bis"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowModeHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Mode"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Modus"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowReasonHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Reason"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Grund"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowEnergyHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Energy"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energie"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowPriceHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonCarGridCharging,
+            new TextLocalizationTranslation(LanguageCodes.English, "Car charges from grid"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Auto lädt aus dem Netz"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonPreserveForDeficit,
+            new TextLocalizationTranslation(LanguageCodes.English, "Preserve energy for later"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energie für später aufheben"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonGridChargeForDeficit,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge at cheap grid price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bei günstigem Netzpreis laden"));
+
+        Register(TranslationKeys.HomeBatteryModeUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "Unknown (not modified by TSC)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Unbekannt (nicht durch TSC verändert)"));
+
+        Register(TranslationKeys.HomeBatteryModeNormal,
+            new TextLocalizationTranslation(LanguageCodes.English, "Normal"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Normal"));
+
+        Register(TranslationKeys.HomeBatteryModeHold,
+            new TextLocalizationTranslation(LanguageCodes.English, "Hold (block discharging)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Halten (Entladen blockieren)"));
+
+        Register(TranslationKeys.HomeBatteryModeCharge,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge (force charging)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Laden (Laden erzwingen)"));
     }
 }

@@ -106,6 +106,14 @@ public class BaseConfigurationBase
     [Postfix("%")]
     public int DynamicMinSocCalculationBuffer { get; set; } = 50;
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
+    [Postfix("%")]
+    public int? HoldHomeBatteryChargeSocBuffer { get; set; }
+    [Postfix("%")]
+    public int? ChargeHomeBatterySocBuffer { get; set; }
+    public bool GridPriceBasedHomeBatteryControl { get; set; }
+    public decimal HomeBatteryUsageCostsPerKwh { get; set; } = 0.05M;
+    [Postfix("%")]
+    public int HomeBatteryMaxChargeSoc { get; set; } = 95;
     [Postfix("W")]
     public int? HomeBatteryChargingPower { get; set; }
     [Postfix("W")]

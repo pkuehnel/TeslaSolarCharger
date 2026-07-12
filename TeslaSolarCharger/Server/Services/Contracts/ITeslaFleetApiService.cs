@@ -20,6 +20,7 @@ public interface ITeslaFleetApiService
     Task RefreshFleetApiTokenIfRequired();
     Task<DtoBackendApiTeslaResponse> GetAllProductsFromTeslaAccount();
     Task<DtoBackendApiTeslaResponse> GetEnergyLiveStatus(string energySiteId);
+    Task<DtoBackendApiTeslaResponse> SetEnergySiteBackupReserve(string energySiteId, int backupReservePercent);
 
     Task<TeslaCarFleetApiState?> GetFleetApiState(int carId);
     Task RefreshVehicleOnlineState(DtoCar car);
