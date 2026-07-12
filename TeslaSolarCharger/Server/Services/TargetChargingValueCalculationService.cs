@@ -107,18 +107,22 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId,
                     new(TranslationKeys.NotChargingReasonCarNotAllowing));
             }
-            var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
-            var chargingSchedulePower = chargingSchedule.TargetMinPower;
-            if (chargingSchedule.TargetHomeBatteryPower > chargingSchedulePower)
+            //TargetHomeBatteryPower is a discharge power budget, not a fixed charging power: powerToControl already
+            //includes the current home battery power, so adding the budget on top makes the loadpoint consume exactly
+            //the budget from the home battery while other consumers like the house are covered without using grid power.
+            var homeBatteryDischargeBudget = 0;
+            //With dynamic home battery min soc enabled HomeBatteryMinSoc is autoupdated to the current dynamic value by the HomeBatteryMinSocRefreshJob
+            if ((chargingSchedule.TargetHomeBatteryPower > 0)
+                && (_settings.HomeBatterySoc > _configurationWrapper.HomeBatteryMinSoc()))
             {
-                chargingSchedulePower = chargingSchedule.TargetHomeBatteryPower.Value;
+                homeBatteryDischargeBudget = chargingSchedule.TargetHomeBatteryPower.Value;
             }
 
-            var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
-                ? chargingSchedulePower
-                : powerToControlIncludingHomeBatteryDischargePower;
+            //The schedule budget and the day discharge power are delivered by the same home battery, so only the larger one is granted
+            var grantedHomeBatteryDischargePower = Math.Max(additionalHomeBatteryDischargePower, homeBatteryDischargeBudget);
+            var targetPower = Math.Max(chargingSchedule.TargetMinPower, powerToControl + grantedHomeBatteryDischargePower);
 
-            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, carElements, ocppElements, currentDate);
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, targetPower, carElements, ocppElements, currentDate);
 
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
