@@ -432,6 +432,34 @@ public class HomeBatteryScheduleServiceTests : TestBase
         Assert.Equal(500, window.PlannedEnergyWh);
     }
 
+    //A prediction gap spanning multiple hours combined with a price slice spanning those hours creates one multi hour
+    //planning slice. Its energy must follow the same gap semantics as with hourly prices (a missing hour borrows the
+    //following hour's prediction, or is neutral when that is missing too) instead of extrapolating the slice's first
+    //hour across the whole gap: otherwise the same prediction data preserves different amounts of energy depending on
+    //the price slice granularity, and hold windows claim to preserve energy in hours without any prediction data.
+    [Fact]
+    public void CalculateWindows_PredictionGapWithinCoarsePriceSlice_DoesNotExtrapolateFirstHourAcrossGap()
+    {
+        var input = CreateNightInput(currentSocPercent: 10, holdTargetSocPercent: 20, chargeTargetSocPercent: 5);
+        //Hours 4 (00:00) and 5 (01:00) have no prediction: hour 4 is neutral (hour 5 is missing too), hour 5 borrows
+        //hour 6 => -500Wh. With hourly prices these gap semantics are already pinned by
+        //CalculateWindows_MissingSurplusData_UsesFollowingHourOrTreatsSliceAsNeutral.
+        input.SurplusPerSlice.Remove(EveningDate.AddHours(4));
+        input.SurplusPerSlice.Remove(EveningDate.AddHours(5));
+        //One expensive evening price and one cheap price from 23:00 until self sufficiency: as the removed surplus
+        //keys create no boundaries, a single planning slice spans 23:00 until 02:00.
+        input.GridPrices.Add(new Price(EveningDate, EveningDate.AddHours(3), 0.30m, 0m, true));
+        input.GridPrices.Add(new Price(EveningDate.AddHours(3), SelfSufficiencyTime, 0.10m, 0m, true));
+
+        var windows = HomeBatteryScheduleService.CalculateWindows(input);
+
+        //Predicted consumption within the cheap window: 23:00 => -500, 00:00 => neutral, 01:00 => -500 (borrowed),
+        //02:00 and later are not needed as the hold deficit of 1000Wh is already covered.
+        //The preserved energy must never exceed the energy backed by the prediction (1000Wh), no matter how the
+        //planning slices are cut by the price boundaries.
+        Assert.Equal(1_000, windows.Where(w => w.Mode == HomeBatteryMode.Hold).Sum(w => w.PlannedEnergyWh));
+    }
+
     //Test plan case 12: in production planning starts mid hour (whenever ChargingServiceV2 runs). The started hour has
     //no own prediction slice, so its energy is approximated with the following hour's prediction, prorated to the
     //remaining duration.
