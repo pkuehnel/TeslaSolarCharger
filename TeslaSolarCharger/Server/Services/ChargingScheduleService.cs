@@ -956,10 +956,11 @@ public class ChargingScheduleService : IChargingScheduleService
 
 
     /// <summary>
-    /// Calculates the average predicted net house consumption power (house consumption minus solar production) between
-    /// <paramref name="from"/> and <paramref name="to"/> based on the predicted surplus slices. A predicted average
-    /// surplus is not credited as negative consumption because actual surplus is added on top of scheduled powers via
-    /// the power to control at execution time.
+    /// Calculates the average predicted house consumption power that is not covered by solar production between
+    /// <paramref name="from"/> and <paramref name="to"/> based on the predicted surplus slices. Slices with a
+    /// predicted surplus contribute no consumption as their house consumption is covered by solar. A surplus is never
+    /// credited against the consumption of other slices: that energy already reaches the car via solar based
+    /// schedules and via the power to control at execution time, so crediting it here would credit it twice.
     /// </summary>
     /// <param name="predictedSurplusSlices">Predicted surplus energy in Wh per slice, keyed by slice start. Slice length
     /// is <see cref="IConstants.SolarPowerSurplusPredictionIntervalHours"/>.</param>
@@ -974,7 +975,7 @@ public class ChargingScheduleService : IChargingScheduleService
             return 0;
         }
         var sliceLength = TimeSpan.FromHours(_constants.SolarPowerSurplusPredictionIntervalHours);
-        var weightedSurplusEnergy = 0.0;
+        var weightedConsumptionEnergy = 0.0;
         var coveredHours = 0.0;
         foreach (var slice in predictedSurplusSlices)
         {
@@ -986,8 +987,9 @@ public class ChargingScheduleService : IChargingScheduleService
                 continue;
             }
             var overlapHours = (overlapEnd - overlapStart).TotalHours;
-            var slicePower = slice.Value / sliceLength.TotalHours;
-            weightedSurplusEnergy += slicePower * overlapHours;
+            //Surplus slices contribute no consumption but still count as covered time
+            var sliceConsumptionPower = slice.Value < 0 ? -slice.Value / sliceLength.TotalHours : 0.0;
+            weightedConsumptionEnergy += sliceConsumptionPower * overlapHours;
             coveredHours += overlapHours;
         }
         if (coveredHours <= 0)
@@ -995,9 +997,9 @@ public class ChargingScheduleService : IChargingScheduleService
             _logger.LogTrace("No predicted surplus slices overlap the requested time range. Assuming no house consumption.");
             return 0;
         }
-        var averageSurplusPower = weightedSurplusEnergy / coveredHours;
-        _logger.LogTrace("Average predicted surplus power between {from} and {to}: {averageSurplusPower}W", from, to, averageSurplusPower);
-        return averageSurplusPower < 0 ? (int)Math.Round(-averageSurplusPower) : 0;
+        var averageConsumptionPower = weightedConsumptionEnergy / coveredHours;
+        _logger.LogTrace("Average predicted uncovered house consumption power between {from} and {to}: {averageConsumptionPower}W", from, to, averageConsumptionPower);
+        return (int)Math.Round(averageConsumptionPower);
     }
 
     /// <summary>

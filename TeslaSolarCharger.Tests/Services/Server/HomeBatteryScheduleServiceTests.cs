@@ -432,6 +432,7 @@ public class HomeBatteryScheduleServiceTests : TestBase
         Assert.Equal(500, window.PlannedEnergyWh);
     }
 
+    
     //Test plan case 12: in production planning starts mid hour (whenever ChargingServiceV2 runs). The started hour has
     //no own prediction slice, so its energy is approximated with the following hour's prediction, prorated to the
     //remaining duration.

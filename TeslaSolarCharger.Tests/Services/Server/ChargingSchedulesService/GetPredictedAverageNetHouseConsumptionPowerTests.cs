@@ -45,13 +45,13 @@ public class GetPredictedAverageNetHouseConsumptionPowerTests : TestBase
     }
 
     [Fact]
-    public void ReturnsZero_WhenAverageSurplusIsPositive()
+    public void ReturnsZero_WhenAllSlicesHaveSurplus()
     {
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
         var from = CurrentFakeDate;
         var slices = new Dictionary<DateTimeOffset, int>
         {
-            { from, -400 },
+            { from, 400 },
             { from.AddHours(1), 1000 },
         };
 
@@ -60,20 +60,30 @@ public class GetPredictedAverageNetHouseConsumptionPowerTests : TestBase
         Assert.Equal(0, result);
     }
 
-    [Fact]
-    public void ReturnsAverage_WhenMixedSlicesResultInNetConsumption()
+    /// <summary>
+    /// A predicted surplus covers the house consumption of its own slice but must never offset the consumption of
+    /// other slices: that energy already reaches the car via solar based schedules and via the power to control at
+    /// execution time, so crediting it here would credit it twice and overestimate the discharge power reaching the car.
+    /// </summary>
+    [Theory]
+    //-1000Wh and +400Wh over two hours: only the consumption counts => 1000 / 2 = 500W
+    [InlineData(-1000, 400, 500)]
+    //Even when the surplus dominates, the consumption of the other slice stays uncovered => 400 / 2 = 200W
+    [InlineData(-400, 1000, 200)]
+    public void SurplusSlices_DoNotOffsetConsumptionOfOtherSlices(int firstSliceEnergy, int secondSliceEnergy,
+        int expectedConsumptionPower)
     {
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
         var from = CurrentFakeDate;
         var slices = new Dictionary<DateTimeOffset, int>
         {
-            { from, -1000 },
-            { from.AddHours(1), 400 },
+            { from, firstSliceEnergy },
+            { from.AddHours(1), secondSliceEnergy },
         };
 
         var result = service.GetPredictedAverageNetHouseConsumptionPower(slices, from, from.AddHours(2));
 
-        Assert.Equal(300, result);
+        Assert.Equal(expectedConsumptionPower, result);
     }
 
     [Fact]

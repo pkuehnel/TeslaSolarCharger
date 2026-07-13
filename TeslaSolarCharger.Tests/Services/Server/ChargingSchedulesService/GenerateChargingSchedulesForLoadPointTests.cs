@@ -158,6 +158,44 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
         Assert.InRange(totalPlannedEnergy, 5_900, 6_100);
     }
 
+    /// <summary>
+    /// With solar based scheduling enabled, a predicted daytime surplus is already credited to the car via a solar
+    /// schedule. The same surplus must not additionally cancel out the predicted house consumption of other hours when
+    /// estimating how much home battery discharge power reaches the car, otherwise the surplus is credited twice
+    /// (once as solar schedule energy and once as reduced house consumption) and the car misses its target SoC.
+    /// Scenario: +5000Wh surplus in hour 1 (credited as a solar schedule), -1000Wh net house consumption in hour 2.
+    /// During hour 1 the house is fully covered by the surplus (0W taken from the discharge power), during hour 2 the
+    /// house consumes 1000W of the discharge power => on average 500W of the discharge power do not reach the car.
+    /// </summary>
+    [Fact]
+    public async Task HomeBatteryDischargeSchedule_DoesNotCreditSolarScheduledSurplusAgainstHouseConsumption()
+    {
+        await SetupScenario(carSoc: 50);
+        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
+        configurationWrapperMock.Setup(c => c.UsePredictedSolarPowerGenerationForChargingSchedules()).Returns(true);
+        //Battery is at min SoC, so the full surplus is credited to the car by the solar based scheduling
+        configurationWrapperMock.Setup(c => c.HomeBatteryMinSoc()).Returns(65);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(3_000);
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var surplusSlices = new Dictionary<DateTimeOffset, int>
+        {
+            { CurrentFakeDate, 5_000 },
+            { CurrentFakeDate.AddHours(1), -1_000 },
+        };
+
+        var schedules = await service.GenerateChargingSchedulesForLoadPoint(CreateLoadPoint(), CreateTargets(targetSoc: 70),
+            surplusSlices, CurrentFakeDate, CancellationToken.None, new());
+
+        //The surplus of hour 1 is already credited to the car as a solar schedule
+        Assert.Contains(schedules, s => s.EstimatedSolarPower == 5_000);
+        //Hour 1: house fully covered by the surplus, hour 2: 1000W house consumption
+        //=> on average 500W of the discharge power are consumed by the house and must not be credited to the car.
+        var dischargeSchedules = schedules.Where(s => s.TargetHomeBatteryPower > 0).ToList();
+        Assert.NotEmpty(dischargeSchedules);
+        Assert.All(dischargeSchedules, s =>
+            Assert.Equal(HomeBatteryDischargePower - 500, s.EstimatedHomeBatteryPowerForCar));
+    }
+
     private async Task SetupScenario(int carSoc)
     {
         Context.Cars.Add(new Car
