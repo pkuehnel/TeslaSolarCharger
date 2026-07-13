@@ -74,11 +74,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
         var historicPredictionsSearchStart = startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart);
         var latestRadiations = await GetSlicedSolarRadiationValues(historicPredictionsSearchStart, startDate, sliceLength, cancellationToken);
-        var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(historicValueTimeStamps, energyMeterDifferences, latestRadiations);
+        var hourlyRadiationFactors = ComputeWeightedAverageFactors(historicValueTimeStamps, energyMeterDifferences, latestRadiations);
         var forecastSolarRadiations = await GetSlicedSolarRadiationValues(startDate, endDate, sliceLength, cancellationToken);
         var resultTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
 
-        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors, resultTimeStamps);
+        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, hourlyRadiationFactors, resultTimeStamps);
 
         var result = predictedProduction.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
         return result;
@@ -352,7 +352,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return createdWh;
     }
 
-    private Dictionary<TimeSpan, double> ComputeWeightedAverageFactors(
+    private Dictionary<TimeSpan, HourlyRadiationFactors> ComputeWeightedAverageFactors(
         List<DateTimeOffset> historicTimeStamps,
         Dictionary<DateTimeOffset, int> energyMeterDifferences,
         Dictionary<DateTimeOffset, float> latestRadiations)
@@ -360,7 +360,10 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         // Compute weighted conversion factors per UTC hour as ratio of weighted sums (weighted regression through the origin):
         // factor = sum(w * energy) / sum(w * radiation). Averaging per-sample ratios instead would be biased high and
         // let hours with near-zero forecast radiation but high actual production dominate the factor for weeks.
-        var weightedSumsPerTimeOfDay = new Dictionary<TimeSpan, (double weightedEnergySum, double weightedRadiationSum)>();
+        // Factors are learned separately per radiation bin (radiation relative to the highest radiation seen at that
+        // time of day) because production is not linear in radiation: e.g. partially shaded panels can produce more on
+        // cloudy days with mainly diffuse radiation than on clear days whose direct radiation misses the panels.
+        var samplesPerTimeOfDay = new Dictionary<TimeSpan, List<(double energyWh, double radiation, double weight)>>();
         if (historicTimeStamps.Count < 1)
         {
             return new();
@@ -385,18 +388,48 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             var weight = 1 + (hourStamp.UtcDateTime - historicStart.UtcDateTime).TotalDays;
 
             var timeOfDay = hourStamp.TimeOfDay;
-            var sums = weightedSumsPerTimeOfDay.GetValueOrDefault(timeOfDay);
-            sums.weightedEnergySum += energyDifferenceWh * weight;
-            sums.weightedRadiationSum += radiationValue * weight;
-            weightedSumsPerTimeOfDay[timeOfDay] = sums;
+            if (!samplesPerTimeOfDay.TryGetValue(timeOfDay, out var samples))
+            {
+                samples = new();
+                samplesPerTimeOfDay[timeOfDay] = samples;
+            }
+            samples.Add((energyDifferenceWh, radiationValue, weight));
         }
 
-        var avgHourlyWeightedFactors = new Dictionary<TimeSpan, double>();
-        foreach (var kvp in weightedSumsPerTimeOfDay)
+        var hourlyRadiationFactors = new Dictionary<TimeSpan, HourlyRadiationFactors>();
+        foreach (var (timeOfDay, samples) in samplesPerTimeOfDay)
         {
-            avgHourlyWeightedFactors[kvp.Key] = kvp.Value.weightedEnergySum / kvp.Value.weightedRadiationSum;
+            var maxHistoricRadiation = samples.Max(s => s.radiation);
+            var binWeightedEnergySums = new double[RadiationBinCount];
+            var binWeightedRadiationSums = new double[RadiationBinCount];
+            foreach (var sample in samples)
+            {
+                var binIndex = GetRadiationBinIndex(sample.radiation, maxHistoricRadiation);
+                binWeightedEnergySums[binIndex] += sample.energyWh * sample.weight;
+                binWeightedRadiationSums[binIndex] += sample.radiation * sample.weight;
+            }
+            var overallFactor = binWeightedEnergySums.Sum() / binWeightedRadiationSums.Sum();
+            var binFactors = new double?[RadiationBinCount];
+            for (var binIndex = 0; binIndex < RadiationBinCount; binIndex++)
+            {
+                binFactors[binIndex] = binWeightedRadiationSums[binIndex] > 0
+                    ? binWeightedEnergySums[binIndex] / binWeightedRadiationSums[binIndex]
+                    : null;
+            }
+            hourlyRadiationFactors[timeOfDay] = new(maxHistoricRadiation, overallFactor, binFactors);
         }
-        return avgHourlyWeightedFactors;
+        return hourlyRadiationFactors;
+    }
+
+    private const int RadiationBinCount = 3;
+
+    private sealed record HourlyRadiationFactors(double MaxHistoricRadiation, double OverallFactor, double?[] BinFactors);
+
+    private static int GetRadiationBinIndex(double radiation, double maxHistoricRadiation)
+    {
+        var relativeRadiation = radiation / maxHistoricRadiation;
+        var binIndex = (int)(relativeRadiation * RadiationBinCount);
+        return Math.Clamp(binIndex, 0, RadiationBinCount - 1);
     }
 
     private Dictionary<TimeSpan, int> ComputeWeightedMeterValueChanges(
@@ -444,13 +477,12 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     }
 
     private Dictionary<DateTimeOffset, int> ComputePredictedProduction(Dictionary<DateTimeOffset, float> forecastSolarRadiations,
-        Dictionary<TimeSpan, double> avgHourlyWeightedFactors, List<DateTimeOffset> resultTimeStamps)
+        Dictionary<TimeSpan, HourlyRadiationFactors> hourlyRadiationFactors, List<DateTimeOffset> resultTimeStamps)
     {
         var predictedProduction = new Dictionary<DateTimeOffset, int>();
         foreach (var resultTimeStamp in resultTimeStamps)
         {
-            var factor = avgHourlyWeightedFactors.GetValueOrDefault(resultTimeStamp.TimeOfDay, 0.0);
-            if (factor == 0.0)
+            if (!hourlyRadiationFactors.TryGetValue(resultTimeStamp.TimeOfDay, out var radiationFactors))
             {
                 predictedProduction[resultTimeStamp] = 0; // No historical data for this hour
                 continue;
@@ -460,6 +492,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                 predictedProduction[resultTimeStamp] = 0; // No forecast data for this hour
                 continue;
             }
+            var binIndex = GetRadiationBinIndex(radiationValue, radiationFactors.MaxHistoricRadiation);
+            // Fall back to the factor over all radiation bins if there is no historic data in the forecast's radiation bin
+            var factor = radiationFactors.BinFactors[binIndex] ?? radiationFactors.OverallFactor;
             var predictedWh = radiationValue * factor;
             predictedProduction[resultTimeStamp] = (int)predictedWh;
         }
