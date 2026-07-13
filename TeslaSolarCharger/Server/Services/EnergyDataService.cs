@@ -357,8 +357,10 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         Dictionary<DateTimeOffset, int> energyMeterDifferences,
         Dictionary<DateTimeOffset, float> latestRadiations)
     {
-        // Compute weighted conversion factors per UTC hour.
-        var timebasedFactorsWeighted = new Dictionary<TimeSpan, List<(double meterValueChangePerRadiation, double weight)>>();
+        // Compute weighted conversion factors per UTC hour as ratio of weighted sums (weighted regression through the origin):
+        // factor = sum(w * energy) / sum(w * radiation). Averaging per-sample ratios instead would be biased high and
+        // let hours with near-zero forecast radiation but high actual production dominate the factor for weeks.
+        var weightedSumsPerTimeOfDay = new Dictionary<TimeSpan, (double weightedEnergySum, double weightedRadiationSum)>();
         if (historicTimeStamps.Count < 1)
         {
             return new();
@@ -374,31 +376,25 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             {
                 continue; // skip if no radiation sample
             }
+            if (radiationValue <= 0)
+            {
+                continue;
+            }
 
             // Compute a weight based on recency (older samples get lower weight).
             var weight = 1 + (hourStamp.UtcDateTime - historicStart.UtcDateTime).TotalDays;
 
             var timeOfDay = hourStamp.TimeOfDay;
-            if (!timebasedFactorsWeighted.ContainsKey(timeOfDay))
-            {
-                timebasedFactorsWeighted[timeOfDay] = new List<(double meterValueChangePerRadiation, double weight)>();
-            }
-
-            if (radiationValue > 0)
-            {
-                timebasedFactorsWeighted[timeOfDay].Add((energyDifferenceWh / radiationValue, weight));
-            }
+            var sums = weightedSumsPerTimeOfDay.GetValueOrDefault(timeOfDay);
+            sums.weightedEnergySum += energyDifferenceWh * weight;
+            sums.weightedRadiationSum += radiationValue * weight;
+            weightedSumsPerTimeOfDay[timeOfDay] = sums;
         }
 
-        // Compute the weighted average conversion factor for each UTC hour.
         var avgHourlyWeightedFactors = new Dictionary<TimeSpan, double>();
-        foreach (var kvp in timebasedFactorsWeighted)
+        foreach (var kvp in weightedSumsPerTimeOfDay)
         {
-            var timeSpan = kvp.Key;
-            var weightedSamples = kvp.Value;
-            var weightedSum = weightedSamples.Sum(item => item.meterValueChangePerRadiation * item.weight);
-            var weightTotal = weightedSamples.Sum(item => item.weight);
-            avgHourlyWeightedFactors[timeSpan] = (weightedSum / weightTotal);
+            avgHourlyWeightedFactors[kvp.Key] = kvp.Value.weightedEnergySum / kvp.Value.weightedRadiationSum;
         }
         return avgHourlyWeightedFactors;
     }
