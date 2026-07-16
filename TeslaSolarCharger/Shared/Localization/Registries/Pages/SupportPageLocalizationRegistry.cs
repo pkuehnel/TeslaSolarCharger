@@ -118,6 +118,22 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Force Fleet Configuration Set"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fleet-Konfiguration erzwingen"));
 
+        Register(TranslationKeys.SupportWakeUpCarButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Wake up (Fleet API)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aufwecken (Fleet API)"));
+
+        Register(TranslationKeys.SupportChargingAmpsToSetLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Ladestrom (A)"));
+
+        Register(TranslationKeys.SupportChargingAmpsToSetHelperText,
+            new TextLocalizationTranslation(LanguageCodes.English, "The charging current in ampere that will be sent to the car via Fleet API."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladestrom in Ampere, der über die Fleet API an das Fahrzeug gesendet wird."));
+
+        Register(TranslationKeys.SupportSetChargingAmpsButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Set charge current (Fleet API)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestrom setzen (Fleet API)"));
+
         Register(TranslationKeys.SupportChargingStationDebugDetailsSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging station debug details"),
             new TextLocalizationTranslation(LanguageCodes.German, "Debugdetails der Ladestation"));

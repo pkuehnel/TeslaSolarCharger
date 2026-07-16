@@ -123,7 +123,7 @@ public class TeslaFleetApiService(
     }
 
 
-    public async Task WakeUpCar(int carId, bool isFleetApiTest)
+    public async Task<DtoGenericTeslaResponse<DtoVehicleWakeUpResult>?> WakeUpCar(int carId, bool isFleetApiTest)
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
         var car = settings.Cars.First(c => c.Id == carId);
@@ -134,6 +134,15 @@ public class TeslaFleetApiService(
             //await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
         }
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<DtoGenericTeslaResponse<DtoVehicleCommandResult>?> SetChargingAmps(int carId, int amps)
+    {
+        logger.LogTrace("{method}({carId}, {amps})", nameof(SetChargingAmps), carId, amps);
+        var vin = GetVinByCarId(carId);
+        //isFleetApiTest: true forces the Fleet API path (bypassing BLE) as this is a debug command triggered from the support page.
+        return await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps, isFleetApiTest: true).ConfigureAwait(false);
     }
 
     public async Task StopCharging(int carId)

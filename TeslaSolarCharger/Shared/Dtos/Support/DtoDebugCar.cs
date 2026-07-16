@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Support;
+using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Shared.Dtos.Support;
 
 public class DtoDebugCar
 {
@@ -6,4 +8,5 @@ public class DtoDebugCar
     public string? Name { get; set; }
     public bool ShouldBeManaged { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }
+    public CarType CarType { get; set; }
 }
