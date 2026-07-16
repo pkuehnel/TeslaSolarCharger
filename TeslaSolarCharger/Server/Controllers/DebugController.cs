@@ -269,6 +269,14 @@ public class DebugController(
         return Ok(new DtoValue<string>(resultString));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> GetVehicleOnlineState(int carId)
+    {
+        var result = await teslaFleetApiService.GetVehicleOnlineState(carId);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAllProductsFromTeslaAccount()
     {

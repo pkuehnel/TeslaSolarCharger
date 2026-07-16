@@ -176,6 +176,11 @@ else
                 {
                     <hr />
                     <div class="d-flex flex-wrap gap-2">
+                        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetVehicleOnlineStateButton)'
+                                                     IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                     IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                                     DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip))"
+                                                     OnButtonClicked="@(() => GetVehicleOnlineState(car.Key))"></RightAlignedButtonComponent>
                         <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportWakeUpCarButton)'
                                                      IsLoading="@_loadingCarCommands.Contains(car.Key)"
                                                      IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
@@ -631,6 +636,16 @@ else
         }
         _fleetTelemetryGetConfigs[key] = stringToDisplay;
         _isFleetTelemetryLoading = false;
+    }
+
+    private async Task GetVehicleOnlineState(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetVehicleOnlineState?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
     }
 
     private async Task WakeUpCar(int carKey)

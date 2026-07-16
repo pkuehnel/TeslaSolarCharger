@@ -145,6 +145,15 @@ public class TeslaFleetApiService(
         return await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps, isFleetApiTest: true).ConfigureAwait(false);
     }
 
+    public async Task<DtoGenericTeslaResponse<DtoVehicleResult>?> GetVehicleOnlineState(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetVehicleOnlineState), carId);
+        var vin = GetVinByCarId(carId);
+        //This is the Fleet API "get vehicle" call that only returns the online state, not the full vehicle data.
+        //isFleetApiTest: true forces the Fleet API path (bypassing BLE) as this is a debug command triggered from the support page.
+        return await SendCommandToTeslaApi<DtoVehicleResult>(vin, VehicleRequest, isFleetApiTest: true).ConfigureAwait(false);
+    }
+
     public async Task StopCharging(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(StopCharging), carId);

@@ -13,6 +13,7 @@ public interface ITeslaFleetApiService
     Task<DtoValue<TokenState>> GetFleetApiTokenState(bool useCache);
     Task<DtoGenericTeslaResponse<DtoVehicleWakeUpResult>?> WakeUpCar(int carId, bool isFleetApiTest);
     Task<DtoGenericTeslaResponse<DtoVehicleCommandResult>?> SetChargingAmps(int carId, int amps);
+    Task<DtoGenericTeslaResponse<DtoVehicleResult>?> GetVehicleOnlineState(int carId);
     Task<DtoValue<bool>> TestFleetApiAccess(int carId);
     Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin);
     Task RefreshCarData();

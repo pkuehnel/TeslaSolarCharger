@@ -122,6 +122,10 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Wake up (Fleet API)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Aufwecken (Fleet API)"));
 
+        Register(TranslationKeys.SupportGetVehicleOnlineStateButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Get online state (Fleet API)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Onlinestatus abrufen (Fleet API)"));
+
         Register(TranslationKeys.SupportChargingAmpsToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Ladestrom (A)"));

@@ -54,6 +54,7 @@ public static class TranslationKeys
     public static string SupportCarNotPartOfTeslaAccountSetTooltip => nameof(SupportCarNotPartOfTeslaAccountSetTooltip);
     public static string SupportForceFleetConfigurationSetButton => nameof(SupportForceFleetConfigurationSetButton);
     public static string SupportWakeUpCarButton => nameof(SupportWakeUpCarButton);
+    public static string SupportGetVehicleOnlineStateButton => nameof(SupportGetVehicleOnlineStateButton);
     public static string SupportChargingAmpsToSetLabel => nameof(SupportChargingAmpsToSetLabel);
     public static string SupportChargingAmpsToSetHelperText => nameof(SupportChargingAmpsToSetHelperText);
     public static string SupportSetChargingAmpsButton => nameof(SupportSetChargingAmpsButton);
