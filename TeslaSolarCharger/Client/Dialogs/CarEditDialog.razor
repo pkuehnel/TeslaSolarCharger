@@ -1,4 +1,5 @@
 @using MudBlazor
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
@@ -15,6 +16,7 @@
 @inject ICarSettingsService CarSettingsService
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
+@inject IHttpClientHelper HttpClientHelper
 
 <MudDialog>
     <TitleContent>
@@ -72,7 +74,7 @@
                             
                             <GenericInput T="bool"
                                           For="() => Car.Item.UseBle"
-                                          OnValueChanged="_ => { Car.ClearErrors(nameof(Car.Item.BleApiBaseUrl)); StateHasChanged(); }" />
+                                          OnValueChanged="newValue => { OnUseBleChanged(newValue); Car.ClearErrors(nameof(Car.Item.BleApiBaseUrl), nameof(Car.Item.UseFleetTelemetry), nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
                             @if (Car.Item.UseBle)
                             {
                                 <GenericInput For="() => Car.Item.BleApiBaseUrl" />
@@ -84,22 +86,34 @@
                                            Variant="Variant.Outlined"
                                            @bind-Value="Car.Item.HomeDetectionVia"
                                            Label='@T(TranslationKeys.CarSettingsHomeDetectionViaLabel)'
+                                           Disabled="@IsBleDataCollectionActive"
                                            Margin="Constants.InputMargin">
-                                    @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
+                                    @foreach (var item in GetSelectableHomeDetectionViaValues())
                                     {
                                         <MudSelectItem T="HomeDetectionVia" Value="@item">@(GetHomeDetectionViaName(item))</MudSelectItem>
                                     }
                                 </MudSelect>
                             </div>
 
-                            <GenericInput T="bool"
-                                          For="() => Car.Item.UseFleetTelemetry"
-                                          OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(Car.Item, newValue); Car.ClearErrors(nameof(Car.Item.IncludeTrackingRelevantFields), nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
-                            @if (Car.Item.UseFleetTelemetry)
+                            @if (_getVehicleDataViaBle && Car.Item.UseBle)
                             {
+                                @* With enabled Get data via BLE the car data is polled via BLE, so Fleet Telemetry is
+                                   only needed (and automatically enabled) for tracking relevant fields. *@
                                 <GenericInput T="bool"
                                               For="() => Car.Item.IncludeTrackingRelevantFields"
-                                              OnValueChanged="_ => { Car.ClearErrors(nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
+                                              OnValueChanged="newValue => { OnIncludeTrackingRelevantFieldsChangedForBleCar(newValue); Car.ClearErrors(nameof(Car.Item.UseFleetTelemetry), nameof(Car.Item.IncludeTrackingRelevantFields), nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
+                            }
+                            else
+                            {
+                                <GenericInput T="bool"
+                                              For="() => Car.Item.UseFleetTelemetry"
+                                              OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(Car.Item, newValue); Car.ClearErrors(nameof(Car.Item.IncludeTrackingRelevantFields), nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
+                                @if (Car.Item.UseFleetTelemetry)
+                                {
+                                    <GenericInput T="bool"
+                                                  For="() => Car.Item.IncludeTrackingRelevantFields"
+                                                  OnValueChanged="_ => { Car.ClearErrors(nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
+                                }
                             }
                         </div>
                     }
@@ -137,10 +151,81 @@
 
     private EditFormComponent<CarBasicConfiguration>? _editForm;
     private bool _isSaving;
+    private bool _getVehicleDataViaBle;
+
+    private bool IsBleDataCollectionActive => _getVehicleDataViaBle && Car.Item.UseBle && !Car.Item.IncludeTrackingRelevantFields;
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<bool>>("api/BaseConfiguration/GetVehicleDataViaBle");
+        _getVehicleDataViaBle = !result.HasError && (result.Data?.Value == true);
+        //Saving a car config while Get data via BLE is enabled switches the car to BLE data collection on the server,
+        //so reflect that state in the UI right away.
+        ApplyBleDataCollectionDefaultsIfNeeded();
+        StateHasChanged();
+    }
+
+    private void ApplyBleDataCollectionDefaultsIfNeeded()
+    {
+        if (!IsBleDataCollectionActive || Car.Item.CarType != CarType.Tesla || !Car.Item.ShouldBeManaged)
+        {
+            return;
+        }
+        Car.Item.UseFleetTelemetry = false;
+        Car.Item.HomeDetectionVia = HomeDetectionVia.BlePresence;
+    }
+
+    private void OnUseBleChanged(bool useBle)
+    {
+        if (!_getVehicleDataViaBle)
+        {
+            return;
+        }
+        if (useBle)
+        {
+            ApplyBleDataCollectionDefaultsIfNeeded();
+        }
+        else if (Car.Item.HomeDetectionVia == HomeDetectionVia.BlePresence)
+        {
+            //Without BLE the car needs Fleet Telemetry as data source again.
+            Car.Item.UseFleetTelemetry = true;
+            Car.Item.HomeDetectionVia = HomeDetectionVia.LocatedAtHome;
+        }
+    }
+
+    private void OnIncludeTrackingRelevantFieldsChangedForBleCar(bool includeTrackingRelevantFields)
+    {
+        if (includeTrackingRelevantFields)
+        {
+            //Tracking relevant fields are only available via Fleet Telemetry, so the car keeps streaming its data.
+            Car.Item.UseFleetTelemetry = true;
+            if (Car.Item.HomeDetectionVia == HomeDetectionVia.BlePresence)
+            {
+                Car.Item.HomeDetectionVia = HomeDetectionVia.GpsLocation;
+            }
+        }
+        else
+        {
+            ApplyBleDataCollectionDefaultsIfNeeded();
+        }
+    }
+
+    private IEnumerable<HomeDetectionVia> GetSelectableHomeDetectionViaValues()
+    {
+        foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
+        {
+            //BLE presence is only a valid option while the car data is collected via BLE.
+            if (item == HomeDetectionVia.BlePresence && !IsBleDataCollectionActive)
+            {
+                continue;
+            }
+            yield return item;
+        }
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -183,6 +268,7 @@
             HomeDetectionVia.LocatedAtHome => T(TranslationKeys.HomeDetectionViaLocatedAtHome),
             HomeDetectionVia.LocatedAtWork => T(TranslationKeys.HomeDetectionViaLocatedAtWork),
             HomeDetectionVia.LocatedAtFavorite => T(TranslationKeys.HomeDetectionViaLocatedAtFavorite),
+            HomeDetectionVia.BlePresence => T(TranslationKeys.HomeDetectionViaBlePresence),
             _ => homeDetectionVia.ToString(),
         };
     }
