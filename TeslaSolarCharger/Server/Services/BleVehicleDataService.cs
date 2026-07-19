@@ -87,7 +87,7 @@ public class BleVehicleDataService(
         var timestamp = dateTimeProvider.UtcNow();
         if (!bodyControllerStateResult.Success)
         {
-            if (IsBeaconNotFoundResult(bodyControllerStateResult))
+            if (IsCarOutOfBleRangeResult(bodyControllerStateResult))
             {
                 //The car is out of BLE range: it is not at home and as it is not reachable it counts as offline.
                 logger.LogDebug("BLE beacon for car {vin} not found, car is not at home", vin);
@@ -224,10 +224,18 @@ public class BleVehicleDataService(
         carPropertyUpdateHelper.UpdateDtoCarProperty(car, carValueLog);
     }
 
-    internal static bool IsBeaconNotFoundResult(DtoBleCommandResult result)
+    internal static bool IsCarOutOfBleRangeResult(DtoBleCommandResult result)
     {
-        //tesla-control fails with "failed to find BLE beacon for <vin>" when the car is not in BLE range.
-        return result.ResultMessage?.Contains("beacon", StringComparison.OrdinalIgnoreCase) == true;
+        if (result.ResultMessage == default)
+        {
+            return false;
+        }
+        //Depending on the tesla-control version the BLE beacon scan for a car that is not in range fails with
+        //"failed to find BLE beacon for <vin>" or just with "Error: context deadline exceeded" (verified against a real
+        //BLE container on 2026-07-19). A present car answers the scan within a few seconds, so a scan timeout means
+        //the car is (very likely) not in BLE range.
+        return result.ResultMessage.Contains("beacon", StringComparison.OrdinalIgnoreCase)
+               || result.ResultMessage.Contains("context deadline exceeded", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static DtoBleBodyControllerState? DeserializeBodyControllerState(string? resultMessage)

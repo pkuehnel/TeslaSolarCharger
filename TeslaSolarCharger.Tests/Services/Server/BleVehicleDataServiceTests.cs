@@ -108,23 +108,111 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     [Fact]
-    public void DetectsBeaconNotFoundResults()
+    public void DetectsCarOutOfBleRangeResults()
     {
-        Assert.True(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsBeaconNotFoundResult(new DtoBleCommandResult
+        Assert.True(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsCarOutOfBleRangeResult(new DtoBleCommandResult
         {
             Success = false,
             ResultMessage = $"Error: failed to find BLE beacon for {TestVin} (S1a87a5a75f3df858C)",
         }));
-        Assert.False(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsBeaconNotFoundResult(new DtoBleCommandResult
+        //Real world result of a BLE container when the car is not in range (verified on 2026-07-19).
+        Assert.True(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsCarOutOfBleRangeResult(new DtoBleCommandResult
         {
             Success = false,
-            ResultMessage = "Error: failed to connect to vehicle: context deadline exceeded",
+            ResultMessage = "Error: context deadline exceeded",
         }));
-        Assert.False(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsBeaconNotFoundResult(new DtoBleCommandResult
+        Assert.False(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsCarOutOfBleRangeResult(new DtoBleCommandResult
+        {
+            Success = false,
+            ResultMessage = "PrivateKeyPath is not set in the configuration",
+        }));
+        Assert.False(TeslaSolarCharger.Server.Services.BleVehicleDataService.IsCarOutOfBleRangeResult(new DtoBleCommandResult
         {
             Success = false,
             ResultMessage = null,
         }));
+    }
+
+    [Fact]
+    public void CanParseRealWorldChargeState()
+    {
+        //Real output of `tesla-control state charge` from a BLE container (2026-07-19), car plugged in but not
+        //charging. Location values are replaced by dummy values.
+        const string json = """
+            {
+              "chargeState": {
+                "chargingState": {
+                  "Stopped": {}
+                },
+                "fastChargerType": {
+                  "ACSingleWireCAN": {}
+                },
+                "fastChargerBrand": {
+                  "Tesla": {}
+                },
+                "chargeLimitSoc": 90,
+                "chargeLimitSocStd": 80,
+                "chargeLimitSocMin": 50,
+                "chargeLimitSocMax": 100,
+                "maxRangeChargeCounter": 0,
+                "fastChargerPresent": false,
+                "batteryRange": 172.81207,
+                "idealBatteryRange": 172.81207,
+                "batteryLevel": 47,
+                "usableBatteryLevel": 47,
+                "chargeEnergyAdded": 0.19999999,
+                "chargeMilesAddedRated": 1,
+                "chargeMilesAddedIdeal": 1,
+                "chargerVoltage": 2,
+                "chargerPilotCurrent": 16,
+                "chargerActualCurrent": 0,
+                "chargerPower": 0,
+                "tripCharging": false,
+                "chargeRateMph": 0,
+                "chargePortDoorOpen": true,
+                "connChargeCable": {
+                  "IEC": {}
+                },
+                "scheduledChargingPending": false,
+                "userChargeEnableRequest": false,
+                "chargeEnableRequest": false,
+                "chargerPhases": 2,
+                "chargePortLatch": {
+                  "Engaged": {}
+                },
+                "chargePortColdWeatherMode": false,
+                "chargeCurrentRequest": 16,
+                "chargeCurrentRequestMax": 16,
+                "timestamp": "2026-07-19T19:13:18.497Z",
+                "preconditioningTimes": {
+                  "weekdays": {}
+                },
+                "offPeakChargingTimes": {},
+                "scheduledChargingMode": "ScheduledChargingModeOff",
+                "chargingAmps": 16,
+                "preconditioningEnabled": false,
+                "scheduledChargingStartTimeApp": -1,
+                "superchargerSessionTripPlanner": false,
+                "chargePortColor": "ChargePortColorOff",
+                "chargeRateMphFloat": 0,
+                "homeLocation": {
+                  "latitude": 52.5185238,
+                  "longitude": 13.3761736
+                }
+              }
+            }
+            """;
+        var chargeState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeChargeState(json);
+        Assert.NotNull(chargeState);
+        Assert.Equal(47, chargeState.BatteryLevel);
+        Assert.Equal(90, chargeState.ChargeLimitSoc);
+        Assert.Equal(2, chargeState.ChargerVoltage);
+        Assert.Equal(0, chargeState.ChargerActualCurrent);
+        //Note: the car reports 2 phases for 3 phase charging, DtoCar.ActualPhases converts this like on all other data sources.
+        Assert.Equal(2, chargeState.ChargerPhases);
+        Assert.Equal(16, chargeState.ChargeCurrentRequest);
+        Assert.Equal(16, chargeState.ChargerPilotCurrent);
+        Assert.Equal("Stopped", TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(chargeState.ChargingState));
     }
 
     [Fact]
