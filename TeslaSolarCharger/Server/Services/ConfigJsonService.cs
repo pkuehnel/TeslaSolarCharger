@@ -5,6 +5,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -26,7 +27,9 @@ public class ConfigJsonService(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     ITscConfigurationService tscConfigurationService,
     ILoadPointManagementService loadPointManagementService,
-    ICarPropertyUpdateHelper carPropertyUpdateHelper)
+    ICarPropertyUpdateHelper carPropertyUpdateHelper,
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys)
     : IConfigJsonService
 {
 
@@ -219,6 +222,19 @@ public class ConfigJsonService(
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
         databaseCar.MaximumPhases = carBasicConfiguration.MaximumPhases;
+        var switchToBleDataCollection = configurationWrapper.GetVehicleDataViaBle()
+                                        && carBasicConfiguration.CarType == CarType.Tesla
+                                        && carBasicConfiguration.ShouldBeManaged
+                                        && carBasicConfiguration.UseBle
+                                        && !carBasicConfiguration.IncludeTrackingRelevantFields;
+        if (switchToBleDataCollection)
+        {
+            //While data is collected via BLE the car must not stream data via Fleet Telemetry and home detection is
+            //based on BLE presence. This is intentionally only applied on manual car config saves so existing cars do
+            //not switch data sources without user interaction.
+            databaseCar.UseFleetTelemetry = false;
+            databaseCar.HomeDetectionVia = HomeDetectionVia.BlePresence;
+        }
         if (carId == default)
         {
             databaseCar.ChargeMode = ChargeModeV2.Auto;
@@ -259,7 +275,28 @@ public class ConfigJsonService(
         }
         if (databaseCar.CarType == CarType.Tesla)
         {
-            await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
+            if (switchToBleDataCollection)
+            {
+                //The deletion is only triggered on manual car config saves. The backend only sends the delete request
+                //to Tesla if it knows about an existing fleet telemetry configuration for the VIN.
+                var deletionResult = await fleetTelemetryConfigurationService.DeleteFleetTelemetryConfiguration(databaseCar.Vin);
+                if (deletionResult.Success)
+                {
+                    await errorHandlingService.HandleErrorResolved(issueKeys.FleetTelemetryConfigurationDeletionError, databaseCar.Vin).ConfigureAwait(false);
+                }
+                else
+                {
+                    logger.LogError("Could not delete Fleet Telemetry configuration for car {vin}: {errorMessage}", databaseCar.Vin, deletionResult.ErrorMessage);
+                    await errorHandlingService.HandleError(nameof(ConfigJsonService), nameof(UpdateCarBasicConfiguration),
+                        $"Error while deleting Fleet Telemetry configuration for car {databaseCar.Vin}",
+                        $"{deletionResult.ErrorMessage}\r\nNote: The car might still stream Fleet Telemetry data. Save the car configuration again to retry the deletion.",
+                        issueKeys.FleetTelemetryConfigurationDeletionError, databaseCar.Vin, null).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
+            }
         }
     }
 

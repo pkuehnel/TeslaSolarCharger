@@ -32,6 +32,8 @@ public class IssueKeys : IIssueKeys
     public string FleetApiNotLicensed => "FleetApiNotLicensed";
     public string FleetTelemetryNotConnected => "FleetTelemetryNotConnected";
     public string FleetTelemetryConfigurationError => "FleetTelemetryConfigurationError";
+    public string FleetTelemetryConfigurationDeletionError => "FleetTelemetryConfigurationDeletionError";
+    public string BleDataCollectionError => "BleDataCollectionError";
     public string MultipleCarsMatchChargingConnector => "MultipleCarsMatchChargingConnector";
 }
 
