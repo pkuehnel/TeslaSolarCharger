@@ -519,10 +519,24 @@ public class TeslaFleetApiService(
         logger.LogDebug("Latest car refresh: {latestRefresh}", latestRefresh);
         var currentUtcDate = dateTimeProvider.UtcNow();
         var latestChangeToDetect = currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
-        var fleetTelemetryEnabled = await teslaSolarChargerContext.Cars
+        var carDataSourceSettings = await teslaSolarChargerContext.Cars
             .Where(c => c.Vin == car.Vin)
-            .Select(c => c.UseFleetTelemetry)
+            .Select(c => new
+            {
+                c.UseFleetTelemetry,
+                c.UseBle,
+                c.IncludeTrackingRelevantFields,
+            })
             .FirstOrDefaultAsync();
+        var fleetTelemetryEnabled = carDataSourceSettings?.UseFleetTelemetry == true;
+        if (configurationWrapper.GetVehicleDataViaBle()
+            && (carDataSourceSettings?.UseBle == true)
+            && !fleetTelemetryEnabled
+            && (carDataSourceSettings.IncludeTrackingRelevantFields == false))
+        {
+            logger.LogDebug("Do not refresh via Fleet API as car data is collected via BLE");
+            return false;
+        }
         if (fleetTelemetryEnabled)
         {
             logger.LogDebug("Do not refresh via Fleet API as Fleet Telemetry is enabled");
