@@ -32,6 +32,9 @@ namespace TeslaSolarCharger.Server.Controllers
         public DtoValue<bool> ShowEnergyDataOnHome() => new(configurationWrapper.ShowEnergyDataOnHome());
 
         [HttpGet]
+        public DtoValue<bool> GetVehicleDataViaBle() => new(configurationWrapper.GetVehicleDataViaBle());
+
+        [HttpGet]
         public IActionResult HomeBatteryValuesAvailable()
         {
             return Ok(new DtoValue<bool>(service.HomeBatteryValuesAvailable()));

@@ -326,6 +326,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Maximale AC-Leistung des Wechselrichters",
                 "Wenn Ihr Hybridwechselrichter mehr DC- als AC-Leistung besitzt, tragen Sie hier die maximale AC-Leistung ein. Dies ist selten erforderlich und kann in den meisten Fällen leer bleiben."));
 
+        Register(x => x.GetVehicleDataViaBle,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Get data via BLE",
+                "When enabled, Teslas with enabled BLE no longer stream data via Fleet Telemetry but are polled via BLE instead. Car presence is detected via BLE, so the car counts as at home as soon as it is in BLE range. The change is applied to a car when its car settings are saved. Does not affect cars with enabled tracking relevant fields."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Daten über BLE abrufen",
+                "Wenn aktiviert, senden Teslas mit aktiviertem BLE keine Daten mehr über Fleet Telemetry, sondern werden über BLE abgefragt. Die Anwesenheit wird über BLE erkannt: Das Fahrzeug gilt als zu Hause, sobald es in BLE-Reichweite ist. Die Änderung wird für ein Fahrzeug übernommen, sobald dessen Fahrzeugeinstellungen gespeichert werden. Fahrzeuge mit aktivierten Tracking-relevanten Feldern sind nicht betroffen."));
+
         Register(x => x.UseTeslaMateIntegration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use TeslaMate Integration",

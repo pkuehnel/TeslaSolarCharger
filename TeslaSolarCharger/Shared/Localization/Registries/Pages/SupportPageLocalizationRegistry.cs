@@ -90,6 +90,10 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Is Available in Tesla account: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Im Tesla-Konto verfügbar: {0}"));
 
+        Register(TranslationKeys.SupportIsOnlineFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Is online: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ist online: {0}"));
+
         Register(TranslationKeys.SupportShouldBeManagedFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "Should be managed: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Soll verwaltet werden: {0}"));
@@ -125,6 +129,14 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
         Register(TranslationKeys.SupportGetVehicleOnlineStateButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get online state (Fleet API)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Onlinestatus abrufen (Fleet API)"));
+
+        Register(TranslationKeys.SupportGetBleBodyControllerStateButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Get body controller state (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Body-Controller-Status abrufen (BLE)"));
+
+        Register(TranslationKeys.SupportGetBleChargeStateButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Get charge state (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladezustand abrufen (BLE)"));
 
         Register(TranslationKeys.SupportChargingAmpsToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),
