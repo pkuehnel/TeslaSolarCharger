@@ -253,6 +253,30 @@ public class DebugController(
         return Ok(new DtoValue<string>(resultString));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> WakeUpCar(int carId)
+    {
+        var result = await teslaFleetApiService.WakeUpCar(carId, true);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetChargingAmps(int carId, int amps)
+    {
+        var result = await teslaFleetApiService.SetChargingAmps(carId, amps);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetVehicleOnlineState(int carId)
+    {
+        var result = await teslaFleetApiService.GetVehicleOnlineState(carId);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAllProductsFromTeslaAccount()
     {

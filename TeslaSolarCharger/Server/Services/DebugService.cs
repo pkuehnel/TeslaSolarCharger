@@ -113,6 +113,7 @@ public class DebugService(ILogger<DebugService> logger,
                 Vin = x.Vin,
                 ShouldBeManaged = x.ShouldBeManaged == true,
                 IsAvailableInTeslaAccount = x.IsAvailableInTeslaAccount,
+                CarType = x.CarType,
             }).ConfigureAwait(false);
         logger.LogDebug("Found {carCount} cars", cars.Count);
         return cars;

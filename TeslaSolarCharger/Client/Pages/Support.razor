@@ -7,6 +7,7 @@
 @using TeslaSolarCharger.Shared.Dtos.Ble
 @using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl
 @using TeslaSolarCharger.Shared.Dtos.Support
+@using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
@@ -170,6 +171,45 @@ else
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip))"
                                              OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Key, true))"></RightAlignedButtonComponent>
+
+                @if (car.Value.CarType == CarType.Tesla)
+                {
+                    <hr />
+                    <div class="d-flex flex-wrap gap-2">
+                        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetVehicleOnlineStateButton)'
+                                                     IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                     IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                                     DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip))"
+                                                     OnButtonClicked="@(() => GetVehicleOnlineState(car.Key))"></RightAlignedButtonComponent>
+                        <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportWakeUpCarButton)'
+                                                     IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                     IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                                     DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip))"
+                                                     OnButtonClicked="@(() => WakeUpCar(car.Key))"></RightAlignedButtonComponent>
+                    </div>
+                    @if (_chargingAmpsToSet.ContainsKey(car.Key))
+                    {
+                        <div class="row">
+                            <div class="col">
+                                <GenericInput For="() => _chargingAmpsToSet[car.Key].Value"
+                                              LabelName='@T(TranslationKeys.SupportChargingAmpsToSetLabel)'
+                                              HelperText='@T(TranslationKeys.SupportChargingAmpsToSetHelperText)'></GenericInput>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportSetChargingAmpsButton)'
+                                                         IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                         IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                                         DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip))"
+                                                         OnButtonClicked="@(() => SetChargingAmps(car.Key))"></RightAlignedButtonComponent>
+                        </div>
+                    }
+                    @if (_carCommandResults.TryGetValue(car.Key, out var carCommandResult))
+                    {
+                        <h4>@T(TranslationKeys.SupportCommandResultTitle)</h4>
+                        <pre>@carCommandResult</pre>
+                    }
+                }
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
@@ -418,6 +458,9 @@ else
 
     private Dictionary<int, DtoDebugCar>? _debugCars;
     private bool _isFleetTelemetryLoading;
+    private readonly HashSet<int> _loadingCarCommands = new();
+    private readonly Dictionary<int, DtoValue<int>> _chargingAmpsToSet = new();
+    private readonly Dictionary<int, string> _carCommandResults = new();
 
     private Dictionary<int, DtoDebugChargingConnector>? _debugChargingConnectors;
     private readonly HashSet<int> _loadingOcppCommands = new();
@@ -476,6 +519,11 @@ else
         if (cars != default)
         {
             _debugCars = cars;
+            const int defaultChargingAmps = 6;
+            foreach (var car in cars)
+            {
+                _chargingAmpsToSet[car.Key] = new(defaultChargingAmps);
+            }
         }
         await RefreshChargingConnectors();
         _inMemoryLogLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetInMemoryLogLevel");
@@ -588,6 +636,37 @@ else
         }
         _fleetTelemetryGetConfigs[key] = stringToDisplay;
         _isFleetTelemetryLoading = false;
+    }
+
+    private async Task GetVehicleOnlineState(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetVehicleOnlineState?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
+    }
+
+    private async Task WakeUpCar(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/WakeUpCar?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
+    }
+
+    private async Task SetChargingAmps(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var amps = _chargingAmpsToSet[carKey].Value;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/SetChargingAmps?carId={carKey}&amps={amps}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
     }
 
     private async Task GetDtoCar(int carKey)
