@@ -15,6 +15,12 @@ public interface IBleService
     Task CheckBleApiVersionCompatibilities();
     Task<DtoBleCommandResult> GetChargeState(string vin);
     Task<DtoBleCommandResult> GetDriveState(string vin);
+
+    /// <summary>
+    /// Gets the body controller state (sleep status, lock state, user presence) via the VCSEC domain. Works while the
+    /// car is asleep and does not wake up the car. Fails with a beacon related error when the car is not in BLE range.
+    /// </summary>
+    Task<DtoBleCommandResult> GetBodyControllerState(string vin);
     Task<string?> CheckBleApiVersionCompatibility(string? host);
 
     /// <summary>

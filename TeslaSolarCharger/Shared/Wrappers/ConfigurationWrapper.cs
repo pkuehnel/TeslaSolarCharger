@@ -245,6 +245,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool GetVehicleDataViaBle()
+    {
+        //null defaults to false while the feature is being tested; will default to true in a future release.
+        var value = GetBaseConfiguration().GetVehicleDataViaBle;
+        return value == true;
+    }
+
     public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;

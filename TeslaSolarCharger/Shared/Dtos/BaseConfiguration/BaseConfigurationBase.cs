@@ -128,6 +128,9 @@ public class BaseConfigurationBase
     [Postfix("W")]
     public int? MaxInverterAcPower { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    //Nullable on purpose: null means the user never decided, so the default can be changed to true in a future release
+    //without overwriting an explicit user decision.
+    public bool? GetVehicleDataViaBle { get; set; }
     public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not

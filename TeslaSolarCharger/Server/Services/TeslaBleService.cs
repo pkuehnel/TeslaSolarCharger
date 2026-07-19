@@ -68,6 +68,18 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
+    public async Task<DtoBleCommandResult> GetBodyControllerState(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(GetBodyControllerState), vin);
+        var request = new DtoBleRequest
+        {
+            Vin = vin,
+            CommandName = "body-controller-state",
+        };
+        var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
+    }
+
     public async Task<DtoBleCommandResult> StopCharging(string vin)
     {
         var request = new DtoBleRequest

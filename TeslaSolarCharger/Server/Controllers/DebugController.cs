@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -17,7 +18,9 @@ public class DebugController(
     ITeslaFleetApiService teslaFleetApiService,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService,
     ITscOnlyChargingCostService tscOnlyChargingCostService,
-    IHomeBatteryModeService homeBatteryModeService) : ApiBaseController
+    IHomeBatteryModeService homeBatteryModeService,
+    IBleService bleService,
+    ISettings settings) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
@@ -273,6 +276,32 @@ public class DebugController(
     public async Task<IActionResult> GetVehicleOnlineState(int carId)
     {
         var result = await teslaFleetApiService.GetVehicleOnlineState(carId);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetBleBodyControllerState(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetBodyControllerState(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetBleChargeState(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetChargeState(vin);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }

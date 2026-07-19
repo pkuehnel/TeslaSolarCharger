@@ -430,6 +430,10 @@ public class BackendApiService(
                     request.Content = jsonContent;
                 }
             }
+            else if (httpMethod == HttpMethod.Delete)
+            {
+                request.Method = HttpMethod.Delete;
+            }
             else
             {
                 return new Dtos.Result<T>(

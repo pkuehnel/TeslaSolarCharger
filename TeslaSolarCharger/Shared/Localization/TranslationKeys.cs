@@ -55,6 +55,8 @@ public static class TranslationKeys
     public static string SupportForceFleetConfigurationSetButton => nameof(SupportForceFleetConfigurationSetButton);
     public static string SupportWakeUpCarButton => nameof(SupportWakeUpCarButton);
     public static string SupportGetVehicleOnlineStateButton => nameof(SupportGetVehicleOnlineStateButton);
+    public static string SupportGetBleBodyControllerStateButton => nameof(SupportGetBleBodyControllerStateButton);
+    public static string SupportGetBleChargeStateButton => nameof(SupportGetBleChargeStateButton);
     public static string SupportChargingAmpsToSetLabel => nameof(SupportChargingAmpsToSetLabel);
     public static string SupportChargingAmpsToSetHelperText => nameof(SupportChargingAmpsToSetHelperText);
     public static string SupportSetChargingAmpsButton => nameof(SupportSetChargingAmpsButton);
@@ -100,6 +102,7 @@ public static class TranslationKeys
     public static string SupportNameFormat => nameof(SupportNameFormat);
     public static string SupportIsAvailableInTeslaAccountFormat => nameof(SupportIsAvailableInTeslaAccountFormat);
     public static string SupportShouldBeManagedFormat => nameof(SupportShouldBeManagedFormat);
+    public static string SupportIsOnlineFormat => nameof(SupportIsOnlineFormat);
     public static string SupportConnectorFormat => nameof(SupportConnectorFormat);
     public static string SupportHomeBatterySectionTitle => nameof(SupportHomeBatterySectionTitle);
     public static string SupportHomeBatteryNoControllersMessage => nameof(SupportHomeBatteryNoControllersMessage);
@@ -572,6 +575,7 @@ public static class TranslationKeys
     public static string HomeDetectionViaLocatedAtHome => nameof(HomeDetectionViaLocatedAtHome);
     public static string HomeDetectionViaLocatedAtWork => nameof(HomeDetectionViaLocatedAtWork);
     public static string HomeDetectionViaLocatedAtFavorite => nameof(HomeDetectionViaLocatedAtFavorite);
+    public static string HomeDetectionViaBlePresence => nameof(HomeDetectionViaBlePresence);
     public static string PowerBufferUpdated => nameof(PowerBufferUpdated);
     public static string PowerBufferUpdateFailed => nameof(PowerBufferUpdateFailed);
     public static string NotChargingReasonsSingular => nameof(NotChargingReasonsSingular);

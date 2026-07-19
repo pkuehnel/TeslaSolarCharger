@@ -137,6 +137,7 @@ else
                 <div>@Format(TranslationKeys.SupportNameFormat, car.Value.Name)</div>
                 <div>@Format(TranslationKeys.SupportIsAvailableInTeslaAccountFormat, car.Value.IsAvailableInTeslaAccount)</div>
                 <div>@Format(TranslationKeys.SupportShouldBeManagedFormat, car.Value.ShouldBeManaged)</div>
+                <div>@Format(TranslationKeys.SupportIsOnlineFormat, car.Value.IsOnline)</div>
 
                 @if (car.Value.Vin != default && _fleetTelemetryGetConfigs.TryGetValue(car.Key, out var config))
                 {
@@ -187,6 +188,19 @@ else
                                                      DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : T(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip))"
                                                      OnButtonClicked="@(() => WakeUpCar(car.Key))"></RightAlignedButtonComponent>
                     </div>
+                    @if (car.Value.UseBle)
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetBleBodyControllerStateButton)'
+                                                         IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                         IsDisabled="@(car.Value.Vin == default)"
+                                                         OnButtonClicked="@(() => GetBleBodyControllerState(car.Key))"></RightAlignedButtonComponent>
+                            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetBleChargeStateButton)'
+                                                         IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                         IsDisabled="@(car.Value.Vin == default)"
+                                                         OnButtonClicked="@(() => GetBleChargeState(car.Key))"></RightAlignedButtonComponent>
+                        </div>
+                    }
                     @if (_chargingAmpsToSet.ContainsKey(car.Key))
                     {
                         <div class="row">
@@ -652,6 +666,26 @@ else
     {
         _loadingCarCommands.Add(carKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/WakeUpCar?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
+    }
+
+    private async Task GetBleBodyControllerState(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetBleBodyControllerState?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
+    }
+
+    private async Task GetBleChargeState(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetBleChargeState?carId={carKey}", null);
         _carCommandResults[carKey] = result.HasError
             ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
             : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));

@@ -157,6 +157,49 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
         return cloudData;
     }
 
+    public async Task<DtoFleetTelemetryConfigurationResult> DeleteFleetTelemetryConfiguration(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(DeleteFleetTelemetryConfiguration), vin);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (token == default)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = "Can not delete Fleet Telemetry configuration without backend token",
+            };
+        }
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = "Decryption key not found, can not delete Fleet Telemetry configuration",
+            };
+        }
+        var result = await backendApiService.SendRequestToBackend<DtoFleetTelemetryConfigurationResult>(HttpMethod.Delete, token.AccessToken,
+            $"FleetTelemetryConfiguration/DeleteFleetTelemetryConfiguration?encryptionKey={Uri.EscapeDataString(decryptionKey)}&vin={vin}", null);
+        if (result.HasError)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = result.ErrorMessage,
+            };
+        }
+        if (result.Data == default)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = "No data returned from backend",
+            };
+        }
+        return result.Data;
+    }
+
     public async Task ReconfigureAllCarsIfRequired()
     {
         logger.LogTrace("{method}", nameof(ReconfigureAllCarsIfRequired));

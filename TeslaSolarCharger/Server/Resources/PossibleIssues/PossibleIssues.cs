@@ -251,6 +251,26 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = false,
             }
         },
+        { issueKeys.FleetTelemetryConfigurationDeletionError, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = false,
+            }
+        },
+        { issueKeys.BleDataCollectionError, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                //BLE communication can fail sporadically, e.g. while the car is connecting, so only show the error
+                //after multiple consecutive failures.
+                ShowErrorAfterOccurrences = 3,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = false,
+            }
+        },
         { issueKeys.MultipleCarsMatchChargingConnector, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,

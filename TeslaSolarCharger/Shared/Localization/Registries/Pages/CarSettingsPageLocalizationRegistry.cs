@@ -358,6 +358,10 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "At Favorite"),
             new TextLocalizationTranslation(LanguageCodes.German, "Am Favoriten-Ort"));
 
+        Register(TranslationKeys.HomeDetectionViaBlePresence,
+            new TextLocalizationTranslation(LanguageCodes.English, "BLE Presence"),
+            new TextLocalizationTranslation(LanguageCodes.German, "BLE-Anwesenheit"));
+
         Register(TranslationKeys.CarOverviewManaged,
             new TextLocalizationTranslation(LanguageCodes.English, "Managed"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verwaltet"));

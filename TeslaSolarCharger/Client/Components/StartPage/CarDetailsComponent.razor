@@ -28,10 +28,8 @@ else
     <div>
         <CustomIcon IconName="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@CarSettings.Name</span>
-        @if (CarState.IsOnline != default)
-        {
-            <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText='@T(TranslationKeys.CarDetailsConnectedToServer)'></CustomIcon>
-        }
+        @* The online state is intentionally not displayed here anymore: for BLE data collection cars offline only
+           means out of BLE range, which would be confusing. The online state is still visible on the Support page. *@
         @if (CarSettings.CarType != CarType.Manual)
         {
             <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText='@T(TranslationKeys.CarDetailsAtHome)'></CustomIcon>
