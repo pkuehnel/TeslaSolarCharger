@@ -110,18 +110,6 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
 
         foreach (var car in settings.CarsToManage)
         {
-            if ((car.LastNonSuccessBleCall != default)
-                && (car.LastNonSuccessBleCall.Value > (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
-            {
-                //Issue should already be active as is set on TeslaFleetApiService.
-                //Note: The same logic for the if is used in TeslaFleetApiService.SendCommandToTeslaApi<T> if ble is enabled.
-                //So: let it be like that even though the if part is empty.
-            }
-            else
-            {
-                //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
-                await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
-            }
             var carSettings = await context.Cars
                 .Where(c => c.Vin == car.Vin)
                 .Select(c => new

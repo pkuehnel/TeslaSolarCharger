@@ -180,13 +180,6 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public TimeSpan BleUsageStopAfterError()
-    {
-        var environmentVariableName = "BleUsageStopAfterErrorSeconds";
-        var value = configuration.GetValue<int>(environmentVariableName);
-        return TimeSpan.FromSeconds(value);
-    }
-
     public TimeSpan FleetApiRefreshInterval()
     {
         var environmentVariableName = "FleetApiRefreshIntervalSeconds";

@@ -88,5 +88,9 @@ public class DtoCar
     public List<DateTime> SetChargingAmpsCall { get; set; } = new List<DateTime>();
     public List<DateTime> OtherCommandCalls { get; set; } = new List<DateTime>();
 
-    public DateTime? LastNonSuccessBleCall { get; set; }
+    /// <summary>
+    /// Last successful Fleet API command that consumed the hourly rate limit budget for cars without a Fleet API license.
+    /// Only kept in memory as the Solar4Car backend enforces the rate limit across restarts.
+    /// </summary>
+    public DateTime? LastCountedFleetApiCommand { get; set; }
 }
