@@ -21,7 +21,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
     ITokenHelper tokenHelper,
     IConstants constants,
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
-    IBackendApiService backendApiService) : IErrorDetectionService
+    IBackendApiService backendApiService,
+    IFleetApiRateLimitService fleetApiRateLimitService) : IErrorDetectionService
 {
     public async Task DetectErrors()
     {
@@ -110,18 +111,6 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
 
         foreach (var car in settings.CarsToManage)
         {
-            if ((car.LastNonSuccessBleCall != default)
-                && (car.LastNonSuccessBleCall.Value > (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
-            {
-                //Issue should already be active as is set on TeslaFleetApiService.
-                //Note: The same logic for the if is used in TeslaFleetApiService.SendCommandToTeslaApi<T> if ble is enabled.
-                //So: let it be like that even though the if part is empty.
-            }
-            else
-            {
-                //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
-                await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
-            }
             var carSettings = await context.Cars
                 .Where(c => c.Vin == car.Vin)
                 .Select(c => new
@@ -154,6 +143,14 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             else
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
+            }
+
+            //Resolved here and not only after a successful Fleet API command, as the rate limit is also irrelevant again when BLE
+            //works again, the car needs no commands at all or a Fleet API license was bought. In all those cases no Fleet API
+            //command is sent that could resolve the issue.
+            if (fleetApiRateLimitService.GetNextAllowedUtc(car) == default)
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiCommandRateLimited, car.Vin);
             }
 
             if (car.IsOnline.Value == false)
