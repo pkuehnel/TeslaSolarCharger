@@ -100,6 +100,51 @@ public class FleetApiRateLimitServiceTests
         Assert.Equal(UtcAt(BaseTime.AddMinutes(61)).AddMinutes(60), CreateService(BaseTime.AddMinutes(70)).GetNextAllowedUtc(car));
     }
 
+    [Theory]
+    [InlineData(10)]
+    [InlineData(59)]
+    public void CommandAfterGraceWindowButWithinCommandWindowDoesNotMoveTheSlot(int minutesAfterCountedCommand)
+    {
+        var car = new DtoCar();
+        CreateService(BaseTime).RecordSuccessfulCommand(car);
+        //Such a command can only happen when the local limit was bypassed, e.g. by a manual Fleet API test. The backend anchors
+        //its window the same way (see TeslaCommandRateLimitService.EnsureCommandAllowed), so moving the slot here would block
+        //locally until one hour after this command while the backend already allows one hour after the first command.
+        CreateService(BaseTime.AddMinutes(minutesAfterCountedCommand)).RecordSuccessfulCommand(car);
+        Assert.Equal(UtcAt(BaseTime), car.LastCountedFleetApiCommand);
+        Assert.Null(CreateService(BaseTime.AddMinutes(60)).GetNextAllowedUtc(car));
+    }
+
+    [Fact]
+    public void RateLimitedByBackendBlocksCommandsWithoutKnownLocalSlot()
+    {
+        var car = new DtoCar();
+        //No locally counted command, e.g. after a restart, but the backend still blocks
+        CreateService(BaseTime).RecordRateLimited(car);
+        Assert.Equal(UtcAt(BaseTime).AddMinutes(55), CreateService(BaseTime.AddMinutes(54)).GetNextAllowedUtc(car));
+        Assert.Null(CreateService(BaseTime.AddMinutes(55)).GetNextAllowedUtc(car));
+    }
+
+    [Fact]
+    public void RateLimitedByBackendDoesNotOpenGraceWindow()
+    {
+        var car = new DtoCar();
+        CreateService(BaseTime).RecordRateLimited(car);
+        Assert.NotNull(CreateService(BaseTime).GetNextAllowedUtc(car));
+        Assert.NotNull(CreateService(BaseTime.AddMinutes(2)).GetNextAllowedUtc(car));
+    }
+
+    [Fact]
+    public void RateLimitedByBackendDoesNotShortenKnownBlock()
+    {
+        var car = new DtoCar();
+        //Backend rejects a command sent within the local grace window, so the local block must stay anchored at the counted command
+        CreateService(BaseTime).RecordSuccessfulCommand(car);
+        CreateService(BaseTime.AddMinutes(2)).RecordRateLimited(car);
+        Assert.Equal(UtcAt(BaseTime), car.LastCountedFleetApiCommand);
+        Assert.Equal(UtcAt(BaseTime).AddMinutes(60), CreateService(BaseTime.AddMinutes(30)).GetNextAllowedUtc(car));
+    }
+
     [Fact]
     public void WakeUpWithFollowUpCommandsScenario()
     {

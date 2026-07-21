@@ -882,6 +882,7 @@ public class TeslaFleetApiService(
         {
             if (backendResult.ProblemDetails?.Status == (int)HttpStatusCode.TooManyRequests)
             {
+                fleetApiRateLimitService.RecordRateLimited(car);
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                     $"Fleet API commands rate limited for car {car.Vin}",
                     $"The Solar4Car backend rejected the command {fleetApiRequest.RequestUrl} as rate limited: {backendResult.ErrorMessage}",

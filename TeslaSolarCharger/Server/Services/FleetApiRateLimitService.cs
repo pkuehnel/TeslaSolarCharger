@@ -47,4 +47,24 @@ public class FleetApiRateLimitService(
             car.LastCountedFleetApiCommand = currentDate;
         }
     }
+
+    /// <summary>
+    /// Blocks further commands after the backend rejected one as rate limited. As <see cref="DtoCar.LastCountedFleetApiCommand"/>
+    /// is only kept in memory but the backend enforces the limit across restarts, the local state can be empty while the backend
+    /// still blocks. Without this every charging cycle would send a command just to get rejected again.
+    /// The block is anchored a <see cref="GraceWindow"/> in the past so no new grace window is opened. As the backend does not
+    /// tell when exactly the next command is allowed, this blocks for the remaining <see cref="CommandWindow"/> minus
+    /// <see cref="GraceWindow"/>, which never blocks longer than a full command window.
+    /// </summary>
+    public void RecordRateLimited(DtoCar car)
+    {
+        logger.LogTrace("{method}({vin})", nameof(RecordRateLimited), car.Vin);
+        var lastCountedCommand = car.LastCountedFleetApiCommand;
+        var blockAnchor = dateTimeProvider.UtcNow() - GraceWindow;
+        //Never shorten an already known block, e.g. when the backend rejects a command sent within the local grace window.
+        if (lastCountedCommand == default || blockAnchor > lastCountedCommand.Value)
+        {
+            car.LastCountedFleetApiCommand = blockAnchor;
+        }
+    }
 }

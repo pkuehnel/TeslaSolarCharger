@@ -21,7 +21,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
     ITokenHelper tokenHelper,
     IConstants constants,
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
-    IBackendApiService backendApiService) : IErrorDetectionService
+    IBackendApiService backendApiService,
+    IFleetApiRateLimitService fleetApiRateLimitService) : IErrorDetectionService
 {
     public async Task DetectErrors()
     {
@@ -142,6 +143,14 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             else
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
+            }
+
+            //Resolved here and not only after a successful Fleet API command, as the rate limit is also irrelevant again when BLE
+            //works again, the car needs no commands at all or a Fleet API license was bought. In all those cases no Fleet API
+            //command is sent that could resolve the issue.
+            if (fleetApiRateLimitService.GetNextAllowedUtc(car) == default)
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiCommandRateLimited, car.Vin);
             }
 
             if (car.IsOnline.Value == false)
