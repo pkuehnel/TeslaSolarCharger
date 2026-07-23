@@ -90,6 +90,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
+            .AddTransient<HomeBatteryModeJob>()
             .AddTransient<RefreshableValuesRefreshJob>()
             .AddTransient<ManualCarsDataClearingJob>()
             .AddTransient<JobFactory>()
