@@ -113,5 +113,33 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
         Register(TranslationKeys.CarDetailsErrorFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "Error: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fehler: {0}"));
+
+        Register(TranslationKeys.CarDetailsSleepAsleep,
+            new TextLocalizationTranslation(LanguageCodes.English, "Asleep"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Schläft"));
+
+        Register(TranslationKeys.CarDetailsSleepTryingToSleep,
+            new TextLocalizationTranslation(LanguageCodes.English, "Trying to sleep"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Versucht einzuschlafen"));
+
+        Register(TranslationKeys.CarDetailsSleepAwakeWaiting,
+            new TextLocalizationTranslation(LanguageCodes.English, "Awake"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wach"));
+
+        Register(TranslationKeys.CarDetailsSleepTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "While trying to sleep TSC stops polling the car via BLE so it can fall asleep. The value in brackets is the countdown to the next check."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Während des Schlafversuchs fragt TSC das Fahrzeug nicht mehr über BLE ab, damit es einschlafen kann. Der Wert in Klammern ist der Countdown bis zur nächsten Abfrage."));
+
+        Register(TranslationKeys.CarDetailsCancelSleepButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cancel sleep attempt"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Schlafversuch abbrechen"));
+
+        Register(TranslationKeys.CarDetailsSleepCancelled,
+            new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt cancelled, car is being re-checked."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Schlafversuch abgebrochen, Fahrzeug wird erneut abgefragt."));
+
+        Register(TranslationKeys.CarDetailsFailedToCancelSleep,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to cancel sleep attempt: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Abbrechen des Schlafversuchs fehlgeschlagen: {0}"));
     }
 }

@@ -187,6 +187,20 @@ public class ConfigurationWrapper(
         return value < 1 ? 1 : value;
     }
 
+    public int BleSleepWindowMinutes()
+    {
+        //Null means the user never decided, so fall back to the current default. A negative value makes no sense; 0 is
+        //valid and disables the feature, so only clamp negatives.
+        var value = GetBaseConfiguration().BleSleepWindowMinutes ?? ConfigurationDefaults.BleSleepWindowMinutes;
+        return value < 0 ? 0 : value;
+    }
+
+    public int BleSleepStabilityMinutes()
+    {
+        var value = GetBaseConfiguration().BleSleepStabilityMinutes ?? ConfigurationDefaults.BleSleepStabilityMinutes;
+        return value < 0 ? 0 : value;
+    }
+
     public TimeSpan FleetApiRefreshInterval()
     {
         var environmentVariableName = "FleetApiRefreshIntervalSeconds";

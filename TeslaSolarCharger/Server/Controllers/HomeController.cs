@@ -14,16 +14,34 @@ public class HomeController : ApiBaseController
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly ITeslaService _teslaService;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly IBleSleepWindowService _bleSleepWindowService;
+    private readonly IBleVehicleDataService _bleVehicleDataService;
 
     public HomeController(IHomeService homeService,
         ILoadPointManagementService loadPointManagementService,
         ITeslaService teslaService,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
+        IBleSleepWindowService bleSleepWindowService,
+        IBleVehicleDataService bleVehicleDataService)
     {
         _homeService = homeService;
         _loadPointManagementService = loadPointManagementService;
         _teslaService = teslaService;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
+        _bleSleepWindowService = bleSleepWindowService;
+        _bleVehicleDataService = bleVehicleDataService;
+    }
+
+    /// <summary>
+    /// Cancels a BLE sleep attempt for a car: TSC immediately re-reads the car state and then restarts the stability
+    /// period, so a new sleep window only begins after the configured stability minutes. Never wakes a sleeping car.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CancelBleSleepAttempt(int carId)
+    {
+        _bleSleepWindowService.ResetSleepWindow(carId);
+        await _bleVehicleDataService.RefreshSingleCarData(carId);
+        return Ok();
     }
 
     [HttpGet]

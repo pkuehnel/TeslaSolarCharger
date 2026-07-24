@@ -613,6 +613,13 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateMaxSoc => nameof(CarDetailsFailedToUpdateMaxSoc);
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
+    public static string CarDetailsSleepAsleep => nameof(CarDetailsSleepAsleep);
+    public static string CarDetailsSleepTryingToSleep => nameof(CarDetailsSleepTryingToSleep);
+    public static string CarDetailsSleepAwakeWaiting => nameof(CarDetailsSleepAwakeWaiting);
+    public static string CarDetailsSleepTooltip => nameof(CarDetailsSleepTooltip);
+    public static string CarDetailsCancelSleepButton => nameof(CarDetailsCancelSleepButton);
+    public static string CarDetailsSleepCancelled => nameof(CarDetailsSleepCancelled);
+    public static string CarDetailsFailedToCancelSleep => nameof(CarDetailsFailedToCancelSleep);
 
     public static string GeneralErrorTitle => nameof(GeneralErrorTitle);
     public static string GeneralSuccessTitle => nameof(GeneralSuccessTitle);

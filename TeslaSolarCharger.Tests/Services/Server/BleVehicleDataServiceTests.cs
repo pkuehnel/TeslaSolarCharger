@@ -280,6 +280,27 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     [Fact]
+    public async Task AwakeCarInSleepWindowKeepsPresenceButSkipsChargeState()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, ResultMessage = AwakeBodyControllerStateJson });
+        //Simulate an active sleep window: the infotainment charge state poll must be withheld.
+        Mock.Mock<IBleSleepWindowService>()
+            .Setup(s => s.ShouldPollInfotainment(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns(false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //Presence and online state are still updated from the VCSEC body controller state...
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.True(dtoCar.IsOnline.Value);
+        //...but the infotainment charge state is not polled so the car can fall asleep.
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ChargingCarSkipsBodyControllerAndReadsChargeStateOnly()
     {
         var dtoCar = SetupBleDataCollectionCar();
@@ -388,6 +409,11 @@ public class BleVehicleDataServiceTests : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataFromTesla()).Returns(true);
         //By default let every read acquire the read slot, individual tests can override this.
         Mock.Mock<IBleReadCoordinator>().Setup(c => c.TryBeginRead(It.IsAny<int>())).Returns(true);
+        //By default the sleep window never silences the infotainment poll (mirrors the real service before a window
+        //starts). Individual tests can override this to simulate an active sleep window.
+        Mock.Mock<IBleSleepWindowService>()
+            .Setup(s => s.ShouldPollInfotainment(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns(true);
         return dtoCar;
     }
 }

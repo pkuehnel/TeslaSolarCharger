@@ -147,6 +147,8 @@ else
                 <GenericInput T="bool?"
                               For="() => _dtoBaseConfiguration.Item.GetVehicleDataViaBle" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.BleDataRefreshAfterCommandSeconds" />
+                <GenericInput T="int?" For="() => _dtoBaseConfiguration.Item.BleSleepWindowMinutes" />
+                <GenericInput T="int?" For="() => _dtoBaseConfiguration.Item.BleSleepStabilityMinutes" />
                 <hr/>
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MqttClientIdPrefix" />
                 <hr/>
