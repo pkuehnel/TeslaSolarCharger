@@ -104,6 +104,7 @@ public interface IConfigurationWrapper
     bool ShouldUseFakeSolarValues();
     int MaxTravelSpeedMetersPerSecond();
     int CarRefreshAfterCommandSeconds();
+    int BleDataRefreshAfterCommandSeconds();
     bool SendStackTraceToTelegram();
     bool UseTeslaMateIntegration();
     string FleetTelemetryApiUrl();

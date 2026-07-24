@@ -25,6 +25,7 @@ public class BleVehicleDataService(
     ICarPropertyUpdateHelper carPropertyUpdateHelper,
     ILoadPointManagementService loadPointManagementService,
     IErrorHandlingService errorHandlingService,
+    IBleReadCoordinator bleReadCoordinator,
     IIssueKeys issueKeys) : IBleVehicleDataService
 {
     private const string AwakeSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE";
@@ -56,32 +57,140 @@ public class BleVehicleDataService(
             {
                 continue;
             }
-            try
-            {
-                await RefreshCarData(car).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error while refreshing BLE data for car {vin}", car.Vin);
-                await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshBleCarData),
-                    $"Error while getting vehicle data via BLE for car {car.Vin}", ex.Message,
-                    issueKeys.BleDataCollectionError, car.Vin, ex.StackTrace).ConfigureAwait(false);
-                continue;
-            }
-            try
-            {
-                await loadPointManagementService.CarStateChanged(car.Id).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", car.Id);
-            }
+            await RefreshCarDataGuarded(car).ConfigureAwait(false);
+        }
+    }
+
+    public async Task RefreshSingleCarData(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(RefreshSingleCarData), carId);
+        if (!configurationWrapper.GetVehicleDataViaBle() || !configurationWrapper.GetVehicleDataFromTesla())
+        {
+            return;
+        }
+        //Apply the same filter as RefreshBleCarData so only cars that actually collect their data via BLE are refreshed.
+        var isBleDataCar = await teslaSolarChargerContext.Cars
+            .Where(c => (c.Id == carId)
+                        && (c.ShouldBeManaged == true)
+                        && (c.CarType == CarType.Tesla)
+                        && c.UseBle
+                        && !c.UseFleetTelemetry
+                        && !c.IncludeTrackingRelevantFields)
+            .AnyAsync().ConfigureAwait(false);
+        if (!isBleDataCar)
+        {
+            logger.LogDebug("Car {carId} does not collect its data via BLE, skip delayed BLE refresh", carId);
+            return;
+        }
+        var car = settings.Cars.FirstOrDefault(c => c.Id == carId);
+        if (car == default || string.IsNullOrEmpty(car.Vin))
+        {
+            return;
+        }
+        await RefreshCarDataGuarded(car).ConfigureAwait(false);
+    }
+
+    private async Task RefreshCarDataGuarded(DtoCar car)
+    {
+        //Never read a single car via BLE from two places at once: the regular cycle read and the delayed post command
+        //read would otherwise hit the same BLE container simultaneously. If a read for this car is already running,
+        //skip this one.
+        if (!bleReadCoordinator.TryBeginRead(car.Id))
+        {
+            logger.LogDebug("Skip BLE read for car {vin} as another read is already in progress", car.Vin);
+            return;
+        }
+        try
+        {
+            await RefreshCarData(car).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while refreshing BLE data for car {vin}", car.Vin);
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshBleCarData),
+                $"Error while getting vehicle data via BLE for car {car.Vin}", ex.Message,
+                issueKeys.BleDataCollectionError, car.Vin, ex.StackTrace).ConfigureAwait(false);
+        }
+        finally
+        {
+            bleReadCoordinator.EndRead(car.Id);
+        }
+        try
+        {
+            await loadPointManagementService.CarStateChanged(car.Id).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", car.Id);
         }
     }
 
     private async Task RefreshCarData(DtoCar car)
     {
         logger.LogTrace("{method}({vin})", nameof(RefreshCarData), car.Vin);
+        if (car.IsCharging.Value == true)
+        {
+            //While the car is charging it is known to be online and at home, so the VCSEC body controller state call is
+            //not required. Reading only the charge state roughly halves the time a refresh takes for a charging car.
+            if (await TryRefreshChargingCarData(car).ConfigureAwait(false))
+            {
+                return;
+            }
+            //The charge state read failed because the car is out of BLE range: the last known charging state was stale
+            //(e.g. the car was unplugged and driven away). Fall back to the body controller state to correctly
+            //determine the presence and online state.
+            logger.LogDebug("Fast charge state read for car {vin} failed as out of BLE range, fall back to body controller state", car.Vin);
+        }
+        await RefreshCarDataViaBodyController(car).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads only the charge state (infotainment) of a charging car, skipping the VCSEC body controller call.
+    /// </summary>
+    /// <returns>
+    /// True if the refresh was handled (charge state stored or a non range error raised). False only if the car turned
+    /// out to be out of BLE range, so the caller should fall back to the body controller state.
+    /// </returns>
+    private async Task<bool> TryRefreshChargingCarData(DtoCar car)
+    {
+        var vin = car.Vin!;
+        var chargeStateResult = await bleService.GetChargeState(vin).ConfigureAwait(false);
+        var timestamp = dateTimeProvider.UtcNow();
+        if (!chargeStateResult.Success)
+        {
+            if (IsCarOutOfBleRangeResult(chargeStateResult))
+            {
+                return false;
+            }
+            logger.LogError("Could not get charge state for charging car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(TryRefreshChargingCarData),
+                $"Error while getting vehicle data via BLE for car {vin}",
+                $"Could not get charge state: {chargeStateResult.ResultMessage}",
+                issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
+            return true;
+        }
+        var chargeState = DeserializeChargeState(chargeStateResult.ResultMessage);
+        if (chargeState == default)
+        {
+            logger.LogError("Could not parse charge state for charging car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(TryRefreshChargingCarData),
+                $"Error while getting vehicle data via BLE for car {vin}",
+                $"Could not parse charge state: {chargeStateResult.ResultMessage}",
+                issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
+            return true;
+        }
+        //The car answered the charge state request, so it is in BLE range (at home) and awake (online).
+        UpdateHomePresence(car, true, timestamp);
+        UpdateOnlineState(car, true, timestamp);
+        UpdateChargeStateValues(car, chargeState, timestamp);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
+        return true;
+    }
+
+    private async Task RefreshCarDataViaBodyController(DtoCar car)
+    {
+        logger.LogTrace("{method}({vin})", nameof(RefreshCarDataViaBodyController), car.Vin);
         var vin = car.Vin!;
         var bodyControllerStateResult = await bleService.GetBodyControllerState(vin).ConfigureAwait(false);
         var timestamp = dateTimeProvider.UtcNow();

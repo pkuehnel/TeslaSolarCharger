@@ -180,6 +180,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public int BleDataRefreshAfterCommandSeconds()
+    {
+        var value = GetBaseConfiguration().BleDataRefreshAfterCommandSeconds;
+        //The delayed BLE read is always enabled; a value below 1 second makes no sense, so clamp it.
+        return value < 1 ? 1 : value;
+    }
+
     public TimeSpan FleetApiRefreshInterval()
     {
         var environmentVariableName = "FleetApiRefreshIntervalSeconds";

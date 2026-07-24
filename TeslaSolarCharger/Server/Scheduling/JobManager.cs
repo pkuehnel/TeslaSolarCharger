@@ -60,6 +60,9 @@ public class JobManager(
         var homeBatteryModeJob = JobBuilder.Create<HomeBatteryModeJob>().WithIdentity(nameof(HomeBatteryModeJob)).Build();
         var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
         var manualCarsDataClearingJob = JobBuilder.Create<ManualCarsDataClearingJob>().WithIdentity(nameof(ManualCarsDataClearingJob)).Build();
+        //Durable (no trigger): triggered on demand by BlePostCommandRefreshScheduler shortly after a successful charge
+        //command so the changed BLE values show up quickly instead of only on the next charging cycle.
+        var blePostCommandRefreshJob = JobBuilder.Create<BlePostCommandRefreshJob>().WithIdentity(nameof(BlePostCommandRefreshJob)).StoreDurably().Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -217,6 +220,8 @@ public class JobManager(
         }
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
+        //Durable job without a trigger: it is fired on demand by BlePostCommandRefreshScheduler.
+        await _scheduler.AddJob(blePostCommandRefreshJob, true).ConfigureAwait(false);
 
         await _scheduler.Start().ConfigureAwait(false);
     }

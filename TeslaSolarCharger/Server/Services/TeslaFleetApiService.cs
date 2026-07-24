@@ -40,7 +40,8 @@ public class TeslaFleetApiService(
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
     IMemoryCache memoryCache,
     IBackendApiService backendApiService,
-    IFleetApiRateLimitService fleetApiRateLimitService)
+    IFleetApiRateLimitService fleetApiRateLimitService,
+    IBlePostCommandRefreshScheduler blePostCommandRefreshScheduler)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -795,6 +796,13 @@ public class TeslaFleetApiService(
                 {
                     AddRequestToCar(vin, fleetApiRequest);
                     await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
+                    //A charge command succeeded via BLE. Trigger an extra BLE read shortly after so the changed values
+                    //(e.g. the new charging amps) show up quickly instead of only on the next charging cycle. The
+                    //scheduler is a no-op for cars that do not collect their data via BLE.
+                    if (IsChargeCommand(fleetApiRequest))
+                    {
+                        await blePostCommandRefreshScheduler.ScheduleRefresh(car.Id).ConfigureAwait(false);
+                    }
                     if (typeof(T) == typeof(DtoVehicleCommandResult))
                     {
                         var comamndResult = new DtoGenericTeslaResponse<T> { Response = (T)(object)new DtoVehicleCommandResult()
@@ -952,6 +960,17 @@ public class TeslaFleetApiService(
         }
         logger.LogDebug("Response: {responseString}", backendApiResponse.JsonResponse);
         return teslaCommandResultResponse;
+    }
+
+    /// <summary>
+    /// Charge relevant commands after which an extra BLE read is scheduled so the changed values show up quickly.
+    /// Wake up is excluded as it is always followed by a set amps / charge start command that triggers the read.
+    /// </summary>
+    private bool IsChargeCommand(DtoFleetApiRequest fleetApiRequest)
+    {
+        return (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl);
     }
 
     /// <summary>
