@@ -146,6 +146,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBleService, TeslaBleService>()
             .AddTransient<IBleVehicleDataService, BleVehicleDataService>()
             .AddSingleton<IBleReadCoordinator, BleReadCoordinator>()
+            .AddSingleton<IBleSleepWindowService, BleSleepWindowService>()
             .AddTransient<IBlePostCommandRefreshScheduler, BlePostCommandRefreshScheduler>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()

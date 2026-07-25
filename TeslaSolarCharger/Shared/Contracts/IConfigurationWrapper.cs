@@ -105,6 +105,19 @@ public interface IConfigurationWrapper
     int MaxTravelSpeedMetersPerSecond();
     int CarRefreshAfterCommandSeconds();
     int BleDataRefreshAfterCommandSeconds();
+
+    /// <summary>
+    /// Minutes an idle BLE car is not polled via the infotainment system so it can fall asleep. Resolves the nullable
+    /// base configuration value to <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleSleepWindowMinutes"/>
+    /// when the user never set it. 0 disables the BLE sleep window feature.
+    /// </summary>
+    int BleSleepWindowMinutes();
+
+    /// <summary>
+    /// Minutes of unchanged BLE polls before a BLE sleep window starts. Resolves the nullable base configuration value
+    /// to <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleSleepStabilityMinutes"/> when never set.
+    /// </summary>
+    int BleSleepStabilityMinutes();
     bool SendStackTraceToTelegram();
     bool UseTeslaMateIntegration();
     string FleetTelemetryApiUrl();

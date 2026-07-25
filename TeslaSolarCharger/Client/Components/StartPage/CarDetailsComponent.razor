@@ -37,6 +37,25 @@ else
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText='@T(TranslationKeys.CarDetailsPluggedIn)'></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText='@T(TranslationKeys.CarDetailsCharging)'></CustomIcon>
     </div>
+    @if (CarState.BleSleepPhase != null)
+    {
+        <div class="d-flex align-items-center my-1">
+            <MudTooltip Text="@T(TranslationKeys.CarDetailsSleepTooltip)">
+                <CustomIcon IconName="@Icons.Material.Outlined.Bedtime" Class="me-1" />
+            </MudTooltip>
+            <span class="me-2">@BleSleepPhaseText()</span>
+            @if (CarState.CanCancelBleSleep)
+            {
+                <MudButton Size="Size.Small"
+                           Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           Disabled="_cancellingSleep"
+                           OnClick="CancelSleepAttempt">
+                    @T(TranslationKeys.CarDetailsCancelSleepButton)
+                </MudButton>
+            }
+        </div>
+    }
     @if (CarSettings.CarType == CarType.Tesla)
     {
         <FleetApiTestComponent CarId="CarId" />
@@ -376,6 +395,60 @@ else
         Snackbar.Add(T(TranslationKeys.CarDetailsSocUpdated), Severity.Success);
         ManualSocToSet = null;
         StateHasChanged();
+    }
+
+    private bool _cancellingSleep;
+
+    private async Task CancelSleepAttempt()
+    {
+        if (CarId == default)
+        {
+            return;
+        }
+        _cancellingSleep = true;
+        try
+        {
+            var result = await HomeService.CancelBleSleepAttempt(CarId.Value);
+            if (result.HasError)
+            {
+                Snackbar.Add(Format(TranslationKeys.CarDetailsFailedToCancelSleep, result.ErrorMessage), Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(T(TranslationKeys.CarDetailsSleepCancelled), Severity.Success);
+            }
+        }
+        finally
+        {
+            _cancellingSleep = false;
+        }
+    }
+
+    private string BleSleepPhaseText()
+    {
+        var phase = CarState?.BleSleepPhase;
+        if (phase == null)
+        {
+            return string.Empty;
+        }
+        var countdown = CarState?.BleSleepCountdownSeconds ?? 0;
+        return phase.Value switch
+        {
+            BleSleepPhase.Asleep => T(TranslationKeys.CarDetailsSleepAsleep),
+            BleSleepPhase.TryingToSleep => $"{T(TranslationKeys.CarDetailsSleepTryingToSleep)} ({FormatCountdown(countdown)})",
+            //While waiting only show the countdown if it is still meaningful; once it hits 0 entry is gated by an open
+            //closure or an occupant, so just show "Awake".
+            BleSleepPhase.WaitingToSleep => countdown > 0
+                ? $"{T(TranslationKeys.CarDetailsSleepAwakeWaiting)} ({FormatCountdown(countdown)})"
+                : T(TranslationKeys.CarDetailsSleepAwakeWaiting),
+            _ => string.Empty,
+        };
+    }
+
+    private static string FormatCountdown(int? seconds)
+    {
+        var total = Math.Max(0, seconds ?? 0);
+        return $"{total / 60}:{total % 60:00}";
     }
 
     private string T(string key) =>

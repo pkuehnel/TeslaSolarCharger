@@ -27,4 +27,12 @@ public class DtoCarOverviewState
     public bool IsCharging { get; set; }
     public bool IsHome { get; set; }
     public bool IsPluggedIn { get; set; }
+    /// <summary>
+    /// BLE sleep window phase of the car, or null if the car is not collecting its data via BLE or the feature is off.
+    /// </summary>
+    public BleSleepPhase? BleSleepPhase { get; set; }
+    /// <summary>Seconds until the next BLE sleep transition (see <see cref="BleSleepPhase"/>), or null.</summary>
+    public int? BleSleepCountdownSeconds { get; set; }
+    /// <summary>True while the user can cancel the current BLE sleep attempt (car awake and being silenced).</summary>
+    public bool CanCancelBleSleep { get; set; }
 }
