@@ -114,9 +114,10 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.English, "Error: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fehler: {0}"));
 
+        //Used as icon tooltip, so it needs to read well with the crossed out prefix, too ("Not asleep"/"Nicht eingeschlafen").
         Register(TranslationKeys.CarDetailsSleepAsleep,
-            new TextLocalizationTranslation(LanguageCodes.English, "Asleep"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Schläft"));
+            new TextLocalizationTranslation(LanguageCodes.English, "asleep"),
+            new TextLocalizationTranslation(LanguageCodes.German, "eingeschlafen"));
 
         Register(TranslationKeys.CarDetailsSleepTryingToSleep,
             new TextLocalizationTranslation(LanguageCodes.English, "Trying to sleep"),
@@ -127,12 +128,8 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Wach"));
 
         Register(TranslationKeys.CarDetailsSleepTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "While trying to sleep TSC stops polling the car via BLE so it can fall asleep. The value in brackets is the countdown to the next check."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Während des Schlafversuchs fragt TSC das Fahrzeug nicht mehr über BLE ab, damit es einschlafen kann. Der Wert in Klammern ist der Countdown bis zur nächsten Abfrage."));
-
-        Register(TranslationKeys.CarDetailsCancelSleepButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Cancel sleep attempt"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Schlafversuch abbrechen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "While trying to sleep TSC stops polling the car via BLE so it can fall asleep. The value in brackets is the countdown to the next check. Click to cancel the sleep attempt."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Während des Schlafversuchs fragt TSC das Fahrzeug nicht mehr über BLE ab, damit es einschlafen kann. Der Wert in Klammern ist der Countdown bis zur nächsten Abfrage. Klicken Sie, um den Schlafversuch abzubrechen."));
 
         Register(TranslationKeys.CarDetailsSleepCancelled,
             new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt cancelled, car is being re-checked."),

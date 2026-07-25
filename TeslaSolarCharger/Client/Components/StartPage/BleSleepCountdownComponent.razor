@@ -1,0 +1,149 @@
+@using System.Globalization
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+@implements IDisposable
+
+@inject IHomeService HomeService
+@inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
+
+<MudTooltip Text="@T(TranslationKeys.CarDetailsSleepTooltip)">
+    <MudButton Size="Size.Small"
+               Variant="Variant.Outlined"
+               Color="Color.Default"
+               Disabled="_cancellingSleep"
+               OnClick="CancelSleepAttempt">
+        @ButtonText()
+    </MudButton>
+</MudTooltip>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public int CarId { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public BleSleepPhase Phase { get; set; }
+
+    [Parameter]
+    public int? CountdownSeconds { get; set; }
+
+    private const int TickIntervalMilliseconds = 1000;
+
+    //The server only pushes a new car state about every 30 seconds, but the countdown is a plain linear countdown, so
+    //it is ticked down locally between pushes. Counting the seconds elapsed since the value arrived (instead of using
+    //an absolute target time) keeps this immune to clock differences between server and browser.
+    private int _baseSeconds;
+    private DateTimeOffset _baseReceivedAt;
+    private System.Threading.Timer? _timer;
+
+    private BleSleepPhase? _lastKnownPhase;
+    private int? _lastKnownCountdownSeconds;
+    private bool _cancellingSleep;
+
+    protected override void OnParametersSet()
+    {
+        //Only resync on values that actually changed: a re-render of the parent (e.g. after a SoC update) repeats the
+        //same parameter values and must not jerk the locally ticking countdown back to the last pushed value.
+        if (_lastKnownPhase == Phase && _lastKnownCountdownSeconds == CountdownSeconds)
+        {
+            return;
+        }
+        _lastKnownPhase = Phase;
+        _lastKnownCountdownSeconds = CountdownSeconds;
+        _baseSeconds = Math.Max(0, CountdownSeconds ?? 0);
+        _baseReceivedAt = DateTimeOffset.UtcNow;
+        if (RemainingSeconds() > 0)
+        {
+            _timer ??= new System.Threading.Timer(_ => OnTick(), null, TickIntervalMilliseconds, TickIntervalMilliseconds);
+        }
+        else
+        {
+            DisposeTimer();
+        }
+    }
+
+    private void OnTick()
+    {
+        _ = InvokeAsync(() =>
+        {
+            StateHasChanged();
+            if (RemainingSeconds() <= 0)
+            {
+                //Nothing left to count down: wait for the next server push instead of rerendering every second.
+                DisposeTimer();
+            }
+        });
+    }
+
+    private int RemainingSeconds()
+    {
+        var elapsedSeconds = (int)(DateTimeOffset.UtcNow - _baseReceivedAt).TotalSeconds;
+        return Math.Max(0, _baseSeconds - elapsedSeconds);
+    }
+
+    private string ButtonText()
+    {
+        var remainingSeconds = RemainingSeconds();
+        return Phase switch
+        {
+            BleSleepPhase.TryingToSleep => $"{T(TranslationKeys.CarDetailsSleepTryingToSleep)} ({FormatCountdown(remainingSeconds)})",
+            //While waiting only show the countdown if it is still meaningful; once it hits 0 entry is gated by an open
+            //closure or an occupant, so just show "Awake".
+            BleSleepPhase.WaitingToSleep => remainingSeconds > 0
+                ? $"{T(TranslationKeys.CarDetailsSleepAwakeWaiting)} ({FormatCountdown(remainingSeconds)})"
+                : T(TranslationKeys.CarDetailsSleepAwakeWaiting),
+            _ => string.Empty,
+        };
+    }
+
+    private static string FormatCountdown(int seconds)
+    {
+        var total = Math.Max(0, seconds);
+        return $"{total / 60}:{total % 60:00}";
+    }
+
+    private async Task CancelSleepAttempt()
+    {
+        _cancellingSleep = true;
+        try
+        {
+            var result = await HomeService.CancelBleSleepAttempt(CarId);
+            if (result.HasError)
+            {
+                Snackbar.Add(Format(TranslationKeys.CarDetailsFailedToCancelSleep, result.ErrorMessage), Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(T(TranslationKeys.CarDetailsSleepCancelled), Severity.Success);
+            }
+        }
+        finally
+        {
+            _cancellingSleep = false;
+        }
+    }
+
+    private void DisposeTimer()
+    {
+        _timer?.Dispose();
+        _timer = default;
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarDetailsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    public void Dispose()
+    {
+        DisposeTimer();
+    }
+}

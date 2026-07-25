@@ -617,7 +617,6 @@ public static class TranslationKeys
     public static string CarDetailsSleepTryingToSleep => nameof(CarDetailsSleepTryingToSleep);
     public static string CarDetailsSleepAwakeWaiting => nameof(CarDetailsSleepAwakeWaiting);
     public static string CarDetailsSleepTooltip => nameof(CarDetailsSleepTooltip);
-    public static string CarDetailsCancelSleepButton => nameof(CarDetailsCancelSleepButton);
     public static string CarDetailsSleepCancelled => nameof(CarDetailsSleepCancelled);
     public static string CarDetailsFailedToCancelSleep => nameof(CarDetailsFailedToCancelSleep);
 
