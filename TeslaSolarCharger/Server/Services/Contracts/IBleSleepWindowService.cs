@@ -43,4 +43,11 @@ public interface IBleSleepWindowService
     /// disabled.
     /// </summary>
     DtoBleSleepWindowStatus? GetStatus(int carId, DateTime nowUtc, int windowMinutes, int stabilityMinutes);
+
+    /// <summary>
+    /// Starts a sleep window right away, skipping the remaining stability period, because the user explicitly asked
+    /// for it. Returns false if that is currently not possible: feature disabled, car not tracked, already asleep,
+    /// already in a window, or the last full poll saw an open closure or an occupant.
+    /// </summary>
+    bool TryStartWindowNow(int carId, DateTime nowUtc, int windowMinutes);
 }

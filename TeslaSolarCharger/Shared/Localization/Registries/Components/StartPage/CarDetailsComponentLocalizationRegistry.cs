@@ -120,16 +120,56 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "eingeschlafen"));
 
         Register(TranslationKeys.CarDetailsSleepTryingToSleep,
-            new TextLocalizationTranslation(LanguageCodes.English, "Trying to sleep"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Versucht einzuschlafen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt running — next poll in {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einschlafversuch läuft — nächste Abfrage in {0}"));
 
         Register(TranslationKeys.CarDetailsSleepAwakeWaiting,
             new TextLocalizationTranslation(LanguageCodes.English, "Awake"),
             new TextLocalizationTranslation(LanguageCodes.German, "Wach"));
 
+        Register(TranslationKeys.CarDetailsSleepWaitingCountdown,
+            new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt starts in {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einschlafversuch startet in {0}"));
+
+        Register(TranslationKeys.CarDetailsSleepStartsShortly,
+            new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt starts shortly"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einschlafversuch startet in Kürze"));
+
+        Register(TranslationKeys.CarDetailsSleepBlocked,
+            new TextLocalizationTranslation(LanguageCodes.English, "Awake — car is open or occupied"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wach — Fahrzeug offen oder besetzt"));
+
         Register(TranslationKeys.CarDetailsSleepTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "While trying to sleep TSC stops polling the car via BLE so it can fall asleep. The value in brackets is the countdown to the next check. Click to cancel the sleep attempt."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Während des Schlafversuchs fragt TSC das Fahrzeug nicht mehr über BLE ab, damit es einschlafen kann. Der Wert in Klammern ist der Countdown bis zur nächsten Abfrage. Klicken Sie, um den Schlafversuch abzubrechen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "During a sleep attempt TSC stops polling the car's infotainment system so its standby timer can run out and it can fall asleep. Presence detection via BLE keeps running, but the state of charge is not updated until the attempt ends."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Während eines Einschlafversuchs fragt TSC das Infotainmentsystem des Fahrzeugs nicht mehr ab, damit dessen Standby-Timer ablaufen und es einschlafen kann. Die Anwesenheitserkennung über BLE läuft weiter, der Ladestand wird bis zum Ende des Versuchs jedoch nicht aktualisiert."));
+
+        Register(TranslationKeys.CarDetailsCancelSleepButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Cancel sleep attempt"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einschlafversuch abbrechen"));
+
+        Register(TranslationKeys.CarDetailsStartSleepButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Let it sleep now"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Jetzt einschlafen lassen"));
+
+        Register(TranslationKeys.CarDetailsStartSleepTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "Skips the remaining waiting time and stops polling the infotainment system right away."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Überspringt die restliche Wartezeit und stoppt die Abfrage des Infotainmentsystems sofort."));
+
+        Register(TranslationKeys.CarDetailsStartSleepBlockedTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "No sleep attempt possible right now."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktuell ist kein Einschlafversuch möglich."));
+
+        Register(TranslationKeys.CarDetailsStartSleepBlockedByCarStateTooltip,
+            new TextLocalizationTranslation(LanguageCodes.English, "No sleep attempt possible: a door, the frunk or the trunk is open, or someone is in the car."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Kein Einschlafversuch möglich: Eine Tür, der Frunk oder der Kofferraum ist offen, oder es sitzt jemand im Fahrzeug."));
+
+        Register(TranslationKeys.CarDetailsSleepAttemptStarted,
+            new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt started."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einschlafversuch gestartet."));
+
+        Register(TranslationKeys.CarDetailsFailedToStartSleep,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to start sleep attempt: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Starten des Einschlafversuchs fehlgeschlagen: {0}"));
 
         Register(TranslationKeys.CarDetailsSleepCancelled,
             new TextLocalizationTranslation(LanguageCodes.English, "Sleep attempt cancelled, car is being re-checked."),

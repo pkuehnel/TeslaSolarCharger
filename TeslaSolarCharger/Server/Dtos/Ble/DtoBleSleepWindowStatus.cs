@@ -15,4 +15,11 @@ public class DtoBleSleepWindowStatus
     /// stability time until a window could start. Never negative. Null while <see cref="BleSleepPhase.Asleep"/>.
     /// </summary>
     public int? SecondsRemaining { get; set; }
+
+    /// <summary>
+    /// Whether the last full poll saw the car closed up (doors, frunk, rear trunk) and without an occupant. False
+    /// means a sleep window is currently blocked; null means nothing was observed yet, which counts as blocked but is
+    /// not worth telling the user about.
+    /// </summary>
+    public bool? CarClosedAndEmpty { get; set; }
 }

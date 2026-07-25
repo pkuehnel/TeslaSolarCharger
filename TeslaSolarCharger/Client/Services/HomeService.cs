@@ -145,6 +145,13 @@ public class HomeService : IHomeService
         return result;
     }
 
+    public async Task<Result<object?>> StartBleSleepAttempt(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(StartBleSleepAttempt), carId);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/StartBleSleepAttempt?carId={carId}", null);
+        return result;
+    }
+
     public async Task<Result<object?>> UpdateManualCarSoc(int carId, int soc)
     {
         _logger.LogTrace("{method}({carId}, {soc})", nameof(UpdateManualCarSoc), carId, soc);

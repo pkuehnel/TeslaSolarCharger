@@ -72,11 +72,12 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
                 state.StabilitySinceUtc = nowUtc;
             }
             state.LastSignature = signature;
+            //Remembered so the UI can tell that no sleep window can start and whether the user may start one manually.
+            state.ClosedAndEmpty = AllCountedClosuresClosed(bodyControllerState) && !IsOccupantPresent(bodyControllerState);
 
             //ObserveFullPoll only runs right after ShouldPollInfotainment returned true, so any previous window is
             //already ended (WindowStartUtc is null here). Only (re-)enter a window, never keep a stale one.
-            if (AllCountedClosuresClosed(bodyControllerState)
-                && !IsOccupantPresent(bodyControllerState)
+            if (state.ClosedAndEmpty == true
                 && (nowUtc - state.StabilitySinceUtc).TotalMinutes >= stabilityMinutes)
             {
                 logger.LogDebug("Car {carId} stable for {stabilityMinutes} min, start BLE sleep window", carId, stabilityMinutes);
@@ -124,12 +125,53 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
             if (state.WindowStartUtc is { } windowStart)
             {
                 var remaining = windowMinutes * 60 - (int)(nowUtc - windowStart).TotalSeconds;
-                return new DtoBleSleepWindowStatus { Phase = BleSleepPhase.TryingToSleep, SecondsRemaining = Math.Max(0, remaining) };
+                return new DtoBleSleepWindowStatus
+                {
+                    Phase = BleSleepPhase.TryingToSleep,
+                    SecondsRemaining = Math.Max(0, remaining),
+                };
             }
             var stabilityRemaining = stabilityMinutes * 60 - (int)(nowUtc - state.StabilitySinceUtc).TotalSeconds;
-            return new DtoBleSleepWindowStatus { Phase = BleSleepPhase.WaitingToSleep, SecondsRemaining = Math.Max(0, stabilityRemaining) };
+            return new DtoBleSleepWindowStatus
+            {
+                Phase = BleSleepPhase.WaitingToSleep,
+                SecondsRemaining = Math.Max(0, stabilityRemaining),
+                CarClosedAndEmpty = state.ClosedAndEmpty,
+            };
         }
     }
+
+    public bool TryStartWindowNow(int carId, DateTime nowUtc, int windowMinutes)
+    {
+        if (windowMinutes <= 0)
+        {
+            return false;
+        }
+        if (!_states.TryGetValue(carId, out var state))
+        {
+            //Nothing observed yet, so it is unknown whether the car is closed up: do not silence it.
+            return false;
+        }
+        lock (state)
+        {
+            if (!CanStartWindow(state))
+            {
+                return false;
+            }
+            logger.LogDebug("Manually start BLE sleep window for car {carId}", carId);
+            state.WindowStartUtc = nowUtc;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Whether a sleep window may be started right now, ignoring the stability period: that one only exists to avoid
+    /// silencing a car that is still in use, which the user overrules by starting a window manually.
+    /// </summary>
+    private static bool CanStartWindow(SleepWindowState state) =>
+        !state.IsAsleep
+        && state.WindowStartUtc == null
+        && state.ClosedAndEmpty == true;
 
     private static string BuildSignature(DtoBleBodyControllerState bcs, bool? pluggedIn, int? chargeLimitSoc)
     {
@@ -182,5 +224,8 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
         public string? LastSignature { get; set; }
         public DateTime? WindowStartUtc { get; set; }
         public bool IsAsleep { get; set; }
+        //All counted closures closed and nobody in the car. Null until a full poll was observed: unknown, which counts
+        //as "not ready" for starting a window.
+        public bool? ClosedAndEmpty { get; set; }
     }
 }

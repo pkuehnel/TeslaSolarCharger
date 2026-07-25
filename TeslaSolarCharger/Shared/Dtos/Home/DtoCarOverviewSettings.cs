@@ -33,6 +33,9 @@ public class DtoCarOverviewState
     public BleSleepPhase? BleSleepPhase { get; set; }
     /// <summary>Seconds until the next BLE sleep transition (see <see cref="BleSleepPhase"/>), or null.</summary>
     public int? BleSleepCountdownSeconds { get; set; }
-    /// <summary>True while the user can cancel the current BLE sleep attempt (car awake and being silenced).</summary>
-    public bool CanCancelBleSleep { get; set; }
+    /// <summary>
+    /// Whether the car is closed up (doors, frunk, rear trunk) and empty, so a BLE sleep attempt could start right
+    /// away. False means it is blocked by an open closure or an occupant, null means it is not known yet.
+    /// </summary>
+    public bool? BleSleepCarClosedAndEmpty { get; set; }
 }

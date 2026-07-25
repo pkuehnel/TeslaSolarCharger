@@ -41,12 +41,13 @@ else
             <CustomIcon IconName="@Icons.Material.Outlined.Bedtime" IsCrossedOut="@(CarState.BleSleepPhase != BleSleepPhase.Asleep)" TooltipText='@T(TranslationKeys.CarDetailsSleepAsleep)'></CustomIcon>
         }
     </div>
-    @if (CarId != default && CarState.BleSleepPhase != default && CarState.CanCancelBleSleep)
+    @if (CarId != default && CarState.BleSleepPhase != default && CarState.BleSleepPhase != BleSleepPhase.Asleep)
     {
         <div class="my-1">
-            <BleSleepCountdownComponent CarId="CarId.Value"
-                                        Phase="CarState.BleSleepPhase.Value"
-                                        CountdownSeconds="CarState.BleSleepCountdownSeconds" />
+            <BleSleepStatusComponent CarId="CarId.Value"
+                                     Phase="CarState.BleSleepPhase.Value"
+                                     CountdownSeconds="CarState.BleSleepCountdownSeconds"
+                                     CarClosedAndEmpty="CarState.BleSleepCarClosedAndEmpty" />
         </div>
     }
     @if (CarSettings.CarType == CarType.Tesla)

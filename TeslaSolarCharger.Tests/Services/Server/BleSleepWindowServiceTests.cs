@@ -210,6 +210,86 @@ public class BleSleepWindowServiceTests
     }
 
     [Fact]
+    public void StatusReportsBlockingClosureAndForbidsManualStart()
+    {
+        var svc = NewService();
+        Cycle(svc, AllClosed(frontDriverDoor: "CLOSURESTATE_OPEN"), false, 80, T0);
+        var status = svc.GetStatus(CarId, T0, Window, Stability);
+        Assert.NotNull(status);
+        Assert.Equal(BleSleepPhase.WaitingToSleep, status!.Phase);
+        Assert.False(status.CarClosedAndEmpty);
+        Assert.False(svc.TryStartWindowNow(CarId, T0, Window));
+        //Refused start must not silence the car.
+        Assert.True(Cycle(svc, AllClosed(frontDriverDoor: "CLOSURESTATE_OPEN"), false, 80, T0.AddSeconds(30)));
+    }
+
+    [Fact]
+    public void StatusReportsBlockingOccupantAndForbidsManualStart()
+    {
+        var svc = NewService();
+        Cycle(svc, AllClosed(userPresence: "VEHICLE_USER_PRESENCE_PRESENT"), false, 80, T0);
+        var status = svc.GetStatus(CarId, T0, Window, Stability);
+        Assert.NotNull(status);
+        Assert.False(status!.CarClosedAndEmpty);
+        Assert.False(svc.TryStartWindowNow(CarId, T0, Window));
+    }
+
+    [Fact]
+    public void StatusReportsUnknownCarStateBeforeFirstFullPoll()
+    {
+        var svc = NewService();
+        //NotifyAsleep tracks the car without ever having observed closures; after the wake nothing is known yet.
+        svc.NotifyAsleep(CarId);
+        var status = svc.GetStatus(CarId, T0, Window, Stability);
+        Assert.NotNull(status);
+        Assert.Equal(BleSleepPhase.Asleep, status!.Phase);
+        Assert.Null(status.CarClosedAndEmpty);
+        Assert.False(svc.TryStartWindowNow(CarId, T0, Window));
+    }
+
+    [Fact]
+    public void ManualStartSkipsStabilityAndSilencesImmediately()
+    {
+        var svc = NewService();
+        Cycle(svc, AllClosed(), false, 80, T0);
+        var status = svc.GetStatus(CarId, T0, Window, Stability);
+        Assert.NotNull(status);
+        Assert.True(status!.CarClosedAndEmpty);
+
+        //Long before the stability period elapsed the user starts the attempt manually.
+        var manualStart = T0.AddMinutes(1);
+        Assert.True(svc.TryStartWindowNow(CarId, manualStart, Window));
+        var afterStart = svc.GetStatus(CarId, manualStart, Window, Stability);
+        Assert.NotNull(afterStart);
+        Assert.Equal(BleSleepPhase.TryingToSleep, afterStart!.Phase);
+        Assert.Equal(Window * 60, afterStart.SecondsRemaining);
+        //The next cycle is silent, and the window runs its full length from the manual start.
+        Assert.False(Cycle(svc, AllClosed(), false, 80, manualStart.AddSeconds(30)));
+        Assert.True(Cycle(svc, AllClosed(), false, 80, manualStart.AddMinutes(Window)));
+    }
+
+    [Fact]
+    public void ManualStartIsRefusedForUntrackedAsleepAndAlreadyRunningWindow()
+    {
+        var svc = NewService();
+        //Never polled: it is unknown whether the car is closed up.
+        Assert.False(svc.TryStartWindowNow(CarId, T0, Window));
+
+        Cycle(svc, AllClosed(), false, 80, T0);
+        //Feature disabled.
+        Assert.False(svc.TryStartWindowNow(CarId, T0, 0));
+
+        svc.NotifyAsleep(CarId);
+        Assert.False(svc.TryStartWindowNow(CarId, T0.AddMinutes(1), Window));
+
+        //Awake again and inside a window: starting a second one makes no sense.
+        var wake = T0.AddHours(1);
+        Cycle(svc, AllClosed(), false, 80, wake);
+        Assert.True(svc.TryStartWindowNow(CarId, wake, Window));
+        Assert.False(svc.TryStartWindowNow(CarId, wake.AddSeconds(1), Window));
+    }
+
+    [Fact]
     public void StatusReportsWindowCountdown()
     {
         var svc = NewService();

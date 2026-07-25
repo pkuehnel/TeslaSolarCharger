@@ -108,9 +108,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             {
                 carState.BleSleepPhase = sleepStatus.Phase;
                 carState.BleSleepCountdownSeconds = sleepStatus.SecondsRemaining;
-                //Cancelling only makes sense while the car is awake and (about to be) silenced. It never wakes a
-                //sleeping car.
-                carState.CanCancelBleSleep = sleepStatus.Phase != BleSleepPhase.Asleep;
+                carState.BleSleepCarClosedAndEmpty = sleepStatus.CarClosedAndEmpty;
             }
         }
         return carState;
