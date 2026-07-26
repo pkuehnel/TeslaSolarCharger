@@ -1,5 +1,6 @@
 using Autofac;
 using Moq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -279,6 +280,88 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     [Fact]
+    public async Task AwakeCarInSleepWindowKeepsPresenceButSkipsChargeState()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, ResultMessage = AwakeBodyControllerStateJson });
+        //Simulate an active sleep window: the infotainment charge state poll must be withheld.
+        Mock.Mock<IBleSleepWindowService>()
+            .Setup(s => s.ShouldPollInfotainment(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns(false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //Presence and online state are still updated from the VCSEC body controller state...
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.True(dtoCar.IsOnline.Value);
+        //...but the infotainment charge state is not polled so the car can fall asleep.
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChargingCarSkipsBodyControllerAndReadsChargeStateOnly()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        //Car is known to be charging, so the VCSEC body controller call should be skipped.
+        dtoCar.IsCharging.Update(DateTimeOffset.UtcNow, true);
+        Mock.Mock<IBleService>().Setup(b => b.GetChargeState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, ResultMessage = ChargingChargeStateJson });
+
+        //Use the real property update helper so the DtoCar properties are actually updated.
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>(
+            new TypedParameter(typeof(ICarPropertyUpdateHelper), Mock.Create<CarPropertyUpdateHelper>()));
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(TestVin), Times.Once);
+        //Charging implies at home and online, both are set without a beacon call.
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.True(dtoCar.IsOnline.Value);
+        Assert.Equal(55, dtoCar.SoC.Value);
+        Assert.Equal(16, dtoCar.ChargerActualCurrent.Value);
+        var carValueLogs = Context.CarValueLogs.ToList();
+        Assert.Contains(carValueLogs, l => l.Type == CarValueType.LocatedAtHome && l.BooleanValue == true && l.Source == CarValueSource.Ble);
+        Assert.Contains(carValueLogs, l => l.Type == CarValueType.AsleepOrOffline && l.BooleanValue == false && l.Source == CarValueSource.Ble);
+    }
+
+    [Fact]
+    public async Task ChargingCarOutOfRangeFallsBackToBodyController()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        dtoCar.IsCharging.Update(DateTimeOffset.UtcNow, true);
+        //The charging state was stale: the car left BLE range, so the charge state read times out.
+        Mock.Mock<IBleService>().Setup(b => b.GetChargeState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = "Error: context deadline exceeded" });
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = $"Error: failed to find BLE beacon for {TestVin}" });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //Falls back to the body controller state to correctly resolve presence / online.
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(TestVin), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
+        Assert.False(dtoCar.IsHomeGeofence.Value);
+        Assert.False(dtoCar.IsOnline.Value);
+    }
+
+    [Fact]
+    public async Task SkipsReadWhenAnotherReadIsInProgress()
+    {
+        SetupBleDataCollectionCar();
+        //Another read for this car is already running, so this read must be skipped entirely.
+        Mock.Mock<IBleReadCoordinator>().Setup(c => c.TryBeginRead(It.IsAny<int>())).Returns(false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task DoesNotPollWhenGetVehicleDataViaBleIsDisabled()
     {
         SetupBleDataCollectionCar();
@@ -324,6 +407,13 @@ public class BleVehicleDataServiceTests : TestBase
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { dtoCar });
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataFromTesla()).Returns(true);
+        //By default let every read acquire the read slot, individual tests can override this.
+        Mock.Mock<IBleReadCoordinator>().Setup(c => c.TryBeginRead(It.IsAny<int>())).Returns(true);
+        //By default the sleep window never silences the infotainment poll (mirrors the real service before a window
+        //starts). Individual tests can override this to simulate an active sleep window.
+        Mock.Mock<IBleSleepWindowService>()
+            .Setup(s => s.ShouldPollInfotainment(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns(true);
         return dtoCar;
     }
 }

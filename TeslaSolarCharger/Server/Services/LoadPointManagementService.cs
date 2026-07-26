@@ -26,6 +26,7 @@ public class LoadPointManagementService : ILoadPointManagementService
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
     private readonly IManualCarHandlingService _manualCarHandlingService;
+    private readonly IBleSleepWindowService _bleSleepWindowService;
 
     public LoadPointManagementService(
     ILogger<LoadPointManagementService> logger,
@@ -39,7 +40,8 @@ public class LoadPointManagementService : ILoadPointManagementService
     IChangeTrackingService changeTrackingService,
     IEntityKeyGenerationHelper entityKeyGenerationHelper,
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
-    IManualCarHandlingService manualCarHandlingService)
+    IManualCarHandlingService manualCarHandlingService,
+    IBleSleepWindowService bleSleepWindowService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -53,6 +55,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
         _fleetTelemetryWebSocketService = fleetTelemetryWebSocketService;
         _manualCarHandlingService = manualCarHandlingService;
+        _bleSleepWindowService = bleSleepWindowService;
     }
 
     public async Task OcppStateChanged(int chargingConnectorId)
@@ -96,6 +99,18 @@ public class LoadPointManagementService : ILoadPointManagementService
             Soc = car.SoC.Value,
             IsOnline = car.IsOnline.Value,
         };
+        var windowMinutes = _configurationWrapper.BleSleepWindowMinutes();
+        if (windowMinutes > 0)
+        {
+            var sleepStatus = _bleSleepWindowService.GetStatus(carId, _dateTimeProvider.UtcNow(),
+                windowMinutes, _configurationWrapper.BleSleepStabilityMinutes());
+            if (sleepStatus != default)
+            {
+                carState.BleSleepPhase = sleepStatus.Phase;
+                carState.BleSleepCountdownSeconds = sleepStatus.SecondsRemaining;
+                carState.BleSleepCarClosedAndEmpty = sleepStatus.CarClosedAndEmpty;
+            }
+        }
         return carState;
     }
 

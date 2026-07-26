@@ -22,6 +22,7 @@ public class HomeBatteryModeService : IHomeBatteryModeService
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private HomeBatteryMode _currentMode = HomeBatteryMode.Unknown;
     private DateTimeOffset? _currentModeSetAt;
+    private bool _modeWrittenSinceStartup;
     private HomeBatteryMode? _manualOverrideMode;
     private DateTimeOffset? _manualOverrideValidUntil;
     private readonly ConcurrentDictionary<int, DateTimeOffset> _lastSuccessfulWrites = new();
@@ -140,6 +141,7 @@ public class HomeBatteryModeService : IHomeBatteryModeService
             {
                 _currentMode = HomeBatteryMode.Normal;
                 _currentModeSetAt = _dateTimeProvider.DateTimeOffSetUtcNow();
+                _modeWrittenSinceStartup = true;
             }
         }
         catch (Exception ex)
@@ -157,8 +159,11 @@ public class HomeBatteryModeService : IHomeBatteryModeService
     /// While charging is required the battery soc is validated against the max charge soc and the mode is
     /// demoted to hold when the limit is reached so the battery can not be overcharged.
     /// </summary>
+    /// <param name="modeWrittenSinceStartup">False until this process wrote a mode to the devices. As long as it is
+    /// false <paramref name="currentMode"/> being unknown does not mean the devices are in their default behavior:
+    /// a previous process might have left a hold or charge behind, e.g. when it was killed instead of shut down.</param>
     public static HomeBatteryMode? CalculateModeToWrite(HomeBatteryMode currentMode, HomeBatteryMode? requiredMode,
-        int? homeBatterySoc, int maxChargeSoc)
+        int? homeBatterySoc, int maxChargeSoc, bool modeWrittenSinceStartup)
     {
         if (requiredMode == HomeBatteryMode.Charge && homeBatterySoc >= maxChargeSoc)
         {
@@ -168,8 +173,13 @@ public class HomeBatteryModeService : IHomeBatteryModeService
         {
             return requiredMode == currentMode ? null : requiredMode;
         }
-        //Without any required mode the vendor default behavior needs to be restored, but only if it was modified before.
-        return currentMode is HomeBatteryMode.Hold or HomeBatteryMode.Charge ? HomeBatteryMode.Normal : null;
+        //Without any required mode the vendor default behavior needs to be restored, but only if it was modified before
+        //or the mode a previous process left on the devices is still unknown.
+        if (currentMode is HomeBatteryMode.Hold or HomeBatteryMode.Charge)
+        {
+            return HomeBatteryMode.Normal;
+        }
+        return currentMode == HomeBatteryMode.Unknown && !modeWrittenSinceStartup ? HomeBatteryMode.Normal : null;
     }
 
     public static HomeBatteryMode? GetActiveOverrideMode(HomeBatteryMode? overrideMode, DateTimeOffset? validUntil, DateTimeOffset now)
@@ -244,14 +254,20 @@ public class HomeBatteryModeService : IHomeBatteryModeService
             _logger.LogInformation("Home battery charge mode is demoted to hold as soc {soc} reached max charge soc {maxChargeSoc}",
                 _settings.HomeBatterySoc, maxChargeSoc);
         }
-        var modeToWrite = CalculateModeToWrite(_currentMode, requiredMode, _settings.HomeBatterySoc, maxChargeSoc);
+        var modeToWrite = CalculateModeToWrite(_currentMode, requiredMode, _settings.HomeBatterySoc, maxChargeSoc,
+            _modeWrittenSinceStartup);
         if (modeToWrite != default)
         {
+            if (!_modeWrittenSinceStartup && modeToWrite == HomeBatteryMode.Normal)
+            {
+                _logger.LogInformation("Restoring normal home battery mode after startup as a previous process might have left the devices in hold or charge mode");
+            }
             _logger.LogInformation("Setting home battery mode to {mode}", modeToWrite);
             if (await WriteModeToControllersAsync(controllers, modeToWrite.Value, cancellationToken).ConfigureAwait(false))
             {
                 _currentMode = modeToWrite.Value;
                 _currentModeSetAt = now;
+                _modeWrittenSinceStartup = true;
             }
             return;
         }
