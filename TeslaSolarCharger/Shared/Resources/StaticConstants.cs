@@ -8,6 +8,7 @@ public static class StaticConstants
     public const string HttpClientNameLongTimeout = "LongTimeOutHttpClient";
     public const string HttpClientNameDefaultTimeout = "NormalTimeOutHttpClient";
     public const string HttpClientNameShortTimeout = "ShortTimeOutHttpClient";
+    public const string HttpClientNameBle = "BleHttpClient";
     /// <summary>
     /// MQTT allows 23 chars max, but there should be a randomized part of at least 8 chars to avoid client id collisions.
     /// </summary>

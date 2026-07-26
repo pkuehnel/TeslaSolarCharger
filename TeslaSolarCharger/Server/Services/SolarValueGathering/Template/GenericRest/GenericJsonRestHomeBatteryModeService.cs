@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.HomeBatteryControl;
 using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest;
 
@@ -17,12 +18,15 @@ public class GenericJsonRestHomeBatteryModeService : IHomeBatteryModeSetupServic
 {
     private readonly ILogger<GenericJsonRestHomeBatteryModeService> _logger;
     private readonly ITemplateValueConfigurationService _templateValueConfigurationService;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public GenericJsonRestHomeBatteryModeService(ILogger<GenericJsonRestHomeBatteryModeService> logger,
-        ITemplateValueConfigurationService templateValueConfigurationService)
+        ITemplateValueConfigurationService templateValueConfigurationService,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _templateValueConfigurationService = templateValueConfigurationService;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<List<DtoHomeBatteryModeController>> GetControllersAsync(CancellationToken cancellationToken)
@@ -59,21 +63,22 @@ public class GenericJsonRestHomeBatteryModeService : IHomeBatteryModeSetupServic
                 async (mode, ct) =>
                 {
                     var requests = batteryControl.GetRequests(mode);
-                    using var httpClient = GenericJsonRestTemplateValueSetupService.CreateHttpClient(
-                        batteryControl.AuthType, typedConfig);
-                    if (batteryControl.AuthType == JsonRestAuthType.TokenHeader)
+                    if (batteryControl.AuthType == JsonRestAuthType.TokenHeader
+                        && (string.IsNullOrEmpty(typedConfig.ApiToken) || string.IsNullOrEmpty(batteryControl.TokenHeaderName)))
                     {
-                        if (string.IsNullOrEmpty(typedConfig.ApiToken) || string.IsNullOrEmpty(batteryControl.TokenHeaderName))
-                        {
-                            throw new InvalidOperationException("An API token is required for battery control");
-                        }
-                        httpClient.DefaultRequestHeaders.Add(batteryControl.TokenHeaderName, typedConfig.ApiToken);
+                        throw new InvalidOperationException("An API token is required for battery control");
                     }
+                    var httpClient = _httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
                     foreach (var request in requests)
                     {
                         ct.ThrowIfCancellationRequested();
                         var uri = GenericJsonRestTemplateValueSetupService.ResolveUriTemplate(request.UriTemplate, typedConfig);
                         using var httpRequest = new HttpRequestMessage(new HttpMethod(request.Method), uri);
+                        GenericJsonRestTemplateValueSetupService.ApplyAuthHeaders(httpRequest, batteryControl.AuthType, typedConfig);
+                        if (batteryControl.AuthType == JsonRestAuthType.TokenHeader)
+                        {
+                            httpRequest.Headers.Add(batteryControl.TokenHeaderName!, typedConfig.ApiToken);
+                        }
                         if (!string.IsNullOrEmpty(request.JsonBodyTemplate))
                         {
                             var body = GenericJsonRestTemplateValueSetupService.ResolveUriTemplate(request.JsonBodyTemplate, typedConfig);

@@ -965,8 +965,6 @@ public class ConfigurationWrapper(
         {
             return;
         }
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMilliseconds(500);
         //ToDo: as the plugin has to use the host network the pluginname is unknown
         //try
         //{

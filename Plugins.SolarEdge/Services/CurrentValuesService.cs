@@ -16,14 +16,16 @@ public class CurrentValuesService : ICurrentValuesService
     private readonly SharedValues _sharedValues;
     private readonly IConfiguration _configuration;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public CurrentValuesService(ILogger<CurrentValuesService> logger, SharedValues sharedValues, IConfiguration configuration,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider, IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _sharedValues = sharedValues;
         _configuration = configuration;
         _dateTimeProvider = dateTimeProvider;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<int> GetCurrentPowerToGrid()
@@ -172,14 +174,14 @@ public class CurrentValuesService : ICurrentValuesService
 
     private async Task<int> GetTargetBatteryPower()
     {
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(1);
+        var httpClient = _httpClientFactory.CreateClient();
+        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(1));
         var teslaSolarChargerHost = GetTeslaSolarChargerHost();
         var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/HomeBatteryTargetChargingPower";
         _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
-        var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+        var response = await httpClient.GetAsync(requestUrl, cancellationTokenSource.Token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         var targetBatteryPower = JsonConvert.DeserializeObject<DtoValue<int>>(responseContent);
         if (targetBatteryPower != null)
         {
@@ -228,7 +230,7 @@ public class CurrentValuesService : ICurrentValuesService
         }
         var requestUrl = _configuration.GetValue<string>("CloudUrl");
         _logger.LogDebug("Request URL is {requestUrl}", requestUrl);
-        using var httpClient = new HttpClient();
+        var httpClient = _httpClientFactory.CreateClient();
         var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
         {
@@ -262,16 +264,16 @@ public class CurrentValuesService : ICurrentValuesService
     private async Task<int> GetNumberOfRelevantCars()
     {
         _logger.LogTrace("{method}()", nameof(GetNumberOfRelevantCars));
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(1);
+        var httpClient = _httpClientFactory.CreateClient();
+        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(1));
         try
         {
             var teslaSolarChargerHost = GetTeslaSolarChargerHost();
             var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/NumberOfRelevantCars";
             _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
-            var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+            var response = await httpClient.GetAsync(requestUrl, cancellationTokenSource.Token).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             var numberOfRelevantCars = JsonConvert.DeserializeObject<DtoValue<int>>(responseContent);
             if (numberOfRelevantCars != null)
             {
