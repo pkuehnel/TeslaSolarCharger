@@ -6,6 +6,9 @@ RUN apt-get update \
     && apt-get install -y curl
 
 RUN curl -L https://api.github.com/repos/teslamotors/vehicle-command/tarball/main | tar -xz --strip=1
+# Compile the beacon scanner inside the vehicle-command module so it reuses its go-ble dependency and
+# is installed to /go/bin next to tesla-control by the go install below.
+COPY ["TeslaSolarCharger.BleApi/go/tesla-beacon-scan/", "cmd/tesla-beacon-scan/"]
 RUN go get ./...
 RUN go build ./...
 RUN go install ./...

@@ -140,18 +140,111 @@ public class BleVehicleDataService(
             //A charging car is definitely awake and not trying to sleep, so it can never be in a sleep window. Reset any
             //state so a fresh stability period starts once charging stops.
             bleSleepWindowService.ResetSleepWindow(car.Id);
-            //While the car is charging it is known to be online and at home, so the VCSEC body controller state call is
-            //not required. Reading only the charge state roughly halves the time a refresh takes for a charging car.
+            //While the car is charging it is known to be online and at home, so neither a beacon scan nor the VCSEC
+            //body controller state call is required. Reading only the charge state roughly halves the time a refresh
+            //takes for a charging car.
             if (await TryRefreshChargingCarData(car).ConfigureAwait(false))
             {
                 return;
             }
             //The charge state read failed because the car is out of BLE range: the last known charging state was stale
-            //(e.g. the car was unplugged and driven away). Fall back to the body controller state to correctly
-            //determine the presence and online state.
-            logger.LogDebug("Fast charge state read for car {vin} failed as out of BLE range, fall back to body controller state", car.Vin);
+            //(e.g. the car was unplugged and driven away). The beacon scan below finds out whether the car is really
+            //gone or the BLE stack just failed transiently.
+            logger.LogDebug("Fast charge state read for car {vin} failed as out of BLE range, arbitrate via beacon scan", car.Vin);
         }
-        await RefreshCarDataViaBodyController(car).ConfigureAwait(false);
+        var beaconScanOutcome = await GetBeaconScanOutcome(car).ConfigureAwait(false);
+        var timestamp = dateTimeProvider.UtcNow();
+        switch (beaconScanOutcome)
+        {
+            case BleBeaconScanOutcome.BeaconFound:
+                //The car's advertisement was received, so it is at home no matter what later reads report.
+                blePresenceStateService.RegisterSuccessfulRead(car.Id);
+                UpdateHomePresence(car, true, timestamp);
+                //Persist the presence right away in case the body controller read afterwards fails.
+                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                await RefreshCarDataViaBodyController(car, presenceConfirmedByBeacon: true).ConfigureAwait(false);
+                return;
+            case BleBeaconScanOutcome.ReliablyAbsent:
+                //Other devices were heard but the car was not: the radio provably works, so this is real evidence that
+                //the car is away. Skip the VCSEC and charge state reads entirely as they would only run into timeouts.
+                await HandleOutOfRangeObservation(car, timestamp).ConfigureAwait(false);
+                return;
+            default:
+                //Beacon scan not available (old BLE container, HTTP failure, radio heard nothing at all): fall back to
+                //the body controller based presence detection, which behaves exactly like before beacon scans existed.
+                await RefreshCarDataViaBodyController(car).ConfigureAwait(false);
+                return;
+        }
+    }
+
+    /// <summary>
+    /// Runs a passive beacon scan and classifies the result. <see cref="BleBeaconScanOutcome.ScanUnavailable"/> covers
+    /// everything that is no trustworthy presence information: old BLE containers without the endpoint, HTTP failures,
+    /// unparseable results and scans during which the radio heard nothing at all. A deaf radio must not make the car
+    /// count as away, and in a home without any other BLE devices the body controller fallback still detects absence.
+    /// </summary>
+    private async Task<BleBeaconScanOutcome> GetBeaconScanOutcome(DtoCar car)
+    {
+        logger.LogTrace("{method}({vin})", nameof(GetBeaconScanOutcome), car.Vin);
+        var scanCommandResult = await bleService.GetBeaconScanResult(car.Vin!).ConfigureAwait(false);
+        if (scanCommandResult?.Success != true)
+        {
+            logger.LogDebug("Beacon scan for car {vin} not available: {resultMessage}", car.Vin, scanCommandResult?.ResultMessage);
+            return BleBeaconScanOutcome.ScanUnavailable;
+        }
+        var scanResult = DeserializeBeaconScanResult(scanCommandResult.ResultMessage);
+        if (scanResult == default)
+        {
+            logger.LogError("Could not parse beacon scan result for car {vin}: {resultMessage}", car.Vin, scanCommandResult.ResultMessage);
+            return BleBeaconScanOutcome.ScanUnavailable;
+        }
+        if (scanResult.BeaconFound)
+        {
+            logger.LogDebug("Beacon of car {vin} found with {rssi} dBm", car.Vin, scanResult.Rssi);
+            return BleBeaconScanOutcome.BeaconFound;
+        }
+        if (scanResult.OtherAdvertisementsSeen > 0)
+        {
+            logger.LogDebug("Beacon of car {vin} not found although {otherAdvertisements} advertisements of " +
+                            "{distinctDevices} other devices were heard, car is very likely not at home",
+                car.Vin, scanResult.OtherAdvertisementsSeen, scanResult.DistinctDevicesSeen);
+            return BleBeaconScanOutcome.ReliablyAbsent;
+        }
+        logger.LogDebug("Beacon scan for car {vin} heard no advertisements at all, the radio might be deaf so the " +
+                        "car's absence can not be trusted", car.Vin);
+        return BleBeaconScanOutcome.ScanUnavailable;
+    }
+
+    /// <summary>
+    /// Registers one trustworthy "car is out of BLE range" observation. A single observation can still be a rare false
+    /// negative, so the car is only confirmed as away after multiple consecutive observations. Until then the last
+    /// known state stays valid but new charging commands are suspended (see IsPresenceUncertain callers). On the
+    /// confirming observation the car is marked away exactly once.
+    /// </summary>
+    private async Task HandleOutOfRangeObservation(DtoCar car, DateTime timestamp)
+    {
+        var vin = car.Vin!;
+        var awayConfirmation = blePresenceStateService.RegisterOutOfRange(car.Id);
+        if (awayConfirmation == BleAwayConfirmation.NotConfirmed)
+        {
+            logger.LogDebug("Car {vin} not found via BLE, keeping last known state until the car is confirmed as away", vin);
+            return;
+        }
+        if (awayConfirmation == BleAwayConfirmation.AlreadyConfirmed)
+        {
+            //The car is already marked as away: nothing changed, so do not write the same values again.
+            return;
+        }
+        //The car is now confirmed out of BLE range: it is not at home and as it is not reachable it counts as
+        //offline. The charge port can not be plugged in anymore, so reset the stale charging values too.
+        logger.LogDebug("Car {vin} not found via BLE multiple times in a row, car is not at home", vin);
+        UpdateHomePresence(car, false, timestamp);
+        UpdateOnlineState(car, false, timestamp);
+        ResetChargingValuesForAwayCar(car, timestamp);
+        //The car left home: drop any sleep window so it restarts fresh when it comes back.
+        bleSleepWindowService.ResetSleepWindow(car.Id);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -200,41 +293,20 @@ public class BleVehicleDataService(
         return true;
     }
 
-    private async Task RefreshCarDataViaBodyController(DtoCar car)
+    private async Task RefreshCarDataViaBodyController(DtoCar car, bool presenceConfirmedByBeacon = false)
     {
-        logger.LogTrace("{method}({vin})", nameof(RefreshCarDataViaBodyController), car.Vin);
+        logger.LogTrace("{method}({vin}, {presenceConfirmedByBeacon})", nameof(RefreshCarDataViaBodyController), car.Vin, presenceConfirmedByBeacon);
         var vin = car.Vin!;
         var bodyControllerStateResult = await bleService.GetBodyControllerState(vin).ConfigureAwait(false);
         var timestamp = dateTimeProvider.UtcNow();
         if (!bodyControllerStateResult.Success)
         {
-            if (IsCarOutOfBleRangeResult(bodyControllerStateResult))
+            //An out of range result can also be a transient BLE stack failure while the car is at home, so it only
+            //counts as an out of range observation. When the beacon scan already proved the car's presence this cycle,
+            //a failed connect right after is a transient BLE stack failure for sure and must not count at all.
+            if (IsCarOutOfBleRangeResult(bodyControllerStateResult) && !presenceConfirmedByBeacon)
             {
-                //An out of range result can also be a transient BLE stack failure while the car is at home, so the
-                //car is only confirmed as away after multiple consecutive out of range results. Until then the last
-                //known state stays valid but new charging commands are suspended (see IsPresenceUncertain callers).
-                var awayConfirmation = blePresenceStateService.RegisterOutOfRange(car.Id);
-                if (awayConfirmation == BleAwayConfirmation.NotConfirmed)
-                {
-                    logger.LogDebug("BLE beacon for car {vin} not found, keeping last known state until the car is " +
-                                    "confirmed as away", vin);
-                    return;
-                }
-                if (awayConfirmation == BleAwayConfirmation.AlreadyConfirmed)
-                {
-                    //The car is already marked as away: nothing changed, so do not write the same values again.
-                    return;
-                }
-                //The car is now confirmed out of BLE range: it is not at home and as it is not reachable it counts as
-                //offline. The charge port can not be plugged in anymore, so reset the stale charging values too.
-                logger.LogDebug("BLE beacon for car {vin} not found multiple times in a row, car is not at home", vin);
-                UpdateHomePresence(car, false, timestamp);
-                UpdateOnlineState(car, false, timestamp);
-                ResetChargingValuesForAwayCar(car, timestamp);
-                //The car left home: drop any sleep window so it restarts fresh when it comes back.
-                bleSleepWindowService.ResetSleepWindow(car.Id);
-                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
+                await HandleOutOfRangeObservation(car, timestamp).ConfigureAwait(false);
                 return;
             }
             //Other errors (e.g. BLE container not reachable, semaphore timeouts, configuration issues) carry no
@@ -260,8 +332,12 @@ public class BleVehicleDataService(
             return;
         }
 
-        //The body controller responded, so the car is in BLE range and therefore at home.
-        UpdateHomePresence(car, true, timestamp);
+        //The body controller responded, so the car is in BLE range and therefore at home. When the beacon scan already
+        //confirmed and persisted the presence this cycle, do not write a duplicate LocatedAtHome log entry.
+        if (!presenceConfirmedByBeacon)
+        {
+            UpdateHomePresence(car, true, timestamp);
+        }
         var isAwake = string.Equals(bodyControllerState.VehicleSleepStatus, AwakeSleepStatus, StringComparison.OrdinalIgnoreCase);
         UpdateOnlineState(car, isAwake, timestamp);
         if (!isAwake)
@@ -424,6 +500,32 @@ public class BleVehicleDataService(
         //the car is (very likely) not in BLE range.
         return result.ResultMessage.Contains("beacon", StringComparison.OrdinalIgnoreCase)
                || result.ResultMessage.Contains("context deadline exceeded", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Classification of a passive beacon scan, see <see cref="GetBeaconScanOutcome"/>.
+    /// </summary>
+    private enum BleBeaconScanOutcome
+    {
+        BeaconFound,
+        ReliablyAbsent,
+        ScanUnavailable,
+    }
+
+    internal static DtoBleBeaconScanResult? DeserializeBeaconScanResult(string? resultMessage)
+    {
+        if (string.IsNullOrWhiteSpace(resultMessage))
+        {
+            return default;
+        }
+        try
+        {
+            return JsonConvert.DeserializeObject<DtoBleBeaconScanResult>(resultMessage);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
     }
 
     internal static DtoBleBodyControllerState? DeserializeBodyControllerState(string? resultMessage)

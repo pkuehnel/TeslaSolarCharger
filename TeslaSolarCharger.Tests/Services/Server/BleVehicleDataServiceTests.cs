@@ -395,6 +395,234 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     [Fact]
+    public void CanDeserializeBeaconScanResult()
+    {
+        const string json = "{\"beaconFound\":true,\"rssi\":-70,\"address\":\"aa:bb:cc:dd:ee:ff\",\"connectable\":true," +
+                            "\"otherAdvertisementsSeen\":12,\"distinctDevicesSeen\":3,\"scanDurationMs\":812}";
+        var result = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBeaconScanResult(json);
+        Assert.NotNull(result);
+        Assert.True(result.BeaconFound);
+        Assert.Equal(-70, result.Rssi);
+        Assert.Equal("aa:bb:cc:dd:ee:ff", result.Address);
+        Assert.True(result.Connectable);
+        Assert.Equal(12, result.OtherAdvertisementsSeen);
+        Assert.Equal(3, result.DistinctDevicesSeen);
+        Assert.Equal(812, result.ScanDurationMs);
+
+        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBeaconScanResult("no json"));
+        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBeaconScanResult(null));
+        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBeaconScanResult(""));
+    }
+
+    [Fact]
+    public async Task FoundBeaconMarksHomeAndContinuesVcsecFlow()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(BeaconScanCommandResult(beaconFound: true, otherAdvertisementsSeen: 5));
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, ResultMessage = AwakeBodyControllerStateJson });
+        Mock.Mock<IBleService>().Setup(b => b.GetChargeState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, ResultMessage = ChargingChargeStateJson });
+
+        var (service, presenceStateService) = CreateServiceWithRealPresenceTracking();
+        await service.RefreshBleCarData();
+
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.True(dtoCar.IsOnline.Value);
+        Assert.False(presenceStateService.IsPresenceUncertain(1));
+        //The VCSEC and charge state cadence stays unchanged when the car is present.
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(TestVin), Times.Once);
+        //The presence is only written once per cycle although both the beacon scan and the body controller proved it.
+        Assert.Single(Context.CarValueLogs.ToList(), l => l.Type == CarValueType.LocatedAtHome);
+    }
+
+    [Fact]
+    public async Task ReliablyAbsentScansBelowThresholdKeepLastKnownStateAndSkipVcsec()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        var lastKnownTimestamp = CurrentFakeDate.AddHours(-1);
+        dtoCar.IsHomeGeofence.Update(lastKnownTimestamp, true);
+        dtoCar.PluggedIn.Update(lastKnownTimestamp, true);
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(BeaconScanCommandResult(beaconFound: false, otherAdvertisementsSeen: 30));
+
+        var (service, presenceStateService) = CreateServiceWithRealPresenceTracking();
+        for (var i = 0; i < 4; i++)
+        {
+            await service.RefreshBleCarData();
+        }
+
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.True(dtoCar.PluggedIn.Value);
+        Assert.True(presenceStateService.IsPresenceUncertain(1));
+        //An absent car must not burn BLE connect timeouts: no VCSEC or charge state reads.
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task FifthReliablyAbsentScanMarksCarAwayAndResetsChargingValues()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        var lastKnownTimestamp = CurrentFakeDate.AddHours(-1);
+        dtoCar.IsHomeGeofence.Update(lastKnownTimestamp, true);
+        dtoCar.IsOnline.Update(lastKnownTimestamp, true);
+        dtoCar.PluggedIn.Update(lastKnownTimestamp, true);
+        dtoCar.IsCharging.Update(lastKnownTimestamp, false);
+        dtoCar.ChargerActualCurrent.Update(lastKnownTimestamp, 16);
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(BeaconScanCommandResult(beaconFound: false, otherAdvertisementsSeen: 30));
+
+        var (service, presenceStateService) = CreateServiceWithRealPresenceTracking(useRealPropertyUpdateHelper: true);
+        for (var i = 0; i < 5; i++)
+        {
+            await service.RefreshBleCarData();
+        }
+
+        Assert.False(dtoCar.IsHomeGeofence.Value);
+        Assert.False(dtoCar.IsOnline.Value);
+        Assert.False(dtoCar.PluggedIn.Value);
+        Assert.False(dtoCar.IsCharging.Value);
+        Assert.Equal(0, dtoCar.ChargerActualCurrent.Value);
+        Assert.False(presenceStateService.IsPresenceUncertain(1));
+        var carValueLogs = Context.CarValueLogs.ToList();
+        Assert.Contains(carValueLogs, l => l.Type == CarValueType.IsPluggedIn && l.BooleanValue == false && l.Source == CarValueSource.Estimation);
+        Assert.Contains(carValueLogs, l => l.Type == CarValueType.ChargeAmps && l.IntValue == 0 && l.Source == CarValueSource.Estimation);
+        Mock.Mock<IBleSleepWindowService>().Verify(s => s.ResetSleepWindow(1), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InconclusiveScanFallsBackToLegacyPresenceDetection()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        dtoCar.IsHomeGeofence.Update(CurrentFakeDate.AddHours(-1), true);
+        //The radio heard nothing at all: the scan proves nothing, so the body controller based detection must still
+        //run. In an RF quiet home this is the only way an away car gets detected at all.
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(BeaconScanCommandResult(beaconFound: false, otherAdvertisementsSeen: 0));
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = "Error: context deadline exceeded" });
+
+        var (service, _) = CreateServiceWithRealPresenceTracking();
+        for (var i = 0; i < 5; i++)
+        {
+            await service.RefreshBleCarData();
+        }
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Exactly(5));
+        Assert.False(dtoCar.IsHomeGeofence.Value);
+    }
+
+    [Fact]
+    public async Task ScanEndpointFailureFallsBackToLegacyStringCounting()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        dtoCar.IsHomeGeofence.Update(CurrentFakeDate.AddHours(-1), true);
+        //Old BLE containers answer with 404 which surfaces as a non success result.
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = "Failed to send command to BLE. StatusCode: NotFound" });
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = "Error: context deadline exceeded" });
+
+        var (service, _) = CreateServiceWithRealPresenceTracking();
+        for (var i = 0; i < 5; i++)
+        {
+            await service.RefreshBleCarData();
+        }
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Exactly(5));
+        Assert.False(dtoCar.IsHomeGeofence.Value);
+    }
+
+    [Fact]
+    public async Task FoundBeaconWithVcsecOutOfRangeDoesNotCountTowardAway()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(BeaconScanCommandResult(beaconFound: true, otherAdvertisementsSeen: 5));
+        //The connect right after the successful scan fails: a transient BLE stack failure for sure.
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = "Error: context deadline exceeded" });
+
+        var (service, presenceStateService) = CreateServiceWithRealPresenceTracking();
+        for (var i = 0; i < 3; i++)
+        {
+            await service.RefreshBleCarData();
+        }
+
+        //The beacon proved presence, so the failed connect must neither flip the car away nor suspend commands.
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.False(presenceStateService.IsPresenceUncertain(1));
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), TestVin, It.IsAny<string?>()), Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task ChargingCarDoesNotBeaconScanWhileChargeReadSucceeds()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        dtoCar.IsCharging.Update(CurrentFakeDate.AddHours(-1), true);
+        Mock.Mock<IBleService>().Setup(b => b.GetChargeState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, ResultMessage = ChargingChargeStateJson });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //A successful charge state read already proves presence, so the fast path must stay scan free.
+        Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResult(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChargingCarOutOfRangeUsesBeaconArbitration()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        MockCurrentTime();
+        var lastKnownTimestamp = CurrentFakeDate.AddHours(-1);
+        dtoCar.IsHomeGeofence.Update(lastKnownTimestamp, true);
+        dtoCar.IsCharging.Update(lastKnownTimestamp, true);
+        //The stale charging state makes the fast path run into an out of range error; the beacon scan then reliably
+        //reports the car as absent, so the body controller fallback is not needed at all.
+        Mock.Mock<IBleService>().Setup(b => b.GetChargeState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = false, ResultMessage = "Error: context deadline exceeded" });
+        Mock.Mock<IBleService>().Setup(b => b.GetBeaconScanResult(TestVin))
+            .ReturnsAsync(BeaconScanCommandResult(beaconFound: false, otherAdvertisementsSeen: 30));
+
+        var (service, _) = CreateServiceWithRealPresenceTracking(useRealPropertyUpdateHelper: true);
+        for (var i = 0; i < 4; i++)
+        {
+            await service.RefreshBleCarData();
+        }
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+
+        await service.RefreshBleCarData();
+        Assert.False(dtoCar.IsHomeGeofence.Value);
+        //The away transition also resets the stale charging state, so later cycles skip the charge state fast path.
+        Assert.False(dtoCar.IsCharging.Value);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(TestVin), Times.Exactly(5));
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+    }
+
+    private static DtoBleCommandResult BeaconScanCommandResult(bool beaconFound, int otherAdvertisementsSeen)
+    {
+        var json = $"{{\"beaconFound\":{(beaconFound ? "true" : "false")},\"rssi\":{(beaconFound ? "-70" : "null")}," +
+                   $"\"address\":null,\"connectable\":null,\"otherAdvertisementsSeen\":{otherAdvertisementsSeen}," +
+                   "\"distinctDevicesSeen\":3,\"scanDurationMs\":1234}";
+        return new DtoBleCommandResult { Success = true, ResultMessage = json, };
+    }
+
+    [Fact]
     public async Task AsleepCarIsAtHomeButChargeStateIsNotPolled()
     {
         var dtoCar = SetupBleDataCollectionCar();

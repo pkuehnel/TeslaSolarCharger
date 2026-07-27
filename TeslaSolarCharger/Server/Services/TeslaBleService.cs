@@ -88,6 +88,51 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
+    public async Task<DtoBleCommandResult> GetBeaconScanResult(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(GetBeaconScanResult), vin);
+        var bleBaseUrl = GetBleBaseUrl(vin);
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ErrorType = ErrorType.TscConfiguration,
+            };
+        }
+        var queryString = HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add("vin", vin);
+        var url = $"{bleBaseUrl}Command/BeaconScan?{queryString}";
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
+        try
+        {
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                //Old BLE containers answer with 404 as they do not know the endpoint yet: the caller falls back to
+                //the body controller state based presence detection, the version mismatch is surfaced separately.
+                logger.LogError("Failed to get beacon scan result. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+                throw new InvalidOperationException();
+            }
+            var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
+            return commandResult;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get beacon scan result.");
+            return new DtoBleCommandResult()
+            {
+                ResultMessage = GetErrorMessage(ex, CommandTimeout),
+                Success = false,
+                ErrorType = ErrorType.Unknown,
+            };
+        }
+    }
+
     public async Task<DtoBleCommandResult> StopCharging(string vin)
     {
         var request = new DtoBleRequest
@@ -265,7 +310,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 36, 0);
+            var correctVersion = new Version(2, 37, 0);
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)

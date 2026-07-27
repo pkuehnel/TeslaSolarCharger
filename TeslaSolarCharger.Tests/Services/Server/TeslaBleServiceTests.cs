@@ -211,10 +211,68 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
+    public async Task BeaconScanBuildsGetUrlFromConfiguredBaseUrl()
+    {
+        SetupBleCar();
+        _handler.RespondWith(HttpStatusCode.OK, "{\"Success\":true,\"ResultMessage\":\"{\\\"beaconFound\\\":true}\"}");
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
+        var result = await service.GetBeaconScanResult(TestVin);
+
+        Assert.True(result.Success);
+        var request = Assert.Single(_handler.Requests);
+        Assert.Equal(HttpMethod.Get, request.Method);
+        Assert.Equal("/api/Command/BeaconScan", request.RequestUri!.AbsolutePath);
+        var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query);
+        Assert.Equal(TestVin, query["vin"]);
+    }
+
+    [Fact]
+    public async Task BeaconScanReportsNotFoundAsFailure()
+    {
+        SetupBleCar();
+        //Old BLE containers do not know the endpoint yet: the caller falls back to the legacy presence detection.
+        _handler.RespondWith(HttpStatusCode.NotFound, string.Empty);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
+        var result = await service.GetBeaconScanResult(TestVin);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorType.Unknown, result.ErrorType);
+    }
+
+    [Fact]
+    public async Task BeaconScanMissingBaseUrlIsReportedWithoutHttpCall()
+    {
+        SetupBleCar(configuredBleUrl: null);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
+        var result = await service.GetBeaconScanResult(TestVin);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorType.TscConfiguration, result.ErrorType);
+        Assert.Empty(_handler.Requests);
+    }
+
+    [Fact]
+    public async Task BeaconScanTimeoutIsReportedWithAnExplicitMessage()
+    {
+        SetupBleCar();
+        _handler.ThrowOnSend(new TaskCanceledException());
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
+        var result = await service.GetBeaconScanResult(TestVin);
+
+        Assert.False(result.Success);
+        Assert.NotNull(result.ResultMessage);
+        Assert.Contains("timed out", result.ResultMessage);
+    }
+
+    [Fact]
     public async Task VersionCompatibilityAcceptsTheExpectedVersion()
     {
         SetupBleCar();
-        _handler.RespondWith(HttpStatusCode.OK, "{\"Value\":\"2.36.0\"}");
+        _handler.RespondWith(HttpStatusCode.OK, "{\"Value\":\"2.37.0\"}");
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
         var error = await service.CheckBleApiVersionCompatibility(ConfiguredBleUrl);

@@ -59,63 +59,121 @@ public class CommandService(ILogger<CommandService> logger,
         var parameterString =
             $"{domainPrefix}-ble {debugParameterString}{bluetoothAdapterParameterString}-session-cache {teslaCacheFilePath} -vin {vin} -key-file {privateKeyLocation} -command-timeout {commandTimeoutSeconds}s -connect-timeout {connectTimeoutSeconds}s {command} {string.Join(" ", parameters)}";
         logger.LogTrace("Waiting for semaphoreSlim to allow command execution in {guid}", _guid);
+        var semaphoreSlimWaitTimeoutSeconds = configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
+        //Return before the try/finally on a wait timeout: the semaphore was never acquired, so the
+        //delayed release in the finally must not run (it would over-release and throw).
+        if (!await _semaphoreSlim.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
+        {
+            logger.LogError("SemaphoreSlim did not allow command execution in time");
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                ResultMessage = "SemaphoreSlim did not allow command execution in time",
+                ErrorType = ErrorType.TeslaControl,
+            };
+        }
         try
         {
-            var semaphoreSlimWaitTimeoutSeconds = configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
-            if (await _semaphoreSlim.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
+            logger.LogTrace("SemaphoreSlim allowed command execution");
+            var result = await commandLineExecutionService.ExecuteCommand(file, parameterString);
+            result.ResultMessage = result.ResultMessage?.Trim();
+            result.CarErrorMessage = result.CarErrorMessage?.Trim();
+            if (!result.Success)
             {
-                logger.LogTrace("SemaphoreSlim allowed command execution");
-                var result = await commandLineExecutionService.ExecuteCommand(file, parameterString);
-                result.ResultMessage = result.ResultMessage?.Trim();
-                result.CarErrorMessage = result.CarErrorMessage?.Trim();
-                if (!result.Success)
+                if (!string.IsNullOrEmpty(teslaCacheFilePath))
                 {
-                    if (!string.IsNullOrEmpty(teslaCacheFilePath))
+                    try
                     {
-                        try
+                        if (File.Exists(teslaCacheFilePath))
                         {
-                            if (File.Exists(teslaCacheFilePath))
-                            {
-                                File.Delete(teslaCacheFilePath);
-                                logger.LogInformation("Deleted cache file at {cacheFilePath} due to command failure", teslaCacheFilePath);
-                            }
-                            else
-                            {
-                                logger.LogWarning("Could not find cache file {cacheFilePath} to delete although an error occurred.", teslaCacheFilePath);
-                            }
+                            File.Delete(teslaCacheFilePath);
+                            logger.LogInformation("Deleted cache file at {cacheFilePath} due to command failure", teslaCacheFilePath);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            logger.LogError(ex, "Error deleting cache file at {cacheFilePath}", teslaCacheFilePath);
+                            logger.LogWarning("Could not find cache file {cacheFilePath} to delete although an error occurred.", teslaCacheFilePath);
                         }
-
                     }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error deleting cache file at {cacheFilePath}", teslaCacheFilePath);
+                    }
+
                 }
-                return result;
             }
-            else
-            {
-                logger.LogError("SemaphoreSlim did not allow command execution in time");
-                return new DtoBleCommandResult()
-                {
-                    Success = false,
-                    ResultMessage = "SemaphoreSlim did not allow command execution in time",
-                    ErrorType = ErrorType.TeslaControl,
-                };
-            }
+            return result;
         }
         finally
         {
-            _ = Task.Run(async () =>
-            {
-                var millisecondsToWait = configuration.GetValue<int>("MinimumWaitTimeBetweenCommandsMilliseconds");
-                logger.LogTrace("Waiting {millisecondsToWait} ms before allowing next command execution", millisecondsToWait);
-                await Task.Delay(millisecondsToWait);
-                _semaphoreSlim.Release();
-            });
-            
+            ReleaseSemaphoreAfterCooldown();
         }
-        
+    }
+
+    public async Task<DtoBleCommandResult> BeaconScan(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(BeaconScan), vin);
+        var bleRequestsAllowed = settings.BleRequestAllowed;
+        if (!bleRequestsAllowed)
+        {
+            if (settings.LastBleAllowedRequest < timeProvider.GetUtcNow().AddMinutes(1))
+            {
+                await startupService.UpdateRequestsAllowed();
+            }
+
+            logger.LogError("BleRequestNotAllowed update BleService to latest version.");
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                ResultMessage = "BleRequestNotAllowed. Check internet connection, restart service or update BleService to latest version.",
+                ErrorType = ErrorType.BleApiConfiguration,
+            };
+        }
+        var file = "/app/go/tesla-beacon-scan";
+        var beaconScanTimeoutSeconds = configuration.GetValue<int>("BeaconScanTimeoutSeconds");
+        var bluetoothAdapter = configuration.GetValue<string>("BluetoothAdapter");
+        var bluetoothAdapterParameterString = string.IsNullOrEmpty(bluetoothAdapter) ? string.Empty : $"-bt-adapter {bluetoothAdapter} ";
+        var parameterString = $"{bluetoothAdapterParameterString}-vin {vin} -timeout {beaconScanTimeoutSeconds}s";
+        logger.LogTrace("Waiting for semaphoreSlim to allow beacon scan in {guid}", _guid);
+        var semaphoreSlimWaitTimeoutSeconds = configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
+        //The beacon scanner opens the same HCI adapter as tesla-control and go-ble resets the adapter on
+        //init, so a scan must never run concurrently with another BLE process: share the semaphore.
+        if (!await _semaphoreSlim.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
+        {
+            logger.LogError("SemaphoreSlim did not allow beacon scan in time");
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                ResultMessage = "SemaphoreSlim did not allow command execution in time",
+                ErrorType = ErrorType.TeslaControl,
+            };
+        }
+        try
+        {
+            logger.LogTrace("SemaphoreSlim allowed beacon scan");
+            var result = await commandLineExecutionService.ExecuteCommand(file, parameterString);
+            result.ResultMessage = result.ResultMessage?.Trim();
+            //A failed scan says nothing about the tesla-control session, so the session cache is kept.
+            return result;
+        }
+        finally
+        {
+            ReleaseSemaphoreAfterCooldown();
+        }
+    }
+
+    /// <summary>
+    /// Releases the semaphore after the configured cooldown so the BLE adapter can settle between two
+    /// processes using it. Must only be called when the semaphore was actually acquired.
+    /// </summary>
+    private void ReleaseSemaphoreAfterCooldown()
+    {
+        _ = Task.Run(async () =>
+        {
+            var millisecondsToWait = configuration.GetValue<int>("MinimumWaitTimeBetweenCommandsMilliseconds");
+            logger.LogTrace("Waiting {millisecondsToWait} ms before allowing next command execution", millisecondsToWait);
+            await Task.Delay(millisecondsToWait);
+            _semaphoreSlim.Release();
+        });
     }
 
     public async Task<DtoBleCommandResult> ListCommands()
