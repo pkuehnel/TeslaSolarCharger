@@ -5,6 +5,7 @@ using Autofac.Extras.Moq;
 using Moq;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -104,5 +105,40 @@ public class SetCurrentOfNonChargingTeslasToMaxTests : TestBase
         {
             teslaServiceMock.Verify(t => t.SetAmp(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
+    }
+
+    [Fact]
+    public async Task SetCurrentOfNonChargingTeslasToMax_BlePresenceUncertain_DoesNotSendCommand()
+    {
+        // Arrange: all filter conditions are met, but the BLE presence of the car is uncertain.
+        var carId = 1;
+        var car = new DtoCar
+        {
+            Id = carId,
+            IsOnline = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, true),
+            IsHomeGeofence = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, true),
+            PluggedIn = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, true),
+            ChargerRequestedCurrent = new DtoTimeStampedValue<int?>(DateTimeOffset.MinValue, 10),
+            MaximumAmpere = 16,
+            ChargerPilotCurrent = new DtoTimeStampedValue<int?>(DateTimeOffset.MinValue, 16),
+            IsCharging = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, false),
+            ChargeModeV2 = ChargeModeV2.Auto,
+            ShouldBeManaged = true,
+        };
+
+        Mock.Mock<ISettings>()
+            .Setup(s => s.CarsToManage)
+            .Returns(new List<DtoCar> { car });
+        Mock.Mock<IBlePresenceStateService>()
+            .Setup(s => s.IsPresenceUncertain(carId))
+            .Returns(true);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        // Act
+        await service.SetCurrentOfNonChargingTeslasToMax();
+
+        // Assert: the car may already have left home, so no command is sent while presence is uncertain.
+        Mock.Mock<ITeslaService>().Verify(t => t.SetAmp(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 }

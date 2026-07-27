@@ -690,6 +690,7 @@ public static class TranslationKeys
     public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
     public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
     public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
+    public static string NotChargingReasonBlePresenceUncertain => nameof(NotChargingReasonBlePresenceUncertain);
 
     public static string SetupAssistantTitle => nameof(SetupAssistantTitle);
     public static string SetupStepWelcome => nameof(SetupStepWelcome);

@@ -147,6 +147,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBleVehicleDataService, BleVehicleDataService>()
             .AddSingleton<IBleReadCoordinator, BleReadCoordinator>()
             .AddSingleton<IBleSleepWindowService, BleSleepWindowService>()
+            .AddSingleton<IBlePresenceStateService, BlePresenceStateService>()
             .AddTransient<IBlePostCommandRefreshScheduler, BlePostCommandRefreshScheduler>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()

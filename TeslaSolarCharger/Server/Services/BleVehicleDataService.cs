@@ -27,6 +27,7 @@ public class BleVehicleDataService(
     IErrorHandlingService errorHandlingService,
     IBleReadCoordinator bleReadCoordinator,
     IBleSleepWindowService bleSleepWindowService,
+    IBlePresenceStateService blePresenceStateService,
     IIssueKeys issueKeys) : IBleVehicleDataService
 {
     private const string AwakeSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE";
@@ -39,6 +40,9 @@ public class BleVehicleDataService(
         logger.LogTrace("{method}()", nameof(RefreshBleCarData));
         if (!configurationWrapper.GetVehicleDataViaBle() || !configurationWrapper.GetVehicleDataFromTesla())
         {
+            //No car is BLE polled anymore: drop all presence state so no car keeps a stale uncertain presence that
+            //would suppress its charging commands forever.
+            blePresenceStateService.RetainOnly(Array.Empty<int>());
             return;
         }
         //Only cars that already switched to BLE data collection (Fleet Telemetry disabled on manual car config save)
@@ -51,6 +55,8 @@ public class BleVehicleDataService(
                         && !c.IncludeTrackingRelevantFields)
             .Select(c => c.Id)
             .ToListAsync().ConfigureAwait(false);
+        //Cars that left BLE data collection mode must not keep a stale presence state (see RetainOnly docs).
+        blePresenceStateService.RetainOnly(bleDataCarIds);
         foreach (var carId in bleDataCarIds)
         {
             var car = settings.Cars.FirstOrDefault(c => c.Id == carId);
@@ -173,6 +179,8 @@ public class BleVehicleDataService(
                 issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
             return true;
         }
+        //The car answered the request, so it is in BLE range even if the response turns out to be unparseable.
+        blePresenceStateService.RegisterSuccessfulRead(car.Id);
         var chargeState = DeserializeChargeState(chargeStateResult.ResultMessage);
         if (chargeState == default)
         {
@@ -202,16 +210,35 @@ public class BleVehicleDataService(
         {
             if (IsCarOutOfBleRangeResult(bodyControllerStateResult))
             {
-                //The car is out of BLE range: it is not at home and as it is not reachable it counts as offline.
-                logger.LogDebug("BLE beacon for car {vin} not found, car is not at home", vin);
+                //An out of range result can also be a transient BLE stack failure while the car is at home, so the
+                //car is only confirmed as away after multiple consecutive out of range results. Until then the last
+                //known state stays valid but new charging commands are suspended (see IsPresenceUncertain callers).
+                var awayConfirmation = blePresenceStateService.RegisterOutOfRange(car.Id);
+                if (awayConfirmation == BleAwayConfirmation.NotConfirmed)
+                {
+                    logger.LogDebug("BLE beacon for car {vin} not found, keeping last known state until the car is " +
+                                    "confirmed as away", vin);
+                    return;
+                }
+                if (awayConfirmation == BleAwayConfirmation.AlreadyConfirmed)
+                {
+                    //The car is already marked as away: nothing changed, so do not write the same values again.
+                    return;
+                }
+                //The car is now confirmed out of BLE range: it is not at home and as it is not reachable it counts as
+                //offline. The charge port can not be plugged in anymore, so reset the stale charging values too.
+                logger.LogDebug("BLE beacon for car {vin} not found multiple times in a row, car is not at home", vin);
                 UpdateHomePresence(car, false, timestamp);
                 UpdateOnlineState(car, false, timestamp);
+                ResetChargingValuesForAwayCar(car, timestamp);
                 //The car left home: drop any sleep window so it restarts fresh when it comes back.
                 bleSleepWindowService.ResetSleepWindow(car.Id);
                 await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
                 return;
             }
+            //Other errors (e.g. BLE container not reachable, semaphore timeouts, configuration issues) carry no
+            //information about the car's presence, so they neither increment nor reset the out of range counter.
             logger.LogError("Could not get body controller state for car {vin}: {resultMessage}", vin, bodyControllerStateResult.ResultMessage);
             await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshCarData),
                 $"Error while getting vehicle data via BLE for car {vin}",
@@ -219,6 +246,8 @@ public class BleVehicleDataService(
                 issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
             return;
         }
+        //The car answered the request, so it is in BLE range even if the response turns out to be unparseable.
+        blePresenceStateService.RegisterSuccessfulRead(car.Id);
 
         var bodyControllerState = DeserializeBodyControllerState(bodyControllerStateResult.ResultMessage);
         if (bodyControllerState == default)
@@ -336,7 +365,21 @@ public class BleVehicleDataService(
         car.IsOnline.Update(new DateTimeOffset(timestamp, TimeSpan.Zero), isOnline);
     }
 
-    private void AddIntValue(DtoCar car, CarValueType type, int? value, DateTime timestamp)
+    /// <summary>
+    /// A car that is confirmed as away can not be plugged in at home anymore: reset the charging values that would
+    /// otherwise stay stale until the car is back in BLE range and awake. The state of charge intentionally keeps its
+    /// last known value. The values are inferred rather than read from the car, so they are stored with
+    /// <see cref="CarValueSource.Estimation"/>.
+    /// </summary>
+    private void ResetChargingValuesForAwayCar(DtoCar car, DateTime timestamp)
+    {
+        AddBooleanValue(car, CarValueType.IsPluggedIn, false, timestamp, CarValueSource.Estimation);
+        AddBooleanValue(car, CarValueType.IsCharging, false, timestamp, CarValueSource.Estimation);
+        AddIntValue(car, CarValueType.ChargeAmps, 0, timestamp, CarValueSource.Estimation);
+    }
+
+    private void AddIntValue(DtoCar car, CarValueType type, int? value, DateTime timestamp,
+        CarValueSource source = CarValueSource.Ble)
     {
         if (value == default)
         {
@@ -347,21 +390,22 @@ public class BleVehicleDataService(
             CarId = car.Id,
             Timestamp = timestamp,
             Type = type,
-            Source = CarValueSource.Ble,
+            Source = source,
             IntValue = value,
         };
         teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
         carPropertyUpdateHelper.UpdateDtoCarProperty(car, carValueLog);
     }
 
-    private void AddBooleanValue(DtoCar car, CarValueType type, bool value, DateTime timestamp)
+    private void AddBooleanValue(DtoCar car, CarValueType type, bool value, DateTime timestamp,
+        CarValueSource source = CarValueSource.Ble)
     {
         var carValueLog = new CarValueLog
         {
             CarId = car.Id,
             Timestamp = timestamp,
             Type = type,
-            Source = CarValueSource.Ble,
+            Source = source,
             BooleanValue = value,
         };
         teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
