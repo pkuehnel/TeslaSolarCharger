@@ -25,7 +25,7 @@ public interface IBleService
     /// <summary>
     /// Passively scans for the car's BLE advertisement without connecting, so it can never wake the car. The result
     /// message contains a <see cref="Server.Dtos.Ble.DtoBleBeaconScanResult"/> as JSON. Requires a BLE container of
-    /// version 2.37.0 or later; older containers answer with a non success result.
+    /// version 2.38.0 or later; older containers answer with a non success result.
     /// </summary>
     Task<DtoBleCommandResult> GetBeaconScanResult(string vin);
     Task<string?> CheckBleApiVersionCompatibility(string? host);

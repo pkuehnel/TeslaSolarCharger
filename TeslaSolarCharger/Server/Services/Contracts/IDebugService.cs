@@ -9,12 +9,6 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 public interface IDebugService
 {
     Task<Dictionary<int, DtoDebugCar>> GetCars();
-
-    /// <summary>
-    /// Enables or disables debug output of the BLE commands of a single car. The setting is persisted so it survives
-    /// restarts while a sporadic issue is being tracked down.
-    /// </summary>
-    Task SetCarBleDebug(int carId, bool useDebug);
     void SetInMemoryLogLevel(string level);
     void SetLogCapacity(int capacity);
     string GetInMemoryLogLevel();

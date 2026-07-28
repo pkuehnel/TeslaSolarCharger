@@ -11,39 +11,21 @@ public class CommandService(ILogger<CommandService> logger,
     ISettings settings,
     IStartupService startupService,
     IBleAdapterGate bleAdapterGate,
+    IBleDaemonService bleDaemonService,
     TimeProvider timeProvider) : ICommandService
 {
     private readonly string _guid = Guid.NewGuid().ToString();
 
     /// <summary>
-    /// While a test session holds a connection the adapter is blocked for everything else, so waiting for it would
-    /// only run into the semaphore timeout.
+    /// The long living worker keeps the Bluetooth adapter open instead of resetting it for every command. Can be
+    /// turned off to fall back to starting tesla-control per command.
     /// </summary>
-    private DtoBleCommandResult? GetHeldSessionResult()
-    {
-        var heldSessionVin = bleAdapterGate.HeldSessionVin;
-        if (heldSessionVin == default)
-        {
-            return default;
-        }
-        logger.LogWarning("A BLE test session is currently held for car {vin}, no other BLE access is possible", heldSessionVin);
-        return new DtoBleCommandResult()
-        {
-            Success = false,
-            ResultMessage = $"A BLE test session is currently held for car {heldSessionVin}. Stop the session before sending other BLE requests.",
-            ErrorType = ErrorType.BleApiConfiguration,
-        };
-    }
+    private bool UseDaemon() => configuration.GetValue<bool>("UseBleDaemon");
 
     public async Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, string? domain,
         List<string> parameters, bool useDebug)
     {
         logger.LogTrace("{method}({vin}, {command}, {domain}, {@parameters}, {useDebug})", nameof(ExecuteCommand), vin, command, domain, parameters, useDebug);
-        var heldSessionResult = GetHeldSessionResult();
-        if (heldSessionResult != default)
-        {
-            return heldSessionResult;
-        }
         var fleetApiRequestsAllowed = settings.BleRequestAllowed;
         if (!fleetApiRequestsAllowed)
         {
@@ -60,6 +42,12 @@ public class CommandService(ILogger<CommandService> logger,
                 ErrorType = ErrorType.BleApiConfiguration,
             };
         }
+        if (UseDaemon())
+        {
+            //The worker owns the connection lifecycle (including the domain to use), so no domain is passed on.
+            return await bleDaemonService.ExecuteCommand(vin, command, parameters, useDebug).ConfigureAwait(false);
+        }
+
         var file = "/app/go/tesla-control";
         var privateKeyLocation = configuration.GetValue<string>("PrivateKeyPath");
         if (string.IsNullOrEmpty(privateKeyLocation))
@@ -74,8 +62,6 @@ public class CommandService(ILogger<CommandService> logger,
         }
 
         var domainPrefix = string.IsNullOrEmpty(domain) ? string.Empty : $"-domain {domain} ";
-        //Debug is requested per command by TSC (enabled per car), so a single car can be debugged without
-        //restarting the container or making every other car verbose.
         var debugParameterString = useDebug ? "-debug " : string.Empty;
         var commandTimeoutSeconds = configuration.GetValue<int>("CommandTimeoutSeconds");
         var connectTimeoutSeconds = configuration.GetValue<int>("ConnectTimeoutSeconds");
@@ -140,14 +126,9 @@ public class CommandService(ILogger<CommandService> logger,
         }
     }
 
-    public async Task<DtoBleCommandResult> BeaconScan(string vin)
+    public async Task<DtoBleCommandResult> BeaconScan(string vin, bool useDebug)
     {
         logger.LogTrace("{method}({vin})", nameof(BeaconScan), vin);
-        var heldSessionResult = GetHeldSessionResult();
-        if (heldSessionResult != default)
-        {
-            return heldSessionResult;
-        }
         var bleRequestsAllowed = settings.BleRequestAllowed;
         if (!bleRequestsAllowed)
         {
@@ -164,6 +145,12 @@ public class CommandService(ILogger<CommandService> logger,
                 ErrorType = ErrorType.BleApiConfiguration,
             };
         }
+        if (UseDaemon())
+        {
+            //The worker holds the adapter, so a separate scanner process could not run anyway: it scans itself.
+            return await bleDaemonService.BeaconScan(vin, useDebug).ConfigureAwait(false);
+        }
+
         var file = "/app/go/tesla-beacon-scan";
         var beaconScanTimeoutSeconds = configuration.GetValue<int>("BeaconScanTimeoutSeconds");
         var bluetoothAdapter = configuration.GetValue<string>("BluetoothAdapter");

@@ -9,8 +9,12 @@ RUN curl -L https://api.github.com/repos/teslamotors/vehicle-command/tarball/mai
 # Compile the beacon scanner inside the vehicle-command module so it reuses its go-ble dependency and
 # is installed to /go/bin next to tesla-control by the go install below.
 COPY ["TeslaSolarCharger.BleApi/go/tesla-beacon-scan/", "cmd/tesla-beacon-scan/"]
+COPY ["TeslaSolarCharger.BleApi/go/tesla-bled/", "cmd/tesla-bled/"]
 RUN go get ./...
 RUN go build ./...
+# Guards the request format the BLE API sends to the worker: a mismatch there is invisible until a car stops
+# answering, so it must fail the image build instead.
+RUN go test ./cmd/tesla-bled/
 RUN go install ./...
 
 # Stage 2: Build the .NET application

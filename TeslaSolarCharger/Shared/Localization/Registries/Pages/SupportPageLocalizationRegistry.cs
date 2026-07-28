@@ -142,9 +142,6 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Beacon scan (BLE)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Beacon-Scan (BLE)"));
 
-        Register(TranslationKeys.SupportUseBleDebugLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "BLE debug output for this car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "BLE-Debug-Ausgabe für dieses Fahrzeug"));
 
         Register(TranslationKeys.SupportChargingAmpsToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),

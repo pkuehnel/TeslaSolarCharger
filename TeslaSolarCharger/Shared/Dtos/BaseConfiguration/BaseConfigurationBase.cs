@@ -131,6 +131,12 @@ public class BaseConfigurationBase
     //Nullable on purpose: null means the user never decided, so the default can be changed to true in a future release
     //without overwriting an explicit user decision.
     public bool? GetVehicleDataViaBle { get; set; }
+
+    /// <summary>
+    /// Let the BLE container log the detailed communication with the cars. Only needed while troubleshooting, as the
+    /// logs get very large.
+    /// </summary>
+    public bool UseBleDebug { get; set; }
     [Required]
     [Range(1, int.MaxValue)]
     [Postfix("s")]

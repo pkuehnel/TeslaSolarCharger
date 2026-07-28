@@ -510,7 +510,6 @@ public class ConfigJsonService(
                     ChargingPriority = c.ChargingPriority,
                     Name = c.Name,
                     UseBle = c.UseBle,
-                    UseBleDebug = c.UseBleDebug,
                     BleApiBaseUrl = c.BleApiBaseUrl,
                     WakeUpCalls = c.WakeUpCalls,
                     VehicleDataCalls = c.VehicleDataCalls,
@@ -646,7 +645,10 @@ public class ConfigJsonService(
 
             if (logValue.Type == CarValueType.LocatedAtHome)
             {
-                if (fleetTelemetryConfiguration.HomeDetectionVia == HomeDetectionVia.LocatedAtHome)
+                //Cars that detect their home presence via BLE also store it as LocatedAtHome, so their last known
+                //presence has to be restored from the same value. Without this the car would be shown as not at home
+                //(and its charging power as 0) after every restart until the next successful BLE read.
+                if (fleetTelemetryConfiguration.HomeDetectionVia is HomeDetectionVia.LocatedAtHome or HomeDetectionVia.BlePresence)
                 {
                     dtoCar.IsHomeGeofence.Update(new DateTimeOffset(logValue.Timestamp, TimeSpan.Zero),
                         logValue.BooleanValue == true);

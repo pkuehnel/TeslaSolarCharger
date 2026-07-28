@@ -259,6 +259,11 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool UseBleDebug()
+    {
+        return GetBaseConfiguration().UseBleDebug;
+    }
+
     public bool GetVehicleDataViaBle()
     {
         //null defaults to false while the feature is being tested; will default to true in a future release.

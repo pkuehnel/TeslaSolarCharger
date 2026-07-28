@@ -4,6 +4,7 @@ using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -16,6 +17,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     ISettings settings,
     IErrorHandlingService errorHandlingService,
     IIssueKeys issueKeys,
+    IConfigurationWrapper configurationWrapper,
     IHttpClientFactory httpClientFactory) : IBleService
 {
     private static readonly TimeSpan PairKeyTimeout = TimeSpan.FromSeconds(100);
@@ -103,6 +105,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("vin", vin);
+        if (configurationWrapper.UseBleDebug())
+        {
+            queryString.Add("useDebug", "true");
+        }
         var url = $"{bleBaseUrl}Command/BeaconScan?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         var client = CreateBleClient();
@@ -310,7 +316,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 37, 0);
+            var correctVersion = new Version(2, 39, 0);
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)
@@ -414,8 +420,8 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             queryString.Add("domain", request.Domain);
         }
-        //Debug is a per car setting so a single car can be troubleshooted without making every other car verbose.
-        if (UseBleDebug(request.Vin))
+        //The BLE container's worker process logs for all cars at once, so debug is a global setting.
+        if (configurationWrapper.UseBleDebug())
         {
             queryString.Add("useDebug", "true");
         }
@@ -469,10 +475,6 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
     }
 
-    private bool UseBleDebug(string vin)
-    {
-        return settings.Cars.FirstOrDefault(c => c.Vin == vin)?.UseBleDebug == true;
-    }
 
     private static string? GetBleBaseUrlFromConfiguredUrl(string? bleApiBaseUrl)
     {

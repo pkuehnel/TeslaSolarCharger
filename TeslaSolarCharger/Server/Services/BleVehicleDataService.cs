@@ -147,10 +147,10 @@ public class BleVehicleDataService(
             {
                 return;
             }
-            //The charge state read failed because the car is out of BLE range: the last known charging state was stale
-            //(e.g. the car was unplugged and driven away). The beacon scan below finds out whether the car is really
-            //gone or the BLE stack just failed transiently.
-            logger.LogDebug("Fast charge state read for car {vin} failed as out of BLE range, arbitrate via beacon scan", car.Vin);
+            //The charge state read failed, so the last known charging state can not be trusted: the car may have been
+            //unplugged and driven away, may have fallen asleep, or the read failed for an entirely different reason.
+            //The full refresh below finds out which of these it is.
+            logger.LogDebug("Fast charge state read for car {vin} failed, fall back to the full refresh", car.Vin);
         }
         var beaconScanOutcome = await GetBeaconScanOutcome(car).ConfigureAwait(false);
         var timestamp = dateTimeProvider.UtcNow();
@@ -203,16 +203,11 @@ public class BleVehicleDataService(
             logger.LogDebug("Beacon of car {vin} found with {rssi} dBm", car.Vin, scanResult.Rssi);
             return BleBeaconScanOutcome.BeaconFound;
         }
-        if (scanResult.OtherAdvertisementsSeen > 0)
-        {
-            logger.LogDebug("Beacon of car {vin} not found although {otherAdvertisements} advertisements of " +
-                            "{distinctDevices} other devices were heard, car is very likely not at home",
-                car.Vin, scanResult.OtherAdvertisementsSeen, scanResult.DistinctDevicesSeen);
-            return BleBeaconScanOutcome.ReliablyAbsent;
-        }
-        logger.LogDebug("Beacon scan for car {vin} heard no advertisements at all, the radio might be deaf so the " +
-                        "car's absence can not be trusted", car.Vin);
-        return BleBeaconScanOutcome.ScanUnavailable;
+        //Cars advertise every few hundred milliseconds, so not hearing them within the scan window means they are
+        //not in range. A single miss is still not enough to mark the car away, that needs multiple consecutive
+        //observations (see HandleOutOfRangeObservation).
+        logger.LogDebug("Beacon of car {vin} not found, car is very likely not at home", car.Vin);
+        return BleBeaconScanOutcome.ReliablyAbsent;
     }
 
     /// <summary>
@@ -248,11 +243,15 @@ public class BleVehicleDataService(
     }
 
     /// <summary>
-    /// Reads only the charge state (infotainment) of a charging car, skipping the VCSEC body controller call.
+    /// Reads only the charge state (infotainment) of a charging car, skipping the beacon scan and the VCSEC body
+    /// controller call.
     /// </summary>
     /// <returns>
-    /// True if the refresh was handled (charge state stored or a non range error raised). False only if the car turned
-    /// out to be out of BLE range, so the caller should fall back to the body controller state.
+    /// True only if the charge state was actually read and stored. Every failure returns false so the caller falls
+    /// back to the full refresh, which is the only path that can tell an absent car from a sleeping one and is the
+    /// only one that reports errors. Handling a failure here instead would freeze the car's entire state: this fast
+    /// path is selected by the very charging state that only a successful charge state read (or the away transition of
+    /// the full refresh) can ever correct.
     /// </returns>
     private async Task<bool> TryRefreshChargingCarData(DtoCar car)
     {
@@ -261,28 +260,16 @@ public class BleVehicleDataService(
         var timestamp = dateTimeProvider.UtcNow();
         if (!chargeStateResult.Success)
         {
-            if (IsCarOutOfBleRangeResult(chargeStateResult))
-            {
-                return false;
-            }
-            logger.LogError("Could not get charge state for charging car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
-            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(TryRefreshChargingCarData),
-                $"Error while getting vehicle data via BLE for car {vin}",
-                $"Could not get charge state: {chargeStateResult.ResultMessage}",
-                issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
-            return true;
+            logger.LogDebug("Could not get charge state for charging car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
+            return false;
         }
         //The car answered the request, so it is in BLE range even if the response turns out to be unparseable.
         blePresenceStateService.RegisterSuccessfulRead(car.Id);
         var chargeState = DeserializeChargeState(chargeStateResult.ResultMessage);
         if (chargeState == default)
         {
-            logger.LogError("Could not parse charge state for charging car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
-            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(TryRefreshChargingCarData),
-                $"Error while getting vehicle data via BLE for car {vin}",
-                $"Could not parse charge state: {chargeStateResult.ResultMessage}",
-                issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
-            return true;
+            logger.LogDebug("Could not parse charge state for charging car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
+            return false;
         }
         //The car answered the charge state request, so it is in BLE range (at home) and awake (online).
         UpdateHomePresence(car, true, timestamp);

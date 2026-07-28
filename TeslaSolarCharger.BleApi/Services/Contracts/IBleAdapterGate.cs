@@ -16,10 +16,4 @@ public interface IBleAdapterGate
     /// Releases the adapter. Must only be called after a successful <see cref="WaitAsync"/>.
     /// </summary>
     void Release();
-
-    /// <summary>
-    /// VIN of a test session that currently holds a long living connection, or null if no session is held. While a
-    /// session is held no other BLE work is possible, so normal commands fail fast instead of waiting for the adapter.
-    /// </summary>
-    string? HeldSessionVin { get; set; }
 }

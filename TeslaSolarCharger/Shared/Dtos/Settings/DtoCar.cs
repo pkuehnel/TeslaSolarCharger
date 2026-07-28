@@ -78,7 +78,6 @@ public class DtoCar
     }
 
     public bool UseBle { get; set; }
-    public bool UseBleDebug { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public DtoTimeStampedValue<DateTime?> EarliestHomeArrival { get; set; } = new(DateTimeOffset.MinValue, null);
     public List<DateTime> WakeUpCalls { get; set; } = new List<DateTime>();

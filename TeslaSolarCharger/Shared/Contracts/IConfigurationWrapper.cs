@@ -95,6 +95,11 @@ public interface IConfigurationWrapper
     bool LogLocationData();
     bool GetVehicleDataFromTesla();
     bool GetVehicleDataViaBle();
+
+    /// <summary>
+    /// Whether the BLE container should log its detailed communication with the cars. Only for troubleshooting.
+    /// </summary>
+    bool UseBleDebug();
     int? MaxInverterAcPower();
     string? BleBaseUrl();
     bool SendTeslaApiStatsToBackend();

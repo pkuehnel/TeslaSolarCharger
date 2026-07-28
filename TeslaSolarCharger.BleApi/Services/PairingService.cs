@@ -5,7 +5,9 @@ namespace TeslaSolarCharger.BleApi.Services;
 
 public class PairingService(ILogger<PairingService> logger,
     ICommandLineExecutionService commandLineExecutionService,
-    IConfiguration configuration) : IPairingService
+    IConfiguration configuration,
+    IBleAdapterGate bleAdapterGate,
+    IBleDaemonService bleDaemonService) : IPairingService
 {
     public async Task GenerateKeyPair()
     {
@@ -49,8 +51,29 @@ public class PairingService(ILogger<PairingService> logger,
         {
             await GenerateKeyPair().ConfigureAwait(false);
         }
-        var result = await commandLineExecutionService.ExecuteCommand("/app/go/tesla-control", $"-ble -vin {vin} add-key-request {publicKeyPath} {apiRole} cloud_key");
-        return result;
+        //Pairing runs its own tesla-control process, which would fight the worker for the Bluetooth adapter: take the
+        //adapter and stop the worker for the duration. It starts again lazily on the next command.
+        var gateWaitSeconds = configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
+        if (!await bleAdapterGate.WaitAsync(TimeSpan.FromSeconds(gateWaitSeconds)).ConfigureAwait(false))
+        {
+            logger.LogError("Bluetooth adapter did not become free in time for pairing");
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                ResultMessage = "Bluetooth adapter is busy, could not start pairing in time.",
+                ErrorType = Enums.ErrorType.TeslaControl,
+            };
+        }
+        try
+        {
+            await bleDaemonService.StopWorker().ConfigureAwait(false);
+            var result = await commandLineExecutionService.ExecuteCommand("/app/go/tesla-control", $"-ble -vin {vin} add-key-request {publicKeyPath} {apiRole} cloud_key");
+            return result;
+        }
+        finally
+        {
+            bleAdapterGate.Release();
+        }
     }
 
     private async Task CreateFile(string fullName, string content, bool overwrite)

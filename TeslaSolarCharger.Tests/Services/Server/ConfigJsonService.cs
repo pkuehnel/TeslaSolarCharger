@@ -1,7 +1,9 @@
 ﻿using Moq;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -86,6 +88,45 @@ public class ConfigJsonService : TestBase
             .Verify(f => f.DeleteFleetTelemetryConfiguration(It.IsAny<string>()), Times.Never);
         Mock.Mock<IFleetTelemetryConfigurationService>()
             .Verify(f => f.SetFleetTelemetryConfiguration(TestVin, false), Times.Once);
+    }
+
+    [Fact]
+    public async Task RestoresHomePresenceOfBlePresenceCars()
+    {
+        Context.Cars.Add(new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car
+        {
+            Id = 1,
+            Vin = TestVin,
+            CarType = CarType.Tesla,
+            ShouldBeManaged = true,
+            UseBle = true,
+            UseFleetTelemetry = false,
+            IncludeTrackingRelevantFields = false,
+            HomeDetectionVia = HomeDetectionVia.BlePresence,
+        });
+        Context.CarValueLogs.Add(new CarValueLog
+        {
+            CarId = 1,
+            Timestamp = CurrentFakeDate.UtcDateTime.AddMinutes(-5),
+            Type = CarValueType.LocatedAtHome,
+            Source = CarValueSource.Ble,
+            BooleanValue = true,
+        });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        Mock.Mock<ISettings>().SetupProperty(s => s.Cars, new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.CarDeletionProgresses)
+            .Returns(new ConcurrentDictionary<int, DtoCarDeletionProgress>());
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.AddCarsToSettings(null);
+
+        //Cars detecting their home presence via BLE store it as LocatedAtHome, so it has to be restored from that
+        //value as well. Without this the car is shown as not at home (and with 0 W charging power) after every
+        //restart until the next successful BLE read.
+        var car = Mock.Mock<ISettings>().Object.Cars.Single(c => c.Id == 1);
+        Assert.True(car.IsHomeGeofence.Value);
     }
 
     private void SetupCarForBleDataCollectionTests()

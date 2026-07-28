@@ -27,7 +27,7 @@ public class CommandController (ICommandService service) : ApiBaseController
     /// <param name="vin">VIN of the car</param>
     /// <returns></returns>
     [HttpGet]
-    public Task<DtoBleCommandResult> BeaconScan(string vin) => service.BeaconScan(vin);
+    public Task<DtoBleCommandResult> BeaconScan(string vin, bool useDebug = false) => service.BeaconScan(vin, useDebug);
 
     /// <summary>
     /// Get a list of all available commands

@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IHelloService, HelloService>()
             .AddSingleton<ICommandService, CommandService>()
             .AddSingleton<IBleAdapterGate, BleAdapterGate>()
+            .AddSingleton<IBleDaemonService, BleDaemonService>()
             .AddSingleton<ISettings, Settings>()
             .AddSingleton<IStartupService, StartupService>()
             .AddSingleton(TimeProvider.System)

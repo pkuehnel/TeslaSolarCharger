@@ -1,10 +1,9 @@
 namespace TeslaSolarCharger.Server.Dtos.Ble;
 
 /// <summary>
-/// Result of a passive BLE beacon scan executed by the BLE container's tesla-beacon-scan helper (transported as JSON
-/// in <see cref="TeslaSolarCharger.Shared.Dtos.Ble.DtoBleCommandResult.ResultMessage"/>). The advertisement counts
-/// allow distinguishing an absent car (radio provably received other traffic) from a deaf/starved Bluetooth radio
-/// (nothing received at all).
+/// Result of a passive BLE beacon scan of the BLE container (transported as JSON in
+/// <see cref="TeslaSolarCharger.Shared.Dtos.Ble.DtoBleCommandResult.ResultMessage"/>). Cars advertise continuously,
+/// awake and asleep, so a scan answers whether the car is in range without connecting to it and can never wake it.
 /// </summary>
 public class DtoBleBeaconScanResult
 {
@@ -28,20 +27,4 @@ public class DtoBleBeaconScanResult
     /// already connected to the maximum number of BLE devices.
     /// </summary>
     public bool? Connectable { get; set; }
-
-    /// <summary>
-    /// Number of advertisements received from other devices during the scan window. Zero combined with an unfound
-    /// beacon means the radio might be deaf, so the car's absence can not be trusted.
-    /// </summary>
-    public int OtherAdvertisementsSeen { get; set; }
-
-    /// <summary>
-    /// Number of distinct devices the advertisements were received from.
-    /// </summary>
-    public int DistinctDevicesSeen { get; set; }
-
-    /// <summary>
-    /// How long the scan actually ran: a found beacon ends the scan early, an unfound one uses the full window.
-    /// </summary>
-    public long ScanDurationMs { get; set; }
 }

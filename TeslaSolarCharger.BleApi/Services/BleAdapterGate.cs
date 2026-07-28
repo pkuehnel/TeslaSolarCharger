@@ -9,6 +9,4 @@ public class BleAdapterGate : IBleAdapterGate
     public Task<bool> WaitAsync(TimeSpan timeout) => _semaphoreSlim.WaitAsync(timeout);
 
     public void Release() => _semaphoreSlim.Release();
-
-    public string? HeldSessionVin { get; set; }
 }

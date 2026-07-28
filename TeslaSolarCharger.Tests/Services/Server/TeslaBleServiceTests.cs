@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -211,7 +212,7 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public async Task CommandsOfCarsWithoutBleDebugDoNotRequestDebugOutput()
+    public async Task CommandsDoNotRequestDebugOutputWhenBleDebugIsDisabled()
     {
         SetupBleCar();
         _handler.RespondWith(HttpStatusCode.OK, "{\"Success\":true}");
@@ -225,11 +226,11 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public async Task CommandsOfCarsWithBleDebugRequestDebugOutput()
+    public async Task CommandsRequestDebugOutputWhenBleDebugIsEnabled()
     {
-        var car = SetupBleCar();
-        //Debug is enabled per car on the support page so a single car can be troubleshooted.
-        car.UseBleDebug = true;
+        SetupBleCar();
+        //The BLE container logs for all cars at once, so debug is a global base configuration setting.
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.UseBleDebug()).Returns(true);
         _handler.RespondWith(HttpStatusCode.OK, "{\"Success\":true}");
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
@@ -302,7 +303,7 @@ public class TeslaBleServiceTests : TestBase
     public async Task VersionCompatibilityAcceptsTheExpectedVersion()
     {
         SetupBleCar();
-        _handler.RespondWith(HttpStatusCode.OK, "{\"Value\":\"2.37.0\"}");
+        _handler.RespondWith(HttpStatusCode.OK, "{\"Value\":\"2.39.0\"}");
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
         var error = await service.CheckBleApiVersionCompatibility(ConfiguredBleUrl);

@@ -342,6 +342,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "BLE-Schlafstabilität (Min)",
                 "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
 
+        Register(x => x.UseBleDebug,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE debug logging",
+                "Let the BLE container log its detailed communication with the cars. Only enable while troubleshooting a BLE problem: the logs grow very large. Changing this restarts the BLE container's worker process, which briefly interrupts the connection to a car."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Debug-Protokollierung",
+                "Lässt den BLE-Container die detaillierte Kommunikation mit den Fahrzeugen protokollieren. Nur zur Fehlersuche aktivieren, da die Protokolle sehr groß werden. Eine Änderung startet den Worker-Prozess des BLE-Containers neu, wodurch die Verbindung zu einem Fahrzeug kurz unterbrochen wird."));
+
         Register(x => x.GetVehicleDataViaBle,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Get data via BLE",

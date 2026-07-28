@@ -5,11 +5,26 @@ using Serilog.Events;
 using System.Text;
 using TeslaSolarCharger.BleApi.Abstracts;
 using TeslaSolarCharger.BleApi.Dtos;
+using TeslaSolarCharger.BleApi.Services.Contracts;
 
 namespace TeslaSolarCharger.BleApi.Controllers;
 
-public class DebugController(IInMemorySink inMemorySink, LoggingLevelSwitch inMemoryLogLevelSwitch) : ApiBaseController
+public class DebugController(IInMemorySink inMemorySink,
+    LoggingLevelSwitch inMemoryLogLevelSwitch,
+    IBleDaemonService bleDaemonService) : ApiBaseController
 {
+    /// <summary>
+    /// State of the long living BLE worker process.
+    /// </summary>
+    [HttpGet]
+    public DtoBleDaemonStatus DaemonStatus() => bleDaemonService.GetStatus();
+
+    /// <summary>
+    /// Recent lifecycle events of the BLE worker (starts, requests, answers, exits).
+    /// </summary>
+    [HttpGet]
+    public List<DtoBleSessionEvent> DaemonEvents(int? tail) => bleDaemonService.GetEvents(tail);
+
     /// <summary>
     /// Gets the current in memory logs.
     /// </summary>

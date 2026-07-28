@@ -10,6 +10,5 @@ public class DtoDebugCar
     public bool IsAvailableInTeslaAccount { get; set; }
     public CarType CarType { get; set; }
     public bool UseBle { get; set; }
-    public bool UseBleDebug { get; set; }
     public bool? IsOnline { get; set; }
 }
