@@ -190,6 +190,11 @@ else
                     </div>
                     @if (car.Value.UseBle)
                     {
+                        <MudSwitch T="bool"
+                                   Value="@car.Value.UseBleDebug"
+                                   ValueChanged="@(value => SetCarBleDebug(car.Key, value))"
+                                   Label="@T(TranslationKeys.SupportUseBleDebugLabel)"
+                                   Color="Color.Primary" />
                         <div class="d-flex flex-wrap gap-2">
                             <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetBleBodyControllerStateButton)'
                                                          IsLoading="@_loadingCarCommands.Contains(car.Key)"
@@ -199,6 +204,10 @@ else
                                                          IsLoading="@_loadingCarCommands.Contains(car.Key)"
                                                          IsDisabled="@(car.Value.Vin == default)"
                                                          OnButtonClicked="@(() => GetBleChargeState(car.Key))"></RightAlignedButtonComponent>
+                            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetBleBeaconScanButton)'
+                                                         IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                         IsDisabled="@(car.Value.Vin == default)"
+                                                         OnButtonClicked="@(() => GetBleBeaconScan(car.Key))"></RightAlignedButtonComponent>
                         </div>
                     }
                     @if (_chargingAmpsToSet.ContainsKey(car.Key))
@@ -686,6 +695,31 @@ else
     {
         _loadingCarCommands.Add(carKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetBleChargeState?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
+    }
+
+    private async Task SetCarBleDebug(int carKey, bool useDebug)
+    {
+        if (_debugCars == default || !_debugCars.TryGetValue(carKey, out var car))
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendPostRequestAsync($"api/Debug/SetCarBleDebug?carId={carKey}&useDebug={useDebug}", null);
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SupportNoError), Severity.Error);
+            return;
+        }
+        car.UseBleDebug = useDebug;
+    }
+
+    private async Task GetBleBeaconScan(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetBleBeaconScanResult?carId={carKey}", null);
         _carCommandResults[carKey] = result.HasError
             ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
             : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));

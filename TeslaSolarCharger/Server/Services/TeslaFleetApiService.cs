@@ -40,7 +40,9 @@ public class TeslaFleetApiService(
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
     IMemoryCache memoryCache,
     IBackendApiService backendApiService,
-    IFleetApiRateLimitService fleetApiRateLimitService)
+    IFleetApiRateLimitService fleetApiRateLimitService,
+    IBlePostCommandRefreshScheduler blePostCommandRefreshScheduler,
+    IBleSleepWindowService bleSleepWindowService)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -762,6 +764,13 @@ public class TeslaFleetApiService(
         }
 
         var car = settings.Cars.First(c => c.Vin == vin);
+        if (IsChargeCommand(fleetApiRequest))
+        {
+            //A charge command is about to be sent to the car, so cancel any BLE sleep window: the car is (or is about
+            //to be) actively managed and awake. Without this a window that started in the same charging cycle would
+            //silence the follow up reads, so TSC would never observe that the car started or stopped charging.
+            bleSleepWindowService.ResetSleepWindow(car.Id);
+        }
         if (!isFleetApiTest && fleetApiRequest.BleCompatible && car.UseBle)
         {
             await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
@@ -795,6 +804,13 @@ public class TeslaFleetApiService(
                 {
                     AddRequestToCar(vin, fleetApiRequest);
                     await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
+                    //A charge command succeeded via BLE. Trigger an extra BLE read shortly after so the changed values
+                    //(e.g. the new charging amps) show up quickly instead of only on the next charging cycle. The
+                    //scheduler is a no-op for cars that do not collect their data via BLE.
+                    if (IsChargeCommand(fleetApiRequest))
+                    {
+                        await blePostCommandRefreshScheduler.ScheduleRefresh(car.Id).ConfigureAwait(false);
+                    }
                     if (typeof(T) == typeof(DtoVehicleCommandResult))
                     {
                         var comamndResult = new DtoGenericTeslaResponse<T> { Response = (T)(object)new DtoVehicleCommandResult()
@@ -952,6 +968,17 @@ public class TeslaFleetApiService(
         }
         logger.LogDebug("Response: {responseString}", backendApiResponse.JsonResponse);
         return teslaCommandResultResponse;
+    }
+
+    /// <summary>
+    /// Charge relevant commands after which an extra BLE read is scheduled so the changed values show up quickly.
+    /// Wake up is excluded as it is always followed by a set amps / charge start command that triggers the read.
+    /// </summary>
+    private bool IsChargeCommand(DtoFleetApiRequest fleetApiRequest)
+    {
+        return (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl);
     }
 
     /// <summary>

@@ -14,5 +14,5 @@ public class HelloController (IHelloService service) :ApiBaseController
     public Task<bool> FinallyTest() => service.IsAlive();
 
     [HttpGet]
-    public DtoValue<Version> TscVersionCompatibility() => new(new(2, 36, 0));
+    public DtoValue<Version> TscVersionCompatibility() => new(new(2, 37, 0));
 }

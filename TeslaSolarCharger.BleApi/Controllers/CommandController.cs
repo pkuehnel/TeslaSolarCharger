@@ -14,9 +14,20 @@ public class CommandController (ICommandService service) : ApiBaseController
     /// <param name="command">command name of the car (e.g. charging-set-amps)</param>
     /// <param name="domain">add a domain, e.g. VCSEC</param>
     /// <param name="parameters">Array of parameters sent after the command, e.g. `6` to set current to 6 amps</param>
+    /// <param name="useDebug">Run the command with debug logging, returned in the result's debug output</param>
     /// <returns></returns>
     [HttpPost]
-    public Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, [FromBody] List<string> parameters, string? domain = null) => service.ExecuteCommand(vin, command, domain, parameters);
+    public Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, [FromBody] List<string> parameters, string? domain = null, bool useDebug = false) => service.ExecuteCommand(vin, command, domain, parameters, useDebug);
+
+    /// <summary>
+    /// Passively scan for the car's BLE advertisement without connecting (never wakes the car). The
+    /// result message contains the scan outcome as JSON including how many advertisements of other
+    /// devices were heard, so the caller can distinguish an absent car from a deaf Bluetooth radio.
+    /// </summary>
+    /// <param name="vin">VIN of the car</param>
+    /// <returns></returns>
+    [HttpGet]
+    public Task<DtoBleCommandResult> BeaconScan(string vin) => service.BeaconScan(vin);
 
     /// <summary>
     /// Get a list of all available commands

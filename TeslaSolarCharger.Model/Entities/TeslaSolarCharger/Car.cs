@@ -38,6 +38,12 @@ public class Car
     public bool VehicleCommandProtocolRequired { get; set; }
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
+
+    /// <summary>
+    /// Send BLE commands of this car with debug logging enabled so the BLE container returns and logs the detailed
+    /// tesla-control output. Enabled on the support page while troubleshooting a single car.
+    /// </summary>
+    public bool UseBleDebug { get; set; }
     public bool UseFleetTelemetry { get; set; }
     public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }

@@ -306,6 +306,26 @@ public class DebugController(
         return Ok(new DtoValue<string>(resultString));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> SetCarBleDebug(int carId, bool useDebug)
+    {
+        await debugService.SetCarBleDebug(carId, useDebug);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetBleBeaconScanResult(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetBeaconScanResult(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAllProductsFromTeslaAccount()
     {

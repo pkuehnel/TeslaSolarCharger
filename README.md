@@ -295,7 +295,42 @@ volumes:
 ##### Setup BLE (same device and separate device)
 The BLE API Base URL is configured per car. Go to `Car Settings`, open the car you want to control, enable `Use BLE` and enter the BLE API Base URL `http://<IP of device with BLE API running>:7210/`. Click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeded, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
 
+##### Troubleshooting BLE
 
+**Pairing fails with `RF-kill` on a freshly installed Raspberry Pi**
+
+If pairing or any BLE command fails with an error like this:
+
+```
+ble: failed to enable device: can't init hci: no devices available: (hci0: can't up device: operation not possible due to RF-kill)
+```
+
+then the Bluetooth adapter is blocked by the *host* operating system, not by the BLE API container. Raspberry Pi OS keeps the Wi-Fi and Bluetooth radios disabled (`rfkill` soft block) until a WLAN regulatory country has been configured, which is often not the case after a fresh install. As the block is enforced by the host kernel, the container cannot work around it, even though it runs with `privileged: true` and `network_mode: host`.
+
+Run the following commands **on the device that runs the BLE API** (not inside the container):
+
+1. Check the current state. The Bluetooth entry will most likely show `Soft blocked: yes`.
+    ```
+    rfkill list
+    ```
+1. Remove the block
+    ```
+    sudo rfkill unblock all
+    ```
+1. Set your WLAN country, otherwise the block is reapplied on the next reboot. Replace `DE` with your own [country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
+    ```
+    sudo raspi-config nonint do_wifi_country DE
+    ```
+1. Bring the adapter up and verify it is available
+    ```
+    sudo hciconfig hci0 up && hciconfig
+    ```
+1. Restart the BLE API container, so it can initialize the adapter again
+    ```
+    docker restart TeslaSolarChargerBleApi
+    ```
+
+If `rfkill list` shows `Hard blocked: yes` or does not list a Bluetooth device at all, Bluetooth is disabled in the firmware configuration instead. Check if `/boot/firmware/config.txt` contains a `dtoverlay=disable-bt` line, remove it and reboot. You can also check whether the Bluetooth stack is running at all with `systemctl status bluetooth hciuart`.
 
 ## Setting up solar power values
 

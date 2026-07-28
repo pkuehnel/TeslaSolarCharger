@@ -8,14 +8,22 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaBleService(ILogger<TeslaBleService> logger,
     ISettings settings,
     IErrorHandlingService errorHandlingService,
-    IIssueKeys issueKeys) : IBleService
+    IIssueKeys issueKeys,
+    IHttpClientFactory httpClientFactory) : IBleService
 {
+    private static readonly TimeSpan PairKeyTimeout = TimeSpan.FromSeconds(100);
+    private static readonly TimeSpan VersionCheckTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DownloadLogsTimeout = TimeSpan.FromSeconds(30);
+    //Slightly below the BLE containers own command timeout so the container can answer first.
+    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(29);
+
     public async Task<DtoBleCommandResult> StartCharging(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(StartCharging), vin);
@@ -78,6 +86,51 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
         return result;
+    }
+
+    public async Task<DtoBleCommandResult> GetBeaconScanResult(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(GetBeaconScanResult), vin);
+        var bleBaseUrl = GetBleBaseUrl(vin);
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ErrorType = ErrorType.TscConfiguration,
+            };
+        }
+        var queryString = HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add("vin", vin);
+        var url = $"{bleBaseUrl}Command/BeaconScan?{queryString}";
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
+        try
+        {
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                //Old BLE containers answer with 404 as they do not know the endpoint yet: the caller falls back to
+                //the body controller state based presence detection, the version mismatch is surfaced separately.
+                logger.LogError("Failed to get beacon scan result. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+                throw new InvalidOperationException();
+            }
+            var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
+            return commandResult;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get beacon scan result.");
+            return new DtoBleCommandResult()
+            {
+                ResultMessage = GetErrorMessage(ex, CommandTimeout),
+                Success = false,
+                ErrorType = ErrorType.Unknown,
+            };
+        }
     }
 
     public async Task<DtoBleCommandResult> StopCharging(string vin)
@@ -146,11 +199,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         queryString.Add("apiRole", apiRole);
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(PairKeyTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return new()
@@ -170,12 +224,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             logger.LogError(ex, "Failed to pair key.");
             return new()
             {
-                ResultMessage = ex.Message,
+                ResultMessage = GetErrorMessage(ex, PairKeyTimeout),
                 ErrorType = ErrorType.Unknown,
                 Success = false,
             };
         }
-        
+
     }
 
     public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -209,16 +263,16 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return "Could not generate a base url based on the inserted URL";
         }
         var url = baseUrl + "Hello/TscVersionCompatibility";
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(5);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(VersionCheckTimeout);
         var vins = settings.Cars
             .Where(c => c.BleApiBaseUrl == host && c.UseBle && (c.ShouldBeManaged == true))
             .Select(c => c.Vin)
             .ToList();
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 foreach (var vin in vins)
@@ -256,7 +310,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 36, 0);
+            var correctVersion = new Version(2, 37, 0);
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)
@@ -319,17 +373,17 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         var url = baseUrl + "Debug/DownloadInMemoryLogs";
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(DownloadLogsTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to download BLE logs from {url}. StatusCode: {statusCode}", url, response.StatusCode);
                 return null;
             }
-            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             return new MemoryStream(bytes);
         }
         catch (Exception ex)
@@ -360,15 +414,20 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             queryString.Add("domain", request.Domain);
         }
+        //Debug is a per car setting so a single car can be troubleshooted without making every other car verbose.
+        if (UseBleDebug(request.Vin))
+        {
+            queryString.Add("useDebug", "true");
+        }
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
-        using var client = new HttpClient();
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
         try
         {
-            client.Timeout = TimeSpan.FromSeconds(29);
-            var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.PostAsJsonAsync(url, request.Parameters, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
@@ -382,18 +441,37 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             logger.LogError(ex, "Failed to send ble command.");
             return new DtoBleCommandResult()
             {
-                ResultMessage = ex.Message,
+                ResultMessage = GetErrorMessage(ex, CommandTimeout),
                 Success = false,
                 ErrorType = ErrorType.Unknown,
             };
         }
-        
+
     }
+
+    /// <summary>
+    /// Creates a client whose connections are pooled and rotated by <see cref="IHttpClientFactory"/>. Must not be
+    /// disposed: the returned instance is cheap, the underlying handler is shared and outlives it.
+    /// </summary>
+    private HttpClient CreateBleClient() => httpClientFactory.CreateClient(StaticConstants.HttpClientNameBle);
+
+    /// <summary>
+    /// The result message is displayed in the UI, so a cancellation caused by our own timeout has to be named
+    /// explicitly instead of surfacing the useless "A task was canceled." of <see cref="CancellationTokenSource"/>.
+    /// </summary>
+    private static string GetErrorMessage(Exception exception, TimeSpan timeout) => exception is OperationCanceledException
+        ? $"BLE request timed out after {timeout.TotalSeconds:0.#} seconds."
+        : exception.Message;
 
     private string? GetBleBaseUrl(string vin)
     {
         var car = settings.Cars.First(c => c.Vin == vin);
         return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+    }
+
+    private bool UseBleDebug(string vin)
+    {
+        return settings.Cars.FirstOrDefault(c => c.Vin == vin)?.UseBleDebug == true;
     }
 
     private static string? GetBleBaseUrlFromConfiguredUrl(string? bleApiBaseUrl)

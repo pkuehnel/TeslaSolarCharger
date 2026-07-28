@@ -16,6 +16,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddTransient<ICurrentValuesService, SolaxApiService>()
     .AddTransient<IDateTimeProvider, DateTimeProvider>()
     ;
+builder.Services.AddHttpClient();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));
