@@ -10,15 +10,40 @@ public class CommandService(ILogger<CommandService> logger,
     IConfiguration configuration,
     ISettings settings,
     IStartupService startupService,
+    IBleAdapterGate bleAdapterGate,
     TimeProvider timeProvider) : ICommandService
 {
-    private readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
     private readonly string _guid = Guid.NewGuid().ToString();
 
-    public async Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, string? domain,
-        List<string> parameters)
+    /// <summary>
+    /// While a test session holds a connection the adapter is blocked for everything else, so waiting for it would
+    /// only run into the semaphore timeout.
+    /// </summary>
+    private DtoBleCommandResult? GetHeldSessionResult()
     {
-        logger.LogTrace("{method}({vin}, {command}, {domain}, {@parameters})", nameof(ExecuteCommand), vin, command, domain, parameters);
+        var heldSessionVin = bleAdapterGate.HeldSessionVin;
+        if (heldSessionVin == default)
+        {
+            return default;
+        }
+        logger.LogWarning("A BLE test session is currently held for car {vin}, no other BLE access is possible", heldSessionVin);
+        return new DtoBleCommandResult()
+        {
+            Success = false,
+            ResultMessage = $"A BLE test session is currently held for car {heldSessionVin}. Stop the session before sending other BLE requests.",
+            ErrorType = ErrorType.BleApiConfiguration,
+        };
+    }
+
+    public async Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, string? domain,
+        List<string> parameters, bool useDebug)
+    {
+        logger.LogTrace("{method}({vin}, {command}, {domain}, {@parameters}, {useDebug})", nameof(ExecuteCommand), vin, command, domain, parameters, useDebug);
+        var heldSessionResult = GetHeldSessionResult();
+        if (heldSessionResult != default)
+        {
+            return heldSessionResult;
+        }
         var fleetApiRequestsAllowed = settings.BleRequestAllowed;
         if (!fleetApiRequestsAllowed)
         {
@@ -48,9 +73,10 @@ public class CommandService(ILogger<CommandService> logger,
             };
         }
 
-        var useDebugBle = configuration.GetValue<bool>("UseDebugBle");
         var domainPrefix = string.IsNullOrEmpty(domain) ? string.Empty : $"-domain {domain} ";
-        var debugParameterString = useDebugBle ? "-debug " : string.Empty;
+        //Debug is requested per command by TSC (enabled per car), so a single car can be debugged without
+        //restarting the container or making every other car verbose.
+        var debugParameterString = useDebug ? "-debug " : string.Empty;
         var commandTimeoutSeconds = configuration.GetValue<int>("CommandTimeoutSeconds");
         var connectTimeoutSeconds = configuration.GetValue<int>("ConnectTimeoutSeconds");
         var teslaCacheFilePath = configuration.GetValue<string>("TeslaCacheFilePath");
@@ -62,7 +88,7 @@ public class CommandService(ILogger<CommandService> logger,
         var semaphoreSlimWaitTimeoutSeconds = configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
         //Return before the try/finally on a wait timeout: the semaphore was never acquired, so the
         //delayed release in the finally must not run (it would over-release and throw).
-        if (!await _semaphoreSlim.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
+        if (!await bleAdapterGate.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
         {
             logger.LogError("SemaphoreSlim did not allow command execution in time");
             return new DtoBleCommandResult()
@@ -78,6 +104,11 @@ public class CommandService(ILogger<CommandService> logger,
             var result = await commandLineExecutionService.ExecuteCommand(file, parameterString);
             result.ResultMessage = result.ResultMessage?.Trim();
             result.CarErrorMessage = result.CarErrorMessage?.Trim();
+            if (!string.IsNullOrWhiteSpace(result.DebugOutput))
+            {
+                //Logged so the debug output is also part of the downloadable container logs, not only of the response.
+                logger.LogInformation("Debug output of command {command} for car {vin}:\n{debugOutput}", command, vin, result.DebugOutput);
+            }
             if (!result.Success)
             {
                 if (!string.IsNullOrEmpty(teslaCacheFilePath))
@@ -112,6 +143,11 @@ public class CommandService(ILogger<CommandService> logger,
     public async Task<DtoBleCommandResult> BeaconScan(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(BeaconScan), vin);
+        var heldSessionResult = GetHeldSessionResult();
+        if (heldSessionResult != default)
+        {
+            return heldSessionResult;
+        }
         var bleRequestsAllowed = settings.BleRequestAllowed;
         if (!bleRequestsAllowed)
         {
@@ -137,7 +173,7 @@ public class CommandService(ILogger<CommandService> logger,
         var semaphoreSlimWaitTimeoutSeconds = configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
         //The beacon scanner opens the same HCI adapter as tesla-control and go-ble resets the adapter on
         //init, so a scan must never run concurrently with another BLE process: share the semaphore.
-        if (!await _semaphoreSlim.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
+        if (!await bleAdapterGate.WaitAsync(TimeSpan.FromSeconds(semaphoreSlimWaitTimeoutSeconds)))
         {
             logger.LogError("SemaphoreSlim did not allow beacon scan in time");
             return new DtoBleCommandResult()
@@ -172,7 +208,7 @@ public class CommandService(ILogger<CommandService> logger,
             var millisecondsToWait = configuration.GetValue<int>("MinimumWaitTimeBetweenCommandsMilliseconds");
             logger.LogTrace("Waiting {millisecondsToWait} ms before allowing next command execution", millisecondsToWait);
             await Task.Delay(millisecondsToWait);
-            _semaphoreSlim.Release();
+            bleAdapterGate.Release();
         });
     }
 

@@ -58,6 +58,7 @@ public static class TranslationKeys
     public static string SupportGetBleBodyControllerStateButton => nameof(SupportGetBleBodyControllerStateButton);
     public static string SupportGetBleChargeStateButton => nameof(SupportGetBleChargeStateButton);
     public static string SupportGetBleBeaconScanButton => nameof(SupportGetBleBeaconScanButton);
+    public static string SupportUseBleDebugLabel => nameof(SupportUseBleDebugLabel);
     public static string SupportChargingAmpsToSetLabel => nameof(SupportChargingAmpsToSetLabel);
     public static string SupportChargingAmpsToSetHelperText => nameof(SupportChargingAmpsToSetHelperText);
     public static string SupportSetChargingAmpsButton => nameof(SupportSetChargingAmpsButton);

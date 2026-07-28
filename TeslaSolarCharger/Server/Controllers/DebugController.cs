@@ -307,6 +307,13 @@ public class DebugController(
     }
 
     [HttpPost]
+    public async Task<IActionResult> SetCarBleDebug(int carId, bool useDebug)
+    {
+        await debugService.SetCarBleDebug(carId, useDebug);
+        return Ok();
+    }
+
+    [HttpPost]
     public async Task<IActionResult> GetBleBeaconScanResult(int carId)
     {
         var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;

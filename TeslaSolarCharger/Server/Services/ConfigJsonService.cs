@@ -510,6 +510,7 @@ public class ConfigJsonService(
                     ChargingPriority = c.ChargingPriority,
                     Name = c.Name,
                     UseBle = c.UseBle,
+                    UseBleDebug = c.UseBleDebug,
                     BleApiBaseUrl = c.BleApiBaseUrl,
                     WakeUpCalls = c.WakeUpCalls,
                     VehicleDataCalls = c.VehicleDataCalls,

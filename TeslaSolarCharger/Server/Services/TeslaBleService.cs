@@ -414,6 +414,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             queryString.Add("domain", request.Domain);
         }
+        //Debug is a per car setting so a single car can be troubleshooted without making every other car verbose.
+        if (UseBleDebug(request.Vin))
+        {
+            queryString.Add("useDebug", "true");
+        }
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
@@ -462,6 +467,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         var car = settings.Cars.First(c => c.Vin == vin);
         return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+    }
+
+    private bool UseBleDebug(string vin)
+    {
+        return settings.Cars.FirstOrDefault(c => c.Vin == vin)?.UseBleDebug == true;
     }
 
     private static string? GetBleBaseUrlFromConfiguredUrl(string? bleApiBaseUrl)

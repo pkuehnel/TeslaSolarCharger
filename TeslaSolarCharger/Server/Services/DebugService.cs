@@ -115,6 +115,7 @@ public class DebugService(ILogger<DebugService> logger,
                 IsAvailableInTeslaAccount = x.IsAvailableInTeslaAccount,
                 CarType = x.CarType,
                 UseBle = x.UseBle,
+                UseBleDebug = x.UseBleDebug,
             }).ConfigureAwait(false);
         foreach (var car in cars)
         {
@@ -122,6 +123,23 @@ public class DebugService(ILogger<DebugService> logger,
         }
         logger.LogDebug("Found {carCount} cars", cars.Count);
         return cars;
+    }
+
+    public async Task SetCarBleDebug(int carId, bool useDebug)
+    {
+        logger.LogTrace("{method}({carId}, {useDebug})", nameof(SetCarBleDebug), carId, useDebug);
+        var databaseCar = await context.Cars.FirstOrDefaultAsync(c => c.Id == carId).ConfigureAwait(false);
+        if (databaseCar == default)
+        {
+            throw new InvalidOperationException($"Car with ID {carId} does not exist");
+        }
+        databaseCar.UseBleDebug = useDebug;
+        await context.SaveChangesAsync().ConfigureAwait(false);
+        var settingsCar = settings.Cars.FirstOrDefault(c => c.Id == carId);
+        if (settingsCar != default)
+        {
+            settingsCar.UseBleDebug = useDebug;
+        }
     }
 
     public async Task StreamLogsToAsync(Stream stream)

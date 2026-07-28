@@ -211,6 +211,36 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
+    public async Task CommandsOfCarsWithoutBleDebugDoNotRequestDebugOutput()
+    {
+        SetupBleCar();
+        _handler.RespondWith(HttpStatusCode.OK, "{\"Success\":true}");
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
+        await service.StartCharging(TestVin);
+
+        var request = Assert.Single(_handler.Requests);
+        var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri!.Query);
+        Assert.Null(query["useDebug"]);
+    }
+
+    [Fact]
+    public async Task CommandsOfCarsWithBleDebugRequestDebugOutput()
+    {
+        var car = SetupBleCar();
+        //Debug is enabled per car on the support page so a single car can be troubleshooted.
+        car.UseBleDebug = true;
+        _handler.RespondWith(HttpStatusCode.OK, "{\"Success\":true}");
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaBleService>();
+        await service.StartCharging(TestVin);
+
+        var request = Assert.Single(_handler.Requests);
+        var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri!.Query);
+        Assert.Equal("true", query["useDebug"]);
+    }
+
+    [Fact]
     public async Task BeaconScanBuildsGetUrlFromConfiguredBaseUrl()
     {
         SetupBleCar();
