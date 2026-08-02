@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -425,6 +426,60 @@ public class BleVehicleDataServiceTests : TestBase
         var carValueLogs = Context.CarValueLogs.ToList();
         Assert.Contains(carValueLogs, l => l.Type == CarValueType.StateOfCharge && l.IntValue == 55 && l.Source == CarValueSource.Ble);
         Assert.Contains(carValueLogs, l => l.Type == CarValueType.IsCharging && l.BooleanValue == true && l.Source == CarValueSource.Ble);
+    }
+
+    [Fact]
+    public async Task ChargingCarNeverEntersASleepWindow()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        dtoCar.IsCharging.Update(new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.Zero), true);
+        SetupBeaconScan(beaconFound: true);
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AwakeBodyControllerStateJson });
+        Mock.Mock<IBleService>().Setup(b => b.GetChargeState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = ChargingChargeStateJson });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //Nothing in the tracked signature changes while a car charges steadily, so feeding the poll into the state
+        //machine would silence the car after the stability period. The window state is cleared instead.
+        Mock.Mock<IBleSleepWindowService>().Verify(s => s.ResetSleepWindow(dtoCar.Id), Times.Once);
+        Mock.Mock<IBleSleepWindowService>().Verify(s => s.ObserveFullPoll(It.IsAny<int>(), It.IsAny<DtoBleBodyControllerState>(),
+            It.IsAny<bool?>(), It.IsAny<int?>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        //The charge state is read every cycle regardless, so TSC never goes blind while the car charges.
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(TestVin), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshSingleCarDataUpdatesOnlyThatCar()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupBeaconScan(beaconFound: true);
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshSingleCarData(dtoCar.Id);
+
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterSuccessfulRead(dtoCar.Id), Times.Once);
+        //A single car read must not touch the container's warm window, that belongs to the scheduled poll alone.
+        Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
+            It.Is<List<string>>(v => v.Contains(TestVin)), null), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshSingleCarDataDoesNothingForNonBleCars()
+    {
+        var dtoCar = SetupBleDataCollectionCar(useFleetTelemetry: true);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshSingleCarData(dtoCar.Id);
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
+            It.IsAny<List<string>>(), It.IsAny<int?>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

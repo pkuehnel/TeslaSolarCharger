@@ -344,7 +344,16 @@ public class BleVehicleDataService(
         //window the infotainment poll is therefore withheld so the standby timer can run out.
         var windowMinutes = configurationWrapper.BleSleepWindowMinutes();
         var stabilityMinutes = configurationWrapper.BleSleepStabilityMinutes();
-        if (!bleSleepWindowService.ShouldPollInfotainment(car.Id, timestamp, windowMinutes))
+        //A charging car is definitely awake and not trying to sleep, so it must never enter a sleep window: nothing in
+        //the tracked signature changes while it charges steadily, so it would otherwise be silenced after the
+        //stability period and TSC would stop seeing the charge state. The sleep window reset on charge commands does
+        //not cover this, as TeslaFleetApiService.SetAmp sends nothing while the target current is unchanged.
+        var isCharging = car.IsCharging.Value == true;
+        if (isCharging)
+        {
+            bleSleepWindowService.ResetSleepWindow(car.Id);
+        }
+        else if (!bleSleepWindowService.ShouldPollInfotainment(car.Id, timestamp, windowMinutes))
         {
             logger.LogDebug("Car {vin} is in a BLE sleep window, skip infotainment charge state poll", vin);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -375,10 +384,14 @@ public class BleVehicleDataService(
             return;
         }
         UpdateChargeStateValues(car, chargeState, timestamp);
-        //Feed the fresh full poll into the sleep window state machine so it can (re-)start a window once the car has
-        //been idle and closed up long enough.
-        bleSleepWindowService.ObserveFullPoll(car.Id, bodyControllerState, DerivePluggedIn(chargeState),
-            chargeState.ChargeLimitSoc, timestamp, windowMinutes, stabilityMinutes);
+        if (!isCharging)
+        {
+            //Feed the fresh full poll into the sleep window state machine so it can (re-)start a window once the car
+            //has been idle and closed up long enough. Skipped while charging so no window can form (see above); the
+            //stability period starts fresh on the first poll after charging stopped.
+            bleSleepWindowService.ObserveFullPoll(car.Id, bodyControllerState, DerivePluggedIn(chargeState),
+                chargeState.ChargeLimitSoc, timestamp, windowMinutes, stabilityMinutes);
+        }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
     }
