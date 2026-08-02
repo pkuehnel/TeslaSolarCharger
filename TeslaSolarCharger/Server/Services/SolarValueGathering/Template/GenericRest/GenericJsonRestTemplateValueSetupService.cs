@@ -10,6 +10,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -24,14 +25,17 @@ public class GenericJsonRestTemplateValueSetupService : IRefreshableValueSetupSe
     private readonly IConstants _constants;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ITemplateValueConfigurationService _templateValueConfigurationService;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public GenericJsonRestTemplateValueSetupService(ILogger<GenericJsonRestTemplateValueSetupService> logger, IConstants constants,
-        IServiceScopeFactory serviceScopeFactory, ITemplateValueConfigurationService templateValueConfigurationService)
+        IServiceScopeFactory serviceScopeFactory, ITemplateValueConfigurationService templateValueConfigurationService,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _constants = constants;
         _serviceScopeFactory = serviceScopeFactory;
         _templateValueConfigurationService = templateValueConfigurationService;
+        _httpClientFactory = httpClientFactory;
     }
 
     public ConfigurationType ConfigurationType => ConfigurationType.TemplateValue;
@@ -67,12 +71,16 @@ public class GenericJsonRestTemplateValueSetupService : IRefreshableValueSetupSe
                 {
                     var values = new Dictionary<ValueKey, decimal>();
                     var resultId = 0;
-                    using var httpClient = CreateHttpClient(definition.ValueAuthType, typedConfig);
+                    var httpClient = _httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
                     foreach (var valueRead in definition.ValueReads)
                     {
                         ct.ThrowIfCancellationRequested();
                         var uri = ResolveUriTemplate(valueRead.UriTemplate, typedConfig);
-                        var json = await httpClient.GetStringAsync(uri, ct).ConfigureAwait(false);
+                        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, uri);
+                        ApplyAuthHeaders(httpRequest, definition.ValueAuthType, typedConfig);
+                        using var httpResponse = await httpClient.SendAsync(httpRequest, ct).ConfigureAwait(false);
+                        httpResponse.EnsureSuccessStatusCode();
+                        var json = await httpResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                         var root = JToken.Parse(json);
                         foreach (var value in valueRead.Values)
                         {
@@ -110,15 +118,17 @@ public class GenericJsonRestTemplateValueSetupService : IRefreshableValueSetupSe
             .Replace("{maxChargePowerW}", config.MaxBatteryChargePowerW.ToString());
     }
 
-    public static HttpClient CreateHttpClient(JsonRestAuthType authType, DtoGenericRestTemplateValueConfiguration config)
+    /// <summary>
+    /// Auth has to be set per request: the <see cref="HttpClient"/> comes from <see cref="IHttpClientFactory"/> and is
+    /// shared, so credentials of one configuration must not end up on its DefaultRequestHeaders.
+    /// </summary>
+    public static void ApplyAuthHeaders(HttpRequestMessage request, JsonRestAuthType authType,
+        DtoGenericRestTemplateValueConfiguration config)
     {
-        var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
         if (authType == JsonRestAuthType.Basic)
         {
             var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{config.Username}:{config.Password}"));
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
         }
-        return httpClient;
     }
 }

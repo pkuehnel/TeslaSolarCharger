@@ -250,6 +250,11 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(StaticConstants.HttpClientNameDefaultTimeout, client =>
         {
         });
+        //Per call timeouts are set via CancellationTokenSource, this is only a backstop.
+        services.AddHttpClient(StaticConstants.HttpClientNameBle, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(120);
+        });
         services.AddHttpClient();
         return services;
     }

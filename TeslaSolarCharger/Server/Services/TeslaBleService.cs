@@ -9,14 +9,27 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaBleService(ILogger<TeslaBleService> logger,
     ISettings settings,
     IErrorHandlingService errorHandlingService,
-    IIssueKeys issueKeys) : IBleService
+    IIssueKeys issueKeys,
+    IHttpClientFactory httpClientFactory) : IBleService
 {
+    //Pairing stops the worker of the target adapter, waits for the adapter ownership guard and then runs
+    //tesla-control, so it needs more headroom than a normal command but must not hang forever.
+    private static readonly TimeSpan PairKeyTimeout = TimeSpan.FromSeconds(60);
+    //The container answers within the scan window; the extra headroom covers a worker start.
+    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(29);
+    private static readonly TimeSpan DownloadLogsTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan AdapterListTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan VersionCheckTimeout = TimeSpan.FromSeconds(5);
+
+    private HttpClient CreateBleClient() => httpClientFactory.CreateClient(StaticConstants.HttpClientNameBle);
+
     public async Task<DtoBleCommandResult> StartCharging(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(StartCharging), vin);
@@ -148,14 +161,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         AddAdapterQueryParameter(queryString, vin);
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
-        //Pairing stops the worker of the target adapter, waits for the adapter ownership guard and then runs
-        //tesla-control, so it needs more headroom than a normal command but must not hang forever.
-        client.Timeout = TimeSpan.FromSeconds(60);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(PairKeyTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return new()
@@ -207,13 +218,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         var url = $"{bleBaseUrl}{BleApiRoutes.BeaconScan}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
-        //The container answers within the scan window; the extra headroom covers a worker start.
-        client.Timeout = TimeSpan.FromSeconds(29);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
         try
         {
-            var response = await client.PostAsJsonAsync(url, vins).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.PostAsJsonAsync(url, vins, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 //An old BLE container does not know the endpoint. The version mismatch is surfaced separately; here
@@ -276,12 +286,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         var url = bleBaseUrl + BleApiRoutes.AdapterList;
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(10);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(AdapterListTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("Could not get Bluetooth adapters from {url}. StatusCode: {statusCode}", url, response.StatusCode);
@@ -327,16 +337,16 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return "Could not generate a base url based on the inserted URL";
         }
         var url = baseUrl + BleApiRoutes.TscVersionCompatibility;
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(5);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(VersionCheckTimeout);
         var vins = settings.Cars
             .Where(c => c.BleApiBaseUrl == host && c.UseBle && (c.ShouldBeManaged == true))
             .Select(c => c.Vin)
             .ToList();
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 foreach (var vin in vins)
@@ -437,17 +447,17 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         var url = baseUrl + BleApiRoutes.DownloadInMemoryLogs;
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(DownloadLogsTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to download BLE logs from {url}. StatusCode: {statusCode}", url, response.StatusCode);
                 return null;
             }
-            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             return new MemoryStream(bytes);
         }
         catch (Exception ex)
@@ -486,12 +496,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
-        using var client = new HttpClient();
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
         try
         {
-            client.Timeout = TimeSpan.FromSeconds(29);
-            var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.PostAsJsonAsync(url, request.Parameters, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);

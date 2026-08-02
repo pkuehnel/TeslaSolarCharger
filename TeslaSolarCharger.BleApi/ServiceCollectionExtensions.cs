@@ -8,7 +8,9 @@ namespace TeslaSolarCharger.BleApi;
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddServiceDependencies(this IServiceCollection services)
-        => services
+    {
+        services.AddHttpClient();
+        return services
             .AddTransient<ICommandLineExecutionService, CommandLineExecutionService>()
             .AddTransient<IPairingService, PairingService>()
             .AddTransient<IHelloService, HelloService>()
@@ -18,5 +20,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ISettings, Settings>()
             .AddSingleton<IStartupService, StartupService>()
             .AddSingleton(TimeProvider.System)
-    ;
+        ;
+    }
 }

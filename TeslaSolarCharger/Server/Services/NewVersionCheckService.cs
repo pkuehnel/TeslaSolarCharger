@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -15,9 +16,11 @@ public class NewVersionCheckService : INewVersionCheckService
     private readonly IBackendApiService _backendApiService;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public NewVersionCheckService(ILogger<NewVersionCheckService> logger, ICoreService coreService, ISettings settings,
-        IBackendApiService backendApiService, IErrorHandlingService errorHandlingService, IIssueKeys issueKeys)
+        IBackendApiService backendApiService, IErrorHandlingService errorHandlingService, IIssueKeys issueKeys,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _coreService = coreService;
@@ -25,6 +28,7 @@ public class NewVersionCheckService : INewVersionCheckService
         _backendApiService = backendApiService;
         _errorHandlingService = errorHandlingService;
         _issueKeys = issueKeys;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task CheckForNewVersion()
@@ -92,7 +96,7 @@ public class NewVersionCheckService : INewVersionCheckService
 
     private async Task<string?> GetRedirectedUrlAsync(string uri)
     {
-        using var client = new HttpClient();
+        var client = _httpClientFactory.CreateClient(StaticConstants.HttpClientNameDefaultTimeout);
         using var response = await client.GetAsync(uri).ConfigureAwait(false);
 
         return response.RequestMessage?.RequestUri?.ToString();

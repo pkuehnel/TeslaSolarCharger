@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Fronius;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -23,14 +24,17 @@ public class FroniusSolarApiSetupService : IRefreshableValueSetupService
     private readonly IConstants _constants;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ITemplateValueConfigurationService _templateValueConfigurationService;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public FroniusSolarApiSetupService(ILogger<FroniusSolarApiSetupService> logger, IConstants constants,
-        IServiceScopeFactory serviceScopeFactory, ITemplateValueConfigurationService templateValueConfigurationService)
+        IServiceScopeFactory serviceScopeFactory, ITemplateValueConfigurationService templateValueConfigurationService,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _constants = constants;
         _serviceScopeFactory = serviceScopeFactory;
         _templateValueConfigurationService = templateValueConfigurationService;
+        _httpClientFactory = httpClientFactory;
     }
 
     public ConfigurationType ConfigurationType => ConfigurationType.TemplateValue;
@@ -63,8 +67,7 @@ public class FroniusSolarApiSetupService : IRefreshableValueSetupService
                 _serviceScopeFactory,
                 async ct =>
                 {
-                    using var httpClient = new HttpClient();
-                    httpClient.Timeout = TimeSpan.FromSeconds(10);
+                    var httpClient = _httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
                     var json = await httpClient
                         .GetStringAsync($"http://{host}/solar_api/v1/GetPowerFlowRealtimeData.fcgi", ct)
                         .ConfigureAwait(false);
