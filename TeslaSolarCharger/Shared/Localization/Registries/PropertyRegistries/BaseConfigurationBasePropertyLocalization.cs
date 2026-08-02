@@ -334,6 +334,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Daten über BLE abrufen",
                 "Wenn aktiviert, senden Teslas mit aktiviertem BLE keine Daten mehr über Fleet Telemetry, sondern werden über BLE abgefragt. Die Anwesenheit wird über BLE erkannt: Das Fahrzeug gilt als zu Hause, sobald es in BLE-Reichweite ist. Die Änderung wird für ein Fahrzeug übernommen, sobald dessen Fahrzeugeinstellungen gespeichert werden. Fahrzeuge mit aktivierten Tracking-relevanten Feldern sind nicht betroffen."));
 
+        Register(x => x.BleDataRefreshIntervalSeconds,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE data refresh interval (s)",
+                "How often cars whose data is collected via BLE are polled. This runs independently of the charging cycle, so a car that is slow to answer or away can not delay the charging value calculation. Leave empty to use the default (13 s)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Datenabrufintervall (s)",
+                "Wie oft Fahrzeuge abgefragt werden, deren Daten über BLE erfasst werden. Dies läuft unabhängig vom Ladezyklus, sodass ein langsam antwortendes oder abwesendes Fahrzeug die Berechnung der Ladewerte nicht verzögern kann. Leer lassen für den Standardwert (13 s)."));
+
         Register(x => x.UseBleDebug,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "BLE debug logging",

@@ -3,25 +3,25 @@ using TeslaSolarCharger.Shared.Enums;
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
 /// <summary>
-/// Tracks, per BLE data collection car, how many consecutive BLE reads reported the car as out of BLE range. A single
-/// out of range result can also be caused by a transient BLE stack failure while the car is at home, so the car is
-/// only confirmed as away after multiple consecutive out of range results. Also tracks per BLE container/adapter when
-/// the radio last provably received anything, as the only available evidence against a dead radio. State is kept in
-/// memory only.
+/// Tracks, per BLE data collection car, how long it has continuously been reported as out of BLE range. A single out
+/// of range result can also be caused by a transient BLE stack failure while the car is at home, so the car is only
+/// confirmed as away once it has been unreachable for an uninterrupted period. Also tracks per BLE container/adapter
+/// when the radio last provably received anything, as the only available evidence against a dead radio. State is kept
+/// in memory only.
 /// </summary>
 public interface IBlePresenceStateService
 {
     /// <summary>
-    /// Resets the consecutive out of range counter of a car because a BLE read succeeded, proving the car is in range.
+    /// Ends the current out of range streak of a car because a BLE read succeeded, proving the car is in range.
     /// </summary>
     void RegisterSuccessfulRead(int carId);
 
     /// <summary>
     /// Registers an out of BLE range poll result. Returns <see cref="BleAwayConfirmation.JustConfirmed"/> exactly once,
-    /// on the poll that reaches the required number of consecutive out of range results, so the caller can run the
-    /// away transition exactly once.
+    /// on the first poll at which the car has been continuously unreachable for the confirmation duration, so the
+    /// caller can run the away transition exactly once.
     /// </summary>
-    BleAwayConfirmation RegisterOutOfRange(int carId);
+    BleAwayConfirmation RegisterOutOfRange(int carId, DateTime nowUtc);
 
     /// <summary>
     /// True while out of range results were registered but the car is not yet confirmed as away. During this window

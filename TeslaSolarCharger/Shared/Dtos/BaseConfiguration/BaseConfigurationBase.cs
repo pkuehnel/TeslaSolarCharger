@@ -137,6 +137,12 @@ public class BaseConfigurationBase
     /// logs get very large.
     /// </summary>
     public bool UseBleDebug { get; set; }
+    //Nullable on purpose: null means the user never decided, so the default
+    //(ConfigurationDefaults.BleDataRefreshIntervalSeconds) can be changed in a future release without overwriting an
+    //explicit user choice.
+    [Range(1, int.MaxValue)]
+    [Postfix("s")]
+    public int? BleDataRefreshIntervalSeconds { get; set; }
     public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not

@@ -100,6 +100,13 @@ public interface IConfigurationWrapper
     /// Whether the BLE container should log its detailed communication with the cars. Only for troubleshooting.
     /// </summary>
     bool UseBleDebug();
+
+    /// <summary>
+    /// Seconds between two BLE data refresh runs. Resolves the nullable base configuration value to
+    /// <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleDataRefreshIntervalSeconds"/> when the user never
+    /// set it.
+    /// </summary>
+    int BleDataRefreshIntervalSeconds();
     int? MaxInverterAcPower();
     string? BleBaseUrl();
     bool SendTeslaApiStatsToBackend();

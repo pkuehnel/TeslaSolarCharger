@@ -250,6 +250,14 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().UseBleDebug;
     }
 
+    public int BleDataRefreshIntervalSeconds()
+    {
+        //Null means the user never decided, so fall back to the current default. An interval below one second makes no
+        //sense and would hammer the BLE container, so clamp it.
+        var value = GetBaseConfiguration().BleDataRefreshIntervalSeconds ?? ConfigurationDefaults.BleDataRefreshIntervalSeconds;
+        return value < 1 ? 1 : value;
+    }
+
     public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;
