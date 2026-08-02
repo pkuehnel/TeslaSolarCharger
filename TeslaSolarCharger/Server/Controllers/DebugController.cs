@@ -306,6 +306,24 @@ public class DebugController(
         return Ok(new DtoValue<string>(resultString));
     }
 
+    /// <summary>
+    /// Passive beacon scan for one car: it never connects, so it can not wake the car. Next to the presence answer the
+    /// result carries the advertisement counters of the scan window, which tell an absent car apart from a radio that
+    /// hears nothing at all.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> GetBleBeaconScanResult(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetBeaconScanResultForVin(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAllProductsFromTeslaAccount()
     {

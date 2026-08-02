@@ -138,6 +138,10 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Get charge state (BLE)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladezustand abrufen (BLE)"));
 
+        Register(TranslationKeys.SupportGetBleBeaconScanButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Beacon scan (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Beacon-Scan (BLE)"));
+
         Register(TranslationKeys.SupportChargingAmpsToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Ladestrom (A)"));
