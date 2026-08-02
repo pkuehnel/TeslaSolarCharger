@@ -1,15 +1,41 @@
 using Microsoft.AspNetCore.Mvc;
 using PkSoftwareService.Custom.Backend;
+using PkSoftwareService.Custom.Backend.Ble;
 using Serilog.Core;
 using Serilog.Events;
 using System.Text;
 using TeslaSolarCharger.BleApi.Abstracts;
 using TeslaSolarCharger.BleApi.Dtos;
+using TeslaSolarCharger.BleApi.Services.Contracts;
 
 namespace TeslaSolarCharger.BleApi.Controllers;
 
-public class DebugController(IInMemorySink inMemorySink, LoggingLevelSwitch inMemoryLogLevelSwitch) : ApiBaseController
+public class DebugController(IInMemorySink inMemorySink,
+    LoggingLevelSwitch inMemoryLogLevelSwitch,
+    IBleWorkerService bleWorkerService) : ApiBaseController
 {
+    /// <summary>
+    /// Status of every per-adapter BLE worker (state, uptime, keep warm window, request and outcome counters).
+    /// </summary>
+    [HttpGet]
+    public List<DtoBleWorkerStatus> WorkerStatus() => bleWorkerService.GetStatuses();
+
+    /// <summary>
+    /// Recent BLE worker lifecycle and protocol events.
+    /// </summary>
+    /// <param name="adapter">Optional adapter key to filter by.</param>
+    /// <param name="tail">Optional number of latest events to return.</param>
+    [HttpGet]
+    public List<DtoBleWorkerEvent> WorkerEvents(string? adapter = null, int? tail = null) => bleWorkerService.GetEvents(adapter, tail);
+
+    /// <summary>
+    /// Round trip liveness check of a running BLE worker. Proves the worker still answers, which the process state
+    /// alone does not. Does not start a worker.
+    /// </summary>
+    /// <param name="adapter">Optional stable adapter id (BD address); omitted = container default adapter.</param>
+    [HttpGet]
+    public Task<DtoBleCommandResult> PingWorker(string? adapter = null) => bleWorkerService.PingWorker(adapter);
+
     /// <summary>
     /// Gets the current in memory logs.
     /// </summary>

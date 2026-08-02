@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ble;
@@ -8,7 +9,6 @@ using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -25,12 +25,14 @@ public class BleVehicleDataService(
     ICarPropertyUpdateHelper carPropertyUpdateHelper,
     ILoadPointManagementService loadPointManagementService,
     IErrorHandlingService errorHandlingService,
+    IBlePresenceStateService blePresenceStateService,
     IIssueKeys issueKeys) : IBleVehicleDataService
 {
     private const string AwakeSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE";
     private const string ChargingStateDisconnected = "Disconnected";
     private const string ChargingStateCharging = "Charging";
     private const string ChargingStateUnknown = "Unknown";
+    private static readonly TimeSpan RadioSilenceWarningDuration = TimeSpan.FromHours(24);
 
     public async Task RefreshBleCarData()
     {
@@ -49,16 +51,64 @@ public class BleVehicleDataService(
                         && !c.IncludeTrackingRelevantFields)
             .Select(c => c.Id)
             .ToListAsync().ConfigureAwait(false);
-        foreach (var carId in bleDataCarIds)
+        var cars = bleDataCarIds
+            .Select(carId => settings.Cars.FirstOrDefault(c => c.Id == carId))
+            .Where(car => car != default && !string.IsNullOrEmpty(car.Vin))
+            .Cast<DtoCar>()
+            .ToList();
+        //A car that left BLE data collection must not keep a stale uncertain state that would suppress its charging
+        //commands forever.
+        blePresenceStateService.RetainOnly(cars.Select(c => c.Id).ToList());
+        //Cars on different adapters (or different containers) are served by different workers, so their groups can
+        //run in parallel; within a group everything serializes on the adapter anyway.
+        var groups = cars
+            .GroupBy(c => (Host: c.BleApiBaseUrl, Adapter: c.BleAdapterAddress))
+            .ToList();
+        await Task.WhenAll(groups.Select(group => RefreshGroup(group.Key.Host, group.Key.Adapter, group.ToList()))).ConfigureAwait(false);
+    }
+
+    private async Task RefreshGroup(string? host, string? adapter, List<DtoCar> cars)
+    {
+        logger.LogTrace("{method}({host}, {adapter}, {carCount} cars)", nameof(RefreshGroup), host, adapter, cars.Count);
+        var vins = cars.Select(c => c.Vin!).ToList();
+        DtoBleBeaconScanResult scanResult;
+        try
         {
-            var car = settings.Cars.FirstOrDefault(c => c.Id == carId);
-            if (car == default || string.IsNullOrEmpty(car.Vin))
-            {
-                continue;
-            }
+            //keepWarmSeconds is only ever sent here, on the scheduled poll: the worker of this adapter stays warm
+            //between polls, while one-off commands never change the warm window.
+            scanResult = await bleService.GetBeaconScanResults(host, adapter, vins, BleConstants.BleKeepWarmSeconds).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Beacon scan for {host} (adapter {adapter}) failed", host, adapter);
+            await HandleScanUnavailable(cars, adapter, $"Beacon scan failed: {ex.Message}", isAdapterMissing: false).ConfigureAwait(false);
+            return;
+        }
+        if (!scanResult.Success || scanResult.Outcome != BleCommandOutcome.Ok)
+        {
+            //The scan itself could not run: this carries no presence information for any car, so the last known
+            //state stays valid and only the error is surfaced.
+            logger.LogError("Beacon scan for {host} (adapter {adapter}) could not run: {outcome} {message}",
+                host, adapter, scanResult.Outcome, scanResult.ResultMessage);
+            await HandleScanUnavailable(cars, adapter,
+                $"Beacon scan could not run ({scanResult.Outcome}): {scanResult.ResultMessage}",
+                isAdapterMissing: scanResult.Outcome == BleCommandOutcome.AdapterNotFound).ConfigureAwait(false);
+            return;
+        }
+        await HandleRadioEvidence(host, adapter, cars, scanResult).ConfigureAwait(false);
+        foreach (var car in cars)
+        {
             try
             {
-                await RefreshCarData(car).ConfigureAwait(false);
+                var vehicleResult = scanResult.Vehicles.FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
+                if (vehicleResult is { BeaconFound: true })
+                {
+                    await RefreshPresentCarData(car).ConfigureAwait(false);
+                }
+                else
+                {
+                    await HandleOutOfRangeObservation(car).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -79,26 +129,113 @@ public class BleVehicleDataService(
         }
     }
 
-    private async Task RefreshCarData(DtoCar car)
+    private async Task HandleScanUnavailable(List<DtoCar> cars, string? adapter, string message, bool isAdapterMissing)
     {
-        logger.LogTrace("{method}({vin})", nameof(RefreshCarData), car.Vin);
-        var vin = car.Vin!;
-        var bodyControllerStateResult = await bleService.GetBodyControllerState(vin).ConfigureAwait(false);
-        var timestamp = dateTimeProvider.UtcNow();
-        if (!bodyControllerStateResult.Success)
+        foreach (var car in cars)
         {
-            if (IsCarOutOfBleRangeResult(bodyControllerStateResult))
+            if (isAdapterMissing)
             {
-                //The car is out of BLE range: it is not at home and as it is not reachable it counts as offline.
-                logger.LogDebug("BLE beacon for car {vin} not found, car is not at home", vin);
+                //Never a silent fallback to a different radio: a missing configured adapter is an explicit error.
+                await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshBleCarData),
+                    $"Configured Bluetooth adapter for car {car.Vin} not found",
+                    $"The adapter {adapter} is not present on the BLE container's host. Check the adapter selection of the car or replug the adapter.",
+                    issueKeys.BleAdapterNotFound, car.Vin, null).ConfigureAwait(false);
+                continue;
+            }
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshBleCarData),
+                $"Error while getting vehicle data via BLE for car {car.Vin}", message,
+                issueKeys.BleDataCollectionError, car.Vin, null).ConfigureAwait(false);
+        }
+    }
+
+    private async Task HandleRadioEvidence(string? host, string? adapter, List<DtoCar> cars, DtoBleBeaconScanResult scanResult)
+    {
+        var heardAnything = scanResult.OtherAdvertisementsSeen > 0
+                            || scanResult.DistinctDevicesSeen > 0
+                            || scanResult.Vehicles.Any(v => v.BeaconFound);
+        var containerKey = $"{host}|{adapter}";
+        var silence = blePresenceStateService.RegisterScanEvidence(containerKey, heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
+        foreach (var car in cars)
+        {
+            if (heardAnything)
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleRadioSilence, car.Vin).ConfigureAwait(false);
+            }
+            else if (silence > RadioSilenceWarningDuration)
+            {
+                //Diagnostics only, presence is never touched: at a site with no other Bluetooth devices this is
+                //expected while the car is away, but after the site B incident (a starved radio reported a garaged
+                //car as away for days) a long fully silent radio is worth a hint.
+                await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshBleCarData),
+                    $"BLE radio of the container used for car {car.Vin} hears nothing",
+                    $"No Bluetooth advertisement of any device was received for {silence.TotalHours:0} hours. If other Bluetooth devices are usually nearby, " +
+                    "check the radio: on a Raspberry Pi a poor WiFi link starves Bluetooth because they share one antenna (see the README), " +
+                    "or use a USB Bluetooth adapter. If no Bluetooth devices are ever near the container, this message is expected while the car is away.",
+                    issueKeys.BleRadioSilence, car.Vin, null).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task HandleOutOfRangeObservation(DtoCar car)
+    {
+        var vin = car.Vin!;
+        var timestamp = dateTimeProvider.UtcNow();
+        var confirmation = blePresenceStateService.RegisterOutOfRange(car.Id);
+        switch (confirmation)
+        {
+            case BleAwayConfirmation.JustConfirmed:
+                logger.LogInformation("Beacon of car {vin} not found in multiple consecutive scans, car is confirmed as away", vin);
                 UpdateHomePresence(car, false, timestamp);
                 UpdateOnlineState(car, false, timestamp);
+                ResetChargingValuesForAwayCar(car, timestamp);
                 await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
-                return;
-            }
-            logger.LogError("Could not get body controller state for car {vin}: {resultMessage}", vin, bodyControllerStateResult.ResultMessage);
-            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshCarData),
+                break;
+            case BleAwayConfirmation.AlreadyConfirmed:
+                //The car is already marked as away: nothing changed, so do not write the same values again.
+                break;
+            default:
+                //Not enough consecutive misses yet: keep the last known state; charging commands are suspended via
+                //IsPresenceUncertain until either a hit proves the car is there or the away state is confirmed.
+                logger.LogDebug("Beacon of car {vin} not found, keeping last known state until the away state is confirmed", vin);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// A car that is confirmed as away can not be plugged in at home anymore: reset the charging values that would
+    /// otherwise stay stale until the car is back in BLE range and awake. The state of charge intentionally keeps its
+    /// last known value. The values are inferred rather than read from the car, so they are stored with
+    /// CarValueSource.Estimation.
+    /// </summary>
+    private void ResetChargingValuesForAwayCar(DtoCar car, DateTime timestamp)
+    {
+        AddBooleanValue(car, CarValueType.IsPluggedIn, false, timestamp, CarValueSource.Estimation);
+        AddBooleanValue(car, CarValueType.IsCharging, false, timestamp, CarValueSource.Estimation);
+        AddIntValue(car, CarValueType.ChargeAmps, 0, timestamp, CarValueSource.Estimation, skipDefaultValue: false);
+    }
+
+    /// <summary>
+    /// Refreshes the data of a car whose beacon was just seen. Presence is decided by the beacon scan alone: a
+    /// failed read directly after a beacon hit is a transient failure of a provably present car and must never count
+    /// towards the away confirmation.
+    /// </summary>
+    private async Task RefreshPresentCarData(DtoCar car)
+    {
+        logger.LogTrace("{method}({vin})", nameof(RefreshPresentCarData), car.Vin);
+        var vin = car.Vin!;
+        blePresenceStateService.RegisterSuccessfulRead(car.Id);
+        var timestamp = dateTimeProvider.UtcNow();
+        //Persist the presence right away in case the body controller read afterwards fails.
+        UpdateHomePresence(car, true, timestamp);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        var bodyControllerStateResult = await bleService.GetBodyControllerState(vin).ConfigureAwait(false);
+        timestamp = dateTimeProvider.UtcNow();
+        if (!bodyControllerStateResult.Success)
+        {
+            logger.LogError("Could not get body controller state for car {vin}: {outcome} {resultMessage}", vin,
+                bodyControllerStateResult.Outcome, bodyControllerStateResult.ResultMessage);
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshPresentCarData),
                 $"Error while getting vehicle data via BLE for car {vin}",
                 $"Could not get body controller state: {bodyControllerStateResult.ResultMessage}",
                 issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
@@ -109,15 +246,13 @@ public class BleVehicleDataService(
         if (bodyControllerState == default)
         {
             logger.LogError("Could not parse body controller state for car {vin}: {resultMessage}", vin, bodyControllerStateResult.ResultMessage);
-            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshCarData),
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshPresentCarData),
                 $"Error while getting vehicle data via BLE for car {vin}",
                 $"Could not parse body controller state: {bodyControllerStateResult.ResultMessage}",
                 issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
             return;
         }
 
-        //The body controller responded, so the car is in BLE range and therefore at home.
-        UpdateHomePresence(car, true, timestamp);
         var isAwake = string.Equals(bodyControllerState.VehicleSleepStatus, AwakeSleepStatus, StringComparison.OrdinalIgnoreCase);
         UpdateOnlineState(car, isAwake, timestamp);
         if (!isAwake)
@@ -136,9 +271,10 @@ public class BleVehicleDataService(
         var chargeStateResult = await bleService.GetChargeState(vin).ConfigureAwait(false);
         if (!chargeStateResult.Success)
         {
-            logger.LogError("Could not get charge state for car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
+            logger.LogError("Could not get charge state for car {vin}: {outcome} {resultMessage}", vin,
+                chargeStateResult.Outcome, chargeStateResult.ResultMessage);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshCarData),
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshPresentCarData),
                 $"Error while getting vehicle data via BLE for car {vin}",
                 $"Could not get charge state: {chargeStateResult.ResultMessage}",
                 issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
@@ -149,7 +285,7 @@ public class BleVehicleDataService(
         {
             logger.LogError("Could not parse charge state for car {vin}: {resultMessage}", vin, chargeStateResult.ResultMessage);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshCarData),
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshPresentCarData),
                 $"Error while getting vehicle data via BLE for car {vin}",
                 $"Could not parse charge state: {chargeStateResult.ResultMessage}",
                 issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
@@ -192,9 +328,10 @@ public class BleVehicleDataService(
         car.IsOnline.Update(new DateTimeOffset(timestamp, TimeSpan.Zero), isOnline);
     }
 
-    private void AddIntValue(DtoCar car, CarValueType type, int? value, DateTime timestamp)
+    private void AddIntValue(DtoCar car, CarValueType type, int? value, DateTime timestamp,
+        CarValueSource source = CarValueSource.Ble, bool skipDefaultValue = true)
     {
-        if (value == default)
+        if (skipDefaultValue && value == default)
         {
             return;
         }
@@ -203,39 +340,26 @@ public class BleVehicleDataService(
             CarId = car.Id,
             Timestamp = timestamp,
             Type = type,
-            Source = CarValueSource.Ble,
+            Source = source,
             IntValue = value,
         };
         teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
         carPropertyUpdateHelper.UpdateDtoCarProperty(car, carValueLog);
     }
 
-    private void AddBooleanValue(DtoCar car, CarValueType type, bool value, DateTime timestamp)
+    private void AddBooleanValue(DtoCar car, CarValueType type, bool value, DateTime timestamp,
+        CarValueSource source = CarValueSource.Ble)
     {
         var carValueLog = new CarValueLog
         {
             CarId = car.Id,
             Timestamp = timestamp,
             Type = type,
-            Source = CarValueSource.Ble,
+            Source = source,
             BooleanValue = value,
         };
         teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
         carPropertyUpdateHelper.UpdateDtoCarProperty(car, carValueLog);
-    }
-
-    internal static bool IsCarOutOfBleRangeResult(DtoBleCommandResult result)
-    {
-        if (result.ResultMessage == default)
-        {
-            return false;
-        }
-        //Depending on the tesla-control version the BLE beacon scan for a car that is not in range fails with
-        //"failed to find BLE beacon for <vin>" or just with "Error: context deadline exceeded" (verified against a real
-        //BLE container on 2026-07-19). A present car answers the scan within a few seconds, so a scan timeout means
-        //the car is (very likely) not in BLE range.
-        return result.ResultMessage.Contains("beacon", StringComparison.OrdinalIgnoreCase)
-               || result.ResultMessage.Contains("context deadline exceeded", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static DtoBleBodyControllerState? DeserializeBodyControllerState(string? resultMessage)

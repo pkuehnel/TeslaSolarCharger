@@ -1,10 +1,13 @@
-﻿using System.Diagnostics;
-using TeslaSolarCharger.BleApi.Dtos;
-using TeslaSolarCharger.BleApi.Enums;
+using PkSoftwareService.Custom.Backend.Ble;
+using System.Diagnostics;
 using TeslaSolarCharger.BleApi.Services.Contracts;
 
 namespace TeslaSolarCharger.BleApi.Services;
 
+/// <summary>
+/// Generic short lived process executor, used for openssl, tesla-control -h and pairing. BLE commands do not run
+/// through here anymore; they go to the long living worker via <see cref="BleWorkerService"/>.
+/// </summary>
 public class CommandLineExecutionService(ILogger<CommandLineExecutionService> logger, IConfiguration configuration) : ICommandLineExecutionService
 {
     public async Task<DtoBleCommandResult> ExecuteCommand(string filename, string parameters)
@@ -13,7 +16,7 @@ public class CommandLineExecutionService(ILogger<CommandLineExecutionService> lo
         var processStartInfo = new ProcessStartInfo()
         {
             FileName = filename,
-            Arguments = $"{parameters}",
+            Arguments = parameters,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -25,34 +28,39 @@ public class CommandLineExecutionService(ILogger<CommandLineExecutionService> lo
         try
         {
             process.Start();
-            // Wait for the process to exit
             var executionTimeoutSeconds = configuration.GetValue<int>("ProcessExecutionTimeoutSeconds");
             logger.LogTrace("Using execution timout of {seconds} seconds", executionTimeoutSeconds);
             var hasExited = process.WaitForExit(TimeSpan.FromSeconds(executionTimeoutSeconds));
             logger.LogTrace("Process exited: {hasExited}", hasExited);
             if (!hasExited)
             {
-                throw new TimeoutException($"Process did not exit within {executionTimeoutSeconds} seconds.");
+                //A leaked process would keep the Bluetooth adapter bound and block every follow up request.
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (Exception killException)
+                {
+                    logger.LogError(killException, "Could not kill process {fileName} after timeout", filename);
+                }
+                commandResult.Success = false;
+                commandResult.ResultMessage = $"Process did not exit within {executionTimeoutSeconds} seconds and was killed.";
+                commandResult.ErrorType = ErrorType.Exceptional;
+                return commandResult;
             }
 
             var readOutputTimeout = TimeSpan.FromSeconds(5);
             var result = await process.StandardOutput.ReadToEndAsync(new CancellationTokenSource(readOutputTimeout).Token);
             logger.LogTrace("Stdout Result: {result}", result);
             logger.LogTrace("Process completed with exit code {exitCode}", process.ExitCode);
-            // Check if the process completed successfully
             commandResult.ResultMessage = result;
             if (process.ExitCode == 0)
             {
-                
                 commandResult.Success = true;
             }
             else
             {
                 commandResult.Success = false;
-                if (string.IsNullOrEmpty(commandResult.ResultMessage))
-                {
-                    commandResult.ResultMessage = string.Empty;
-                }
                 try
                 {
                     var errorMessage = await process.StandardError.ReadToEndAsync(new CancellationTokenSource(readOutputTimeout).Token);
@@ -61,23 +69,13 @@ public class CommandLineExecutionService(ILogger<CommandLineExecutionService> lo
                     {
                         commandResult.ResultMessage = errorMessage;
                     }
-                    var splittedString = errorMessage.Split("car could not execute command: ");
-                    if (splittedString.Length == 2)
-                    {
-                        commandResult.ErrorType = ErrorType.CarExecution;
-                        commandResult.CarErrorMessage = splittedString[1];
-                    }
-                    else
-                    {
-                        commandResult.ErrorType = ErrorType.TeslaControl;
-                    }
+                    commandResult.ErrorType = ErrorType.TeslaControl;
                 }
                 catch (Exception ex)
                 {
                     commandResult.ResultMessage += $"Neither standard output nor Standard error has a value. Error reading standard error: {ex.Message}";
                     commandResult.ErrorType = ErrorType.Exceptional;
                 }
-                
             }
         }
         catch (Exception ex)

@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.BleApi.InMemoryValues;
+using TeslaSolarCharger.BleApi.InMemoryValues;
 using TeslaSolarCharger.BleApi.InMemoryValues.Contracts;
 using TeslaSolarCharger.BleApi.Services;
 using TeslaSolarCharger.BleApi.Services.Contracts;
@@ -12,7 +12,9 @@ public static class ServiceCollectionExtensions
             .AddTransient<ICommandLineExecutionService, CommandLineExecutionService>()
             .AddTransient<IPairingService, PairingService>()
             .AddTransient<IHelloService, HelloService>()
-            .AddSingleton<ICommandService, CommandService>()
+            .AddTransient<ICommandService, CommandService>()
+            .AddSingleton<IAdapterEnumerationService, AdapterEnumerationService>()
+            .AddSingleton<IBleWorkerService, BleWorkerService>()
             .AddSingleton<ISettings, Settings>()
             .AddSingleton<IStartupService, StartupService>()
             .AddSingleton(TimeProvider.System)

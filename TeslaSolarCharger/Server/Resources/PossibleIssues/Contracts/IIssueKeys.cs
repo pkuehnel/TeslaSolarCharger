@@ -32,5 +32,7 @@ public interface IIssueKeys
     string FleetTelemetryConfigurationError { get; }
     string FleetTelemetryConfigurationDeletionError { get; }
     string BleDataCollectionError { get; }
+    string BleAdapterNotFound { get; }
+    string BleRadioSilence { get; }
     string MultipleCarsMatchChargingConnector { get; }
 }

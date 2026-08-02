@@ -265,6 +265,12 @@ public static class TranslationKeys
     public static string CarSettingsTeslaNavFavoriteDetectionTitle => nameof(CarSettingsTeslaNavFavoriteDetectionTitle);
     public static string CarSettingsTeslaNavFavoriteDetectionHint => nameof(CarSettingsTeslaNavFavoriteDetectionHint);
     public static string CarSettingsHomeDetectionViaLabel => nameof(CarSettingsHomeDetectionViaLabel);
+    public static string CarSettingsBleAdapterLabel => nameof(CarSettingsBleAdapterLabel);
+    public static string CarSettingsBleAdapterHelperText => nameof(CarSettingsBleAdapterHelperText);
+    public static string CarSettingsBleAdapterContainerDefault => nameof(CarSettingsBleAdapterContainerDefault);
+    public static string CarSettingsBleAdapterOnboard => nameof(CarSettingsBleAdapterOnboard);
+    public static string CarSettingsBleAdapterUsb => nameof(CarSettingsBleAdapterUsb);
+    public static string CarSettingsBleAdapterMissingFormat => nameof(CarSettingsBleAdapterMissingFormat);
     public static string CarSettingsBlePairingTitle => nameof(CarSettingsBlePairingTitle);
     public static string CarSettingsBlePairingHintStart => nameof(CarSettingsBlePairingHintStart);
     public static string CarSettingsBlePairingLinkText => nameof(CarSettingsBlePairingLinkText);
@@ -674,6 +680,7 @@ public static class TranslationKeys
     public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
     public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
     public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
+    public static string NotChargingReasonBlePresenceUncertain => nameof(NotChargingReasonBlePresenceUncertain);
 
     public static string SetupAssistantTitle => nameof(SetupAssistantTitle);
     public static string SetupStepWelcome => nameof(SetupStepWelcome);

@@ -110,6 +110,32 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Home Detection via"),
             new TextLocalizationTranslation(LanguageCodes.German, "Heimerkennung über"));
 
+        Register(TranslationKeys.CarSettingsBleAdapterLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Bluetooth adapter"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bluetooth-Adapter"));
+
+        Register(TranslationKeys.CarSettingsBleAdapterHelperText,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "Which Bluetooth adapter of the BLE container should be used for this car. On a Raspberry Pi the onboard adapter shares its antenna with WiFi, so a USB adapter can improve the BLE connection considerably."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Welcher Bluetooth-Adapter des BLE-Containers für dieses Fahrzeug verwendet werden soll. Auf einem Raspberry Pi teilt sich der interne Adapter die Antenne mit dem WLAN, daher kann ein USB-Adapter die BLE-Verbindung deutlich verbessern."));
+
+        Register(TranslationKeys.CarSettingsBleAdapterContainerDefault,
+            new TextLocalizationTranslation(LanguageCodes.English, "Container default"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Standard des Containers"));
+
+        Register(TranslationKeys.CarSettingsBleAdapterOnboard,
+            new TextLocalizationTranslation(LanguageCodes.English, "Onboard"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Intern"));
+
+        Register(TranslationKeys.CarSettingsBleAdapterUsb,
+            new TextLocalizationTranslation(LanguageCodes.English, "USB"),
+            new TextLocalizationTranslation(LanguageCodes.German, "USB"));
+
+        Register(TranslationKeys.CarSettingsBleAdapterMissingFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "{0} (currently not found)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} (aktuell nicht gefunden)"));
+
         Register(TranslationKeys.CarSettingsBlePairingTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "BLE Pairing"),
             new TextLocalizationTranslation(LanguageCodes.German, "BLE-Kopplung"));

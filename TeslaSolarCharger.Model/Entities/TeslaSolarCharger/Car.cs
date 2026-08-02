@@ -38,6 +38,12 @@ public class Car
     public bool VehicleCommandProtocolRequired { get; set; }
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
+
+    /// <summary>
+    /// Stable id (BD address) of the Bluetooth adapter this car should be reached through, e.g. a USB adapter with
+    /// its own antenna. Null means the BLE container's default adapter.
+    /// </summary>
+    public string? BleAdapterAddress { get; set; }
     public bool UseFleetTelemetry { get; set; }
     public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }

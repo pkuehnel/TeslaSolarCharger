@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PkSoftwareService.Custom.Backend.Ble;
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
@@ -140,13 +141,17 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             };
         }
         
-        bleBaseUrl += "Pairing/PairCar";
+        bleBaseUrl += BleApiRoutes.PairCar;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
-        queryString.Add("vin", vin);
-        queryString.Add("apiRole", apiRole);
+        queryString.Add(BleApiRoutes.VinQueryParam, vin);
+        queryString.Add(BleApiRoutes.ApiRoleQueryParam, apiRole);
+        AddAdapterQueryParameter(queryString, vin);
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         using var client = new HttpClient();
+        //Pairing stops the worker of the target adapter, waits for the adapter ownership guard and then runs
+        //tesla-control, so it needs more headroom than a normal command but must not hang forever.
+        client.Timeout = TimeSpan.FromSeconds(60);
         try
         {
             var response = await client.GetAsync(url).ConfigureAwait(false);
@@ -176,6 +181,119 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             };
         }
         
+    }
+
+    public async Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins, int? keepWarmSeconds)
+    {
+        logger.LogTrace("{method}({host}, {adapter}, {@vins}, {keepWarmSeconds})", nameof(GetBeaconScanResults), host, adapter, vins, keepWarmSeconds);
+        var bleBaseUrl = GetBleBaseUrlFromConfiguredUrl(host);
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new DtoBleBeaconScanResult
+            {
+                Success = false,
+                Outcome = BleCommandOutcome.InvalidRequest,
+                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+            };
+        }
+        var queryString = HttpUtility.ParseQueryString(string.Empty);
+        if (!string.IsNullOrWhiteSpace(adapter))
+        {
+            queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
+        }
+        if (keepWarmSeconds != default)
+        {
+            queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, keepWarmSeconds.Value.ToString());
+        }
+        var url = $"{bleBaseUrl}{BleApiRoutes.BeaconScan}?{queryString}";
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        using var client = new HttpClient();
+        //The container answers within the scan window; the extra headroom covers a worker start.
+        client.Timeout = TimeSpan.FromSeconds(29);
+        try
+        {
+            var response = await client.PostAsJsonAsync(url, vins).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                //An old BLE container does not know the endpoint. The version mismatch is surfaced separately; here
+                //it only means no presence information, never "car is away".
+                return new DtoBleBeaconScanResult
+                {
+                    Success = false,
+                    Outcome = BleCommandOutcome.InvalidRequest,
+                    ResultMessage = "The BLE container does not support beacon scans. Update the BLE container to the latest version.",
+                };
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError("Failed to run beacon scan. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+                return new DtoBleBeaconScanResult
+                {
+                    Success = false,
+                    Outcome = BleCommandOutcome.WorkerError,
+                    ResultMessage = $"BLE container answered with {response.StatusCode}: {responseContent}",
+                };
+            }
+            return JsonConvert.DeserializeObject<DtoBleBeaconScanResult>(responseContent)
+                   ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleBeaconScanResult)}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to run beacon scan.");
+            return new DtoBleBeaconScanResult
+            {
+                Success = false,
+                Outcome = BleCommandOutcome.WorkerError,
+                ResultMessage = ex.Message,
+            };
+        }
+    }
+
+    public Task<DtoBleBeaconScanResult> GetBeaconScanResultForVin(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(GetBeaconScanResultForVin), vin);
+        var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (car == default)
+        {
+            return Task.FromResult(new DtoBleBeaconScanResult
+            {
+                Success = false,
+                Outcome = BleCommandOutcome.InvalidRequest,
+                ResultMessage = $"No car with VIN {vin} is known.",
+            });
+        }
+        return GetBeaconScanResults(car.BleApiBaseUrl, car.BleAdapterAddress, new List<string> { vin }, null);
+    }
+
+    public async Task<List<DtoBleAdapter>> GetAdapters(string? host)
+    {
+        logger.LogTrace("{method}({host})", nameof(GetAdapters), host);
+        var bleBaseUrl = GetBleBaseUrlFromConfiguredUrl(host);
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new List<DtoBleAdapter>();
+        }
+        var url = bleBaseUrl + BleApiRoutes.AdapterList;
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(10);
+        try
+        {
+            var response = await client.GetAsync(url).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Could not get Bluetooth adapters from {url}. StatusCode: {statusCode}", url, response.StatusCode);
+                return new List<DtoBleAdapter>();
+            }
+            return JsonConvert.DeserializeObject<List<DtoBleAdapter>>(responseContent) ?? new List<DtoBleAdapter>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not get Bluetooth adapters from {url}.", url);
+            return new List<DtoBleAdapter>();
+        }
     }
 
     public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -208,7 +326,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             return "Could not generate a base url based on the inserted URL";
         }
-        var url = baseUrl + "Hello/TscVersionCompatibility";
+        var url = baseUrl + BleApiRoutes.TscVersionCompatibility;
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(5);
         var vins = settings.Cars
@@ -256,7 +374,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 36, 0);
+            var correctVersion = BleCompatibilityVersion.Value;
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)
@@ -317,7 +435,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             return null;
         }
-        var url = baseUrl + "Debug/DownloadInMemoryLogs";
+        var url = baseUrl + BleApiRoutes.DownloadInMemoryLogs;
         logger.LogTrace("Ble Url: {bleUrl}", url);
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(30);
@@ -352,13 +470,18 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 ErrorType = ErrorType.TscConfiguration,
             };
         }
-        bleBaseUrl += "Command/ExecuteCommand";
+        bleBaseUrl += BleApiRoutes.ExecuteCommand;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
-        queryString.Add("vin", request.Vin);
-        queryString.Add("command", request.CommandName);
+        queryString.Add(BleApiRoutes.VinQueryParam, request.Vin);
+        queryString.Add(BleApiRoutes.CommandQueryParam, request.CommandName);
         if (!string.IsNullOrEmpty(request.Domain))
         {
-            queryString.Add("domain", request.Domain);
+            queryString.Add(BleApiRoutes.DomainQueryParam, request.Domain);
+        }
+        AddAdapterQueryParameter(queryString, request.Vin);
+        if (request.KeepWarmSeconds != default)
+        {
+            queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, request.KeepWarmSeconds.Value.ToString());
         }
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
@@ -394,6 +517,19 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         var car = settings.Cars.First(c => c.Vin == vin);
         return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+    }
+
+    /// <summary>
+    /// Adds the car's adapter selection to the request. Cars without a selection use the container's default adapter,
+    /// which is exactly the behaviour of BLE containers that do not know the parameter yet.
+    /// </summary>
+    private void AddAdapterQueryParameter(System.Collections.Specialized.NameValueCollection queryString, string vin)
+    {
+        var adapter = settings.Cars.FirstOrDefault(c => c.Vin == vin)?.BleAdapterAddress;
+        if (!string.IsNullOrWhiteSpace(adapter))
+        {
+            queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
+        }
     }
 
     private static string? GetBleBaseUrlFromConfiguredUrl(string? bleApiBaseUrl)

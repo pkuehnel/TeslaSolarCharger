@@ -27,6 +27,9 @@
     <ProjectReference Include="..\Plugins.SolarEdge\Plugins.SolarEdge.csproj" />
     <ProjectReference Include="..\TeslaSolarCharger\Server\TeslaSolarCharger.Server.csproj" />
     <ProjectReference Include="..\TeslaSolarCharger\Shared\TeslaSolarCharger.Shared.csproj" />
+    <!-- The BLE container's wire mapping and adapter resolution decide whether a car is reported as away, so they
+         are unit tested here instead of only being exercised on real hardware. -->
+    <ProjectReference Include="..\TeslaSolarCharger.BleApi\TeslaSolarCharger.BleApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

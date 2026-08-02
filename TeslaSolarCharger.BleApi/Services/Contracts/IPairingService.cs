@@ -1,9 +1,9 @@
-﻿using TeslaSolarCharger.BleApi.Dtos;
+using PkSoftwareService.Custom.Backend.Ble;
 
 namespace TeslaSolarCharger.BleApi.Services.Contracts;
 
 public interface IPairingService
 {
     Task GenerateKeyPair();
-    Task<DtoBleCommandResult> PairCar(string vin, string apiRole);
+    Task<DtoBleCommandResult> PairCar(string vin, string apiRole, string? adapter);
 }

@@ -144,6 +144,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddTransient<IBleService, TeslaBleService>()
             .AddTransient<IBleVehicleDataService, BleVehicleDataService>()
+            .AddSingleton<IBlePresenceStateService, BlePresenceStateService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()

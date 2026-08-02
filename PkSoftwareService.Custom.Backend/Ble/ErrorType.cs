@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Shared.Enums;
+namespace PkSoftwareService.Custom.Backend.Ble;
 
 public enum ErrorType
 {
