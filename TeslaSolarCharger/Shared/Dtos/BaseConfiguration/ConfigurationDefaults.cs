@@ -13,4 +13,17 @@ public static class ConfigurationDefaults
     /// slow to answer (or absent) can no longer delay the charging value calculation.
     /// </summary>
     public const int BleDataRefreshIntervalSeconds = 13;
+
+    /// <summary>
+    /// Minutes an idle BLE car is not polled via the infotainment system so its standby timer can run out and it can
+    /// fall asleep. VCSEC (body controller state) polling continues. A single infotainment poll happens when the
+    /// window expires. 0 disables the whole BLE sleep window feature.
+    /// </summary>
+    public const int BleSleepWindowMinutes = 13;
+
+    /// <summary>
+    /// Minutes of unchanged BLE polls (doors/frunk/trunk closed and unchanged, plugged in state, charge limit and no
+    /// occupant) before a BLE sleep window starts.
+    /// </summary>
+    public const int BleSleepStabilityMinutes = 5;
 }

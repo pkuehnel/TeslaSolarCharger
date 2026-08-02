@@ -620,6 +620,22 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateMaxSoc => nameof(CarDetailsFailedToUpdateMaxSoc);
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
+    public static string CarDetailsSleepAsleep => nameof(CarDetailsSleepAsleep);
+    public static string CarDetailsSleepTryingToSleep => nameof(CarDetailsSleepTryingToSleep);
+    public static string CarDetailsSleepAwakeWaiting => nameof(CarDetailsSleepAwakeWaiting);
+    public static string CarDetailsSleepWaitingCountdown => nameof(CarDetailsSleepWaitingCountdown);
+    public static string CarDetailsSleepStartsShortly => nameof(CarDetailsSleepStartsShortly);
+    public static string CarDetailsSleepBlocked => nameof(CarDetailsSleepBlocked);
+    public static string CarDetailsSleepTooltip => nameof(CarDetailsSleepTooltip);
+    public static string CarDetailsCancelSleepButton => nameof(CarDetailsCancelSleepButton);
+    public static string CarDetailsStartSleepButton => nameof(CarDetailsStartSleepButton);
+    public static string CarDetailsStartSleepTooltip => nameof(CarDetailsStartSleepTooltip);
+    public static string CarDetailsStartSleepBlockedTooltip => nameof(CarDetailsStartSleepBlockedTooltip);
+    public static string CarDetailsStartSleepBlockedByCarStateTooltip => nameof(CarDetailsStartSleepBlockedByCarStateTooltip);
+    public static string CarDetailsSleepAttemptStarted => nameof(CarDetailsSleepAttemptStarted);
+    public static string CarDetailsFailedToStartSleep => nameof(CarDetailsFailedToStartSleep);
+    public static string CarDetailsSleepCancelled => nameof(CarDetailsSleepCancelled);
+    public static string CarDetailsFailedToCancelSleep => nameof(CarDetailsFailedToCancelSleep);
 
     public static string GeneralErrorTitle => nameof(GeneralErrorTitle);
     public static string GeneralSuccessTitle => nameof(GeneralSuccessTitle);

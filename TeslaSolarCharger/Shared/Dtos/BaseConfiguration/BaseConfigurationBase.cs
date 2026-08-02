@@ -143,6 +143,14 @@ public class BaseConfigurationBase
     [Range(1, int.MaxValue)]
     [Postfix("s")]
     public int? BleDataRefreshIntervalSeconds { get; set; }
+    //Nullable on purpose, see BleDataRefreshIntervalSeconds. 0 disables the BLE sleep window.
+    [Range(0, int.MaxValue)]
+    [Postfix("min")]
+    public int? BleSleepWindowMinutes { get; set; }
+    //Nullable on purpose, see BleSleepWindowMinutes. Minutes of unchanged BLE polls before a sleep window starts.
+    [Range(0, int.MaxValue)]
+    [Postfix("min")]
+    public int? BleSleepStabilityMinutes { get; set; }
     public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not

@@ -300,6 +300,42 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     [Fact]
+    public async Task InfotainmentIsNotPolledWhileTheCarIsInASleepWindow()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupBeaconScan(beaconFound: true);
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AwakeBodyControllerStateJson });
+        //The car is inside a sleep window: the infotainment poll is what keeps it awake, so it has to be withheld.
+        Mock.Mock<IBleSleepWindowService>()
+            .Setup(s => s.ShouldPollInfotainment(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns(false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+        //Presence and online state still come from the beacon scan and the VCSEC read, neither of which wakes the car.
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Assert.True(dtoCar.IsOnline.Value);
+    }
+
+    [Fact]
+    public async Task SleepingCarIsReportedToTheSleepWindowService()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupBeaconScan(beaconFound: true);
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //The sleep attempt succeeded, which the UI shows as the asleep phase.
+        Mock.Mock<IBleSleepWindowService>().Verify(s => s.NotifyAsleep(dtoCar.Id), Times.Once);
+    }
+
+    [Fact]
     public async Task CarIsNotReadWhileAnotherReadForItIsInProgress()
     {
         var dtoCar = SetupBleDataCollectionCar();
@@ -482,6 +518,11 @@ public class BleVehicleDataServiceTests : TestBase
         //No concurrent read in these tests, so the coordinator always grants the read slot. Without this the
         //auto mocked coordinator returns false and every refresh would silently do nothing.
         Mock.Mock<IBleReadCoordinator>().Setup(c => c.TryBeginRead(It.IsAny<int>())).Returns(true);
+        //The sleep window is covered by BleSleepWindowServiceTests; here no car is ever inside a window, so the
+        //infotainment poll always happens (the auto mocked service would otherwise withhold it by returning false).
+        Mock.Mock<IBleSleepWindowService>()
+            .Setup(s => s.ShouldPollInfotainment(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns(true);
         return dtoCar;
     }
 }

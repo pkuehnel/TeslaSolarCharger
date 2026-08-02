@@ -27,6 +27,7 @@ public class BleVehicleDataService(
     IErrorHandlingService errorHandlingService,
     IBlePresenceStateService blePresenceStateService,
     IBleReadCoordinator bleReadCoordinator,
+    IBleSleepWindowService bleSleepWindowService,
     IIssueKeys issueKeys) : IBleVehicleDataService
 {
     private const string AwakeSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE";
@@ -283,6 +284,9 @@ public class BleVehicleDataService(
         AddBooleanValue(car, CarValueType.IsPluggedIn, false, timestamp, CarValueSource.Estimation);
         AddBooleanValue(car, CarValueType.IsCharging, false, timestamp, CarValueSource.Estimation);
         AddIntValue(car, CarValueType.ChargeAmps, 0, timestamp, CarValueSource.Estimation, skipDefaultValue: false);
+        //The car left home, so any sleep window it was in is meaningless. The stability period starts fresh when it
+        //comes back.
+        bleSleepWindowService.ResetSleepWindow(car.Id);
     }
 
     /// <summary>
@@ -329,15 +333,24 @@ public class BleVehicleDataService(
         {
             //Do not get the charge state of sleeping cars as requests to the infotainment system would wake up the
             //car. The last known charge state values stay valid until the car is awake again.
+            bleSleepWindowService.NotifyAsleep(car.Id);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
             return;
         }
 
-        //Note: Requests to the infotainment system reset the car's standby timer. Based on current knowledge the car
-        //still falls asleep even when polled frequently. If real world tests show that cars do not fall asleep because
-        //of this polling, implement a sleep policy here: e.g. stop polling the charge state after several minutes
-        //without plugged in or charging state changes while the car is unplugged, so the standby timer can run out.
+        //Requests to the infotainment system reset the car's standby timer and keep it awake (verified on a real car:
+        //the VCSEC body controller poll alone does not, the infotainment charge state poll does). Inside a BLE sleep
+        //window the infotainment poll is therefore withheld so the standby timer can run out.
+        var windowMinutes = configurationWrapper.BleSleepWindowMinutes();
+        var stabilityMinutes = configurationWrapper.BleSleepStabilityMinutes();
+        if (!bleSleepWindowService.ShouldPollInfotainment(car.Id, timestamp, windowMinutes))
+        {
+            logger.LogDebug("Car {vin} is in a BLE sleep window, skip infotainment charge state poll", vin);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
+            return;
+        }
         var chargeStateResult = await bleService.GetChargeState(vin).ConfigureAwait(false);
         if (!chargeStateResult.Success)
         {
@@ -362,8 +375,26 @@ public class BleVehicleDataService(
             return;
         }
         UpdateChargeStateValues(car, chargeState, timestamp);
+        //Feed the fresh full poll into the sleep window state machine so it can (re-)start a window once the car has
+        //been idle and closed up long enough.
+        bleSleepWindowService.ObserveFullPoll(car.Id, bodyControllerState, DerivePluggedIn(chargeState),
+            chargeState.ChargeLimitSoc, timestamp, windowMinutes, stabilityMinutes);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Derives the plugged in state from the BLE charging state, or null if it is unknown/not reported.
+    /// </summary>
+    internal static bool? DerivePluggedIn(DtoBleChargeState chargeState)
+    {
+        var chargingStateName = GetChargingStateName(chargeState.ChargingState);
+        if (chargingStateName == default
+            || string.Equals(chargingStateName, ChargingStateUnknown, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        return !string.Equals(chargingStateName, ChargingStateDisconnected, StringComparison.OrdinalIgnoreCase);
     }
 
     internal void UpdateChargeStateValues(DtoCar car, DtoBleChargeState chargeState, DateTime timestamp)

@@ -41,7 +41,8 @@ public class TeslaFleetApiService(
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
     IMemoryCache memoryCache,
     IBackendApiService backendApiService,
-    IFleetApiRateLimitService fleetApiRateLimitService)
+    IFleetApiRateLimitService fleetApiRateLimitService,
+    IBleSleepWindowService bleSleepWindowService)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -763,6 +764,13 @@ public class TeslaFleetApiService(
         }
 
         var car = settings.Cars.First(c => c.Vin == vin);
+        if (IsChargeCommand(fleetApiRequest))
+        {
+            //A charge command is about to be sent to the car, so cancel any BLE sleep window: the car is (or is about
+            //to be) actively managed and awake. Without this a window that started in the same charging cycle would
+            //silence the follow up reads, so TSC would never observe that the car started or stopped charging.
+            bleSleepWindowService.ResetSleepWindow(car.Id);
+        }
         if (!isFleetApiTest && fleetApiRequest.BleCompatible && car.UseBle)
         {
             await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
@@ -973,6 +981,17 @@ public class TeslaFleetApiService(
             return;
         }
         fleetApiRateLimitService.RecordSuccessfulCommand(car);
+    }
+
+    /// <summary>
+    /// Charge relevant commands: sending one means the car is actively managed, so any BLE sleep window is cancelled.
+    /// Wake up is excluded as it is always followed by a set amps / charge start command that cancels the window.
+    /// </summary>
+    private bool IsChargeCommand(DtoFleetApiRequest fleetApiRequest)
+    {
+        return (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl);
     }
 
     public void ResetApiRequestCounters()

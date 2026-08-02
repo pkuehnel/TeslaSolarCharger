@@ -342,6 +342,22 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "BLE-Datenabrufintervall (s)",
                 "Wie oft Fahrzeuge abgefragt werden, deren Daten über BLE erfasst werden. Dies läuft unabhängig vom Ladezyklus, sodass ein langsam antwortendes oder abwesendes Fahrzeug die Berechnung der Ladewerte nicht verzögern kann. Leer lassen für den Standardwert (13 s)."));
 
+        Register(x => x.BleSleepWindowMinutes,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE sleep window (min)",
+                "Minutes an idle car whose data is collected via BLE is not polled via the infotainment system so its standby timer can run out and it can fall asleep. Presence detection via BLE keeps running. When the window ends the car is polled once and, if still idle, a new window starts. Leave empty to use the default (13 min). Set to 0 to disable and poll every cycle like before."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Schlaffenster (Min)",
+                "Minuten, in denen ein inaktives Fahrzeug, dessen Daten über BLE abgerufen werden, nicht über das Infotainmentsystem abgefragt wird, damit sein Standby-Timer ablaufen und es einschlafen kann. Die Anwesenheitserkennung über BLE läuft weiter. Nach Ablauf des Fensters wird das Fahrzeug einmal abgefragt und, falls weiterhin inaktiv, startet ein neues Fenster. Leer lassen für den Standardwert (13 Min). 0 deaktiviert die Funktion und fragt wie bisher in jedem Zyklus ab."));
+
+        Register(x => x.BleSleepStabilityMinutes,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE sleep stability (min)",
+                "Minutes the car must stay unchanged (all doors, frunk and trunk closed and unchanged, no occupant, and no change of the plugged in state or charge limit) before a BLE sleep window starts. Also applies after cancelling a sleep attempt. Leave empty to use the default (5 min)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Schlafstabilität (Min)",
+                "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
+
         Register(x => x.UseBleDebug,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "BLE debug logging",

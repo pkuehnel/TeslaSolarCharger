@@ -36,7 +36,20 @@ else
         }
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText='@T(TranslationKeys.CarDetailsPluggedIn)'></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText='@T(TranslationKeys.CarDetailsCharging)'></CustomIcon>
+        @if (CarState.BleSleepPhase != default)
+        {
+            <CustomIcon IconName="@Icons.Material.Outlined.Bedtime" IsCrossedOut="@(CarState.BleSleepPhase != BleSleepPhase.Asleep)" TooltipText='@T(TranslationKeys.CarDetailsSleepAsleep)'></CustomIcon>
+        }
     </div>
+    @if (CarId != default && CarState.BleSleepPhase != default && CarState.BleSleepPhase != BleSleepPhase.Asleep)
+    {
+        <div class="my-1">
+            <BleSleepStatusComponent CarId="CarId.Value"
+                                     Phase="CarState.BleSleepPhase.Value"
+                                     CountdownSeconds="CarState.BleSleepCountdownSeconds"
+                                     CarClosedAndEmpty="CarState.BleSleepCarClosedAndEmpty" />
+        </div>
+    }
     @if (CarSettings.CarType == CarType.Tesla)
     {
         <FleetApiTestComponent CarId="CarId" />
