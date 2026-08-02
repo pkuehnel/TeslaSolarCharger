@@ -245,6 +245,11 @@ public class ConfigurationWrapper(
         return value == true;
     }
 
+    public bool UseBleDebug()
+    {
+        return GetBaseConfiguration().UseBleDebug;
+    }
+
     public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;

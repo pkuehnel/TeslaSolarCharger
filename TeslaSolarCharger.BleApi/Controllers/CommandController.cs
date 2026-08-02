@@ -16,11 +16,12 @@ public class CommandController (ICommandService service) : ApiBaseController
     /// <param name="domain">accepted for interface stability; the worker decides per command whether VCSEC or infotainment is needed</param>
     /// <param name="adapter">optional stable adapter id (BD address); omitted = container default adapter</param>
     /// <param name="keepWarmSeconds">optional: keep the adapter's worker warm for this many seconds; requests without the parameter never change the stored window</param>
+    /// <param name="useDebug">run the adapter's worker with debug logging; a worker started with a different setting is restarted first</param>
     /// <returns></returns>
     [HttpPost]
     public Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, [FromBody] List<string> parameters,
-        string? domain = null, string? adapter = null, int? keepWarmSeconds = null)
-        => service.ExecuteCommand(vin, command, domain, parameters, adapter, keepWarmSeconds);
+        string? domain = null, string? adapter = null, int? keepWarmSeconds = null, bool useDebug = false)
+        => service.ExecuteCommand(vin, command, domain, parameters, adapter, keepWarmSeconds, useDebug);
 
     /// <summary>
     /// Scan for the BLE advertisements of the given cars without connecting to any of them. All VINs share one scan
@@ -29,9 +30,11 @@ public class CommandController (ICommandService service) : ApiBaseController
     /// <param name="vins">VINs of the cars to scan for</param>
     /// <param name="adapter">optional stable adapter id (BD address); omitted = container default adapter</param>
     /// <param name="keepWarmSeconds">optional: keep the adapter's worker warm for this many seconds</param>
+    /// <param name="useDebug">run the adapter's worker with debug logging; a worker started with a different setting is restarted first</param>
     [HttpPost]
-    public Task<DtoBleBeaconScanResult> BeaconScan([FromBody] List<string> vins, string? adapter = null, int? keepWarmSeconds = null)
-        => service.BeaconScan(vins, adapter, keepWarmSeconds);
+    public Task<DtoBleBeaconScanResult> BeaconScan([FromBody] List<string> vins, string? adapter = null,
+        int? keepWarmSeconds = null, bool useDebug = false)
+        => service.BeaconScan(vins, adapter, keepWarmSeconds, useDebug);
 
     /// <summary>
     /// Get a list of all available commands

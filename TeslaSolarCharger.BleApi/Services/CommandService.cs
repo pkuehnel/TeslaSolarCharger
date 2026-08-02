@@ -12,10 +12,10 @@ public class CommandService(ILogger<CommandService> logger,
     IBleWorkerService bleWorkerService) : ICommandService
 {
     public async Task<DtoBleCommandResult> ExecuteCommand(string vin, string command, string? domain,
-        List<string> parameters, string? adapter, int? keepWarmSeconds)
+        List<string> parameters, string? adapter, int? keepWarmSeconds, bool useDebug)
     {
-        logger.LogTrace("{method}({vin}, {command}, {domain}, {@parameters}, {adapter}, {keepWarmSeconds})",
-            nameof(ExecuteCommand), vin, command, domain, parameters, adapter, keepWarmSeconds);
+        logger.LogTrace("{method}({vin}, {command}, {domain}, {@parameters}, {adapter}, {keepWarmSeconds}, {useDebug})",
+            nameof(ExecuteCommand), vin, command, domain, parameters, adapter, keepWarmSeconds, useDebug);
         if (await CheckRequestsAllowed().ConfigureAwait(false) is { } notAllowedResult)
         {
             return notAllowedResult;
@@ -33,12 +33,12 @@ public class CommandService(ILogger<CommandService> logger,
         }
         //The domain parameter is accepted for interface stability but not forwarded: the worker knows per command
         //whether VCSEC or an infotainment session is needed.
-        return await bleWorkerService.ExecuteCommand(adapter, vin, command, parameters, keepWarmSeconds).ConfigureAwait(false);
+        return await bleWorkerService.ExecuteCommand(adapter, vin, command, parameters, keepWarmSeconds, useDebug).ConfigureAwait(false);
     }
 
-    public async Task<DtoBleBeaconScanResult> BeaconScan(List<string> vins, string? adapter, int? keepWarmSeconds)
+    public async Task<DtoBleBeaconScanResult> BeaconScan(List<string> vins, string? adapter, int? keepWarmSeconds, bool useDebug)
     {
-        logger.LogTrace("{method}({@vins}, {adapter}, {keepWarmSeconds})", nameof(BeaconScan), vins, adapter, keepWarmSeconds);
+        logger.LogTrace("{method}({@vins}, {adapter}, {keepWarmSeconds}, {useDebug})", nameof(BeaconScan), vins, adapter, keepWarmSeconds, useDebug);
         if (await CheckRequestsAllowed().ConfigureAwait(false) is { } notAllowedResult)
         {
             return new DtoBleBeaconScanResult
@@ -48,7 +48,7 @@ public class CommandService(ILogger<CommandService> logger,
                 ResultMessage = notAllowedResult.ResultMessage,
             };
         }
-        return await bleWorkerService.BeaconScan(adapter, vins, keepWarmSeconds).ConfigureAwait(false);
+        return await bleWorkerService.BeaconScan(adapter, vins, keepWarmSeconds, useDebug).ConfigureAwait(false);
     }
 
     public async Task<DtoBleCommandResult> ListCommands()

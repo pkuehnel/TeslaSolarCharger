@@ -22,4 +22,5 @@ public static class BleApiRoutes
     public const string KeepWarmSecondsQueryParam = "keepWarmSeconds";
     public const string AdapterQueryParam = "adapter";
     public const string ApiRoleQueryParam = "apiRole";
+    public const string UseDebugQueryParam = "useDebug";
 }

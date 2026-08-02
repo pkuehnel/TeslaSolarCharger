@@ -5,8 +5,14 @@ namespace TeslaSolarCharger.BleApi.Services.Contracts;
 
 public interface IBleWorkerService
 {
-    Task<DtoBleCommandResult> ExecuteCommand(string? adapter, string vin, string command, List<string> parameters, int? keepWarmSeconds);
-    Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds);
+    /// <summary>
+    /// Executes a command on the worker of the target adapter. <paramref name="useDebug"/> is the setting TSC sent;
+    /// a worker that runs with a different setting is restarted first, as the log level of the used library is global
+    /// per process. Workers on other adapters keep serving with their own setting until their next request.
+    /// </summary>
+    Task<DtoBleCommandResult> ExecuteCommand(string? adapter, string vin, string command, List<string> parameters,
+        int? keepWarmSeconds, bool useDebug);
+    Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug);
     /// <summary>
     /// Stops the worker owning the target adapter, runs the action while holding the adapter exclusively (the action
     /// receives the current hciX id, empty for "first available") and lets the worker restart lazily afterwards.

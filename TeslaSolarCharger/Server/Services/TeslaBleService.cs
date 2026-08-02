@@ -5,6 +5,7 @@ using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -17,7 +18,8 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     ISettings settings,
     IErrorHandlingService errorHandlingService,
     IIssueKeys issueKeys,
-    IHttpClientFactory httpClientFactory) : IBleService
+    IHttpClientFactory httpClientFactory,
+    IConfigurationWrapper configurationWrapper) : IBleService
 {
     //Pairing stops the worker of the target adapter, waits for the adapter ownership guard and then runs
     //tesla-control, so it needs more headroom than a normal command but must not hang forever.
@@ -216,6 +218,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, keepWarmSeconds.Value.ToString());
         }
+        AddUseDebugQueryParameter(queryString);
         var url = $"{bleBaseUrl}{BleApiRoutes.BeaconScan}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         var client = CreateBleClient();
@@ -489,6 +492,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             queryString.Add(BleApiRoutes.DomainQueryParam, request.Domain);
         }
         AddAdapterQueryParameter(queryString, request.Vin);
+        AddUseDebugQueryParameter(queryString);
         if (request.KeepWarmSeconds != default)
         {
             queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, request.KeepWarmSeconds.Value.ToString());
@@ -539,6 +543,18 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         if (!string.IsNullOrWhiteSpace(adapter))
         {
             queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
+        }
+    }
+
+    /// <summary>
+    /// Adds the debug logging setting to the request. Only sent when enabled, so the parameter never appears in the
+    /// normal case and the container's worker keeps running with its default.
+    /// </summary>
+    private void AddUseDebugQueryParameter(System.Collections.Specialized.NameValueCollection queryString)
+    {
+        if (configurationWrapper.UseBleDebug())
+        {
+            queryString.Add(BleApiRoutes.UseDebugQueryParam, "true");
         }
     }
 

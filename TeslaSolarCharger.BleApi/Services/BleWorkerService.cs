@@ -78,10 +78,11 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         public ConcurrentDictionary<string, int> OutcomeCounts { get; } = new();
     }
 
-    public async Task<DtoBleCommandResult> ExecuteCommand(string? adapter, string vin, string command, List<string> parameters, int? keepWarmSeconds)
+    public async Task<DtoBleCommandResult> ExecuteCommand(string? adapter, string vin, string command, List<string> parameters,
+        int? keepWarmSeconds, bool useDebug)
     {
-        _logger.LogTrace("{method}({adapter}, {vin}, {command}, {@parameters}, {keepWarmSeconds})",
-            nameof(ExecuteCommand), adapter, vin, command, parameters, keepWarmSeconds);
+        _logger.LogTrace("{method}({adapter}, {vin}, {command}, {@parameters}, {keepWarmSeconds}, {useDebug})",
+            nameof(ExecuteCommand), adapter, vin, command, parameters, keepWarmSeconds, useDebug);
         var resolution = _adapterEnumerationService.Resolve(adapter);
         if (!resolution.Found)
         {
@@ -101,7 +102,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         //The worker may have to connect first, so the response timeout covers connecting plus the command.
         var responseTimeout = TimeSpan.FromSeconds(_configuration.GetValue<int>("ConnectTimeoutSeconds")
                                                    + _configuration.GetValue<int>("CommandTimeoutSeconds") + 5);
-        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId }, responseTimeout).ConfigureAwait(false);
+        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId }, responseTimeout, useDebug).ConfigureAwait(false);
         if (failure != default)
         {
             return CountOutcome(instance, WorkerResponseMapper.CreateLocalFailure(failure.Outcome, failure.Message));
@@ -111,9 +112,9 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         return CountOutcome(instance, result);
     }
 
-    public async Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds)
+    public async Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug)
     {
-        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds})", nameof(BeaconScan), adapter, vins, keepWarmSeconds);
+        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {useDebug})", nameof(BeaconScan), adapter, vins, keepWarmSeconds, useDebug);
         var resolution = _adapterEnumerationService.Resolve(adapter);
         if (!resolution.Found)
         {
@@ -131,7 +132,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             windowMs,
         };
         var responseTimeout = TimeSpan.FromMilliseconds(windowMs) + TimeSpan.FromSeconds(5);
-        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId }, responseTimeout).ConfigureAwait(false);
+        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId }, responseTimeout, useDebug).ConfigureAwait(false);
         if (failure != default)
         {
             return WorkerResponseMapper.CreateLocalScanFailure(failure.Outcome, failure.Message);
@@ -298,7 +299,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     private sealed record WorkerFailure(BleCommandOutcome Outcome, string Message);
 
     private async Task<(WorkerResponse? Response, WorkerFailure? Failure)> SendRequest(WorkerInstance instance,
-        Func<int, object> createPayload, TimeSpan responseTimeout)
+        Func<int, object> createPayload, TimeSpan responseTimeout, bool? useDebug = null)
     {
         var gateWaitSeconds = _configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
         if (!await instance.Gate.WaitAsync(TimeSpan.FromSeconds(gateWaitSeconds)).ConfigureAwait(false))
@@ -310,7 +311,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         {
             try
             {
-                await EnsureWorkerRunning(instance).ConfigureAwait(false);
+                await EnsureWorkerRunning(instance, useDebug).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -388,12 +389,18 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         }
     }
 
-    private async Task EnsureWorkerRunning(WorkerInstance instance)
+    /// <summary>
+    /// Starts the worker of the adapter if needed. <paramref name="requestedUseDebug"/> is the debug setting TSC sent
+    /// with the request; null means "keep whatever the running worker was started with", which is what the keep warm
+    /// restart and the liveness probe need as neither of them carries a setting of its own.
+    /// </summary>
+    private async Task EnsureWorkerRunning(WorkerInstance instance, bool? requestedUseDebug)
     {
-        var useDebug = _configuration.GetValue<bool>("UseDebugBle");
         bool needsStart;
+        bool useDebug;
         lock (instance.StateLock)
         {
+            useDebug = requestedUseDebug ?? instance.UseDebugOfRunningWorker;
             var isRunning = instance.Process is { HasExited: false };
             //A changed debug setting can only be applied by restarting: the log level of the used library is global
             //per process.
@@ -646,7 +653,8 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                     try
                     {
                         AddEvent(instance, "keepWarm", "Keep warm window is active but the worker is not running, restarting it");
-                        await EnsureWorkerRunning(instance).ConfigureAwait(false);
+                        //No request behind this restart, so keep the debug setting of the last real request.
+                        await EnsureWorkerRunning(instance, null).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
