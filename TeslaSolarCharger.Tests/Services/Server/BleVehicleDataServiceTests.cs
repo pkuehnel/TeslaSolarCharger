@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Helper;
@@ -17,6 +16,11 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
+using ChargingStateCase = CarServer.ChargeState.Types.ChargingState.TypeOneofCase;
+using ClosureState = VCSEC.ClosureState_E;
+using UserPresence = VCSEC.UserPresence_E;
+using VehicleSleepStatus = VCSEC.VehicleSleepStatus_E;
+using VehicleStatus = VCSEC.VehicleStatus;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
@@ -73,7 +77,7 @@ public class BleVehicleDataServiceTests : TestBase
         Assert.Equal(16, chargeState.ChargeCurrentRequest);
         Assert.Equal(16, chargeState.ChargerPilotCurrent);
         Assert.Equal(90, chargeState.MinutesToFullCharge);
-        Assert.Equal("Charging", TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(chargeState.ChargingState));
+        Assert.Equal(ChargingStateCase.Charging, chargeState.ChargingState.TypeCase);
     }
 
     [Fact]
@@ -83,15 +87,41 @@ public class BleVehicleDataServiceTests : TestBase
         var chargeState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeChargeState(json);
         Assert.NotNull(chargeState);
         Assert.Equal(62, chargeState.BatteryLevel);
-        Assert.Equal("Disconnected", TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(chargeState.ChargingState));
+        Assert.Equal(ChargingStateCase.Disconnected, chargeState.ChargingState.TypeCase);
+        Assert.False(TeslaSolarCharger.Server.Services.BleVehicleDataService.DerivePluggedIn(chargeState));
     }
 
+    /// <summary>
+    /// Tesla adds fields to these messages every few months. The parser is strict by default and would throw on the
+    /// first unknown one, taking down BLE data collection for everyone until TSC is updated, so this must stay lenient.
+    /// </summary>
     [Fact]
-    public void ChargingStateNameSupportsStringSerialization()
+    public void UnknownFieldsDoNotBreakParsing()
     {
-        Assert.Equal("Charging", TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(new JValue("Charging")));
-        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(null));
-        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(new JObject()));
+        const string json =
+            "{\"chargeState\":{\"chargingState\":{\"Charging\":{}},\"batteryLevel\":62,\"someFieldTeslaAddedLater\":{\"nested\":123}}}";
+        var chargeState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeChargeState(json);
+        Assert.NotNull(chargeState);
+        Assert.Equal(62, chargeState.BatteryLevel);
+        Assert.Equal(ChargingStateCase.Charging, chargeState.ChargingState.TypeCase);
+
+        var bodyControllerState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(
+            "{\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"brandNewClosure\":\"CLOSURESTATE_OPEN\"}");
+        Assert.NotNull(bodyControllerState);
+        Assert.Equal(VehicleSleepStatus.VehicleSleepStatusAwake, bodyControllerState.VehicleSleepStatus);
+    }
+
+    /// <summary>
+    /// A charge state without any charging state at all must read as "unknown", not as unplugged: acting on a wrong
+    /// unplugged reading would stop a running charge.
+    /// </summary>
+    [Fact]
+    public void MissingChargingStateIsUnknownRatherThanDisconnected()
+    {
+        var chargeState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeChargeState(
+            "{\"chargeState\":{\"batteryLevel\":62}}");
+        Assert.NotNull(chargeState);
+        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.DerivePluggedIn(chargeState));
     }
 
     [Fact]
@@ -107,20 +137,20 @@ public class BleVehicleDataServiceTests : TestBase
     {
         var awakeState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(AwakeBodyControllerStateJson);
         Assert.NotNull(awakeState);
-        Assert.Equal("VEHICLE_SLEEP_STATUS_AWAKE", awakeState.VehicleSleepStatus);
+        Assert.Equal(VehicleSleepStatus.VehicleSleepStatusAwake, awakeState.VehicleSleepStatus);
         //A closed up car carries no closure data at all, see the constant.
         Assert.Null(awakeState.ClosureStatuses);
 
         var openDoorState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(AwakeOpenDoorBodyControllerStateJson);
         Assert.NotNull(openDoorState);
-        Assert.Equal("CLOSURESTATE_OPEN", openDoorState.ClosureStatuses?.FrontDriverDoor);
-        //Every other closure stays null, which means closed.
-        Assert.Null(openDoorState.ClosureStatuses?.RearPassengerDoor);
-        Assert.Equal("VEHICLE_USER_PRESENCE_PRESENT", openDoorState.UserPresence);
+        Assert.Equal(ClosureState.ClosurestateOpen, openDoorState.ClosureStatuses!.FrontDriverDoor);
+        //Every closure the car did not mention decodes to its proto3 default, which is CLOSURESTATE_CLOSED.
+        Assert.Equal(ClosureState.ClosurestateClosed, openDoorState.ClosureStatuses.RearPassengerDoor);
+        Assert.Equal(UserPresence.VehicleUserPresencePresent, openDoorState.UserPresence);
 
         var asleepState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(AsleepBodyControllerStateJson);
         Assert.NotNull(asleepState);
-        Assert.Equal("VEHICLE_SLEEP_STATUS_ASLEEP", asleepState.VehicleSleepStatus);
+        Assert.Equal(VehicleSleepStatus.VehicleSleepStatusAsleep, asleepState.VehicleSleepStatus);
 
         Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState("no json"));
         Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(null));
@@ -205,7 +235,11 @@ public class BleVehicleDataServiceTests : TestBase
         Assert.Equal(2, chargeState.ChargerPhases);
         Assert.Equal(16, chargeState.ChargeCurrentRequest);
         Assert.Equal(16, chargeState.ChargerPilotCurrent);
-        Assert.Equal("Stopped", TeslaSolarCharger.Server.Services.BleVehicleDataService.GetChargingStateName(chargeState.ChargingState));
+        Assert.Equal(ChargingStateCase.Stopped, chargeState.ChargingState.TypeCase);
+        //0 A is a value the car actually reported, not a missing one - the distinction the generated types give us.
+        Assert.True(chargeState.HasChargerActualCurrent);
+        //Plugged in but not charging.
+        Assert.True(TeslaSolarCharger.Server.Services.BleVehicleDataService.DerivePluggedIn(chargeState));
     }
 
     [Fact]
@@ -461,7 +495,7 @@ public class BleVehicleDataServiceTests : TestBase
         //Nothing in the tracked signature changes while a car charges steadily, so feeding the poll into the state
         //machine would silence the car after the stability period. The window state is cleared instead.
         Mock.Mock<IBleSleepWindowService>().Verify(s => s.ResetSleepWindow(dtoCar.Id), Times.Once);
-        Mock.Mock<IBleSleepWindowService>().Verify(s => s.ObserveFullPoll(It.IsAny<int>(), It.IsAny<DtoBleBodyControllerState>(),
+        Mock.Mock<IBleSleepWindowService>().Verify(s => s.ObserveFullPoll(It.IsAny<int>(), It.IsAny<VehicleStatus>(),
             It.IsAny<bool?>(), It.IsAny<int?>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         //The charge state is read every cycle regardless, so TSC never goes blind while the car charges.
         Mock.Mock<IBleService>().Verify(b => b.GetChargeState(TestVin), Times.Once);

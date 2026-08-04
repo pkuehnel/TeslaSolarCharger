@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ble;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -12,6 +11,11 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using ChargeState = CarServer.ChargeState;
+using ChargingStateCase = CarServer.ChargeState.Types.ChargingState.TypeOneofCase;
+using VehicleData = CarServer.VehicleData;
+using VehicleSleepStatus = VCSEC.VehicleSleepStatus_E;
+using VehicleStatus = VCSEC.VehicleStatus;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -30,10 +34,6 @@ public class BleVehicleDataService(
     IBleSleepWindowService bleSleepWindowService,
     IIssueKeys issueKeys) : IBleVehicleDataService
 {
-    private const string AwakeSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE";
-    private const string ChargingStateDisconnected = "Disconnected";
-    private const string ChargingStateCharging = "Charging";
-    private const string ChargingStateUnknown = "Unknown";
     private static readonly TimeSpan RadioSilenceWarningDuration = TimeSpan.FromHours(24);
 
     public async Task RefreshBleCarData()
@@ -327,7 +327,7 @@ public class BleVehicleDataService(
             return;
         }
 
-        var isAwake = string.Equals(bodyControllerState.VehicleSleepStatus, AwakeSleepStatus, StringComparison.OrdinalIgnoreCase);
+        var isAwake = bodyControllerState.VehicleSleepStatus == VehicleSleepStatus.VehicleSleepStatusAwake;
         UpdateOnlineState(car, isAwake, timestamp);
         if (!isAwake)
         {
@@ -397,38 +397,45 @@ public class BleVehicleDataService(
     }
 
     /// <summary>
+    /// The charging state the car reported, or <see cref="ChargingStateCase.None"/> when it reported none. Tesla
+    /// models this as a oneof of empty messages, so the set case is the value.
+    /// </summary>
+    private static ChargingStateCase ChargingState(ChargeState chargeState) =>
+        chargeState.ChargingState?.TypeCase ?? ChargingStateCase.None;
+
+    /// <summary>
     /// Derives the plugged in state from the BLE charging state, or null if it is unknown/not reported.
     /// </summary>
-    internal static bool? DerivePluggedIn(DtoBleChargeState chargeState)
+    internal static bool? DerivePluggedIn(ChargeState chargeState)
     {
-        var chargingStateName = GetChargingStateName(chargeState.ChargingState);
-        if (chargingStateName == default
-            || string.Equals(chargingStateName, ChargingStateUnknown, StringComparison.OrdinalIgnoreCase))
+        var chargingState = ChargingState(chargeState);
+        if (chargingState is ChargingStateCase.None or ChargingStateCase.Unknown)
         {
             return null;
         }
-        return !string.Equals(chargingStateName, ChargingStateDisconnected, StringComparison.OrdinalIgnoreCase);
+        return chargingState != ChargingStateCase.Disconnected;
     }
 
-    internal void UpdateChargeStateValues(DtoCar car, DtoBleChargeState chargeState, DateTime timestamp)
+    internal void UpdateChargeStateValues(DtoCar car, ChargeState chargeState, DateTime timestamp)
     {
-        AddIntValue(car, CarValueType.StateOfCharge, chargeState.BatteryLevel, timestamp);
-        AddIntValue(car, CarValueType.StateOfChargeLimit, chargeState.ChargeLimitSoc, timestamp);
-        AddIntValue(car, CarValueType.ChargerVoltage, chargeState.ChargerVoltage, timestamp);
-        AddIntValue(car, CarValueType.ChargeAmps, chargeState.ChargerActualCurrent, timestamp);
-        AddIntValue(car, CarValueType.ChargerPhases, chargeState.ChargerPhases, timestamp);
-        AddIntValue(car, CarValueType.ChargeCurrentRequest, chargeState.ChargeCurrentRequest, timestamp);
-        AddIntValue(car, CarValueType.ChargerPilotCurrent, chargeState.ChargerPilotCurrent, timestamp);
-        var chargingStateName = GetChargingStateName(chargeState.ChargingState);
-        if ((chargingStateName != default)
-            && !string.Equals(chargingStateName, ChargingStateUnknown, StringComparison.OrdinalIgnoreCase))
+        //Every one of these is an optional proto3 field, so a reported 0 (e.g. 0 A while plugged in but not charging)
+        //is distinguishable from a value the car did not send at all.
+        AddIntValue(car, CarValueType.StateOfCharge, Reported(chargeState.HasBatteryLevel, chargeState.BatteryLevel), timestamp);
+        AddIntValue(car, CarValueType.StateOfChargeLimit, Reported(chargeState.HasChargeLimitSoc, chargeState.ChargeLimitSoc), timestamp);
+        AddIntValue(car, CarValueType.ChargerVoltage, Reported(chargeState.HasChargerVoltage, chargeState.ChargerVoltage), timestamp);
+        AddIntValue(car, CarValueType.ChargeAmps, Reported(chargeState.HasChargerActualCurrent, chargeState.ChargerActualCurrent), timestamp);
+        AddIntValue(car, CarValueType.ChargerPhases, Reported(chargeState.HasChargerPhases, chargeState.ChargerPhases), timestamp);
+        AddIntValue(car, CarValueType.ChargeCurrentRequest, Reported(chargeState.HasChargeCurrentRequest, chargeState.ChargeCurrentRequest), timestamp);
+        AddIntValue(car, CarValueType.ChargerPilotCurrent, Reported(chargeState.HasChargerPilotCurrent, chargeState.ChargerPilotCurrent), timestamp);
+        var chargingState = ChargingState(chargeState);
+        if (chargingState is not (ChargingStateCase.None or ChargingStateCase.Unknown))
         {
-            AddBooleanValue(car, CarValueType.IsPluggedIn,
-                !string.Equals(chargingStateName, ChargingStateDisconnected, StringComparison.OrdinalIgnoreCase), timestamp);
-            AddBooleanValue(car, CarValueType.IsCharging,
-                string.Equals(chargingStateName, ChargingStateCharging, StringComparison.OrdinalIgnoreCase), timestamp);
+            AddBooleanValue(car, CarValueType.IsPluggedIn, chargingState != ChargingStateCase.Disconnected, timestamp);
+            AddBooleanValue(car, CarValueType.IsCharging, chargingState == ChargingStateCase.Charging, timestamp);
         }
     }
+
+    private static int? Reported(bool hasValue, int value) => hasValue ? value : null;
 
     private void UpdateHomePresence(DtoCar car, bool isAtHome, DateTime timestamp)
     {
@@ -476,54 +483,19 @@ public class BleVehicleDataService(
         carPropertyUpdateHelper.UpdateDtoCarProperty(car, carValueLog);
     }
 
-    internal static DtoBleBodyControllerState? DeserializeBodyControllerState(string? resultMessage)
-    {
-        if (string.IsNullOrWhiteSpace(resultMessage))
-        {
-            return default;
-        }
-        try
-        {
-            return JsonConvert.DeserializeObject<DtoBleBodyControllerState>(resultMessage);
-        }
-        catch (JsonException)
-        {
-            return default;
-        }
-    }
+    internal static VehicleStatus? DeserializeBodyControllerState(string? resultMessage) =>
+        BleProtoJson.TryParse<VehicleStatus>(resultMessage);
 
-    internal static DtoBleChargeState? DeserializeChargeState(string? resultMessage)
+    internal static ChargeState? DeserializeChargeState(string? resultMessage)
     {
-        if (string.IsNullOrWhiteSpace(resultMessage))
+        //`tesla-control state charge` wraps its answer in a VehicleData message. Unknown fields are ignored, so a bare
+        //ChargeState would also parse as a VehicleData - just an empty one, which is why the wrapper is tried first
+        //and the bare form only used when no charge state came out of it.
+        var vehicleData = BleProtoJson.TryParse<VehicleData>(resultMessage);
+        if (vehicleData?.ChargeState != default)
         {
-            return default;
+            return vehicleData.ChargeState;
         }
-        try
-        {
-            var vehicleData = JsonConvert.DeserializeObject<DtoBleVehicleData>(resultMessage);
-            if (vehicleData?.ChargeState != default)
-            {
-                return vehicleData.ChargeState;
-            }
-            //Fallback in case the CLI output is not wrapped in a VehicleData message
-            return JsonConvert.DeserializeObject<DtoBleChargeState>(resultMessage);
-        }
-        catch (JsonException)
-        {
-            return default;
-        }
-    }
-
-    internal static string? GetChargingStateName(JToken? chargingState)
-    {
-        return chargingState switch
-        {
-            null => default,
-            //In the protobuf definition the charging state is a oneof of empty messages, so protojson serializes it
-            //as an object with a single property, e.g. {"Charging": {}}.
-            JObject chargingStateObject => chargingStateObject.Properties().FirstOrDefault()?.Name,
-            JValue { Type: JTokenType.String } chargingStateValue => chargingStateValue.Value<string>(),
-            _ => default,
-        };
+        return BleProtoJson.TryParse<ChargeState>(resultMessage);
     }
 }

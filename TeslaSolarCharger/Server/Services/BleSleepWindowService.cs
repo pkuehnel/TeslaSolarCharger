@@ -2,14 +2,15 @@ using System.Collections.Concurrent;
 using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using ClosureStatuses = VCSEC.ClosureStatuses;
+using ClosureState = VCSEC.ClosureState_E;
+using UserPresence = VCSEC.UserPresence_E;
+using VehicleStatus = VCSEC.VehicleStatus;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBleSleepWindowService
 {
-    private const string ClosureStateClosed = "CLOSURESTATE_CLOSED";
-    private const string UserPresencePresent = "VEHICLE_USER_PRESENCE_PRESENT";
-
     private readonly ConcurrentDictionary<int, SleepWindowState> _states = new();
 
     public bool ShouldPollInfotainment(int carId, DateTime nowUtc, int windowMinutes)
@@ -43,7 +44,7 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
         }
     }
 
-    public void ObserveFullPoll(int carId, DtoBleBodyControllerState bodyControllerState, bool? pluggedIn,
+    public void ObserveFullPoll(int carId, VehicleStatus bodyControllerState, bool? pluggedIn,
         int? chargeLimitSoc, DateTime nowUtc, int windowMinutes, int stabilityMinutes)
     {
         if (windowMinutes <= 0)
@@ -173,64 +174,49 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
         && state.WindowStartUtc == null
         && state.ClosedAndEmpty == true;
 
-    private static string BuildSignature(DtoBleBodyControllerState bcs, bool? pluggedIn, int? chargeLimitSoc)
+    private static string BuildSignature(VehicleStatus bcs, bool? pluggedIn, int? chargeLimitSoc)
     {
-        var c = bcs.ClosureStatuses;
-        //Normalized so a closure that is reported as absent (the usual way of saying closed, see
-        //AllCountedClosuresClosed) and one explicitly reported as closed never look like a change to each other.
+        var c = CountedClosures(bcs);
         return string.Join("|",
-            NormalizeClosure(c?.FrontDriverDoor),
-            NormalizeClosure(c?.FrontPassengerDoor),
-            NormalizeClosure(c?.RearDriverDoor),
-            NormalizeClosure(c?.RearPassengerDoor),
-            NormalizeClosure(c?.FrontTrunk),
-            NormalizeClosure(c?.RearTrunk),
-            bcs.UserPresence ?? "null",
+            (int)c.FrontDriverDoor,
+            (int)c.FrontPassengerDoor,
+            (int)c.RearDriverDoor,
+            (int)c.RearPassengerDoor,
+            (int)c.FrontTrunk,
+            (int)c.RearTrunk,
+            (int)bcs.UserPresence,
             pluggedIn?.ToString() ?? "null",
             chargeLimitSoc?.ToString() ?? "null");
     }
 
-    private static string NormalizeClosure(string? closureState) =>
-        IsClosed(closureState) ? ClosureStateClosed : closureState!;
+    /// <summary>
+    /// True if all counted closures (four doors, front trunk and rear trunk) are closed. The charge port door and
+    /// tonneau are intentionally ignored.
+    /// </summary>
+    private static bool AllCountedClosuresClosed(VehicleStatus bcs)
+    {
+        var c = CountedClosures(bcs);
+        return c.FrontDriverDoor == ClosureState.ClosurestateClosed
+               && c.FrontPassengerDoor == ClosureState.ClosurestateClosed
+               && c.RearDriverDoor == ClosureState.ClosurestateClosed
+               && c.RearPassengerDoor == ClosureState.ClosurestateClosed
+               && c.FrontTrunk == ClosureState.ClosurestateClosed
+               && c.RearTrunk == ClosureState.ClosurestateClosed;
+    }
 
     /// <summary>
-    /// True if all counted closures (four doors, front trunk and rear trunk) are reported closed. The charge port door
-    /// and tonneau are intentionally ignored.
+    /// The closure states of a car, substituting the default instance when the car reported none.
     /// </summary>
     /// <remarks>
-    /// A missing closure counts as CLOSED, which looks lenient but is the only correct reading of the container's
-    /// output: CLOSURESTATE_CLOSED is 0 in Tesla's VCSEC proto and the BLE container marshals with protojson's default
-    /// options, which omit every field that holds its proto3 default. A closed closure is therefore never serialized,
-    /// and a fully closed car reports no closureStatuses at all. Only a closure that is anything other than closed
-    /// (OPEN, AJAR, ...) ever shows up, so presence of a value is the signal, not absence of one.
+    /// A fully closed car sends no closure data at all: CLOSURESTATE_CLOSED is 0 in Tesla's VCSEC proto and the
+    /// container marshals with protojson's default options, which omit every field holding its proto3 default. The
+    /// default instance says exactly that - every closure closed - so absent and closed need no special casing, which
+    /// is the whole reason this reads Tesla's generated types instead of hand written DTOs.
     /// </remarks>
-    private static bool AllCountedClosuresClosed(DtoBleBodyControllerState bcs)
-    {
-        var c = bcs.ClosureStatuses;
-        //Absent for a fully closed car. Depending on whether the car sets the submessage at all this arrives either as
-        //a missing property or as an empty object, so both have to mean the same thing.
-        if (c == null)
-        {
-            return true;
-        }
-        return IsClosed(c.FrontDriverDoor)
-               && IsClosed(c.FrontPassengerDoor)
-               && IsClosed(c.RearDriverDoor)
-               && IsClosed(c.RearPassengerDoor)
-               && IsClosed(c.FrontTrunk)
-               && IsClosed(c.RearTrunk);
-    }
+    private static ClosureStatuses CountedClosures(VehicleStatus bcs) => bcs.ClosureStatuses ?? new ClosureStatuses();
 
-    private static bool IsClosed(string? closureState)
-    {
-        return closureState == null
-               || string.Equals(closureState, ClosureStateClosed, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsOccupantPresent(DtoBleBodyControllerState bcs)
-    {
-        return string.Equals(bcs.UserPresence, UserPresencePresent, StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsOccupantPresent(VehicleStatus bcs) =>
+        bcs.UserPresence == UserPresence.VehicleUserPresencePresent;
 
     private sealed class SleepWindowState
     {

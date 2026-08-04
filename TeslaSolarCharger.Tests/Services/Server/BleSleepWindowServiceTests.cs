@@ -1,11 +1,15 @@
 using System;
 using Microsoft.Extensions.Logging;
 using Moq;
-using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
+using ClosureStatuses = VCSEC.ClosureStatuses;
+using ClosureState = VCSEC.ClosureState_E;
+using UserPresence = VCSEC.UserPresence_E;
+using VehicleSleepStatus = VCSEC.VehicleSleepStatus_E;
+using VehicleStatus = VCSEC.VehicleStatus;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
@@ -20,19 +24,17 @@ public class BleSleepWindowServiceTests
         => new BleSleepWindowService(Mock.Of<ILogger<BleSleepWindowService>>());
 
     /// <summary>
-    /// A closed up car as the BLE container really reports it: CLOSURESTATE_CLOSED is 0 in Tesla's VCSEC proto and
-    /// protojson omits proto3 defaults, so a closed closure arrives as null and never as the literal string. Only the
-    /// open charge port door survives serialization here, which also proves it does not block a sleep window.
+    /// A closed up car. The charge port door is left open on purpose, which also proves it does not block a window.
     /// </summary>
-    private static DtoBleBodyControllerState AllClosed(
-        string userPresence = "VEHICLE_USER_PRESENCE_NOT_PRESENT",
-        string? frontDriverDoor = null,
-        string? chargePort = "CLOSURESTATE_OPEN")
+    private static VehicleStatus AllClosed(
+        UserPresence userPresence = UserPresence.VehicleUserPresenceNotPresent,
+        ClosureState frontDriverDoor = ClosureState.ClosurestateClosed,
+        ClosureState chargePort = ClosureState.ClosurestateOpen)
         => new()
         {
-            VehicleSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE",
+            VehicleSleepStatus = VehicleSleepStatus.VehicleSleepStatusAwake,
             UserPresence = userPresence,
-            ClosureStatuses = new DtoBleClosureStatuses
+            ClosureStatuses = new ClosureStatuses
             {
                 FrontDriverDoor = frontDriverDoor,
                 ChargePort = chargePort,
@@ -43,7 +45,7 @@ public class BleSleepWindowServiceTests
     /// Simulates one refresh cycle: poll only when the service allows it (mirrors the real BleVehicleDataService flow).
     /// Returns true if the infotainment poll happened, false if it was withheld (car is inside a silent window).
     /// </summary>
-    private static bool Cycle(IBleSleepWindowService svc, DtoBleBodyControllerState bcs, bool? pluggedIn, int? socLimit, DateTime now)
+    private static bool Cycle(IBleSleepWindowService svc, VehicleStatus bcs, bool? pluggedIn, int? socLimit, DateTime now)
     {
         var poll = svc.ShouldPollInfotainment(CarId, now, Window);
         if (poll)
@@ -105,7 +107,7 @@ public class BleSleepWindowServiceTests
     public void OpenDoorNeverStartsWindow()
     {
         var svc = NewService();
-        var openDoor = AllClosed(frontDriverDoor: "CLOSURESTATE_OPEN");
+        var openDoor = AllClosed(frontDriverDoor: ClosureState.ClosurestateOpen);
         //Even long after the stability period the window never starts while a door is open.
         Assert.True(Cycle(svc, openDoor, false, 80, T0));
         Assert.True(Cycle(svc, openDoor, false, 80, T0.AddMinutes(Stability)));
@@ -116,7 +118,7 @@ public class BleSleepWindowServiceTests
     public void OccupantNeverStartsWindow()
     {
         var svc = NewService();
-        var occupied = AllClosed(userPresence: "VEHICLE_USER_PRESENCE_PRESENT");
+        var occupied = AllClosed(userPresence: UserPresence.VehicleUserPresencePresent);
         Assert.True(Cycle(svc, occupied, false, 80, T0));
         Assert.True(Cycle(svc, occupied, false, 80, T0.AddMinutes(Stability)));
         Assert.True(Cycle(svc, occupied, false, 80, T0.AddMinutes(30)));
@@ -127,38 +129,46 @@ public class BleSleepWindowServiceTests
     /// no closureStatuses at all, which used to be read as "not closed" and blocked the window forever.
     /// </summary>
     [Theory]
-    [InlineData(false)] //property missing entirely (car does not set the submessage)
-    [InlineData(true)]  //empty object (car sets the submessage, all closures at their default)
-    public void MissingClosureStatusesMeansClosedAndStartsWindow(bool emptyObjectInsteadOfNull)
+    [InlineData("{\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}")]
+    [InlineData("{\"closureStatuses\":{},\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}")]
+    public void MissingClosureStatusesMeansClosedAndStartsWindow(string json)
     {
+        //Both spellings occur depending on whether the car sets the submessage at all, and both mean "everything
+        //closed". Driven from JSON rather than a constructed message because that distinction only exists on the wire.
+        var noClosures = BleVehicleDataService.DeserializeBodyControllerState(json);
+        Assert.NotNull(noClosures);
+
         var svc = NewService();
-        var noClosures = new DtoBleBodyControllerState
-        {
-            VehicleSleepStatus = "VEHICLE_SLEEP_STATUS_AWAKE",
-            UserPresence = "VEHICLE_USER_PRESENCE_NOT_PRESENT",
-            ClosureStatuses = emptyObjectInsteadOfNull ? new DtoBleClosureStatuses() : null,
-        };
-        Assert.True(Cycle(svc, noClosures, false, 80, T0));
+        Assert.True(Cycle(svc, noClosures!, false, 80, T0));
         var status = svc.GetStatus(CarId, T0, Window, Stability);
         Assert.NotNull(status);
         Assert.True(status!.CarClosedAndEmpty);
         //Once the stability period elapsed the window starts, so the following cycle is silent.
-        Assert.True(Cycle(svc, noClosures, false, 80, T0.AddMinutes(Stability)));
-        Assert.False(Cycle(svc, noClosures, false, 80, T0.AddMinutes(Stability).AddSeconds(30)));
+        Assert.True(Cycle(svc, noClosures!, false, 80, T0.AddMinutes(Stability)));
+        Assert.False(Cycle(svc, noClosures!, false, 80, T0.AddMinutes(Stability).AddSeconds(30)));
     }
 
     /// <summary>
-    /// Absent and explicitly closed describe the same physical state, so switching between them must not be mistaken
-    /// for activity and restart the stability period.
+    /// An omitted closure and an explicitly closed one describe the same physical state, so switching between the two
+    /// spellings must not be mistaken for activity and restart the stability period. Nothing in the service can get
+    /// this wrong anymore - both decode to the same enum value - so this guards the decoding, not the state machine.
     /// </summary>
     [Fact]
     public void ExplicitClosedAndAbsentClosureAreTheSameState()
     {
+        var absent = BleVehicleDataService.DeserializeBodyControllerState(
+            "{\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}");
+        var explicitlyClosed = BleVehicleDataService.DeserializeBodyControllerState(
+            "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_CLOSED\"},\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}");
+        Assert.NotNull(absent);
+        Assert.NotNull(explicitlyClosed);
+        Assert.Equal(ClosureState.ClosurestateClosed, explicitlyClosed!.ClosureStatuses!.FrontDriverDoor);
+
         var svc = NewService();
-        Assert.True(Cycle(svc, AllClosed(frontDriverDoor: null), false, 80, T0));
-        Assert.True(Cycle(svc, AllClosed(frontDriverDoor: "CLOSURESTATE_CLOSED"), false, 80, T0.AddMinutes(Stability)));
+        Assert.True(Cycle(svc, absent!, false, 80, T0));
+        Assert.True(Cycle(svc, explicitlyClosed!, false, 80, T0.AddMinutes(Stability)));
         //Stability was not restarted by the differently spelled but identical state, so the window is running.
-        Assert.False(Cycle(svc, AllClosed(frontDriverDoor: null), false, 80, T0.AddMinutes(Stability).AddSeconds(30)));
+        Assert.False(Cycle(svc, absent!, false, 80, T0.AddMinutes(Stability).AddSeconds(30)));
     }
 
     [Fact]
@@ -236,21 +246,21 @@ public class BleSleepWindowServiceTests
     public void StatusReportsBlockingClosureAndForbidsManualStart()
     {
         var svc = NewService();
-        Cycle(svc, AllClosed(frontDriverDoor: "CLOSURESTATE_OPEN"), false, 80, T0);
+        Cycle(svc, AllClosed(frontDriverDoor: ClosureState.ClosurestateOpen), false, 80, T0);
         var status = svc.GetStatus(CarId, T0, Window, Stability);
         Assert.NotNull(status);
         Assert.Equal(BleSleepPhase.WaitingToSleep, status!.Phase);
         Assert.False(status.CarClosedAndEmpty);
         Assert.False(svc.TryStartWindowNow(CarId, T0, Window));
         //Refused start must not silence the car.
-        Assert.True(Cycle(svc, AllClosed(frontDriverDoor: "CLOSURESTATE_OPEN"), false, 80, T0.AddSeconds(30)));
+        Assert.True(Cycle(svc, AllClosed(frontDriverDoor: ClosureState.ClosurestateOpen), false, 80, T0.AddSeconds(30)));
     }
 
     [Fact]
     public void StatusReportsBlockingOccupantAndForbidsManualStart()
     {
         var svc = NewService();
-        Cycle(svc, AllClosed(userPresence: "VEHICLE_USER_PRESENCE_PRESENT"), false, 80, T0);
+        Cycle(svc, AllClosed(userPresence: UserPresence.VehicleUserPresencePresent), false, 80, T0);
         var status = svc.GetStatus(CarId, T0, Window, Stability);
         Assert.NotNull(status);
         Assert.False(status!.CarClosedAndEmpty);
@@ -338,7 +348,7 @@ public class BleSleepWindowServiceTests
 
     /// <summary>
     /// The counterpart: only a closure that is NOT closed survives protojson, so an open door shows up as the single
-    /// populated property. Shape derived from Tesla's VCSEC proto (CLOSURESTATE_CLOSED = 0), not from a capture.
+    /// populated property. Shape derived from Tesla's VCSEC proto, not from a capture.
     /// </summary>
     [Fact]
     public void RealWorldOpenDoorPayloadBlocksWindow()
@@ -347,7 +357,7 @@ public class BleSleepWindowServiceTests
             "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_OPEN\"},\"vehicleLockState\":\"VEHICLELOCKSTATE_UNLOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}";
         var bcs = BleVehicleDataService.DeserializeBodyControllerState(json);
         Assert.NotNull(bcs);
-        Assert.Equal("CLOSURESTATE_OPEN", bcs!.ClosureStatuses?.FrontDriverDoor);
+        Assert.Equal(ClosureState.ClosurestateOpen, bcs!.ClosureStatuses!.FrontDriverDoor);
 
         var svc = NewService();
         Assert.True(Cycle(svc, bcs, false, 80, T0));

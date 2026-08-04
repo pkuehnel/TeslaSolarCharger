@@ -1,4 +1,5 @@
 using TeslaSolarCharger.Server.Dtos.Ble;
+using VehicleStatus = VCSEC.VehicleStatus;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -22,7 +23,7 @@ public interface IBleSleepWindowService
     /// state) and starts or re-starts a sleep window once the car has been unchanged, with all counted closures closed
     /// and no occupant, for the stability period. Must only be called after a full poll actually happened.
     /// </summary>
-    void ObserveFullPoll(int carId, DtoBleBodyControllerState bodyControllerState, bool? pluggedIn, int? chargeLimitSoc,
+    void ObserveFullPoll(int carId, VehicleStatus bodyControllerState, bool? pluggedIn, int? chargeLimitSoc,
         DateTime nowUtc, int windowMinutes, int stabilityMinutes);
 
     /// <summary>
