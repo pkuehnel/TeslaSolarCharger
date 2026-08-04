@@ -142,6 +142,56 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Beacon scan (BLE)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Beacon-Scan (BLE)"));
 
+        Register(TranslationKeys.SupportBleBeaconHistoryButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Beacon history (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Beacon-Verlauf (BLE)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Recorded beacon scans"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aufgezeichnete Beacon-Scans"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryEmpty,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "No beacon scans recorded yet. They are collected by the scheduled BLE refresh, so the car has to use BLE data collection and the first scans need a moment."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Noch keine Beacon-Scans aufgezeichnet. Sie werden vom geplanten BLE-Abruf gesammelt, das Fahrzeug muss also die BLE-Datenerfassung nutzen und die ersten Scans brauchen einen Moment."));
+
+        Register(TranslationKeys.SupportBleBeaconHistorySummaryFormat,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "Car heard in {0} of {1} scans ({2} %), average signal {3} dBm, longest run of misses {4}"),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Fahrzeug in {0} von {1} Scans gehört ({2} %), durchschnittliches Signal {3} dBm, längste Serie ohne Treffer {4}"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryHint,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "A strong signal on the scans that do find the car means the radio is fine and the car simply advertises rarely; raise the beacon scan window in the base configuration. Misses with no other advertisements at all point at the adapter instead."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Ein starkes Signal bei den Scans, die das Fahrzeug finden, bedeutet, dass der Empfänger in Ordnung ist und sich das Fahrzeug nur selten meldet; erhöhen Sie dann das Beacon-Suchfenster in der Basiskonfiguration. Fehlversuche ganz ohne andere Advertisements deuten dagegen auf den Adapter hin."));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnTime,
+            new TextLocalizationTranslation(LanguageCodes.English, "Time"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zeit"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnFound,
+            new TextLocalizationTranslation(LanguageCodes.English, "Found"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gefunden"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnRssi,
+            new TextLocalizationTranslation(LanguageCodes.English, "Signal (dBm)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Signal (dBm)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnFoundAfter,
+            new TextLocalizationTranslation(LanguageCodes.English, "Heard after (ms)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gehört nach (ms)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnOtherAdverts,
+            new TextLocalizationTranslation(LanguageCodes.English, "Other adverts"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Andere Advertisements"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnAdapter,
+            new TextLocalizationTranslation(LanguageCodes.English, "Adapter"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Adapter"));
+
         Register(TranslationKeys.SupportChargingAmpsToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Ladestrom (A)"));

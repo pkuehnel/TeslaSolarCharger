@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -101,10 +102,32 @@ public class BleVehicleDataService(
         await HandleRadioEvidence(host, adapter, cars, scanResult).ConfigureAwait(false);
         foreach (var car in cars)
         {
-            var beaconFound = scanResult.Vehicles
-                .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase)) is { BeaconFound: true };
+            var vehicleResult = scanResult.Vehicles
+                .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
+            var beaconFound = vehicleResult is { BeaconFound: true };
+            RecordBeaconObservation(car, adapter, scanResult, vehicleResult, beaconFound);
             await RefreshCarFromScanOutcome(car, beaconFound).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Keeps what the scan saw for later inspection. Only the found/not found bit drives presence, but the rest is
+    /// what tells an unreliable link apart from an absent car, so it is recorded rather than dropped here.
+    /// </summary>
+    private void RecordBeaconObservation(DtoCar car, string? adapter, DtoBleBeaconScanResult scanResult,
+        DtoBleBeaconVehicleResult? vehicleResult, bool beaconFound)
+    {
+        blePresenceStateService.RegisterObservation(car.Id, new DtoBleBeaconObservation
+        {
+            Timestamp = new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero),
+            BeaconFound = beaconFound,
+            Rssi = beaconFound ? vehicleResult?.Rssi : null,
+            FoundAfterMs = beaconFound ? vehicleResult?.FoundAfterMs : null,
+            ScanWindowMs = scanResult.WindowMs,
+            ScanDurationMs = scanResult.ScanDurationMs,
+            OtherAdvertisementsSeen = scanResult.OtherAdvertisementsSeen,
+            Adapter = adapter,
+        });
     }
 
     /// <summary>

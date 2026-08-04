@@ -1,3 +1,4 @@
+using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
@@ -47,4 +48,15 @@ public interface IBlePresenceStateService
     /// nothing, measured from the first registration if it never heard anything.
     /// </summary>
     TimeSpan RegisterScanEvidence(string containerKey, bool heardAnything, DateTimeOffset timestamp);
+
+    /// <summary>
+    /// Records what a beacon scan observed for a car, whether or not it was found. Purely diagnostic: this never
+    /// influences presence, it exists so an unreliable link can be looked at instead of guessed about.
+    /// </summary>
+    void RegisterObservation(int carId, DtoBleBeaconObservation observation);
+
+    /// <summary>
+    /// The recorded observations of a car, oldest first, plus summary figures. Empty when nothing was recorded yet.
+    /// </summary>
+    DtoBleBeaconHistory GetObservations(int carId);
 }

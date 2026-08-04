@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 
@@ -146,6 +149,141 @@ public class BlePresenceStateServiceTests
         }
         Assert.True(service.IsPresenceUncertain(CarId, largestConfigurable));
     }
+
+    [Fact]
+    public void ObservationsAreRecordedWithTheirSummary()
+    {
+        var service = NewService();
+        //Two hits at -60 and -70, three misses, so the longest run of misses is 2 (the last two).
+        Observe(service, Start, found: true, rssi: -60);
+        Observe(service, Start.AddSeconds(13), found: false);
+        Observe(service, Start.AddSeconds(26), found: true, rssi: -70);
+        Observe(service, Start.AddSeconds(39), found: false);
+        Observe(service, Start.AddSeconds(52), found: false);
+
+        var history = service.GetObservations(CarId);
+        Assert.Equal(5, history.TotalScans);
+        Assert.Equal(2, history.FoundScans);
+        Assert.Equal(40d, history.HitRatePercent);
+        Assert.Equal(-65d, history.AverageRssi);
+        Assert.Equal(2, history.LongestMissStreak);
+        Assert.Equal(Start.AddSeconds(26), history.LastFoundAt);
+        //Oldest first, so the table and the strip can both read straight through.
+        Assert.Equal(Start, history.Observations[0].Timestamp);
+    }
+
+    [Fact]
+    public void ObservationsOfAnUnknownCarAreEmptyRatherThanNull()
+    {
+        var history = NewService().GetObservations(CarId);
+        Assert.Empty(history.Observations);
+        Assert.Equal(0, history.TotalScans);
+        Assert.Null(history.HitRatePercent);
+        Assert.Null(history.AverageRssi);
+    }
+
+    [Fact]
+    public void ObservationsAreCappedByCount()
+    {
+        var service = NewService();
+        var overflow = BlePresenceStateService.MaxObservationsPerCar + 25;
+        for (var i = 0; i < overflow; i++)
+        {
+            Observe(service, Start.AddSeconds(i), found: true, rssi: -60);
+        }
+        var history = service.GetObservations(CarId);
+        Assert.Equal(BlePresenceStateService.MaxObservationsPerCar, history.TotalScans);
+        //The oldest entries are the ones dropped.
+        Assert.Equal(Start.AddSeconds(overflow - BlePresenceStateService.MaxObservationsPerCar), history.Observations[0].Timestamp);
+    }
+
+    /// <summary>
+    /// A count cap alone would cover minutes on a fast poll interval and many hours on a slow one, so anything older
+    /// than the retention is dropped as well.
+    /// </summary>
+    [Fact]
+    public void ObservationsAreCappedByAge()
+    {
+        var service = NewService();
+        Observe(service, Start, found: true, rssi: -60);
+        Observe(service, Start + BlePresenceStateService.ObservationRetention - TimeSpan.FromMinutes(1), found: false);
+        Observe(service, Start + BlePresenceStateService.ObservationRetention + TimeSpan.FromSeconds(1), found: false);
+
+        var history = service.GetObservations(CarId);
+        //The first sample is now older than the retention measured from the newest one.
+        Assert.Equal(2, history.TotalScans);
+        Assert.DoesNotContain(history.Observations, o => o.Timestamp == Start);
+    }
+
+    [Fact]
+    public void RetainOnlyDropsObservationsOfCarsNoLongerBlePolled()
+    {
+        var service = NewService();
+        Observe(service, Start, found: true, rssi: -60);
+        service.RegisterObservation(OtherCarId, NewObservation(Start, found: true, rssi: -60));
+
+        service.RetainOnly(new[] { OtherCarId });
+
+        Assert.Equal(0, service.GetObservations(CarId).TotalScans);
+        Assert.Equal(1, service.GetObservations(OtherCarId).TotalScans);
+    }
+
+    /// <summary>
+    /// The refresh job appends while the support page reads. A plain queue tears under that, which is why the history
+    /// is locked.
+    /// </summary>
+    [Fact]
+    public void ConcurrentAppendsAndReadsDoNotThrow()
+    {
+        var service = NewService();
+        //Prefill past the cap so every append also evicts: an unsynchronised reader enumerating while entries are
+        //both added and removed is what actually tears.
+        for (var i = 0; i < BlePresenceStateService.MaxObservationsPerCar; i++)
+        {
+            Observe(service, Start.AddSeconds(i), found: true, rssi: -60);
+        }
+        var stop = false;
+        var writers = Enumerable.Range(0, 2).Select(_ => Task.Run(() =>
+        {
+            for (var i = 0; !stop && i < 200_000; i++)
+            {
+                Observe(service, Start.AddSeconds(i), found: i % 2 == 0, rssi: -60);
+            }
+        })).ToArray();
+        var readers = Enumerable.Range(0, 3).Select(_ => Task.Run(() =>
+        {
+            for (var i = 0; i < 20_000; i++)
+            {
+                var history = service.GetObservations(CarId);
+                _ = history.Observations.Count(o => o.BeaconFound);
+            }
+        })).ToArray();
+        try
+        {
+            //Task.WaitAll rethrows whatever either side threw.
+            Task.WaitAll(readers);
+        }
+        finally
+        {
+            stop = true;
+            Task.WaitAll(writers);
+        }
+    }
+
+    private static void Observe(IBlePresenceStateService service, DateTimeOffset timestamp, bool found, int? rssi = null)
+        => service.RegisterObservation(CarId, NewObservation(timestamp, found, rssi));
+
+    private static DtoBleBeaconObservation NewObservation(DateTimeOffset timestamp, bool found, int? rssi)
+        => new()
+        {
+            Timestamp = timestamp,
+            BeaconFound = found,
+            Rssi = found ? rssi : null,
+            ScanWindowMs = 7000,
+            ScanDurationMs = found ? 1200 : 7000,
+            OtherAdvertisementsSeen = 42,
+            Adapter = "2C:CF:67:23:71:79",
+        };
 
     [Fact]
     public void SuccessfulReadResetsTheStreak()

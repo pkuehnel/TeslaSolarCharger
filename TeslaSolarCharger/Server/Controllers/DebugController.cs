@@ -20,6 +20,7 @@ public class DebugController(
     ITscOnlyChargingCostService tscOnlyChargingCostService,
     IHomeBatteryModeService homeBatteryModeService,
     IBleService bleService,
+    IBlePresenceStateService blePresenceStateService,
     ISettings settings) : ApiBaseController
 {
 
@@ -322,6 +323,17 @@ public class DebugController(
         var result = await bleService.GetBeaconScanResultForVin(vin);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
+    }
+
+    /// <summary>
+    /// The beacon scan results recorded for a car by the scheduled BLE refresh, newest last, plus the hit rate, mean
+    /// signal strength and longest miss streak. Answers whether an unstable BLE link is a weak signal or a car that
+    /// simply advertises rarely, without having to run scans by hand.
+    /// </summary>
+    [HttpGet]
+    public IActionResult GetBleBeaconHistory(int carId)
+    {
+        return Ok(blePresenceStateService.GetObservations(carId));
     }
 
     [HttpGet]
