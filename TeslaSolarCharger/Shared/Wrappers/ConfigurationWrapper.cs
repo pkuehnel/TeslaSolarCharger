@@ -272,6 +272,15 @@ public class ConfigurationWrapper(
         return value < 0 ? 0 : value;
     }
 
+    public int BleMissesBeforePresenceUncertain()
+    {
+        var value = GetBaseConfiguration().BleMissesBeforePresenceUncertain
+                    ?? ConfigurationDefaults.BleMissesBeforePresenceUncertain;
+        //0 or negative would mean "uncertain before anything was even missed", which would suspend charging commands
+        //forever, so the lowest meaningful value is 1 (suspend on the first miss, the behaviour before this setting).
+        return value < 1 ? 1 : value;
+    }
+
     public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;

@@ -120,6 +120,14 @@ public interface IConfigurationWrapper
     /// to <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleSleepStabilityMinutes"/> when never set.
     /// </summary>
     int BleSleepStabilityMinutes();
+
+    /// <summary>
+    /// Consecutive failed BLE beacon scans before a car's presence counts as uncertain and charging commands are
+    /// suspended. Resolves the nullable base configuration value to
+    /// <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleMissesBeforePresenceUncertain"/> when never set.
+    /// Never below 1, as 0 would suspend commands permanently.
+    /// </summary>
+    int BleMissesBeforePresenceUncertain();
     int? MaxInverterAcPower();
     string? BleBaseUrl();
     bool SendTeslaApiStatsToBackend();

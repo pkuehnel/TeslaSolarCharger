@@ -16,6 +16,11 @@ public class BlePresenceStateService(ILogger<BlePresenceStateService> logger) : 
     //after resuming, the elapsed time alone would confirm a car as away that was only observed as missing once.
     internal const int MinimumMissesToConfirmAway = 2;
 
+    //The streak counter is capped purely so a car parked elsewhere for weeks cannot grow it without bound. It has to
+    //stay well above the largest configurable BleMissesBeforePresenceUncertain (100), otherwise a high threshold could
+    //never be reached and presence would never count as uncertain.
+    internal const int MaxTrackedMisses = 1000;
+
     private readonly ConcurrentDictionary<int, MissStreak> _outOfRangeStreaks = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _lastRadioEvidence = new(StringComparer.OrdinalIgnoreCase);
 
@@ -40,9 +45,9 @@ public class BlePresenceStateService(ILogger<BlePresenceStateService> logger) : 
             _ => new MissStreak(nowUtc, 1, false),
             (_, existing) => existing with
             {
-                //Cap the counter so a car parked elsewhere for days cannot overflow it. The timestamp of the first miss
-                //is never moved, as that is what the confirmation duration is measured from.
-                MissCount = Math.Min(existing.MissCount + 1, MinimumMissesToConfirmAway + 1),
+                //The timestamp of the first miss is never moved, as that is what the confirmation duration is measured
+                //from.
+                MissCount = Math.Min(existing.MissCount + 1, MaxTrackedMisses),
             });
         if (streak.Confirmed)
         {
@@ -71,9 +76,17 @@ public class BlePresenceStateService(ILogger<BlePresenceStateService> logger) : 
         return justConfirmed ? BleAwayConfirmation.JustConfirmed : BleAwayConfirmation.AlreadyConfirmed;
     }
 
-    public bool IsPresenceUncertain(int carId)
+    public bool IsPresenceUncertain(int carId, int missesBeforeUncertain)
     {
-        return _outOfRangeStreaks.TryGetValue(carId, out var streak) && !streak.Confirmed;
+        if (!_outOfRangeStreaks.TryGetValue(carId, out var streak) || streak.Confirmed)
+        {
+            //Not tracked (last scan found it) or already confirmed away, which sets IsHome false and stops charging on
+            //its own. Neither case is the "might have left" limbo this reports.
+            return false;
+        }
+        //A weak radio misses scans on a car that is provably at home, so tolerate a configurable number of them before
+        //blocking charging commands. Away detection is unaffected: it still needs its own confirmation duration.
+        return streak.MissCount >= (missesBeforeUncertain < 1 ? 1 : missesBeforeUncertain);
     }
 
     public void Reset(int carId)

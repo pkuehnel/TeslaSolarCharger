@@ -358,6 +358,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "BLE-Schlafstabilität (Min)",
                 "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
 
+        Register(x => x.BleMissesBeforePresenceUncertain,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE misses before presence is uncertain",
+                "How many BLE beacon scans in a row may miss the car before charging commands are suspended because it is no longer certain the car is at home. A weak Bluetooth link misses scans on a car that is standing right there, and every miss blocks charging control until the next hit, so raise this if you see \"BLE connection to the car is unstable\" often. It does not delay detecting that a car really left, which has its own confirmation time. 1 suspends on the very first miss. Leave empty to use the default (2)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Fehlversuche bis Anwesenheit unsicher",
+                "Wie viele BLE-Beacon-Scans in Folge das Fahrzeug verfehlen dürfen, bevor Ladebefehle ausgesetzt werden, weil nicht mehr sicher ist, ob das Fahrzeug noch zu Hause ist. Eine schwache Bluetooth-Verbindung verfehlt Scans auch bei einem direkt danebenstehenden Fahrzeug, und jeder Fehlversuch blockiert die Ladesteuerung bis zum nächsten Treffer. Erhöhen Sie den Wert daher, wenn „Die BLE-Verbindung zum Fahrzeug ist instabil“ häufig erscheint. Die Erkennung eines tatsächlich weggefahrenen Fahrzeugs wird dadurch nicht verzögert, dafür gibt es eine eigene Bestätigungszeit. 1 setzt Ladebefehle schon beim ersten Fehlversuch aus. Leer lassen für den Standardwert (2)."));
+
         Register(x => x.UseBleDebug,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "BLE debug logging",

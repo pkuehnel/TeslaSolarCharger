@@ -27,7 +27,7 @@ public interface IBlePresenceStateService
     /// True while out of range results were registered but the car is not yet confirmed as away. During this window
     /// the last known car state stays valid but no new charging commands should be sent to the car.
     /// </summary>
-    bool IsPresenceUncertain(int carId);
+    bool IsPresenceUncertain(int carId, int missesBeforeUncertain);
 
     /// <summary>
     /// Clears the presence state of a car entirely.

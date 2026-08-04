@@ -260,7 +260,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         //While BLE scans keep reporting the car as out of BLE range it is unknown whether the car is still at home
         //(transient BLE failure) or already left. Suspend new charging commands until either a beacon hit proves the
         //car is still there or it has been unreachable long enough to be confirmed as away (which sets IsHome false).
-        if (loadpoint.CarId != default && _blePresenceStateService.IsPresenceUncertain(loadpoint.CarId.Value))
+        if (loadpoint.CarId != default
+            && _blePresenceStateService.IsPresenceUncertain(loadpoint.CarId.Value,
+                _configurationWrapper.BleMissesBeforePresenceUncertain()))
         {
             _logger.LogDebug("BLE presence of car {carId} is uncertain, suspending charging commands.", loadpoint.CarId);
             _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,

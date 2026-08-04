@@ -12,6 +12,9 @@ public class BlePresenceStateServiceTests
 {
     private const int CarId = 1;
     private const int OtherCarId = 2;
+    //Suspend charging commands on the very first missed scan: the behaviour before the tolerance became configurable,
+    //which most tests here still describe.
+    private const int OnFirstMiss = 1;
     private static readonly TimeSpan Threshold = BlePresenceStateService.AwayConfirmationDuration;
     private static readonly DateTime Start = new(2026, 8, 2, 12, 0, 0, DateTimeKind.Utc);
 
@@ -65,14 +68,83 @@ public class BlePresenceStateServiceTests
     public void PresenceIsUncertainOnlyBetweenFirstFailureAndAwayConfirmation()
     {
         var service = NewService();
-        Assert.False(service.IsPresenceUncertain(CarId));
+        Assert.False(service.IsPresenceUncertain(CarId, OnFirstMiss));
         service.RegisterOutOfRange(CarId, Start);
-        Assert.True(service.IsPresenceUncertain(CarId));
+        Assert.True(service.IsPresenceUncertain(CarId, OnFirstMiss));
         service.RegisterOutOfRange(CarId, Start + Threshold - TimeSpan.FromSeconds(1));
-        Assert.True(service.IsPresenceUncertain(CarId));
+        Assert.True(service.IsPresenceUncertain(CarId, OnFirstMiss));
         //Once the car is confirmed away the presence is certain again: the car is not at home.
         service.RegisterOutOfRange(CarId, Start + Threshold);
-        Assert.False(service.IsPresenceUncertain(CarId));
+        Assert.False(service.IsPresenceUncertain(CarId, OnFirstMiss));
+    }
+
+    /// <summary>
+    /// The point of the tolerance: a weak radio misses scans on a car that is provably at home, and every miss used to
+    /// block charging control until the next hit. Isolated misses must not suspend commands anymore.
+    /// </summary>
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void PresenceStaysCertainUntilTheConfiguredMissCountIsReached(int missesBeforeUncertain)
+    {
+        var service = NewService();
+        for (var miss = 1; miss < missesBeforeUncertain; miss++)
+        {
+            service.RegisterOutOfRange(CarId, Start.AddSeconds(miss));
+            Assert.False(service.IsPresenceUncertain(CarId, missesBeforeUncertain),
+                $"{miss} miss(es) must not suspend charging commands when {missesBeforeUncertain} are tolerated");
+        }
+        service.RegisterOutOfRange(CarId, Start.AddSeconds(missesBeforeUncertain));
+        Assert.True(service.IsPresenceUncertain(CarId, missesBeforeUncertain));
+    }
+
+    /// <summary>
+    /// A single hit between misses is what a flaky link produces, and it has to fully clear the streak - otherwise the
+    /// tolerance would be used up after the first few scans and never recover.
+    /// </summary>
+    [Fact]
+    public void HitBetweenMissesClearsTheToleranceAgain()
+    {
+        const int tolerance = 2;
+        var service = NewService();
+        service.RegisterOutOfRange(CarId, Start);
+        service.RegisterSuccessfulRead(CarId);
+        service.RegisterOutOfRange(CarId, Start.AddSeconds(26));
+        Assert.False(service.IsPresenceUncertain(CarId, tolerance));
+        service.RegisterOutOfRange(CarId, Start.AddSeconds(39));
+        Assert.True(service.IsPresenceUncertain(CarId, tolerance));
+    }
+
+    /// <summary>
+    /// Raising the tolerance must not slow down detecting a car that really left; that has its own confirmation
+    /// duration and is what actually stops charging in the away case.
+    /// </summary>
+    [Fact]
+    public void ToleranceDoesNotDelayAwayConfirmation()
+    {
+        var service = NewService();
+        Assert.Equal(BleAwayConfirmation.NotConfirmed, service.RegisterOutOfRange(CarId, Start));
+        Assert.Equal(BleAwayConfirmation.JustConfirmed, service.RegisterOutOfRange(CarId, Start + Threshold));
+        //Confirmed away is not "uncertain" at any tolerance: IsHome is false and stops charging on its own.
+        Assert.False(service.IsPresenceUncertain(CarId, 1));
+        Assert.False(service.IsPresenceUncertain(CarId, 50));
+    }
+
+    /// <summary>
+    /// The streak counter is capped, so the cap must stay above the largest configurable tolerance or a high setting
+    /// could never be reached and commands would never be suspended.
+    /// </summary>
+    [Fact]
+    public void CounterReachesTheLargestConfigurableTolerance()
+    {
+        const int largestConfigurable = 100;
+        var service = NewService();
+        for (var miss = 0; miss < largestConfigurable; miss++)
+        {
+            //Deliberately inside the away confirmation window so only the miss count can make presence uncertain.
+            service.RegisterOutOfRange(CarId, Start.AddMilliseconds(miss));
+        }
+        Assert.True(service.IsPresenceUncertain(CarId, largestConfigurable));
     }
 
     [Fact]
@@ -82,7 +154,7 @@ public class BlePresenceStateServiceTests
         service.RegisterOutOfRange(CarId, Start);
         service.RegisterOutOfRange(CarId, Start + Threshold - TimeSpan.FromSeconds(1));
         service.RegisterSuccessfulRead(CarId);
-        Assert.False(service.IsPresenceUncertain(CarId));
+        Assert.False(service.IsPresenceUncertain(CarId, OnFirstMiss));
         //After a successful read the full confirmation duration is required again, measured from the next miss.
         var restart = Start + Threshold;
         Assert.Equal(BleAwayConfirmation.NotConfirmed, service.RegisterOutOfRange(CarId, restart));
@@ -95,9 +167,9 @@ public class BlePresenceStateServiceTests
     {
         var service = NewService();
         service.RegisterOutOfRange(CarId, Start);
-        Assert.True(service.IsPresenceUncertain(CarId));
+        Assert.True(service.IsPresenceUncertain(CarId, OnFirstMiss));
         service.Reset(CarId);
-        Assert.False(service.IsPresenceUncertain(CarId));
+        Assert.False(service.IsPresenceUncertain(CarId, OnFirstMiss));
     }
 
     [Fact]
@@ -108,10 +180,10 @@ public class BlePresenceStateServiceTests
         service.RegisterOutOfRange(OtherCarId, Start);
         service.RetainOnly(new[] { OtherCarId });
         //The dropped car must not keep a stale uncertain state that would suppress its charging commands.
-        Assert.False(service.IsPresenceUncertain(CarId));
-        Assert.True(service.IsPresenceUncertain(OtherCarId));
+        Assert.False(service.IsPresenceUncertain(CarId, OnFirstMiss));
+        Assert.True(service.IsPresenceUncertain(OtherCarId, OnFirstMiss));
         service.RetainOnly(Array.Empty<int>());
-        Assert.False(service.IsPresenceUncertain(OtherCarId));
+        Assert.False(service.IsPresenceUncertain(OtherCarId, OnFirstMiss));
     }
 
     [Fact]
@@ -120,10 +192,10 @@ public class BlePresenceStateServiceTests
         var service = NewService();
         service.RegisterOutOfRange(CarId, Start);
         service.RegisterOutOfRange(CarId, Start + Threshold);
-        Assert.False(service.IsPresenceUncertain(CarId));
+        Assert.False(service.IsPresenceUncertain(CarId, OnFirstMiss));
         //The other car's streak only starts now, so it is nowhere near confirmation.
         Assert.Equal(BleAwayConfirmation.NotConfirmed, service.RegisterOutOfRange(OtherCarId, Start + Threshold));
-        Assert.True(service.IsPresenceUncertain(OtherCarId));
+        Assert.True(service.IsPresenceUncertain(OtherCarId, OnFirstMiss));
     }
 
     [Fact]

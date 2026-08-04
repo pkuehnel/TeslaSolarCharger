@@ -151,6 +151,10 @@ public class BaseConfigurationBase
     [Range(0, int.MaxValue)]
     [Postfix("min")]
     public int? BleSleepStabilityMinutes { get; set; }
+    //Nullable on purpose, see BleSleepWindowMinutes. Consecutive missed beacon scans before charging commands are
+    //suspended because it is no longer certain the car is still at home.
+    [Range(1, 100)]
+    public int? BleMissesBeforePresenceUncertain { get; set; }
     public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not

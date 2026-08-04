@@ -130,7 +130,7 @@ public class SetCurrentOfNonChargingTeslasToMaxTests : TestBase
             .Setup(s => s.CarsToManage)
             .Returns(new List<DtoCar> { car });
         Mock.Mock<IBlePresenceStateService>()
-            .Setup(s => s.IsPresenceUncertain(carId))
+            .Setup(s => s.IsPresenceUncertain(carId, It.IsAny<int>()))
             .Returns(true);
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();

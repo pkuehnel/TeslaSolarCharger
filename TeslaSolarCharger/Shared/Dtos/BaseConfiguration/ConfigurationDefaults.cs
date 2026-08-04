@@ -26,4 +26,12 @@ public static class ConfigurationDefaults
     /// occupant) before a BLE sleep window starts.
     /// </summary>
     public const int BleSleepStabilityMinutes = 5;
+
+    /// <summary>
+    /// Consecutive failed BLE beacon scans before a car's presence counts as uncertain and charging commands are
+    /// suspended. 1 suspends on the very first miss. A weak radio misses scans on a car that is provably at home, and
+    /// every miss then blocks charging control until the next hit, so a small tolerance keeps a marginal link usable.
+    /// This never delays the away detection itself, which has its own (longer) confirmation window.
+    /// </summary>
+    public const int BleMissesBeforePresenceUncertain = 2;
 }
