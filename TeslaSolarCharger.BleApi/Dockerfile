@@ -19,10 +19,17 @@ RUN go build ./...
 # Guards the worker protocol and the outcome classification: a mismatch there is invisible until a car stops
 # answering or a present car is reported as away, so it must fail the image build instead.
 RUN go vet ./cmd/tesla-bled/ ./pkg/connector/ble/
-# -race because the background presence scan, the radio arbiter and the request loop are genuinely concurrent: a
-# handover bug there would show up as a command that hangs behind a scan, which is invisible until it happens at a
-# user's site.
-RUN go test -race ./cmd/tesla-bled/ ./pkg/connector/ble/
+# The background presence scan, the radio arbiter and the request loop are genuinely concurrent, and a handover bug
+# there would look like a command hanging behind a scan - invisible until it happens at a user's site. So the tests
+# run with -race, but only on amd64: the race detector does not exist on 32 bit arm at all, and on the emulated arm64
+# leg it would run under QEMU, where it is slow and unreliable. amd64 is the native leg of the release build, so the
+# race check still runs once per build.
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        go test -race ./cmd/tesla-bled/ ./pkg/connector/ble/; \
+    else \
+        go test ./cmd/tesla-bled/ ./pkg/connector/ble/; \
+    fi
 RUN go install ./...
 
 # Stage 2: Build the .NET application
