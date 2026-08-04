@@ -52,9 +52,11 @@ public class BleVehicleDataServiceTests : TestBase
     private const string AwakeBodyControllerStateJson =
         "{\"vehicleLockState\":\"VEHICLELOCKSTATE_LOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}";
 
-    //Same car with the driver door open: the open closure is the only one that survives serialization.
+    //Captured 2026-08-04 from the same car with the driver door open and somebody at the wheel. The open door is the
+    //only closure that survives serialization, and vehicleLockState is gone entirely because VEHICLELOCKSTATE_UNLOCKED
+    //is 0 - the same omission rule, one field further along.
     private const string AwakeOpenDoorBodyControllerStateJson =
-        "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_OPEN\"},\"vehicleLockState\":\"VEHICLELOCKSTATE_UNLOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_PRESENT\"}";
+        "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_OPEN\"},\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_PRESENT\"}";
 
     private const string AsleepBodyControllerStateJson =
         "{\"vehicleLockState\":\"VEHICLELOCKSTATE_LOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_ASLEEP\",\"userPresence\":\"VEHICLE_USER_PRESENCE_UNKNOWN\"}";

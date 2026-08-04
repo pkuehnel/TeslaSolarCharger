@@ -348,13 +348,14 @@ public class BleSleepWindowServiceTests
 
     /// <summary>
     /// The counterpart: only a closure that is NOT closed survives protojson, so an open door shows up as the single
-    /// populated property. Shape derived from Tesla's VCSEC proto, not from a capture.
+    /// populated property. Shape confirmed 2026-08-04 against a real car with its driver door open; userPresence is
+    /// NOT_PRESENT here on purpose so the open door is the only thing that can block the window.
     /// </summary>
     [Fact]
     public void RealWorldOpenDoorPayloadBlocksWindow()
     {
         const string json =
-            "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_OPEN\"},\"vehicleLockState\":\"VEHICLELOCKSTATE_UNLOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}";
+            "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_OPEN\"},\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}";
         var bcs = BleVehicleDataService.DeserializeBodyControllerState(json);
         Assert.NotNull(bcs);
         Assert.Equal(ClosureState.ClosurestateOpen, bcs!.ClosureStatuses!.FrontDriverDoor);
