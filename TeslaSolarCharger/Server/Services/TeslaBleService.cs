@@ -196,9 +196,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         
     }
 
-    public async Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins, int? keepWarmSeconds)
+    public async Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins,
+        int? keepWarmSeconds, int? windowSeconds = null)
     {
-        logger.LogTrace("{method}({host}, {adapter}, {@vins}, {keepWarmSeconds})", nameof(GetBeaconScanResults), host, adapter, vins, keepWarmSeconds);
+        logger.LogTrace("{method}({host}, {adapter}, {@vins}, {keepWarmSeconds}, {windowSeconds})", nameof(GetBeaconScanResults), host, adapter, vins, keepWarmSeconds, windowSeconds);
         var bleBaseUrl = GetBleBaseUrlFromConfiguredUrl(host);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
@@ -217,6 +218,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         if (keepWarmSeconds != default)
         {
             queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, keepWarmSeconds.Value.ToString());
+        }
+        if (windowSeconds != default)
+        {
+            //Older containers ignore the unknown parameter and keep using their own default, so this stays compatible.
+            queryString.Add(BleApiRoutes.WindowMsQueryParam, (windowSeconds.Value * 1000).ToString());
         }
         AddUseDebugQueryParameter(queryString);
         var url = $"{bleBaseUrl}{BleApiRoutes.BeaconScan}?{queryString}";

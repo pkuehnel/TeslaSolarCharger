@@ -12,7 +12,8 @@ public interface IBleWorkerService
     /// </summary>
     Task<DtoBleCommandResult> ExecuteCommand(string? adapter, string vin, string command, List<string> parameters,
         int? keepWarmSeconds, bool useDebug);
-    Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug);
+    Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug,
+        int? windowMs = null);
     /// <summary>
     /// Stops the worker owning the target adapter, runs the action while holding the adapter exclusively (the action
     /// receives the current hciX id, empty for "first available") and lets the worker restart lazily afterwards.

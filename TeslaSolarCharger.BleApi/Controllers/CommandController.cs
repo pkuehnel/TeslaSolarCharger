@@ -33,8 +33,8 @@ public class CommandController (ICommandService service) : ApiBaseController
     /// <param name="useDebug">run the adapter's worker with debug logging; a worker started with a different setting is restarted first</param>
     [HttpPost]
     public Task<DtoBleBeaconScanResult> BeaconScan([FromBody] List<string> vins, string? adapter = null,
-        int? keepWarmSeconds = null, bool useDebug = false)
-        => service.BeaconScan(vins, adapter, keepWarmSeconds, useDebug);
+        int? keepWarmSeconds = null, bool useDebug = false, int? windowMs = null)
+        => service.BeaconScan(vins, adapter, keepWarmSeconds, useDebug, windowMs);
 
     /// <summary>
     /// Get a list of all available commands

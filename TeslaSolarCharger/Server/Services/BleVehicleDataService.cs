@@ -78,7 +78,8 @@ public class BleVehicleDataService(
         {
             //keepWarmSeconds is only ever sent here, on the scheduled poll: the worker of this adapter stays warm
             //between polls, while one-off commands never change the warm window.
-            scanResult = await bleService.GetBeaconScanResults(host, adapter, vins, BleConstants.BleKeepWarmSeconds).ConfigureAwait(false);
+            scanResult = await bleService.GetBeaconScanResults(host, adapter, vins, BleConstants.BleKeepWarmSeconds,
+                configurationWrapper.BleBeaconScanWindowSeconds()).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -181,7 +182,7 @@ public class BleVehicleDataService(
         {
             //No keepWarmSeconds: only the scheduled poll owns the container's warm window.
             scanResult = await bleService.GetBeaconScanResults(car.BleApiBaseUrl, car.BleAdapterAddress,
-                new List<string> { car.Vin }, null).ConfigureAwait(false);
+                new List<string> { car.Vin }, null, configurationWrapper.BleBeaconScanWindowSeconds()).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

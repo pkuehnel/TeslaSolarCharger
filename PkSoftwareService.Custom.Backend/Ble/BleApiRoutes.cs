@@ -20,6 +20,7 @@ public static class BleApiRoutes
     public const string CommandQueryParam = "command";
     public const string DomainQueryParam = "domain";
     public const string KeepWarmSecondsQueryParam = "keepWarmSeconds";
+    public const string WindowMsQueryParam = "windowMs";
     public const string AdapterQueryParam = "adapter";
     public const string ApiRoleQueryParam = "apiRole";
     public const string UseDebugQueryParam = "useDebug";

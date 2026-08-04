@@ -188,7 +188,7 @@ func run() int {
 	flag.DurationVar(&connectionWindow, "connection-window", 25*time.Second, "Close and rebuild the vehicle connection after this duration. Vehicles terminate connections after about 30 seconds.")
 	flag.DurationVar(&commandTimeout, "command-timeout", 10*time.Second, "Timeout for a single command sent to the vehicle")
 	flag.DurationVar(&connectTimeout, "connect-timeout", 10*time.Second, "Timeout for finding and connecting to a vehicle. A present but slow to advertise car occasionally needs the full budget.")
-	flag.DurationVar(&scanWindow, "scan-window", 3*time.Second, "Default window of a beaconScan request when the request carries no windowMs")
+	flag.DurationVar(&scanWindow, "scan-window", 7*time.Second, "Default window of a beaconScan request when the request carries no windowMs")
 	config.RegisterCommandLineFlags()
 	flag.Parse()
 	if debug {

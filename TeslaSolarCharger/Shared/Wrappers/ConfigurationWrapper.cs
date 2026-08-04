@@ -281,6 +281,15 @@ public class ConfigurationWrapper(
         return value < 1 ? 1 : value;
     }
 
+    public int BleBeaconScanWindowSeconds()
+    {
+        var value = GetBaseConfiguration().BleBeaconScanWindowSeconds
+                    ?? ConfigurationDefaults.BleBeaconScanWindowSeconds;
+        //Matches the container's own clamp: below a second the scan cannot hear anything, above a minute it would
+        //hold the adapter far longer than any sensible refresh interval.
+        return Math.Clamp(value, 1, 60);
+    }
+
     public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;

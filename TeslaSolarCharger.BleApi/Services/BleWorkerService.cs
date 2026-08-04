@@ -112,9 +112,10 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         return CountOutcome(instance, result);
     }
 
-    public async Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug)
+    public async Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds,
+        bool useDebug, int? windowMs = null)
     {
-        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {useDebug})", nameof(BeaconScan), adapter, vins, keepWarmSeconds, useDebug);
+        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {useDebug}, {windowMs})", nameof(BeaconScan), adapter, vins, keepWarmSeconds, useDebug, windowMs);
         var resolution = _adapterEnumerationService.Resolve(adapter);
         if (!resolution.Found)
         {
@@ -123,15 +124,19 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         }
         var instance = GetInstance(resolution);
         UpdateKeepWarm(instance, keepWarmSeconds);
-        var windowMs = _configuration.GetValue<int>("BeaconScanTimeoutSeconds") * 1000;
+        //The caller decides how long to listen: a car that advertises rarely needs a longer window than the container
+        //can know about, and the scan ends early anyway as soon as every VIN was heard. Clamped so a bad value can
+        //neither make the scan pointless nor block the adapter for minutes.
+        var configuredWindowMs = _configuration.GetValue<int>("BeaconScanTimeoutSeconds") * 1000;
+        var effectiveWindowMs = windowMs is > 0 ? Math.Clamp(windowMs.Value, 1000, 60000) : configuredWindowMs;
         var payload = new
         {
             id = 0,
             kind = "beaconScan",
             vins,
-            windowMs,
+            windowMs = effectiveWindowMs,
         };
-        var responseTimeout = TimeSpan.FromMilliseconds(windowMs) + TimeSpan.FromSeconds(5);
+        var responseTimeout = TimeSpan.FromMilliseconds(effectiveWindowMs) + TimeSpan.FromSeconds(5);
         var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId }, responseTimeout, useDebug).ConfigureAwait(false);
         if (failure != default)
         {

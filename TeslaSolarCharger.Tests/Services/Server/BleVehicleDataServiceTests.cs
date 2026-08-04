@@ -306,7 +306,7 @@ public class BleVehicleDataServiceTests : TestBase
         //A local problem (adapter unavailable, worker crashed, container unreachable) carries no information about
         //where the car is. Reporting such a failure as "not at home" was the defect this rework removes.
         Mock.Mock<IBleService>()
-            .Setup(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>()))
+            .Setup(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBleBeaconScanResult { Success = false, Outcome = BleCommandOutcome.AdapterUnavailable, ResultMessage = "hci0 is gone", });
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
@@ -324,7 +324,7 @@ public class BleVehicleDataServiceTests : TestBase
     {
         var dtoCar = SetupBleDataCollectionCar();
         Mock.Mock<IBleService>()
-            .Setup(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>()))
+            .Setup(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBleBeaconScanResult { Success = false, Outcome = BleCommandOutcome.AdapterNotFound, });
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
@@ -518,7 +518,7 @@ public class BleVehicleDataServiceTests : TestBase
         Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterSuccessfulRead(dtoCar.Id), Times.Once);
         //A single car read must not touch the container's warm window, that belongs to the scheduled poll alone.
         Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
-            It.Is<List<string>>(v => v.Contains(TestVin)), null), Times.Once);
+            It.Is<List<string>>(v => v.Contains(TestVin)), null, It.IsAny<int?>()), Times.Once);
     }
 
     [Fact]
@@ -530,7 +530,7 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshSingleCarData(dtoCar.Id);
 
         Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
-            It.IsAny<List<string>>(), It.IsAny<int?>()), Times.Never);
+            It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
     }
 
@@ -548,7 +548,25 @@ public class BleVehicleDataServiceTests : TestBase
         //Only the scheduled poll sends keepWarm, so the worker survives between polls without a one off command ever
         //changing the container's warm window.
         Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
-            It.Is<List<string>>(v => v.Contains(TestVin)), BleConstants.BleKeepWarmSeconds), Times.Once);
+            It.Is<List<string>>(v => v.Contains(TestVin)), BleConstants.BleKeepWarmSeconds, It.IsAny<int?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// The container's own default window is short, and a parked Tesla advertises rarely, so a scan that gives up too
+    /// early reports a car standing in the garage as out of range. The configured window has to reach the container.
+    /// </summary>
+    [Fact]
+    public async Task ScheduledPollSendsTheConfiguredBeaconScanWindow()
+    {
+        SetupBleDataCollectionCar();
+        SetupBeaconScan(beaconFound: false);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BleBeaconScanWindowSeconds()).Returns(11);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
+            It.IsAny<List<string>>(), It.IsAny<int?>(), 11), Times.Once);
     }
 
     [Fact]
@@ -561,7 +579,7 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshBleCarData();
 
         Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
-            It.IsAny<List<string>>(), It.IsAny<int?>()), Times.Never);
+            It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
     }
 
@@ -574,14 +592,14 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshBleCarData();
 
         Mock.Mock<IBleService>().Verify(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(),
-            It.IsAny<List<string>>(), It.IsAny<int?>()), Times.Never);
+            It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
     }
 
     private void SetupBeaconScan(bool beaconFound)
     {
         Mock.Mock<IBleService>()
-            .Setup(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>()))
+            .Setup(b => b.GetBeaconScanResults(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBleBeaconScanResult
             {
                 Success = true,

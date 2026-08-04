@@ -34,4 +34,12 @@ public static class ConfigurationDefaults
     /// This never delays the away detection itself, which has its own (longer) confirmation window.
     /// </summary>
     public const int BleMissesBeforePresenceUncertain = 2;
+
+    /// <summary>
+    /// Seconds a beacon scan listens for a car before giving up. Measured on a real car, a parked Tesla advertises
+    /// only every ten seconds or so, so a short window misses it most of the time even at good signal strength. The
+    /// scan ends the moment every car was heard, so a longer window costs nothing while the car is there and only
+    /// takes its full length when a car really is away.
+    /// </summary>
+    public const int BleBeaconScanWindowSeconds = 7;
 }

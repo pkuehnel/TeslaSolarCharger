@@ -29,7 +29,12 @@ public interface IBleService
     /// them, so no car is woken. All VINs share one scan window, which is why an absent car costs the window once
     /// per group instead of a full connect timeout per car.
     /// </summary>
-    Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins, int? keepWarmSeconds);
+    /// <param name="windowSeconds">
+    /// How long the container listens before giving up. Null leaves the container's own default in place. The scan
+    /// ends as soon as every car was heard, so a longer window only costs time when a car really is away.
+    /// </param>
+    Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins,
+        int? keepWarmSeconds, int? windowSeconds = null);
 
     /// <summary>
     /// Beacon scan for a single car on the container and adapter configured for that car. Never sends keepWarm, so a

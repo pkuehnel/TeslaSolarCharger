@@ -337,10 +337,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.BleDataRefreshIntervalSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "BLE data refresh interval (s)",
-                "How often cars whose data is collected via BLE are polled. This runs independently of the charging cycle, so a car that is slow to answer or away can not delay the charging value calculation. Leave empty to use the default (13 s)."),
+                "How often cars whose data is collected via BLE are polled. This runs independently of the charging cycle, so a car that is slow to answer or away can not delay the charging value calculation. Keep this clearly above the beacon scan window below, otherwise a scan for an absent car fills the whole interval. Leave empty to use the default (13 s)."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "BLE-Datenabrufintervall (s)",
-                "Wie oft Fahrzeuge abgefragt werden, deren Daten über BLE erfasst werden. Dies läuft unabhängig vom Ladezyklus, sodass ein langsam antwortendes oder abwesendes Fahrzeug die Berechnung der Ladewerte nicht verzögern kann. Leer lassen für den Standardwert (13 s)."));
+                "Wie oft Fahrzeuge abgefragt werden, deren Daten über BLE erfasst werden. Dies läuft unabhängig vom Ladezyklus, sodass ein langsam antwortendes oder abwesendes Fahrzeug die Berechnung der Ladewerte nicht verzögern kann. Der Wert sollte deutlich über dem Beacon-Suchfenster weiter unten liegen, sonst füllt die Suche nach einem abwesenden Fahrzeug das gesamte Intervall. Leer lassen für den Standardwert (13 s)."));
 
         Register(x => x.BleSleepWindowMinutes,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -357,6 +357,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "BLE-Schlafstabilität (Min)",
                 "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
+
+        Register(x => x.BleBeaconScanWindowSeconds,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE beacon scan window (s)",
+                "How long each scan listens for a car before giving up. A parked Tesla only announces itself every ten seconds or so, so a short window misses it most of the time even when the signal is strong and the car is right there. The scan stops the moment every car has been heard, so a longer window costs nothing while the cars are at home and only takes its full length when one really is away. Raise it together with the refresh interval above if cars are often reported as out of range. Leave empty to use the default (7 s)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Beacon-Suchfenster (s)",
+                "Wie lange jede Suche auf ein Fahrzeug wartet, bevor sie aufgibt. Ein geparkter Tesla meldet sich nur etwa alle zehn Sekunden, daher verfehlt ihn ein kurzes Fenster meistens, selbst bei starkem Signal und direkt danebenstehendem Fahrzeug. Die Suche endet, sobald alle Fahrzeuge gehört wurden, ein längeres Fenster kostet also nichts, solange die Fahrzeuge zu Hause sind, und dauert nur dann voll, wenn eines tatsächlich weg ist. Erhöhen Sie den Wert zusammen mit dem Abrufintervall oben, wenn Fahrzeuge häufig als außer Reichweite gemeldet werden. Leer lassen für den Standardwert (7 s)."));
 
         Register(x => x.BleMissesBeforePresenceUncertain,
             new PropertyLocalizationTranslation(LanguageCodes.English,
