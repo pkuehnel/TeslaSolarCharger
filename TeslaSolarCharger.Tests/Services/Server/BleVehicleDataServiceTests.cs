@@ -42,8 +42,15 @@ public class BleVehicleDataServiceTests : TestBase
         }
         """;
 
+    //Captured 2026-08-04 from a BLE container: awake, locked, unplugged, everything closed, nobody in the car. There
+    //is no closureStatuses property because CLOSURESTATE_CLOSED is 0 in Tesla's VCSEC proto and protojson omits every
+    //field at its proto3 default. Only a closure that is NOT closed is ever serialized.
     private const string AwakeBodyControllerStateJson =
-        "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_CLOSED\"},\"vehicleLockState\":\"VEHICLELOCKSTATE_UNLOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}";
+        "{\"vehicleLockState\":\"VEHICLELOCKSTATE_LOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_NOT_PRESENT\"}";
+
+    //Same car with the driver door open: the open closure is the only one that survives serialization.
+    private const string AwakeOpenDoorBodyControllerStateJson =
+        "{\"closureStatuses\":{\"frontDriverDoor\":\"CLOSURESTATE_OPEN\"},\"vehicleLockState\":\"VEHICLELOCKSTATE_UNLOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_AWAKE\",\"userPresence\":\"VEHICLE_USER_PRESENCE_PRESENT\"}";
 
     private const string AsleepBodyControllerStateJson =
         "{\"vehicleLockState\":\"VEHICLELOCKSTATE_LOCKED\",\"vehicleSleepStatus\":\"VEHICLE_SLEEP_STATUS_ASLEEP\",\"userPresence\":\"VEHICLE_USER_PRESENCE_UNKNOWN\"}";
@@ -101,6 +108,15 @@ public class BleVehicleDataServiceTests : TestBase
         var awakeState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(AwakeBodyControllerStateJson);
         Assert.NotNull(awakeState);
         Assert.Equal("VEHICLE_SLEEP_STATUS_AWAKE", awakeState.VehicleSleepStatus);
+        //A closed up car carries no closure data at all, see the constant.
+        Assert.Null(awakeState.ClosureStatuses);
+
+        var openDoorState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(AwakeOpenDoorBodyControllerStateJson);
+        Assert.NotNull(openDoorState);
+        Assert.Equal("CLOSURESTATE_OPEN", openDoorState.ClosureStatuses?.FrontDriverDoor);
+        //Every other closure stays null, which means closed.
+        Assert.Null(openDoorState.ClosureStatuses?.RearPassengerDoor);
+        Assert.Equal("VEHICLE_USER_PRESENCE_PRESENT", openDoorState.UserPresence);
 
         var asleepState = TeslaSolarCharger.Server.Services.BleVehicleDataService.DeserializeBodyControllerState(AsleepBodyControllerStateJson);
         Assert.NotNull(asleepState);

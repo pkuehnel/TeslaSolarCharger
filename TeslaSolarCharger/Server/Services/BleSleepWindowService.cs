@@ -176,29 +176,42 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
     private static string BuildSignature(DtoBleBodyControllerState bcs, bool? pluggedIn, int? chargeLimitSoc)
     {
         var c = bcs.ClosureStatuses;
+        //Normalized so a closure that is reported as absent (the usual way of saying closed, see
+        //AllCountedClosuresClosed) and one explicitly reported as closed never look like a change to each other.
         return string.Join("|",
-            c?.FrontDriverDoor ?? "null",
-            c?.FrontPassengerDoor ?? "null",
-            c?.RearDriverDoor ?? "null",
-            c?.RearPassengerDoor ?? "null",
-            c?.FrontTrunk ?? "null",
-            c?.RearTrunk ?? "null",
+            NormalizeClosure(c?.FrontDriverDoor),
+            NormalizeClosure(c?.FrontPassengerDoor),
+            NormalizeClosure(c?.RearDriverDoor),
+            NormalizeClosure(c?.RearPassengerDoor),
+            NormalizeClosure(c?.FrontTrunk),
+            NormalizeClosure(c?.RearTrunk),
             bcs.UserPresence ?? "null",
             pluggedIn?.ToString() ?? "null",
             chargeLimitSoc?.ToString() ?? "null");
     }
 
+    private static string NormalizeClosure(string? closureState) =>
+        IsClosed(closureState) ? ClosureStateClosed : closureState!;
+
     /// <summary>
     /// True if all counted closures (four doors, front trunk and rear trunk) are reported closed. The charge port door
-    /// and tonneau are intentionally ignored. A missing closure value counts as not closed (conservative: do not
-    /// silence unless we are sure the car is closed up).
+    /// and tonneau are intentionally ignored.
     /// </summary>
+    /// <remarks>
+    /// A missing closure counts as CLOSED, which looks lenient but is the only correct reading of the container's
+    /// output: CLOSURESTATE_CLOSED is 0 in Tesla's VCSEC proto and the BLE container marshals with protojson's default
+    /// options, which omit every field that holds its proto3 default. A closed closure is therefore never serialized,
+    /// and a fully closed car reports no closureStatuses at all. Only a closure that is anything other than closed
+    /// (OPEN, AJAR, ...) ever shows up, so presence of a value is the signal, not absence of one.
+    /// </remarks>
     private static bool AllCountedClosuresClosed(DtoBleBodyControllerState bcs)
     {
         var c = bcs.ClosureStatuses;
+        //Absent for a fully closed car. Depending on whether the car sets the submessage at all this arrives either as
+        //a missing property or as an empty object, so both have to mean the same thing.
         if (c == null)
         {
-            return false;
+            return true;
         }
         return IsClosed(c.FrontDriverDoor)
                && IsClosed(c.FrontPassengerDoor)
@@ -210,7 +223,8 @@ public class BleSleepWindowService(ILogger<BleSleepWindowService> logger) : IBle
 
     private static bool IsClosed(string? closureState)
     {
-        return string.Equals(closureState, ClosureStateClosed, StringComparison.OrdinalIgnoreCase);
+        return closureState == null
+               || string.Equals(closureState, ClosureStateClosed, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsOccupantPresent(DtoBleBodyControllerState bcs)
