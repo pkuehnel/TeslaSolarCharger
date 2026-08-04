@@ -121,6 +121,51 @@ public class WorkerResponseMapperTests
     }
 
     [Fact]
+    public void ParsesTheBackgroundScannerState()
+    {
+        const string line = """
+            {"kind":"result","id":4,"ok":true,"outcome":"ok","presence":{"scannerRunning":true,"observingMs":600000,
+             "scanActiveMs":594000,"pausedMs":6000,"restarts":1,"scanErrors":0,"advertisementsSeen":18000,
+             "distinctDevicesSeen":37,"lastAdvertisementMsAgo":312,"maxAgeMs":90000,"scanWhileConnected":true,
+             "vehicles":[{"vin":"VIN1","localName":"S0011223344556677C","heard":true,"lastHeardMsAgo":18422,
+                          "lastAdvertisementMsAgo":18422,"rssi":-73,"address":"aa:bb:cc:dd:ee:ff","connectable":true,
+                          "count":91,"namedCount":37,"addressCount":54,"lastSource":"advertisement",
+                          "gapsMs":[400,41000],"medianGapMs":41000,"maxGapMs":41000},
+                         {"vin":"VIN2","localName":"S9988776655443322C","heard":false}],
+             "tracked":[{"localName":"S0011223344556677C","heard":true,"count":91}]}}
+            """;
+        var result = WorkerResponseMapper.ToScannerStatus(WorkerResponseMapper.ParseLine(line)!, "hci1");
+
+        Assert.True(result.ScannerRunning);
+        Assert.Null(result.ErrorMessage);
+        Assert.Equal("hci1", result.Adapter);
+        Assert.Equal(99d, result.DutyCyclePercent);
+        Assert.Equal(30d, result.AdvertisementsPerSecond);
+        Assert.Equal(1, result.Restarts);
+        Assert.Equal(312, result.LastAdvertisementMsAgo);
+        var heard = result.Vehicles.Single(v => v.Vin == "VIN1");
+        Assert.True(heard.Heard);
+        Assert.Equal(18422, heard.LastHeardMsAgo);
+        //Named against address recognition is what tells a car whose name only travels in the scan response apart
+        //from one that advertises its name.
+        Assert.Equal(37, heard.NamedCount);
+        Assert.Equal(54, heard.AddressCount);
+        Assert.Equal(41000, heard.MedianGapMs);
+        Assert.False(result.Vehicles.Single(v => v.Vin == "VIN2").Heard);
+        Assert.Single(result.Tracked);
+    }
+
+    [Fact]
+    public void AScannerAnswerWithoutStateCarriesTheError()
+    {
+        const string line = """{"kind":"result","id":4,"ok":false,"outcome":"adapterUnavailable","error":"adapter is gone"}""";
+        var result = WorkerResponseMapper.ToScannerStatus(WorkerResponseMapper.ParseLine(line)!, "hci0");
+
+        Assert.False(result.ScannerRunning);
+        Assert.Equal("adapter is gone", result.ErrorMessage);
+    }
+
+    [Fact]
     public void MalformedJsonIsNotParsed()
     {
         Assert.Null(WorkerResponseMapper.ParseLine("this is not json"));

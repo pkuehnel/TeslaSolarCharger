@@ -15,6 +15,12 @@ public interface IBleWorkerService
     Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug,
         int? windowMs = null);
     /// <summary>
+    /// State of the adapter's permanent background beacon scan, including per car how long ago it was heard. Answered
+    /// from the worker's memory without touching the radio. Starts the worker if it is not running, because a stopped
+    /// worker means no scan is happening at all.
+    /// </summary>
+    Task<DtoBleScannerStatus> ScannerStatus(string? adapter, List<string> vins, int? keepWarmSeconds, int? maxAgeMs);
+    /// <summary>
     /// Stops the worker owning the target adapter, runs the action while holding the adapter exclusively (the action
     /// receives the current hciX id, empty for "first available") and lets the worker restart lazily afterwards.
     /// Used by pairing, which still shells out to tesla-control.
@@ -26,6 +32,13 @@ public interface IBleWorkerService
     /// Never starts a worker: a probe must not have side effects, so a stopped worker is reported as such.
     /// </summary>
     Task<DtoBleCommandResult> PingWorker(string? adapter);
+
+    /// <summary>
+    /// Stops the worker of the adapter (all workers when no adapter is given) so the next request starts it with the
+    /// current flags. Used to apply changed scanner overrides; a stop is safe at any time because every worker is
+    /// started lazily.
+    /// </summary>
+    Task RestartWorkers(string? adapter, string reason);
 
     List<DtoBleWorkerStatus> GetStatuses();
     List<DtoBleWorkerEvent> GetEvents(string? adapter, int? tail);

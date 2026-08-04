@@ -19,7 +19,10 @@ RUN go build ./...
 # Guards the worker protocol and the outcome classification: a mismatch there is invisible until a car stops
 # answering or a present car is reported as away, so it must fail the image build instead.
 RUN go vet ./cmd/tesla-bled/ ./pkg/connector/ble/
-RUN go test ./cmd/tesla-bled/ ./pkg/connector/ble/
+# -race because the background presence scan, the radio arbiter and the request loop are genuinely concurrent: a
+# handover bug there would show up as a command that hangs behind a scan, which is invisible until it happens at a
+# user's site.
+RUN go test -race ./cmd/tesla-bled/ ./pkg/connector/ble/
 RUN go install ./...
 
 # Stage 2: Build the .NET application

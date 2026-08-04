@@ -1,5 +1,6 @@
 using PkSoftwareService.Custom.Backend.Ble;
 using System.Text.Json;
+using TeslaSolarCharger.BleApi.Dtos;
 using TeslaSolarCharger.BleApi.Dtos.Worker;
 
 namespace TeslaSolarCharger.BleApi.Services;
@@ -127,6 +128,68 @@ public static class WorkerResponseMapper
         }).ToList();
         return result;
     }
+
+    /// <summary>
+    /// Maps the worker's view of its background scan onto the container DTO. The derived rates are computed here so
+    /// every caller reads the same numbers instead of dividing counters itself.
+    /// </summary>
+    public static DtoBleScannerStatus ToScannerStatus(WorkerResponse response, string? adapter)
+    {
+        var result = new DtoBleScannerStatus { Adapter = adapter };
+        if (response.Presence == default)
+        {
+            result.ErrorMessage = string.IsNullOrWhiteSpace(response.Error)
+                ? "The BLE worker did not report any scanner state."
+                : response.Error.Trim();
+            return result;
+        }
+        var presence = response.Presence;
+        result.ScannerRunning = presence.ScannerRunning;
+        result.ObservingMs = presence.ObservingMs;
+        result.ScanActiveMs = presence.ScanActiveMs;
+        result.PausedMs = presence.PausedMs;
+        result.DutyCyclePercent = presence.ObservingMs > 0
+            ? Math.Round(presence.ScanActiveMs * 100d / presence.ObservingMs, 1)
+            : 0;
+        result.Restarts = presence.Restarts;
+        result.ScanErrors = presence.ScanErrors;
+        result.LastScanError = presence.LastScanError;
+        result.AdvertisementsSeen = presence.AdvertisementsSeen;
+        result.AdvertisementsPerSecond = presence.ObservingMs > 0
+            ? Math.Round(presence.AdvertisementsSeen * 1000d / presence.ObservingMs, 2)
+            : 0;
+        result.DistinctDevicesSeen = presence.DistinctDevicesSeen;
+        result.LastAdvertisementMsAgo = presence.LastAdvertisementMsAgo;
+        result.MaxAgeMs = presence.MaxAgeMs;
+        result.ScanWhileConnected = presence.ScanWhileConnected;
+        result.Vehicles = presence.Vehicles.Select(ToScannerVehicle).ToList();
+        result.Tracked = presence.Tracked.Select(ToScannerVehicle).ToList();
+        if (!response.Ok && !string.IsNullOrWhiteSpace(response.Error))
+        {
+            result.ErrorMessage = response.Error.Trim();
+        }
+        return result;
+    }
+
+    private static DtoBleScannerVehicle ToScannerVehicle(WorkerPresenceVehicle vehicle) => new()
+    {
+        Vin = vehicle.Vin,
+        LocalName = vehicle.LocalName,
+        Heard = vehicle.Heard,
+        LastHeardMsAgo = vehicle.LastHeardMsAgo,
+        LastAdvertisementMsAgo = vehicle.LastAdvertisementMsAgo,
+        FirstHeardMsAgo = vehicle.FirstHeardMsAgo,
+        Rssi = vehicle.Rssi,
+        Address = vehicle.Address,
+        Connectable = vehicle.Connectable,
+        Count = vehicle.Count,
+        NamedCount = vehicle.NamedCount,
+        AddressCount = vehicle.AddressCount,
+        LastSource = vehicle.LastSource,
+        GapsMs = vehicle.GapsMs,
+        MedianGapMs = vehicle.MedianGapMs,
+        MaxGapMs = vehicle.MaxGapMs,
+    };
 
     /// <summary>
     /// A failure produced by the container itself (worker crashed, hung or the configured adapter is missing), not

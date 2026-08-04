@@ -16,6 +16,12 @@ public class DtoBleWorkerStatus
     public DateTimeOffset? KeepWarmUntil { get; set; }
     public double? SecondsUntilIdleStop { get; set; }
     public long? WorkerRssBytes { get; set; }
+    /// <summary>
+    /// CPU seconds the worker process consumed since it started (user plus system). Two samples divided by the time
+    /// between them are the worker's CPU share, which is what a permanently scanning radio has to be judged by on a
+    /// small device.
+    /// </summary>
+    public double? WorkerCpuSeconds { get; set; }
     public string? LastError { get; set; }
     public Dictionary<string, int> OutcomeCounts { get; set; } = new();
 }

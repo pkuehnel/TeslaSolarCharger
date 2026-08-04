@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using TeslaSolarCharger.BleApi.Dtos;
 using TeslaSolarCharger.BleApi.Dtos.Worker;
+using TeslaSolarCharger.BleApi.InMemoryValues.Contracts;
 using TeslaSolarCharger.BleApi.Services.Contracts;
 
 namespace TeslaSolarCharger.BleApi.Services;
@@ -28,6 +29,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     private readonly ILogger<BleWorkerService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IAdapterEnumerationService _adapterEnumerationService;
+    private readonly ISettings _settings;
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, WorkerInstance> _instances = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentQueue<DtoBleWorkerEvent> _events = new();
@@ -36,11 +38,13 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     public BleWorkerService(ILogger<BleWorkerService> logger,
         IConfiguration configuration,
         IAdapterEnumerationService adapterEnumerationService,
+        ISettings settings,
         TimeProvider timeProvider)
     {
         _logger = logger;
         _configuration = configuration;
         _adapterEnumerationService = adapterEnumerationService;
+        _settings = settings;
         _timeProvider = timeProvider;
         _sweepTimer = new Timer(_ => Sweep(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
     }
@@ -150,6 +154,37 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         return result;
     }
 
+    public async Task<DtoBleScannerStatus> ScannerStatus(string? adapter, List<string> vins, int? keepWarmSeconds, int? maxAgeMs)
+    {
+        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {maxAgeMs})", nameof(ScannerStatus), adapter, vins, keepWarmSeconds, maxAgeMs);
+        var resolution = _adapterEnumerationService.Resolve(adapter);
+        if (!resolution.Found)
+        {
+            return new DtoBleScannerStatus
+            {
+                Adapter = adapter,
+                ErrorMessage = $"The Bluetooth adapter {adapter} is not present on this host.",
+            };
+        }
+        var instance = GetInstance(resolution);
+        UpdateKeepWarm(instance, keepWarmSeconds);
+        var payload = new
+        {
+            id = 0,
+            kind = "presence",
+            vins,
+            maxAgeMs = maxAgeMs ?? 0,
+        };
+        //The worker answers from memory, so the only thing this has to wait for is the request queue of the adapter.
+        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId },
+            TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+        if (failure != default)
+        {
+            return new DtoBleScannerStatus { Adapter = instance.Key, ErrorMessage = failure.Message };
+        }
+        return WorkerResponseMapper.ToScannerStatus(response!, instance.Key);
+    }
+
     public async Task<DtoBleCommandResult> RunWithExclusiveAdapter(string? adapter, Func<string, Task<DtoBleCommandResult>> action)
     {
         _logger.LogTrace("{method}({adapter})", nameof(RunWithExclusiveAdapter), adapter);
@@ -213,6 +248,35 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             : WorkerResponseMapper.ToCommandResult(response!);
     }
 
+    public async Task RestartWorkers(string? adapter, string reason)
+    {
+        _logger.LogTrace("{method}({adapter}, {reason})", nameof(RestartWorkers), adapter, reason);
+        var instances = _instances.Values.ToList();
+        if (!string.IsNullOrEmpty(adapter))
+        {
+            var resolution = _adapterEnumerationService.Resolve(adapter);
+            instances = instances.Where(i => string.Equals(i.Key, resolution.Key, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        foreach (var instance in instances)
+        {
+            //Only stop while no request runs, otherwise the adapter would be pulled away mid command.
+            var gateWaitSeconds = _configuration.GetValue<int>("SemaphoreSlimWaitTimeoutSeconds");
+            if (!await instance.Gate.WaitAsync(TimeSpan.FromSeconds(gateWaitSeconds)).ConfigureAwait(false))
+            {
+                _logger.LogWarning("Could not stop the BLE worker for {adapter}: it stayed busy", instance.Key);
+                continue;
+            }
+            try
+            {
+                await StopWorkerCore(instance, reason).ConfigureAwait(false);
+            }
+            finally
+            {
+                instance.Gate.Release();
+            }
+        }
+    }
+
     public List<DtoBleWorkerStatus> GetStatuses()
     {
         var statuses = new List<DtoBleWorkerStatus>();
@@ -239,6 +303,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                         ? Math.Max(0, idleTimeoutSeconds - (now - activity).TotalSeconds)
                         : null,
                     WorkerRssBytes = isRunning ? ReadWorkerRss(instance.Process) : null,
+                    WorkerCpuSeconds = isRunning ? ReadWorkerCpuSeconds(instance.Process) : null,
                     LastError = instance.LastError,
                     OutcomeCounts = new Dictionary<string, int>(instance.OutcomeCounts),
                 });
@@ -455,13 +520,22 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         var adapterParameterString = string.IsNullOrEmpty(instance.HciId) ? string.Empty : $"-bt-adapter {instance.HciId} ";
         var debugParameterString = useDebug ? "-debug " : string.Empty;
         var connectionWindowSeconds = _configuration.GetValue<int>("BleDaemonConnectionWindowSeconds");
-        var scanWindowSeconds = _configuration.GetValue<int>("BeaconScanTimeoutSeconds");
         var commandTimeoutSeconds = _configuration.GetValue<int>("CommandTimeoutSeconds");
         var connectTimeoutSeconds = _configuration.GetValue<int>("ConnectTimeoutSeconds");
+        //Runtime overrides win so the scan modes can be compared on real hardware without a redeploy.
+        var overrides = _settings.ScannerOverrides;
+        var presenceScan = overrides.PresenceScanEnabled ?? _configuration.GetValue<bool?>("PresenceScanEnabled") ?? true;
+        var scanWhileConnected = overrides.ScanWhileConnected ?? _configuration.GetValue<bool?>("ScanWhileConnected") ?? true;
+        var presenceMaxAgeSeconds = overrides.PresenceMaxAgeSeconds ?? _configuration.GetValue<int?>("PresenceMaxAgeSeconds") ?? 90;
+        var scanRestartAfterSeconds = overrides.ScanRestartAfterSeconds ?? _configuration.GetValue<int?>("ScanRestartAfterSeconds") ?? 90;
+        var addressBindingTtlSeconds = overrides.AddressBindingTtlSeconds ?? _configuration.GetValue<int?>("AddressBindingTtlSeconds") ?? 600;
         var arguments = $"{debugParameterString}{adapterParameterString}-session-cache {teslaCacheFilePath} " +
                         $"-key-file {privateKeyLocation} -connection-window {connectionWindowSeconds}s " +
-                        $"-scan-window {scanWindowSeconds}s -command-timeout {commandTimeoutSeconds}s " +
-                        $"-connect-timeout {connectTimeoutSeconds}s";
+                        $"-command-timeout {commandTimeoutSeconds}s -connect-timeout {connectTimeoutSeconds}s " +
+                        $"-presence-scan={presenceScan.ToString().ToLowerInvariant()} " +
+                        $"-scan-while-connected={scanWhileConnected.ToString().ToLowerInvariant()} " +
+                        $"-presence-max-age {presenceMaxAgeSeconds}s -scan-restart-after {scanRestartAfterSeconds}s " +
+                        $"-address-binding-ttl {addressBindingTtlSeconds}s";
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -821,6 +895,42 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                     return kiloBytes * 1024;
                 }
             }
+        }
+        catch (Exception)
+        {
+            //Not available outside Linux.
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Best effort, Linux only: user plus system CPU time of the worker process, read from /proc/[pid]/stat where
+    /// fields 14 and 15 carry them in clock ticks.
+    /// </summary>
+    private static double? ReadWorkerCpuSeconds(Process? process)
+    {
+        if (process == default)
+        {
+            return null;
+        }
+        try
+        {
+            var stat = File.ReadAllText($"/proc/{process.Id}/stat");
+            //The second field is the executable name in brackets and may itself contain spaces, so parsing starts
+            //behind the closing bracket.
+            var fieldsStart = stat.LastIndexOf(')');
+            if (fieldsStart < 0)
+            {
+                return null;
+            }
+            var fields = stat[(fieldsStart + 1)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            //After the name the fields shift by two: utime is field 14, which is index 11 here.
+            if (fields.Length < 13 || !long.TryParse(fields[11], out var userTicks) || !long.TryParse(fields[12], out var systemTicks))
+            {
+                return null;
+            }
+            const double ticksPerSecond = 100d;
+            return (userTicks + systemTicks) / ticksPerSecond;
         }
         catch (Exception)
         {
