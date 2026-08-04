@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PkSoftwareService.Custom.Ba
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeslaSolarCharger.BleApi", "TeslaSolarCharger.BleApi\TeslaSolarCharger.BleApi.csproj", "{F413A50E-5E80-4A6B-8F62-736D9829C158}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeslaSolarCharger.Protobuf", "TeslaSolarCharger.Protobuf\TeslaSolarCharger.Protobuf.csproj", "{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -201,6 +203,18 @@ Global
 		{F413A50E-5E80-4A6B-8F62-736D9829C158}.Release|x64.Build.0 = Release|Any CPU
 		{F413A50E-5E80-4A6B-8F62-736D9829C158}.Release|x86.ActiveCfg = Release|Any CPU
 		{F413A50E-5E80-4A6B-8F62-736D9829C158}.Release|x86.Build.0 = Release|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Debug|x64.Build.0 = Debug|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Debug|x86.Build.0 = Debug|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Release|x64.ActiveCfg = Release|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Release|x64.Build.0 = Release|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Release|x86.ActiveCfg = Release|Any CPU
+		{4ED0B9B1-5601-446D-B6AD-ED22613BBA8A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
