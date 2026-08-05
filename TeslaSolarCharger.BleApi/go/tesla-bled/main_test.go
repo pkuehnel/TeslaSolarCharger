@@ -114,15 +114,25 @@ func TestSanitizeErrorTextNeverContainsBeaconOrDeadline(t *testing.T) {
 	}
 }
 
-// The carAbsent message is the only one that may (and must) contain the word "beacon": an old TSC server recognizes
-// an out of range car by that word during a rollout window.
-func TestAbsentMessageKeepsTheBeaconWord(t *testing.T) {
-	message := absentMessage("5YJ3E1EA1PF000000", &scanInfo{ScanDurationMs: 3000, OtherAdvertisementsSeen: 12, DistinctDevicesSeen: 4})
-	if !strings.Contains(message, "beacon") {
-		t.Fatalf("absent message must contain 'beacon' for old server compatibility: %q", message)
+// The unsolicited lines share stdout with request answers, so they have to be single line JSON like everything else
+// and they must be routable by "kind" alone - they carry no id.
+func TestUnsolicitedEventsAreSingleLineAndCarryTheirKind(t *testing.T) {
+	digest, err := json.Marshal(advertisementEvent{Kind: "adv", WindowMs: 500, Total: 3})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
 	}
-	if strings.Contains(message, "context deadline exceeded") {
-		t.Fatalf("absent message must not contain 'context deadline exceeded': %q", message)
+	if strings.Contains(string(digest), "\n") {
+		t.Fatalf("an advertisement digest must serialize to a single line: %q", digest)
+	}
+	if !strings.Contains(string(digest), "\"kind\":\"adv\"") {
+		t.Fatalf("an advertisement digest must be routable by kind: %q", digest)
+	}
+	state, err := json.Marshal(scanStateEvent{Kind: "scan", State: "paused", Reason: "radio handed over"})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if !strings.Contains(string(state), "\"kind\":\"scan\"") {
+		t.Fatalf("a scan state event must be routable by kind: %q", state)
 	}
 }
 
@@ -139,7 +149,7 @@ func TestResponseMarshalsToSingleLine(t *testing.T) {
 }
 
 func TestRequestKindInference(t *testing.T) {
-	if kind := requestKind(request{Kind: "beaconScan"}); kind != "beaconScan" {
+	if kind := requestKind(request{Kind: "ping"}); kind != "ping" {
 		t.Fatalf("explicit kind must win, got %q", kind)
 	}
 	if kind := requestKind(request{Command: "wake"}); kind != "command" {
@@ -152,11 +162,11 @@ func TestRequestKindInference(t *testing.T) {
 
 func TestRequestParsing(t *testing.T) {
 	var req request
-	line := `{"id":3,"kind":"beaconScan","vins":["VIN1","VIN2"],"windowMs":3000}`
+	line := `{"id":3,"kind":"command","vin":"VIN1","command":"state","params":["charge"]}`
 	if err := json.Unmarshal([]byte(line), &req); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	if req.Id != 3 || len(req.Vins) != 2 || req.WindowMs != 3000 {
+	if req.Id != 3 || req.Vin != "VIN1" || len(req.Params) != 1 {
 		t.Fatalf("unexpected parse result: %+v", req)
 	}
 }

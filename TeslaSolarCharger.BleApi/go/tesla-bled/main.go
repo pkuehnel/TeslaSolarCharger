@@ -9,20 +9,25 @@
 // vehicle connection is deliberately closed and rebuilt after -connection-window seconds. The adapter itself is never
 // reset in between. The worker never wakes a car on its own: TeslaSolarCharger decides when a car may be woken.
 //
-// Presence is answered from the permanent background scan of the injected pkg/connector/ble/presence_scan.go: the
-// worker never listens for a window any more, it asks how long ago the car was last heard. Everything that touches
-// the adapter (connect, command, adapter shutdown) has to hold ble.AcquireRadio so the scan is off while it runs.
+// The worker has no notion of a car being present. It runs a permanent background scan (see the injected
+// pkg/connector/ble/scan_stream.go) and reports what the adapter heard; matching advertisements to VINs, ageing and
+// every presence decision live in the C# container. Everything that touches the adapter (connect, command, adapter
+// shutdown) has to hold ble.AcquireRadio so the scan is off while it runs - a controller rejects a connection
+// attempt while a scan is enabled.
 //
 // This file is copied into cmd/tesla-bled/ of the teslamotors/vehicle-command module during the Docker image build
 // (see TeslaSolarCharger.BleApi/Dockerfile).
 //
-// Protocol: one JSON request per line on stdin, one JSON response per line on stdout. stdout carries protocol lines
+// Protocol: one JSON request per line on stdin, one JSON line per answer on stdout. stdout carries protocol lines
 // only; all logging goes to stderr. Every result carries a machine readable "outcome" and "phase"; the "error" text
-// is for humans and is never parsed anywhere.
+// is for humans and is never parsed anywhere. Besides request answers, stdout carries unsolicited "adv" and "scan"
+// lines from the background scan, which carry no id and are routed by their "kind".
 //
 //	<- {"kind":"ready","protocolVersion":1,"adapterId":"hci0"}
 //	-> {"id":1,"kind":"command","vin":"5YJ...","command":"body-controller-state"}
 //	<- {"kind":"result","id":1,"ok":true,"outcome":"ok","result":{...},"durationMs":58,"connectMs":0}
+//	<- {"kind":"adv","windowMs":500,"total":42,"devices":[{"addr":"90:2e:...","name":"S612...C","rssi":-65,"count":12,"named":5,"connectable":true}]}
+//	<- {"kind":"scan","state":"paused","reason":"radio handed over"}
 package main
 
 import (
@@ -32,7 +37,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"math"
+	"sync"
 	"os"
 	"strconv"
 	"strings"
@@ -72,43 +77,11 @@ const (
 )
 
 type request struct {
-	Id       int      `json:"id"`
-	Kind     string   `json:"kind"`
-	Vin      string   `json:"vin"`
-	Command  string   `json:"command"`
-	Params   []string `json:"params"`
-	Vins     []string `json:"vins"`
-	WindowMs int      `json:"windowMs"`
-	MaxAgeMs int      `json:"maxAgeMs"`
-}
-
-type scanInfo struct {
-	BeaconFound             bool    `json:"beaconFound"`
-	Rssi                    *int    `json:"rssi,omitempty"`
-	Address                 *string `json:"address,omitempty"`
-	Connectable             *bool   `json:"connectable,omitempty"`
-	OtherAdvertisementsSeen int     `json:"otherAdvertisementsSeen"`
-	DistinctDevicesSeen     int     `json:"distinctDevicesSeen"`
-	ScanDurationMs          int64   `json:"scanDurationMs"`
-	LastHeardMsAgo          *int64  `json:"lastHeardMsAgo,omitempty"`
-}
-
-type beaconScanVehicle struct {
-	Vin            string  `json:"vin"`
-	BeaconFound    bool    `json:"beaconFound"`
-	Rssi           *int    `json:"rssi,omitempty"`
-	Address        *string `json:"address,omitempty"`
-	Connectable    *bool   `json:"connectable,omitempty"`
-	FoundAfterMs   *int64  `json:"foundAfterMs,omitempty"`
-	LastHeardMsAgo *int64  `json:"lastHeardMsAgo,omitempty"`
-}
-
-type beaconScanInfo struct {
-	WindowMs                int                 `json:"windowMs"`
-	ScanDurationMs          int64               `json:"scanDurationMs"`
-	OtherAdvertisementsSeen int                 `json:"otherAdvertisementsSeen"`
-	DistinctDevicesSeen     int                 `json:"distinctDevicesSeen"`
-	Vehicles                []beaconScanVehicle `json:"vehicles"`
+	Id      int      `json:"id"`
+	Kind    string   `json:"kind"`
+	Vin     string   `json:"vin"`
+	Command string   `json:"command"`
+	Params  []string `json:"params"`
 }
 
 type response struct {
@@ -122,15 +95,28 @@ type response struct {
 	Result          json.RawMessage `json:"result,omitempty"`
 	Error           string          `json:"error,omitempty"`
 	CarErrorMessage string          `json:"carErrorMessage,omitempty"`
-	Scan            *scanInfo       `json:"scan,omitempty"`
-	BeaconScan      *beaconScanInfo `json:"beaconScan,omitempty"`
-	//Presence is the whole state of the background scanner, including every car it heard and the counters that tell
-	//a working radio from a deaf one.
-	Presence   *ble.PresenceSnapshot `json:"presence,omitempty"`
-	DurationMs int64                 `json:"durationMs"`
+	DurationMs      int64           `json:"durationMs"`
 	ConnectMs       int64           `json:"connectMs"`
 	Reconnected     bool            `json:"reconnected,omitempty"`
 	TimestampUtc    string          `json:"timestampUtc"`
+}
+
+// advertisementEvent and scanStateEvent are unsolicited: they carry no id and are routed by "kind". They are what
+// the container's presence registry is built from.
+type advertisementEvent struct {
+	Kind         string                  `json:"kind"`
+	WindowMs     int64                   `json:"windowMs"`
+	Total        int                     `json:"total"`
+	Truncated    bool                    `json:"truncated"`
+	Devices      []ble.DeviceObservation `json:"devices"`
+	TimestampUtc string                  `json:"timestampUtc"`
+}
+
+type scanStateEvent struct {
+	Kind         string `json:"kind"`
+	State        string `json:"state"`
+	Reason       string `json:"reason,omitempty"`
+	TimestampUtc string `json:"timestampUtc"`
 }
 
 // classifiedFailure carries a failure with the outcome already decided at the failure site, so no caller ever has to
@@ -162,21 +148,16 @@ var stateCategories = map[string]vehicle.StateCategory{
 }
 
 type daemon struct {
-	config             *cli.Config
-	connectionWindow   time.Duration
-	commandTimeout     time.Duration
-	connectTimeout     time.Duration
-	presenceMaxAge     time.Duration
-	scanWhileConnected bool
+	config           *cli.Config
+	connectionWindow time.Duration
+	commandTimeout   time.Duration
+	connectTimeout   time.Duration
 
 	car                 *vehicle.Vehicle
 	connectedVin        string
 	connectionDeadline  time.Time
 	infotainmentStarted bool
 	exitAfterReply      bool
-	//connectionLease holds the radio for the lifetime of an open vehicle connection when the background scan must
-	//not run alongside a link. Nil while the scan is allowed to continue.
-	connectionLease func()
 }
 
 func main() {
@@ -185,15 +166,14 @@ func main() {
 
 func run() int {
 	var (
-		debug              bool
-		connectionWindow   time.Duration
-		commandTimeout     time.Duration
-		connectTimeout     time.Duration
-		presenceScan       bool
-		presenceMaxAge     time.Duration
-		scanWhileConnected bool
-		scanRestartAfter   time.Duration
-		addressBindingTtl  time.Duration
+		debug            bool
+		connectionWindow time.Duration
+		commandTimeout   time.Duration
+		connectTimeout   time.Duration
+		scanStream       bool
+		digestInterval   time.Duration
+		digestIdle       time.Duration
+		maxDigestDevices int
 	)
 	//Only BLE, VIN and private key: without the OAuth flag no token is required, which is what makes this work in a
 	//BLE only container. Reusing the upstream config also keeps key handling and the session cache identical.
@@ -206,11 +186,10 @@ func run() int {
 	flag.DurationVar(&connectionWindow, "connection-window", 25*time.Second, "Close and rebuild the vehicle connection after this duration. Vehicles terminate connections after about 30 seconds.")
 	flag.DurationVar(&commandTimeout, "command-timeout", 10*time.Second, "Timeout for a single command sent to the vehicle")
 	flag.DurationVar(&connectTimeout, "connect-timeout", 10*time.Second, "Timeout for finding and connecting to a vehicle. A present but slow to advertise car occasionally needs the full budget.")
-	flag.BoolVar(&presenceScan, "presence-scan", true, "Run the permanent background beacon scan that answers presence questions")
-	flag.DurationVar(&presenceMaxAge, "presence-max-age", 90*time.Second, "How long ago a car may last have been heard and still count as present")
-	flag.BoolVar(&scanWhileConnected, "scan-while-connected", true, "Keep scanning while a vehicle connection is open. False holds the radio for the lifetime of the connection instead")
-	flag.DurationVar(&scanRestartAfter, "scan-restart-after", 90*time.Second, "Re-arm the scan when the adapter received no advertisement from any device for this long. 0 disables the watchdog")
-	flag.DurationVar(&addressBindingTtl, "address-binding-ttl", 10*time.Minute, "How long a car's learned Bluetooth address keeps counting for it without another advertisement carrying its name")
+	flag.BoolVar(&scanStream, "scan-stream", true, "Run the permanent background scan and report what it hears. Diagnostic switch only: with it off the container has no presence source at all")
+	flag.DurationVar(&digestInterval, "digest-interval", 500*time.Millisecond, "How often the background scan reports what it heard")
+	flag.DurationVar(&digestIdle, "digest-idle-interval", 5*time.Second, "How often an empty report is sent while nothing at all is heard, so a deaf adapter stays distinguishable from a dead worker")
+	flag.IntVar(&maxDigestDevices, "max-digest-devices", 64, "Maximum devices reported per window, so a busy site can not produce an unbounded line")
 	config.RegisterCommandLineFlags()
 	flag.Parse()
 	if debug {
@@ -233,27 +212,24 @@ func run() int {
 	}
 
 	d := &daemon{
-		config:             config,
-		connectionWindow:   connectionWindow,
-		commandTimeout:     commandTimeout,
-		connectTimeout:     connectTimeout,
-		presenceMaxAge:     presenceMaxAge,
-		scanWhileConnected: scanWhileConnected,
+		config:           config,
+		connectionWindow: connectionWindow,
+		commandTimeout:   commandTimeout,
+		connectTimeout:   connectTimeout,
 	}
 	defer d.disconnect()
 	defer func() { _ = ble.CloseAdapter() }()
 	//Registered last so it runs first: closing the adapter while the scan still owns it would block on the same
 	//package mutex the scan holds.
-	defer ble.StopPresenceScanner()
-	if presenceScan {
+	defer ble.StopScanStream()
+	if scanStream {
 		//From here on the adapter listens continuously. Everything else that touches it goes through
 		//ble.AcquireRadio, which ends the scan first and keeps it off until the radio is given back.
-		ble.StartPresenceScanner(ble.PresenceScannerConfig{
-			MaxAge:             presenceMaxAge,
-			AddressTtl:         addressBindingTtl,
-			RestartAfter:       scanRestartAfter,
-			ScanWhileConnected: scanWhileConnected,
-		})
+		ble.StartScanStream(ble.ScanStreamConfig{
+			DigestInterval: digestInterval,
+			IdleInterval:   digestIdle,
+			MaxDevices:     maxDigestDevices,
+		}, emitAdvertisementDigest, emitScanState)
 	}
 
 	adapterId := config.BtAdapterID
@@ -310,10 +286,6 @@ func (d *daemon) handle(req request) response {
 	case "ping":
 		result.Ok = true
 		result.Outcome = outcomeOk
-	case "beaconScan":
-		result = d.beaconScan(req, result)
-	case "presence":
-		result = d.presence(req, result)
 	case "command":
 		result = d.handleCommand(req, result)
 	default:
@@ -324,67 +296,21 @@ func (d *daemon) handle(req request) response {
 	return result
 }
 
-// beaconScan answers which of the given cars are around, from what the background scan heard. It never touches the
-// adapter and therefore never wakes a car or delays a command.
-//
-// The requested windowMs is deliberately ignored. With a permanent scan the answer is no longer "was the car heard
-// while we listened for n seconds" but "how long ago was it last heard", and honouring a 7 s window would report a
-// car that advertises every 40 s as absent - which is the exact defect this replaces.
-func (d *daemon) beaconScan(req request, result response) response {
-	if len(req.Vins) == 0 {
-		result.Outcome = outcomeInvalidRequest
-		result.Error = "vins is required"
-		return result
-	}
-	snapshot := ble.Presence(req.Vins, d.presenceMaxAge)
-	if !snapshot.ScannerRunning {
-		result.Outcome = outcomeAdapterUnavailable
-		result.Phase = phaseScan
-		result.Error = "the background presence scan is not running, so nothing is known about any car"
-		return result
-	}
-	info := beaconScanInfo{
-		WindowMs:                int(d.presenceMaxAge.Milliseconds()),
-		ScanDurationMs:          0,
-		OtherAdvertisementsSeen: clampToInt(snapshot.AdvertisementsSeen),
-		DistinctDevicesSeen:     snapshot.DistinctDevicesSeen,
-		Vehicles:                make([]beaconScanVehicle, 0, len(snapshot.Vehicles)),
-	}
-	for _, presence := range snapshot.Vehicles {
-		info.Vehicles = append(info.Vehicles, beaconScanVehicle{
-			Vin:            presence.Vin,
-			BeaconFound:    presence.Heard,
-			Rssi:           presence.Rssi,
-			Address:        presence.Address,
-			Connectable:    presence.Connectable,
-			LastHeardMsAgo: presence.LastHeardMsAgo,
-		})
-	}
-	result.Ok = true
-	result.Outcome = outcomeOk
-	result.BeaconScan = &info
-	return result
+// emitAdvertisementDigest and emitScanState are the worker's only unsolicited output. They are called from the
+// scanner's goroutines, which is why writeLine is mutexed.
+func emitAdvertisementDigest(digest ble.AdvertisementDigest) {
+	writeLine(advertisementEvent{
+		Kind:         "adv",
+		WindowMs:     digest.WindowMs,
+		Total:        digest.Total,
+		Truncated:    digest.Truncated,
+		Devices:      digest.Devices,
+		TimestampUtc: nowUtc(),
+	})
 }
 
-// presence reports the whole state of the background scan: per car how long ago it was heard and how it was
-// recognized, plus the counters that tell a working radio from a deaf one. Answered from memory in microseconds.
-func (d *daemon) presence(req request, result response) response {
-	maxAge := d.presenceMaxAge
-	if req.MaxAgeMs > 0 {
-		maxAge = time.Duration(req.MaxAgeMs) * time.Millisecond
-	}
-	result.Presence = ble.Presence(req.Vins, maxAge)
-	result.Ok = true
-	result.Outcome = outcomeOk
-	return result
-}
-
-// clampToInt keeps the lifetime advertisement counter inside the int range of the wire format.
-func clampToInt(value int64) int {
-	if value > math.MaxInt32 {
-		return math.MaxInt32
-	}
-	return int(value)
+func emitScanState(state string, reason string) {
+	writeLine(scanStateEvent{Kind: "scan", State: state, Reason: reason, TimestampUtc: nowUtc()})
 }
 
 func (d *daemon) handleCommand(req request, result response) response {
@@ -406,31 +332,19 @@ func (d *daemon) handleCommand(req request, result response) response {
 		return result
 	}
 
-	//Presence gate before the radio is claimed: the background scan is already listening, so an absent car is
-	//answered from memory and never occupies the adapter at all. Only a car that provably did not advertise may be
-	//classified as absent, the same invariant the windowed scan enforced.
-	presence, present := d.awaitPresence(req.Vin)
-	if !present {
-		result.Scan = presence
-		result.Outcome = outcomeCarAbsent
-		result.Phase = phaseScan
-		result.Error = absentMessage(req.Vin, presence)
-		return result
-	}
-
-	//From here on the adapter is ours: the background scan is stopped and stays stopped until this returns, because
-	//a controller rejects a connection attempt while a scan is enabled.
+	//The adapter is ours from here until this returns: the background scan is stopped first, because a controller
+	//rejects a connection attempt while a scan is enabled. The worker no longer decides whether the car is around -
+	//the container does that from what the scan reported, and it does not send commands to a car it believes is
+	//gone.
 	releaseRadio := ble.AcquireRadio()
 	defer releaseRadio()
 
 	retriedDeadLink := false
-	var si *scanInfo
 	var connectMs int64
 	var reconnected bool
 	for {
 		var failure *classifiedFailure
-		si, connectMs, reconnected, failure = d.ensureConnection(req.Vin, needsInfotainment, presence)
-		result.Scan = si
+		connectMs, reconnected, failure = d.ensureConnection(req.Vin, needsInfotainment)
 		result.ConnectMs += connectMs
 		result.Reconnected = result.Reconnected || reconnected
 		if failure == nil {
@@ -467,17 +381,12 @@ func (d *daemon) handleCommand(req request, result response) response {
 	}
 	if err != nil {
 		outcome, text, carError := classifyExecuteError(err)
-		if outcome == outcomeCarRefused {
-			//The car answered, it just declined. That is presence, and better evidence than any advertisement.
-			ble.NoteVehicleHeard(req.Vin, "command")
-		}
 		result.Outcome = outcome
 		result.Phase = phaseCommand
 		result.Error = text
 		result.CarErrorMessage = carError
 		return result
 	}
-	ble.NoteVehicleHeard(req.Vin, "command")
 	result.Ok = true
 	result.Outcome = outcomeOk
 	if message == nil {
@@ -497,40 +406,21 @@ func (d *daemon) handleCommand(req request, result response) response {
 	return result
 }
 
-// awaitPresence waits until the background scan heard the car, at most for the connect timeout. The scan keeps
-// running while it waits, so waiting for a car that is not there costs no adapter time at all - the windowed scan it
-// replaces occupied the radio for its full window exactly when the car was absent.
-//
-// Without a running scanner there is no presence source, so the connect attempt decides instead. The car is never
-// reported as absent on a guess.
-func (d *daemon) awaitPresence(vin string) (*scanInfo, bool) {
-	if d.car != nil && d.connectedVin == vin && time.Now().Before(d.connectionDeadline) {
-		//An open link is stronger evidence than any advertisement, and re-checking would only cost latency.
-		return nil, true
-	}
-	if !ble.PresenceScannerRunning() {
-		return nil, true
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), d.connectTimeout)
-	defer cancel()
-	_, found := ble.WaitForVehicle(ctx, vin, d.presenceMaxAge)
-	return scanInfoFromPresence(ble.Presence([]string{vin}, d.presenceMaxAge)), found
-}
-
-// reconnectForRetry rebuilds the connection for the dead link retry without touching the already recorded scan info.
-// The car just answered, so its presence needs no re-check.
+// reconnectForRetry rebuilds the connection for the dead link retry.
 func (d *daemon) reconnectForRetry(vin string, needsInfotainment bool) (int64, bool, *classifiedFailure) {
-	_, connectMs, reconnected, failure := d.ensureConnection(vin, needsInfotainment, nil)
-	return connectMs, reconnected, failure
+	return d.ensureConnection(vin, needsInfotainment)
 }
 
 // ensureConnection makes sure a usable connection to vin exists, rebuilding it when the vehicle changed or the
-// connection window elapsed. Presence was already established by the caller, so this only dials.
-func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *scanInfo) (*scanInfo, int64, bool, *classifiedFailure) {
+// connection window elapsed. It only dials: whether the car is around at all is the container's decision, made from
+// what the background scan reported, and it does not send commands to a car it believes is gone.
+//
+// A connect failure is therefore always reported as a link failure. The container turns it into "car absent" when
+// its own registry has not heard the car either.
+func (d *daemon) ensureConnection(vin string, needsInfotainment bool) (int64, bool, *classifiedFailure) {
 	if d.car != nil && (d.connectedVin != vin || time.Now().After(d.connectionDeadline)) {
 		d.disconnect()
 	}
-	si := presence
 	var connectMs int64
 	reconnected := false
 	if d.car == nil {
@@ -539,12 +429,11 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *
 		defer cancel()
 		d.config.VIN = vin
 		//VCSEC only: the infotainment session is started lazily so sleeping cars are not disturbed. config.Connect
-		//scans again internally (~50 ms, the car provably advertises) and keeps the upstream key and session cache
-		//handling identical to tesla-control.
+		//scans internally for the car's advertisement first, which is why the scan has to be off by now.
 		d.config.Domains = cli.DomainList{protocol.DomainVCSEC}
 		_, car, err := d.config.Connect(ctx)
 		if err != nil {
-			return si, time.Since(start).Milliseconds(), false, &classifiedFailure{
+			return time.Since(start).Milliseconds(), false, &classifiedFailure{
 				Outcome:     outcomeLinkFailed,
 				Phase:       phaseConnect,
 				Message:     sanitizeErrorText(fmt.Sprintf("failed to connect: %s", err)),
@@ -557,14 +446,6 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *
 		d.connectionDeadline = time.Now().Add(d.connectionWindow)
 		connectMs = time.Since(start).Milliseconds()
 		reconnected = true
-		//A completed connection is presence, and it is what keeps a car that talks to the worker constantly from
-		//ageing out of the presence map while its own traffic occupies the radio.
-		ble.NoteVehicleHeard(vin, "connect")
-		if !d.scanWhileConnected && d.connectionLease == nil {
-			//Hold the radio for the lifetime of the link so scan and connection never share the air. Given back in
-			//disconnect().
-			d.connectionLease = ble.AcquireRadio()
-		}
 	}
 	if needsInfotainment && !d.infotainmentStarted {
 		start := time.Now()
@@ -573,7 +454,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *
 		asleep, err := d.isAsleep()
 		if err != nil {
 			connectMs += time.Since(start).Milliseconds()
-			return si, connectMs, reconnected, &classifiedFailure{
+			return connectMs, reconnected, &classifiedFailure{
 				Outcome:  outcomeLinkFailed,
 				Phase:    phaseSession,
 				Message:  sanitizeErrorText(fmt.Sprintf("failed to read body controller state: %s", err)),
@@ -582,7 +463,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *
 		}
 		if asleep {
 			connectMs += time.Since(start).Milliseconds()
-			return si, connectMs, reconnected, &classifiedFailure{
+			return connectMs, reconnected, &classifiedFailure{
 				Outcome: outcomeCarAsleep,
 				Phase:   phaseSession,
 				Message: "car is asleep: its infotainment system can not be reached, wake it first",
@@ -595,7 +476,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *
 		//between probe and handshake is possible but rare, and both classifications confirm presence).
 		if err := d.car.StartSession(ctx, []universal.Domain{protocol.DomainInfotainment}); err != nil {
 			connectMs += time.Since(start).Milliseconds()
-			return si, connectMs, reconnected, &classifiedFailure{
+			return connectMs, reconnected, &classifiedFailure{
 				Outcome:  outcomeLinkFailed,
 				Phase:    phaseSession,
 				Message:  sanitizeErrorText(fmt.Sprintf("failed to start infotainment session: %s", err)),
@@ -605,38 +486,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool, presence *
 		d.infotainmentStarted = true
 		connectMs += time.Since(start).Milliseconds()
 	}
-	return si, connectMs, reconnected, nil
-}
-
-// absentMessage is the human text of a carAbsent result. The word "beacon" is kept in this message (and appears in
-// no other) so an old TSC server's substring classifier keeps working during a rollout window. New servers only ever
-// look at the outcome.
-func absentMessage(vin string, si *scanInfo) string {
-	if si == nil {
-		return fmt.Sprintf("failed to find BLE beacon for %s: car is not in BLE range", vin)
-	}
-	return fmt.Sprintf(
-		"failed to find BLE beacon for %s: car is not in BLE range (no advertisement received from it while the radio heard %d advertisements from %d other devices)",
-		vin, si.OtherAdvertisementsSeen, si.DistinctDevicesSeen)
-}
-
-// scanInfoFromPresence maps what the background scan knows about one car onto the scan block of a command result,
-// which is where TeslaSolarCharger reads its radio evidence from.
-func scanInfoFromPresence(snapshot *ble.PresenceSnapshot) *scanInfo {
-	si := &scanInfo{
-		OtherAdvertisementsSeen: clampToInt(snapshot.AdvertisementsSeen),
-		DistinctDevicesSeen:     snapshot.DistinctDevicesSeen,
-	}
-	if len(snapshot.Vehicles) == 0 {
-		return si
-	}
-	presence := snapshot.Vehicles[0]
-	si.BeaconFound = presence.Heard
-	si.LastHeardMsAgo = presence.LastHeardMsAgo
-	si.Rssi = presence.Rssi
-	si.Address = presence.Address
-	si.Connectable = presence.Connectable
-	return si
+	return connectMs, reconnected, nil
 }
 
 // isAsleep asks the body controller (VCSEC) whether the car is asleep. That works while the car sleeps and does not
@@ -661,11 +511,6 @@ func (d *daemon) disconnect() {
 	d.car = nil
 	d.connectedVin = ""
 	d.infotainmentStarted = false
-	if d.connectionLease != nil {
-		//The link is gone, so the background scan may have the adapter back.
-		d.connectionLease()
-		d.connectionLease = nil
-	}
 }
 
 func (d *daemon) execute(req request) (proto.Message, error) {
@@ -796,12 +641,18 @@ func sanitizeErrorText(message string) string {
 	return message
 }
 
-func writeLine(message response) {
+// stdoutMu serializes writes: the background scan emits its digests from its own goroutines while the request loop
+// may be writing a result, and two interleaved writes would desynchronize the line protocol.
+var stdoutMu sync.Mutex
+
+func writeLine(message any) {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "could not serialize message: %s\n", err)
 		return
 	}
+	stdoutMu.Lock()
+	defer stdoutMu.Unlock()
 	fmt.Fprintln(os.Stdout, string(payload))
 }
 
