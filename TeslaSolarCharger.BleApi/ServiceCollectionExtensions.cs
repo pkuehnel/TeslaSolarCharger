@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IHelloService, HelloService>()
             .AddTransient<ICommandService, CommandService>()
             .AddSingleton<IAdapterEnumerationService, AdapterEnumerationService>()
+            .AddSingleton<IBlePresenceRegistry, BlePresenceRegistry>()
             .AddSingleton<IBleWorkerService, BleWorkerService>()
             .AddSingleton<ISettings, Settings>()
             .AddSingleton<IStartupService, StartupService>()

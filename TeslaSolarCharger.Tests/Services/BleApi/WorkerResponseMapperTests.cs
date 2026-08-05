@@ -40,7 +40,6 @@ public class WorkerResponseMapperTests
     {
         const string line = """
             {"kind":"result","id":7,"ok":true,"outcome":"ok","result":{"vehicleSleepStatus":"VEHICLE_SLEEP_STATUS_AWAKE"},
-             "scan":{"beaconFound":true,"rssi":-63,"otherAdvertisementsSeen":41,"distinctDevicesSeen":8,"scanDurationMs":52},
              "durationMs":835,"connectMs":510,"timestampUtc":"2026-07-29T09:00:00.123Z"}
             """;
         var response = WorkerResponseMapper.ParseLine(line);
@@ -52,10 +51,6 @@ public class WorkerResponseMapperTests
         Assert.Null(result.ErrorType);
         //The payload travels where the stdout of tesla-control used to be, so the server side parsers keep working.
         Assert.Contains("VEHICLE_SLEEP_STATUS_AWAKE", result.ResultMessage);
-        Assert.True(result.BeaconFound);
-        Assert.Equal(41, result.OtherAdvertisementsSeen);
-        Assert.Equal(8, result.DistinctDevicesSeen);
-        Assert.Equal(52, result.ScanDurationMs);
         Assert.Equal(510, result.ConnectMs);
         Assert.Equal(835, result.DurationMs);
     }
@@ -65,8 +60,7 @@ public class WorkerResponseMapperTests
     {
         const string line = """
             {"kind":"result","id":8,"ok":false,"outcome":"carAbsent","phase":"scan",
-             "error":"failed to find BLE beacon for VIN: car is not in BLE range (scanned 3000 ms, heard 12 advertisements from 4 other devices)",
-             "scan":{"beaconFound":false,"otherAdvertisementsSeen":12,"distinctDevicesSeen":4,"scanDurationMs":3000},
+             "error":"failed to connect: timed out",
              "durationMs":3010,"connectMs":3005}
             """;
         var result = WorkerResponseMapper.ToCommandResult(WorkerResponseMapper.ParseLine(line)!);
@@ -74,7 +68,6 @@ public class WorkerResponseMapperTests
         Assert.False(result.Success);
         Assert.Equal(BleCommandOutcome.CarAbsent, result.Outcome);
         Assert.Equal(BleCommandPhase.Scan, result.Phase);
-        Assert.False(result.BeaconFound);
         //Legacy field for BLE containers/servers of the previous generation.
         Assert.Equal(ErrorType.TeslaControl, result.ErrorType);
     }
@@ -95,74 +88,67 @@ public class WorkerResponseMapperTests
         Assert.Equal(ErrorType.CarExecution, result.ErrorType);
     }
 
+    // The background scan writes to the same pipe as request answers. Its lines carry no id, so the only thing that
+    // stops them being mistaken for a response is the routing below - this is the desynchronisation risk of the whole
+    // stream design, pinned here.
     [Fact]
-    public void ParsesAMultiVinBeaconScanResult()
+    public void ScanEventsAreNeverMistakenForAResponse()
     {
-        const string line = """
-            {"kind":"result","id":1,"ok":true,"outcome":"ok","beaconScan":{"windowMs":3000,"scanDurationMs":612,
-             "otherAdvertisementsSeen":57,"distinctDevicesSeen":9,
-             "vehicles":[{"vin":"VIN1","beaconFound":true,"rssi":-63,"address":"aa:bb:cc:dd:ee:ff","connectable":true,"foundAfterMs":48},
-                         {"vin":"VIN2","beaconFound":false}]}}
+        const string digest = """
+            {"kind":"adv","windowMs":500,"total":42,"devices":[{"addr":"90:2e:ab:23:19:4a","name":"S612fafca57f07c21C","rssi":-65,"count":12,"named":5,"connectable":true}]}
             """;
-        var result = WorkerResponseMapper.ToBeaconScanResult(WorkerResponseMapper.ParseLine(line)!);
+        const string state = """{"kind":"scan","state":"paused","reason":"radio handed over"}""";
+        const string answer = """{"kind":"result","id":7,"ok":true,"outcome":"ok"}""";
 
-        Assert.True(result.Success);
-        Assert.Equal(BleCommandOutcome.Ok, result.Outcome);
-        Assert.Equal(3000, result.WindowMs);
-        Assert.Equal(612, result.ScanDurationMs);
-        Assert.Equal(57, result.OtherAdvertisementsSeen);
-        Assert.Equal(9, result.DistinctDevicesSeen);
-        Assert.Equal(2, result.Vehicles.Count);
-        var found = result.Vehicles.Single(v => v.Vin == "VIN1");
-        Assert.True(found.BeaconFound);
-        Assert.Equal(-63, found.Rssi);
-        Assert.Equal(48, found.FoundAfterMs);
-        Assert.False(result.Vehicles.Single(v => v.Vin == "VIN2").BeaconFound);
+        var parsedDigest = WorkerResponseMapper.ParseLine(digest);
+        var parsedState = WorkerResponseMapper.ParseLine(state);
+        var parsedAnswer = WorkerResponseMapper.ParseLine(answer);
+
+        Assert.True(WorkerResponseMapper.IsScanEvent(parsedDigest));
+        Assert.True(WorkerResponseMapper.IsScanEvent(parsedState));
+        Assert.False(WorkerResponseMapper.IsScanEvent(parsedAnswer));
+
+        //Whatever the request in flight is, a scan event is never its answer.
+        foreach (var pendingId in new[] { 0, 1, 7, 4711 })
+        {
+            Assert.False(WorkerResponseMapper.IsResponseTo(parsedDigest, pendingId));
+            Assert.False(WorkerResponseMapper.IsResponseTo(parsedState, pendingId));
+        }
+        Assert.True(WorkerResponseMapper.IsResponseTo(parsedAnswer, 7));
+        //A stale answer to an older request must not satisfy a newer one either.
+        Assert.False(WorkerResponseMapper.IsResponseTo(parsedAnswer, 8));
     }
 
     [Fact]
-    public void ParsesTheBackgroundScannerState()
+    public void ParsesAnAdvertisementDigest()
     {
         const string line = """
-            {"kind":"result","id":4,"ok":true,"outcome":"ok","presence":{"scannerRunning":true,"observingMs":600000,
-             "scanActiveMs":594000,"pausedMs":6000,"restarts":1,"scanErrors":0,"advertisementsSeen":18000,
-             "distinctDevicesSeen":37,"lastAdvertisementMsAgo":312,"maxAgeMs":90000,"scanWhileConnected":true,
-             "vehicles":[{"vin":"VIN1","localName":"S0011223344556677C","heard":true,"lastHeardMsAgo":18422,
-                          "lastAdvertisementMsAgo":18422,"rssi":-73,"address":"aa:bb:cc:dd:ee:ff","connectable":true,
-                          "count":91,"namedCount":37,"addressCount":54,"lastSource":"advertisement",
-                          "gapsMs":[400,41000],"medianGapMs":41000,"maxGapMs":41000},
-                         {"vin":"VIN2","localName":"S9988776655443322C","heard":false}],
-             "tracked":[{"localName":"S0011223344556677C","heard":true,"count":91}]}}
+            {"kind":"adv","windowMs":500,"total":42,"truncated":false,
+             "devices":[{"addr":"90:2e:ab:23:19:4a","name":"S612fafca57f07c21C","rssi":-65,"count":12,"named":5,"connectable":true},
+                        {"addr":"11:11:11:11:11:11","rssi":-80,"count":3,"named":0,"connectable":false}]}
             """;
-        var result = WorkerResponseMapper.ToScannerStatus(WorkerResponseMapper.ParseLine(line)!, "hci1");
+        var parsed = WorkerResponseMapper.ParseLine(line)!;
 
-        Assert.True(result.ScannerRunning);
-        Assert.Null(result.ErrorMessage);
-        Assert.Equal("hci1", result.Adapter);
-        Assert.Equal(99d, result.DutyCyclePercent);
-        Assert.Equal(30d, result.AdvertisementsPerSecond);
-        Assert.Equal(1, result.Restarts);
-        Assert.Equal(312, result.LastAdvertisementMsAgo);
-        var heard = result.Vehicles.Single(v => v.Vin == "VIN1");
-        Assert.True(heard.Heard);
-        Assert.Equal(18422, heard.LastHeardMsAgo);
-        //Named against address recognition is what tells a car whose name only travels in the scan response apart
-        //from one that advertises its name.
-        Assert.Equal(37, heard.NamedCount);
-        Assert.Equal(54, heard.AddressCount);
-        Assert.Equal(41000, heard.MedianGapMs);
-        Assert.False(result.Vehicles.Single(v => v.Vin == "VIN2").Heard);
-        Assert.Single(result.Tracked);
+        Assert.Equal("adv", parsed.Kind);
+        Assert.Equal(42, parsed.Total);
+        Assert.Equal(500, parsed.WindowMs);
+        Assert.NotNull(parsed.Devices);
+        Assert.Equal(2, parsed.Devices!.Count);
+        var car = parsed.Devices.Single(d => d.Addr == "90:2e:ab:23:19:4a");
+        Assert.Equal("S612fafca57f07c21C", car.Name);
+        Assert.Equal(12, car.Count);
+        Assert.Equal(5, car.Named);
+        Assert.Equal(-65, car.Rssi);
+        Assert.Null(parsed.Devices.Single(d => d.Addr == "11:11:11:11:11:11").Name);
     }
 
     [Fact]
-    public void AScannerAnswerWithoutStateCarriesTheError()
+    public void ParsesAScanStateEvent()
     {
-        const string line = """{"kind":"result","id":4,"ok":false,"outcome":"adapterUnavailable","error":"adapter is gone"}""";
-        var result = WorkerResponseMapper.ToScannerStatus(WorkerResponseMapper.ParseLine(line)!, "hci0");
-
-        Assert.False(result.ScannerRunning);
-        Assert.Equal("adapter is gone", result.ErrorMessage);
+        var parsed = WorkerResponseMapper.ParseLine("""{"kind":"scan","state":"error","reason":"adapter gone"}""")!;
+        Assert.Equal("scan", parsed.Kind);
+        Assert.Equal("error", parsed.State);
+        Assert.Equal("adapter gone", parsed.Reason);
     }
 
     [Fact]

@@ -36,22 +36,6 @@ public class CommandService(ILogger<CommandService> logger,
         return await bleWorkerService.ExecuteCommand(adapter, vin, command, parameters, keepWarmSeconds, useDebug).ConfigureAwait(false);
     }
 
-    public async Task<DtoBleBeaconScanResult> BeaconScan(List<string> vins, string? adapter, int? keepWarmSeconds,
-        bool useDebug, int? windowMs = null)
-    {
-        logger.LogTrace("{method}({@vins}, {adapter}, {keepWarmSeconds}, {useDebug}, {windowMs})", nameof(BeaconScan), vins, adapter, keepWarmSeconds, useDebug, windowMs);
-        if (await CheckRequestsAllowed().ConfigureAwait(false) is { } notAllowedResult)
-        {
-            return new DtoBleBeaconScanResult
-            {
-                Success = false,
-                Outcome = notAllowedResult.Outcome,
-                ResultMessage = notAllowedResult.ResultMessage,
-            };
-        }
-        return await bleWorkerService.BeaconScan(adapter, vins, keepWarmSeconds, useDebug, windowMs).ConfigureAwait(false);
-    }
-
     public async Task<DtoBleCommandResult> ListCommands()
     {
         logger.LogTrace("{method}", nameof(ListCommands));

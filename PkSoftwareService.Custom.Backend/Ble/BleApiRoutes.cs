@@ -8,6 +8,11 @@ namespace PkSoftwareService.Custom.Backend.Ble;
 public static class BleApiRoutes
 {
     public const string ExecuteCommand = "Command/ExecuteCommand";
+    /// <summary>
+    /// Replaces the removed Command/BeaconScan: presence is answered from the permanent background scan instead of
+    /// by listening for a window.
+    /// </summary>
+    public const string Presence = "Presence/Get";
     public const string BeaconScan = "Command/BeaconScan";
     public const string ListCommands = "Command/ListCommands";
     public const string AdapterList = "Adapter/List";
@@ -20,6 +25,8 @@ public static class BleApiRoutes
     public const string CommandQueryParam = "command";
     public const string DomainQueryParam = "domain";
     public const string KeepWarmSecondsQueryParam = "keepWarmSeconds";
+    public const string VinsQueryParam = "vins";
+    public const string MaxAgeSecondsQueryParam = "maxAgeSeconds";
     public const string WindowMsQueryParam = "windowMs";
     public const string AdapterQueryParam = "adapter";
     public const string ApiRoleQueryParam = "apiRole";

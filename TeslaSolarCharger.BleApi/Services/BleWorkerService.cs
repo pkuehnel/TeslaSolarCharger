@@ -29,7 +29,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     private readonly ILogger<BleWorkerService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IAdapterEnumerationService _adapterEnumerationService;
-    private readonly ISettings _settings;
+    private readonly IBlePresenceRegistry _presenceRegistry;
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, WorkerInstance> _instances = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentQueue<DtoBleWorkerEvent> _events = new();
@@ -38,13 +38,13 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     public BleWorkerService(ILogger<BleWorkerService> logger,
         IConfiguration configuration,
         IAdapterEnumerationService adapterEnumerationService,
-        ISettings settings,
+        IBlePresenceRegistry presenceRegistry,
         TimeProvider timeProvider)
     {
         _logger = logger;
         _configuration = configuration;
         _adapterEnumerationService = adapterEnumerationService;
-        _settings = settings;
+        _presenceRegistry = presenceRegistry;
         _timeProvider = timeProvider;
         _sweepTimer = new Timer(_ => Sweep(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
     }
@@ -113,76 +113,77 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         }
         var result = WorkerResponseMapper.ToCommandResult(response!);
         result.ResultMessage = result.ResultMessage?.Trim();
+        var now = _timeProvider.GetUtcNow();
+        _presenceRegistry.NoteCommandOutcome(instance.Key, vin, result.Outcome, now);
+        if (result.Outcome == BleCommandOutcome.LinkFailed
+            && !_presenceRegistry.WasHeardWithin(instance.Key, vin, PresenceMaxAge(null), now))
+        {
+            //The worker only reports that it could not reach the car. Whether that means the car is gone is decided
+            //here, from what the background scan heard: it is the only place that knows.
+            result.Outcome = BleCommandOutcome.CarAbsent;
+            result.ErrorType = WorkerResponseMapper.MapLegacyErrorType(BleCommandOutcome.CarAbsent);
+        }
         return CountOutcome(instance, result);
     }
 
-    public async Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds,
-        bool useDebug, int? windowMs = null)
+    /// <summary>
+    /// What is known about the given cars, answered from the presence registry without a worker round trip. Starts
+    /// the worker when none is running, because the background scan only exists while it does.
+    /// </summary>
+    public async Task<DtoBlePresenceResult> Presence(string? adapter, List<string> vins, int? keepWarmSeconds, int? maxAgeSeconds)
     {
-        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {useDebug}, {windowMs})", nameof(BeaconScan), adapter, vins, keepWarmSeconds, useDebug, windowMs);
+        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {maxAgeSeconds})", nameof(Presence), adapter, vins, keepWarmSeconds, maxAgeSeconds);
         var resolution = _adapterEnumerationService.Resolve(adapter);
         if (!resolution.Found)
         {
-            return WorkerResponseMapper.CreateLocalScanFailure(BleCommandOutcome.AdapterNotFound,
-                $"The configured Bluetooth adapter {adapter} is not present on this host. Check the adapter selection of the car or replug the adapter.");
-        }
-        var instance = GetInstance(resolution);
-        UpdateKeepWarm(instance, keepWarmSeconds);
-        //The caller decides how long to listen: a car that advertises rarely needs a longer window than the container
-        //can know about, and the scan ends early anyway as soon as every VIN was heard. Clamped so a bad value can
-        //neither make the scan pointless nor block the adapter for minutes.
-        var configuredWindowMs = _configuration.GetValue<int>("BeaconScanTimeoutSeconds") * 1000;
-        var effectiveWindowMs = windowMs is > 0 ? Math.Clamp(windowMs.Value, 1000, 60000) : configuredWindowMs;
-        var payload = new
-        {
-            id = 0,
-            kind = "beaconScan",
-            vins,
-            windowMs = effectiveWindowMs,
-        };
-        var responseTimeout = TimeSpan.FromMilliseconds(effectiveWindowMs) + TimeSpan.FromSeconds(5);
-        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId }, responseTimeout, useDebug).ConfigureAwait(false);
-        if (failure != default)
-        {
-            return WorkerResponseMapper.CreateLocalScanFailure(failure.Outcome, failure.Message);
-        }
-        var result = WorkerResponseMapper.ToBeaconScanResult(response!);
-        lock (instance.StateLock)
-        {
-            instance.OutcomeCounts.AddOrUpdate(result.Outcome?.ToString() ?? "unknown", 1, (_, count) => count + 1);
-        }
-        return result;
-    }
-
-    public async Task<DtoBleScannerStatus> ScannerStatus(string? adapter, List<string> vins, int? keepWarmSeconds, int? maxAgeMs)
-    {
-        _logger.LogTrace("{method}({adapter}, {@vins}, {keepWarmSeconds}, {maxAgeMs})", nameof(ScannerStatus), adapter, vins, keepWarmSeconds, maxAgeMs);
-        var resolution = _adapterEnumerationService.Resolve(adapter);
-        if (!resolution.Found)
-        {
-            return new DtoBleScannerStatus
+            return new DtoBlePresenceResult
             {
                 Adapter = adapter,
-                ErrorMessage = $"The Bluetooth adapter {adapter} is not present on this host.",
+                ErrorMessage = $"The configured Bluetooth adapter {adapter} is not present on this host. Check the adapter selection of the car or replug the adapter.",
             };
         }
         var instance = GetInstance(resolution);
         UpdateKeepWarm(instance, keepWarmSeconds);
-        var payload = new
+        await EnsureWorkerStartedForScanning(instance).ConfigureAwait(false);
+        return _presenceRegistry.GetPresence(instance.Key, vins, PresenceMaxAge(maxAgeSeconds), _timeProvider.GetUtcNow());
+    }
+
+    /// <summary>
+    /// How long an adapter may hear nothing at all before it counts as deaf. Well above any normal quiet period: a
+    /// site with no other Bluetooth devices still hears its own cars every few tens of milliseconds.
+    /// </summary>
+    private TimeSpan DeafnessThreshold() =>
+        TimeSpan.FromSeconds(_configuration.GetValue<int?>("ScanDeafAfterSeconds") ?? 90);
+
+    private TimeSpan PresenceMaxAge(int? maxAgeSeconds)
+    {
+        var seconds = maxAgeSeconds ?? _configuration.GetValue<int?>("PresenceMaxAgeSeconds") ?? 90;
+        return TimeSpan.FromSeconds(Math.Clamp(seconds, 10, 3600));
+    }
+
+    /// <summary>
+    /// Makes sure the adapter's worker runs so its background scan feeds the registry. Never waits for the gate: a
+    /// held gate means a request is in flight, which means the worker is already running, and a presence answer must
+    /// not queue behind a command.
+    /// </summary>
+    private async Task EnsureWorkerStartedForScanning(WorkerInstance instance)
+    {
+        if (!await instance.Gate.WaitAsync(TimeSpan.Zero).ConfigureAwait(false))
         {
-            id = 0,
-            kind = "presence",
-            vins,
-            maxAgeMs = maxAgeMs ?? 0,
-        };
-        //The worker answers from memory, so the only thing this has to wait for is the request queue of the adapter.
-        var (response, failure) = await SendRequest(instance, requestId => payload with { id = requestId },
-            TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-        if (failure != default)
-        {
-            return new DtoBleScannerStatus { Adapter = instance.Key, ErrorMessage = failure.Message };
+            return;
         }
-        return WorkerResponseMapper.ToScannerStatus(response!, instance.Key);
+        try
+        {
+            await EnsureWorkerRunning(instance, null).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not start the BLE worker for {adapter} to feed the presence registry", instance.Key);
+        }
+        finally
+        {
+            instance.Gate.Release();
+        }
     }
 
     public async Task<DtoBleCommandResult> RunWithExclusiveAdapter(string? adapter, Func<string, Task<DtoBleCommandResult>> action)
@@ -522,20 +523,16 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         var connectionWindowSeconds = _configuration.GetValue<int>("BleDaemonConnectionWindowSeconds");
         var commandTimeoutSeconds = _configuration.GetValue<int>("CommandTimeoutSeconds");
         var connectTimeoutSeconds = _configuration.GetValue<int>("ConnectTimeoutSeconds");
-        //Runtime overrides win so the scan modes can be compared on real hardware without a redeploy.
-        var overrides = _settings.ScannerOverrides;
-        var presenceScan = overrides.PresenceScanEnabled ?? _configuration.GetValue<bool?>("PresenceScanEnabled") ?? true;
-        var scanWhileConnected = overrides.ScanWhileConnected ?? _configuration.GetValue<bool?>("ScanWhileConnected") ?? true;
-        var presenceMaxAgeSeconds = overrides.PresenceMaxAgeSeconds ?? _configuration.GetValue<int?>("PresenceMaxAgeSeconds") ?? 90;
-        var scanRestartAfterSeconds = overrides.ScanRestartAfterSeconds ?? _configuration.GetValue<int?>("ScanRestartAfterSeconds") ?? 90;
-        var addressBindingTtlSeconds = overrides.AddressBindingTtlSeconds ?? _configuration.GetValue<int?>("AddressBindingTtlSeconds") ?? 600;
+        var scanStream = _configuration.GetValue<bool?>("ScanStreamEnabled") ?? true;
+        var digestIntervalMs = _configuration.GetValue<int?>("ScanDigestIntervalMs") ?? 500;
+        var digestIdleSeconds = _configuration.GetValue<int?>("ScanDigestIdleIntervalSeconds") ?? 5;
+        var maxDigestDevices = _configuration.GetValue<int?>("ScanMaxDigestDevices") ?? 64;
         var arguments = $"{debugParameterString}{adapterParameterString}-session-cache {teslaCacheFilePath} " +
                         $"-key-file {privateKeyLocation} -connection-window {connectionWindowSeconds}s " +
                         $"-command-timeout {commandTimeoutSeconds}s -connect-timeout {connectTimeoutSeconds}s " +
-                        $"-presence-scan={presenceScan.ToString().ToLowerInvariant()} " +
-                        $"-scan-while-connected={scanWhileConnected.ToString().ToLowerInvariant()} " +
-                        $"-presence-max-age {presenceMaxAgeSeconds}s -scan-restart-after {scanRestartAfterSeconds}s " +
-                        $"-address-binding-ttl {addressBindingTtlSeconds}s";
+                        $"-scan-stream={scanStream.ToString().ToLowerInvariant()} " +
+                        $"-digest-interval {digestIntervalMs}ms -digest-idle-interval {digestIdleSeconds}s " +
+                        $"-max-digest-devices {maxDigestDevices}";
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -668,6 +665,9 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             process.Dispose();
             RecordAdapterOwnerExit(instance);
         }
+        //Nothing is being heard on this adapter any more, so no car may be judged absent until a new scan has been
+        //observing for a full max age again. The per car history is kept: a worker restart is not a car leaving.
+        _presenceRegistry.ForgetAdapter(instance.Key);
         AddEvent(instance, "stop", $"BLE worker stopped ({reason})");
     }
 
@@ -719,6 +719,16 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                     {
                         instance.Gate.Release();
                     }
+                });
+            }
+            else if (isRunning && _presenceRegistry.IsDeaf(instance.Key, DeafnessThreshold(), now))
+            {
+                //The adapter is up and scanning but has received nothing at all. Only a fresh adapter bind
+                //recovers from that, so the worker is restarted rather than the scan merely re-armed.
+                _ = Task.Run(async () =>
+                {
+                    AddEvent(instance, "deaf", "The adapter received no advertisement at all, restarting its worker");
+                    await RestartWorkers(instance.Key, "adapter heard nothing").ConfigureAwait(false);
                 });
             }
             else if (keepWarmActive && now >= backoffUntil)
@@ -780,6 +790,25 @@ public class BleWorkerService : IBleWorkerService, IDisposable
 
     private void HandleWorkerLine(WorkerInstance instance, string line)
     {
+        var parsed = WorkerResponseMapper.ParseLine(line);
+        if (WorkerResponseMapper.IsScanEvent(parsed))
+        {
+            //Unsolicited output of the background scan. It shares this pipe with request answers, so it is routed
+            //before anything else looks at it and can never be mistaken for a response.
+            var now = _timeProvider.GetUtcNow();
+            if (parsed!.Kind == "adv")
+            {
+                _presenceRegistry.ApplyDigest(instance.Key, parsed, now);
+            }
+            else
+            {
+                _presenceRegistry.ApplyScanState(instance.Key, parsed.State, parsed.Reason, now);
+                //Only state changes are recorded: at two digests per second the event ring would otherwise hold
+                //nothing but advertisements.
+                AddEvent(instance, "scan", line);
+            }
+            return;
+        }
         TaskCompletionSource<string>? completionToSignal = null;
         lock (instance.StateLock)
         {
@@ -792,11 +821,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             //During startup the pending id is 0 and the expected line is the ready message; afterwards a result line
             //must carry the id of the in-flight request. Anything else is discarded so a stale line can never be
             //mistaken for the answer to a newer request.
-            var parsed = WorkerResponseMapper.ParseLine(line);
-            var isExpected = instance.PendingRequestId == 0
-                ? parsed?.Kind is "ready" or "fatal"
-                : parsed?.Kind == "result" && parsed.Id == instance.PendingRequestId;
-            if (!isExpected)
+            if (!WorkerResponseMapper.IsResponseTo(parsed, instance.PendingRequestId))
             {
                 _logger.LogWarning("Discarding unexpected BLE worker line for {adapter}: {line}", instance.Key, line);
                 AddEvent(instance, "unmatched", line);

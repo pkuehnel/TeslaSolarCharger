@@ -12,14 +12,12 @@ public interface IBleWorkerService
     /// </summary>
     Task<DtoBleCommandResult> ExecuteCommand(string? adapter, string vin, string command, List<string> parameters,
         int? keepWarmSeconds, bool useDebug);
-    Task<DtoBleBeaconScanResult> BeaconScan(string? adapter, List<string> vins, int? keepWarmSeconds, bool useDebug,
-        int? windowMs = null);
     /// <summary>
-    /// State of the adapter's permanent background beacon scan, including per car how long ago it was heard. Answered
-    /// from the worker's memory without touching the radio. Starts the worker if it is not running, because a stopped
-    /// worker means no scan is happening at all.
+    /// What the container knows about the given cars, from the background scan and from command outcomes. Answered
+    /// from the presence registry without a worker round trip; starts the worker when none runs, because the scan
+    /// only exists while it does.
     /// </summary>
-    Task<DtoBleScannerStatus> ScannerStatus(string? adapter, List<string> vins, int? keepWarmSeconds, int? maxAgeMs);
+    Task<DtoBlePresenceResult> Presence(string? adapter, List<string> vins, int? keepWarmSeconds, int? maxAgeSeconds);
     /// <summary>
     /// Stops the worker owning the target adapter, runs the action while holding the adapter exclusively (the action
     /// receives the current hciX id, empty for "first available") and lets the worker restart lazily afterwards.

@@ -24,19 +24,6 @@ public class CommandController (ICommandService service) : ApiBaseController
         => service.ExecuteCommand(vin, command, domain, parameters, adapter, keepWarmSeconds, useDebug);
 
     /// <summary>
-    /// Scan for the BLE advertisements of the given cars without connecting to any of them. All VINs share one scan
-    /// window; a present car is typically heard within milliseconds.
-    /// </summary>
-    /// <param name="vins">VINs of the cars to scan for</param>
-    /// <param name="adapter">optional stable adapter id (BD address); omitted = container default adapter</param>
-    /// <param name="keepWarmSeconds">optional: keep the adapter's worker warm for this many seconds</param>
-    /// <param name="useDebug">run the adapter's worker with debug logging; a worker started with a different setting is restarted first</param>
-    [HttpPost]
-    public Task<DtoBleBeaconScanResult> BeaconScan([FromBody] List<string> vins, string? adapter = null,
-        int? keepWarmSeconds = null, bool useDebug = false, int? windowMs = null)
-        => service.BeaconScan(vins, adapter, keepWarmSeconds, useDebug, windowMs);
-
-    /// <summary>
     /// Get a list of all available commands
     /// </summary>
     /// <returns></returns>

@@ -6,63 +6,13 @@ using Serilog.Events;
 using System.Text;
 using TeslaSolarCharger.BleApi.Abstracts;
 using TeslaSolarCharger.BleApi.Dtos;
-using TeslaSolarCharger.BleApi.InMemoryValues.Contracts;
 using TeslaSolarCharger.BleApi.Services.Contracts;
 
 namespace TeslaSolarCharger.BleApi.Controllers;
-
 public class DebugController(IInMemorySink inMemorySink,
     LoggingLevelSwitch inMemoryLogLevelSwitch,
-    IBleWorkerService bleWorkerService,
-    ISettings settings) : ApiBaseController
+    IBleWorkerService bleWorkerService) : ApiBaseController
 {
-    /// <summary>
-    /// State of the adapter's permanent background beacon scan: per car how long ago it was heard, how it was
-    /// recognized and how often it advertises, plus the counters that tell a working radio from a deaf one. Answered
-    /// from the worker's memory without touching the radio, and it starts the worker when none is running.
-    /// </summary>
-    /// <param name="vins">Comma separated VINs to report on. Cars the radio heard are listed either way.</param>
-    /// <param name="adapter">Optional stable adapter id (BD address); omitted = container default adapter.</param>
-    /// <param name="keepWarmSeconds">Keeps the worker (and with it the scan) alive between polls.</param>
-    /// <param name="maxAgeSeconds">Overrides how long ago a car may last have been heard and still count as present.</param>
-    [HttpGet]
-    public Task<DtoBleScannerStatus> ScannerStatus(string? vins = null, string? adapter = null,
-        int? keepWarmSeconds = 600, int? maxAgeSeconds = null)
-    {
-        var vinList = (vins ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
-        return bleWorkerService.ScannerStatus(adapter, vinList, keepWarmSeconds, maxAgeSeconds * 1000);
-    }
-
-    /// <summary>
-    /// Overrides the background scan flags of the worker and stops it, so the next request starts it with them. Exists
-    /// to compare the scan modes on real hardware in one sitting; nothing is persisted, a container restart returns to
-    /// the configured values. Parameters that are not given keep their current override.
-    /// </summary>
-    /// <param name="reset">Drops every override first, so a single call can return to the configured behaviour.</param>
-    [HttpPost]
-    public async Task<DtoBleScannerOverrides> SetScannerMode(bool? presenceScanEnabled = null,
-        bool? scanWhileConnected = null, int? presenceMaxAgeSeconds = null, int? scanRestartAfterSeconds = null,
-        int? addressBindingTtlSeconds = null, bool reset = false, string? adapter = null)
-    {
-        var overrides = settings.ScannerOverrides;
-        if (reset)
-        {
-            overrides.PresenceScanEnabled = null;
-            overrides.ScanWhileConnected = null;
-            overrides.PresenceMaxAgeSeconds = null;
-            overrides.ScanRestartAfterSeconds = null;
-            overrides.AddressBindingTtlSeconds = null;
-        }
-        overrides.PresenceScanEnabled = presenceScanEnabled ?? overrides.PresenceScanEnabled;
-        overrides.ScanWhileConnected = scanWhileConnected ?? overrides.ScanWhileConnected;
-        overrides.PresenceMaxAgeSeconds = presenceMaxAgeSeconds ?? overrides.PresenceMaxAgeSeconds;
-        overrides.ScanRestartAfterSeconds = scanRestartAfterSeconds ?? overrides.ScanRestartAfterSeconds;
-        overrides.AddressBindingTtlSeconds = addressBindingTtlSeconds ?? overrides.AddressBindingTtlSeconds;
-        await bleWorkerService.RestartWorkers(adapter, "scanner mode changed").ConfigureAwait(false);
-        return overrides;
-    }
 
     /// <summary>
     /// Status of every per-adapter BLE worker (state, uptime, keep warm window, request and outcome counters).
