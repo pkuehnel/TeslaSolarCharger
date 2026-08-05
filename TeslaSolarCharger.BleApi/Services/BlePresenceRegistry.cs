@@ -89,6 +89,12 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         public readonly Dictionary<string, string> AddressToLocalName = new(StringComparer.OrdinalIgnoreCase);
         public readonly HashSet<string> Devices = new(StringComparer.OrdinalIgnoreCase);
         public long AdvertisementsSeen;
+        /// <summary>
+        /// The advertisement total when the current observation window began. The total itself is for the registry's
+        /// whole life and outlives a worker restart, so a rate computed from it against the current window would
+        /// divide hours of counting by seconds of observing.
+        /// </summary>
+        public long AdvertisementsAtObservingStart;
         public DateTimeOffset? LastAdvertisementUtc;
         public bool ScanRunning;
         /// <summary>
@@ -202,7 +208,11 @@ public class BlePresenceRegistry : IBlePresenceRegistry
                     state.LastScanError = null;
                     //A pause for a command is not a break in observation - it lasts milliseconds and the command
                     //itself is presence evidence - so the observation window only starts when there is none yet.
-                    state.ObservingSinceUtc ??= at;
+                    if (state.ObservingSinceUtc is null)
+                    {
+                        state.ObservingSinceUtc = at;
+                        state.AdvertisementsAtObservingStart = state.AdvertisementsSeen;
+                    }
                     break;
                 case "paused":
                     //Deliberately keeps ObservingSinceUtc: see above.
@@ -305,8 +315,9 @@ public class BlePresenceRegistry : IBlePresenceRegistry
                 ObservingMs = observingMs,
                 MaxAgeMs = (long)maxAge.TotalMilliseconds,
                 AdvertisementsSeen = state.AdvertisementsSeen,
+                //Rate over the current observation window only, so it stays meaningful after a worker restart.
                 AdvertisementsPerSecond = observingMs > 0
-                    ? Math.Round(state.AdvertisementsSeen * 1000d / observingMs, 2)
+                    ? Math.Round((state.AdvertisementsSeen - state.AdvertisementsAtObservingStart) * 1000d / observingMs, 2)
                     : 0,
                 DistinctDevicesSeen = state.Devices.Count,
                 LastAdvertisementMsAgo = state.LastAdvertisementUtc is { } last

@@ -313,6 +313,27 @@ public class BlePresenceRegistryTests
         Assert.True(result.ScannerRunning);
     }
 
+    /// <summary>
+    /// The advertisement total outlives a worker restart while the observation window does not, so the rate has to be
+    /// computed over the current window. Measured on the bench before this was fixed: 400 570 advertisements counted
+    /// over five hours divided by a 42 second window reported 9554 advertisements per second.
+    /// </summary>
+    [Fact]
+    public void TheAdvertisementRateIsMeasuredOverTheCurrentObservationWindow()
+    {
+        var registry = Observing(Start);
+        registry.ApplyDigest(Adapter, Digest(6000, Device("11:11:11:11:11:11", "some-phone", 6000, 6000)), Start.AddMinutes(50));
+
+        //A worker restart drops the observation window but keeps the totals.
+        registry.ForgetAdapter(Adapter);
+        registry.ApplyScanState(Adapter, "running", null, Start.AddHours(1));
+        registry.ApplyDigest(Adapter, Digest(20, Device("11:11:11:11:11:11", "some-phone", 20, 20)), Start.AddHours(1).AddSeconds(5));
+
+        var result = registry.GetPresence(Adapter, new List<string>(), MaxAge, Start.AddHours(1).AddSeconds(10));
+        Assert.Equal(6020, result.AdvertisementsSeen);
+        Assert.Equal(2, result.AdvertisementsPerSecond);
+    }
+
     [Fact]
     public void AnAdapterThatHearsNothingAtAllIsReportedAsDeaf()
     {
