@@ -72,6 +72,8 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         /// </summary>
         public DateTimeOffset LastAdapterOwnerExitUtc = DateTimeOffset.MinValue;
         public DateTimeOffset BackoffUntil = DateTimeOffset.MinValue;
+        /// <summary>Last worker restart caused by a deaf adapter, so a broken one is not restarted every sweep.</summary>
+        public DateTimeOffset LastDeafRestartUtc = DateTimeOffset.MinValue;
         public int ConsecutiveStartFailures;
         public int RequestsSent;
         public int NextRequestId;
@@ -154,6 +156,29 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     /// </summary>
     private TimeSpan DeafnessThreshold() =>
         TimeSpan.FromSeconds(_configuration.GetValue<int?>("ScanDeafAfterSeconds") ?? 90);
+
+    /// <summary>
+    /// Whether the adapter has gone deaf and enough time has passed since the last attempt to fix it. The cooldown
+    /// keeps a permanently broken adapter - a dead USB dongle, say - from restarting its worker every sweep forever;
+    /// each restart cycles the adapter, so retrying every few minutes is the most that is useful.
+    /// </summary>
+    private bool ShouldRestartForDeafness(WorkerInstance instance, DateTimeOffset now)
+    {
+        if (!_presenceRegistry.IsDeaf(instance.Key, DeafnessThreshold(), now))
+        {
+            return false;
+        }
+        var cooldown = TimeSpan.FromSeconds(_configuration.GetValue<int?>("ScanDeafRestartCooldownSeconds") ?? 300);
+        lock (instance.StateLock)
+        {
+            if (now - instance.LastDeafRestartUtc < cooldown)
+            {
+                return false;
+            }
+            instance.LastDeafRestartUtc = now;
+        }
+        return true;
+    }
 
     private TimeSpan PresenceMaxAge(int? maxAgeSeconds)
     {
@@ -695,6 +720,19 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             }
             if (isRunning)
             {
+                //Checked before the idle and keep warm exits below: a deaf adapter is almost always one that is
+                //being kept warm, so testing it after those would never run at all.
+                if (ShouldRestartForDeafness(instance, now))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        //The adapter is up and scanning but has received nothing at all. Only a fresh adapter bind
+                        //recovers from that, so the worker is restarted rather than the scan merely re-armed.
+                        AddEvent(instance, "deaf", "The adapter received no advertisement at all, restarting its worker");
+                        await RestartWorkers(instance.Key, "adapter heard nothing").ConfigureAwait(false);
+                    });
+                    continue;
+                }
                 if (idleTimeoutSeconds <= 0 || keepWarmActive)
                 {
                     continue;
@@ -719,16 +757,6 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                     {
                         instance.Gate.Release();
                     }
-                });
-            }
-            else if (isRunning && _presenceRegistry.IsDeaf(instance.Key, DeafnessThreshold(), now))
-            {
-                //The adapter is up and scanning but has received nothing at all. Only a fresh adapter bind
-                //recovers from that, so the worker is restarted rather than the scan merely re-armed.
-                _ = Task.Run(async () =>
-                {
-                    AddEvent(instance, "deaf", "The adapter received no advertisement at all, restarting its worker");
-                    await RestartWorkers(instance.Key, "adapter heard nothing").ConfigureAwait(false);
                 });
             }
             else if (keepWarmActive && now >= backoffUntil)
