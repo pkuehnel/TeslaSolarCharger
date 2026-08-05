@@ -66,8 +66,8 @@ public static class TranslationKeys
     public static string SupportBleBeaconHistoryColumnTime => nameof(SupportBleBeaconHistoryColumnTime);
     public static string SupportBleBeaconHistoryColumnFound => nameof(SupportBleBeaconHistoryColumnFound);
     public static string SupportBleBeaconHistoryColumnRssi => nameof(SupportBleBeaconHistoryColumnRssi);
-    public static string SupportBleBeaconHistoryColumnFoundAfter => nameof(SupportBleBeaconHistoryColumnFoundAfter);
-    public static string SupportBleBeaconHistoryColumnOtherAdverts => nameof(SupportBleBeaconHistoryColumnOtherAdverts);
+    public static string SupportBleBeaconHistoryColumnAge => nameof(SupportBleBeaconHistoryColumnAge);
+    public static string SupportBleBeaconHistoryColumnSource => nameof(SupportBleBeaconHistoryColumnSource);
     public static string SupportBleBeaconHistoryColumnAdapter => nameof(SupportBleBeaconHistoryColumnAdapter);
     public static string SupportChargingAmpsToSetLabel => nameof(SupportChargingAmpsToSetLabel);
     public static string SupportChargingAmpsToSetHelperText => nameof(SupportChargingAmpsToSetHelperText);

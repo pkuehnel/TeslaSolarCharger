@@ -25,22 +25,21 @@ public interface IBleService
     Task<DtoBleCommandResult> GetBodyControllerState(string vin);
 
     /// <summary>
-    /// Scans for the BLE advertisements of the given cars on one container and adapter without connecting to any of
-    /// them, so no car is woken. All VINs share one scan window, which is why an absent car costs the window once
-    /// per group instead of a full connect timeout per car.
+    /// Asks one container what it knows about the given cars: how long ago each was last heard, by advertisement or
+    /// by a command it answered. Answered from the container's memory, so it never touches the radio, never wakes a
+    /// car, and costs nothing at all for a car that is not there.
     /// </summary>
-    /// <param name="windowSeconds">
-    /// How long the container listens before giving up. Null leaves the container's own default in place. The scan
-    /// ends as soon as every car was heard, so a longer window only costs time when a car really is away.
+    /// <param name="maxAgeSeconds">
+    /// How old the newest evidence may be and still count as present. Null leaves the container's own default.
     /// </param>
-    Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins,
-        int? keepWarmSeconds, int? windowSeconds = null);
+    Task<DtoBlePresenceResult> GetPresence(string? host, string? adapter, List<string> vins,
+        int? keepWarmSeconds, int? maxAgeSeconds = null);
 
     /// <summary>
-    /// Beacon scan for a single car on the container and adapter configured for that car. Never sends keepWarm, so a
+    /// Presence of a single car on the container and adapter configured for that car. Never sends keepWarm, so a
     /// manual check does not change the container's warm window.
     /// </summary>
-    Task<DtoBleBeaconScanResult> GetBeaconScanResultForVin(string vin);
+    Task<DtoBlePresenceResult> GetPresenceForVin(string vin);
 
     /// <summary>
     /// Lists the Bluetooth adapters of the container with the given base url, so a car can be pinned to a specific

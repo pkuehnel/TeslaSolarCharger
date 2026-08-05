@@ -196,21 +196,20 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         
     }
 
-    public async Task<DtoBleBeaconScanResult> GetBeaconScanResults(string? host, string? adapter, List<string> vins,
-        int? keepWarmSeconds, int? windowSeconds = null)
+    public async Task<DtoBlePresenceResult> GetPresence(string? host, string? adapter, List<string> vins,
+        int? keepWarmSeconds, int? maxAgeSeconds = null)
     {
-        logger.LogTrace("{method}({host}, {adapter}, {@vins}, {keepWarmSeconds}, {windowSeconds})", nameof(GetBeaconScanResults), host, adapter, vins, keepWarmSeconds, windowSeconds);
+        logger.LogTrace("{method}({host}, {adapter}, {@vins}, {keepWarmSeconds}, {maxAgeSeconds})", nameof(GetPresence), host, adapter, vins, keepWarmSeconds, maxAgeSeconds);
         var bleBaseUrl = GetBleBaseUrlFromConfiguredUrl(host);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
-            return new DtoBleBeaconScanResult
+            return new DtoBlePresenceResult
             {
-                Success = false,
-                Outcome = BleCommandOutcome.InvalidRequest,
-                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ErrorMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
             };
         }
         var queryString = HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add(BleApiRoutes.VinsQueryParam, string.Join(',', vins));
         if (!string.IsNullOrWhiteSpace(adapter))
         {
             queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
@@ -219,70 +218,47 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, keepWarmSeconds.Value.ToString());
         }
-        if (windowSeconds != default)
+        if (maxAgeSeconds != default)
         {
-            //Older containers ignore the unknown parameter and keep using their own default, so this stays compatible.
-            queryString.Add(BleApiRoutes.WindowMsQueryParam, (windowSeconds.Value * 1000).ToString());
+            queryString.Add(BleApiRoutes.MaxAgeSecondsQueryParam, maxAgeSeconds.Value.ToString());
         }
-        AddUseDebugQueryParameter(queryString);
-        var url = $"{bleBaseUrl}{BleApiRoutes.BeaconScan}?{queryString}";
+        var url = $"{bleBaseUrl}{BleApiRoutes.Presence}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         var client = CreateBleClient();
         using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
         try
         {
-            var response = await client.PostAsJsonAsync(url, vins, cancellationTokenSource.Token).ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                //An old BLE container does not know the endpoint. The version mismatch is surfaced separately; here
-                //it only means no presence information, never "car is away".
-                return new DtoBleBeaconScanResult
-                {
-                    Success = false,
-                    Outcome = BleCommandOutcome.InvalidRequest,
-                    ResultMessage = "The BLE container does not support beacon scans. Update the BLE container to the latest version.",
-                };
-            }
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogError("Failed to run beacon scan. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
-                return new DtoBleBeaconScanResult
+                //Includes an old container that does not know the endpoint. The version mismatch is surfaced
+                //separately; here it only means no presence information, never "car is away".
+                logger.LogError("Failed to get BLE presence. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+                return new DtoBlePresenceResult
                 {
-                    Success = false,
-                    Outcome = BleCommandOutcome.WorkerError,
-                    ResultMessage = $"BLE container answered with {response.StatusCode}: {responseContent}",
+                    ErrorMessage = $"BLE container answered with {response.StatusCode}: {responseContent}",
                 };
             }
-            return JsonConvert.DeserializeObject<DtoBleBeaconScanResult>(responseContent)
-                   ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleBeaconScanResult)}");
+            return JsonConvert.DeserializeObject<DtoBlePresenceResult>(responseContent)
+                   ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBlePresenceResult)}");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to run beacon scan.");
-            return new DtoBleBeaconScanResult
-            {
-                Success = false,
-                Outcome = BleCommandOutcome.WorkerError,
-                ResultMessage = ex.Message,
-            };
+            logger.LogError(ex, "Failed to get BLE presence.");
+            return new DtoBlePresenceResult { ErrorMessage = ex.Message };
         }
     }
 
-    public Task<DtoBleBeaconScanResult> GetBeaconScanResultForVin(string vin)
+    public Task<DtoBlePresenceResult> GetPresenceForVin(string vin)
     {
-        logger.LogTrace("{method}({vin})", nameof(GetBeaconScanResultForVin), vin);
+        logger.LogTrace("{method}({vin})", nameof(GetPresenceForVin), vin);
         var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
         if (car == default)
         {
-            return Task.FromResult(new DtoBleBeaconScanResult
-            {
-                Success = false,
-                Outcome = BleCommandOutcome.InvalidRequest,
-                ResultMessage = $"No car with VIN {vin} is known.",
-            });
+            return Task.FromResult(new DtoBlePresenceResult { ErrorMessage = $"No car with VIN {vin} is known." });
         }
-        return GetBeaconScanResults(car.BleApiBaseUrl, car.BleAdapterAddress, new List<string> { vin }, null);
+        return GetPresence(car.BleApiBaseUrl, car.BleAdapterAddress, new List<string> { vin }, null);
     }
 
     public async Task<List<DtoBleAdapter>> GetAdapters(string? host)

@@ -452,7 +452,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (c.IsCharging.Value == false)
                         && (c.ChargeModeV2 == ChargeModeV2.Auto)
                         //While BLE presence is uncertain the car may already have left home, so do not send commands.
-                        && !_blePresenceStateService.IsPresenceUncertain(c.Id, _configurationWrapper.BleMissesBeforePresenceUncertain()))
+                        && !_blePresenceStateService.IsPresenceUncertain(c.Id))
             .ToList();
 
         foreach (var car in carsToSetToMaxCurrent)

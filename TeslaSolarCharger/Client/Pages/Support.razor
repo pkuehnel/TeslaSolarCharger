@@ -231,7 +231,7 @@ else
                                         {
                                             <MudTooltip Text="@BeaconObservationTooltip(observation)">
                                                 <div style="width: 12px; height: 18px; border-radius: 2px;"
-                                                     class="@(observation.BeaconFound ? "mud-theme-success" : "mud-theme-error")"></div>
+                                                     class="@(observation.IsPresent ? "mud-theme-success" : "mud-theme-error")"></div>
                                             </MudTooltip>
                                         }
                                     </div>
@@ -243,8 +243,8 @@ else
                                                     <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnTime)</th>
                                                     <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnFound)</th>
                                                     <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnRssi)</th>
-                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnFoundAfter)</th>
-                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnOtherAdverts)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnAge)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnSource)</th>
                                                     <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnAdapter)</th>
                                                 </tr>
                                             </thead>
@@ -253,10 +253,10 @@ else
                                                 {
                                                     <tr>
                                                         <td>@observation.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture)</td>
-                                                        <td>@(observation.BeaconFound ? "✓" : "✗")</td>
+                                                        <td>@(observation.IsPresent ? "✓" : "✗")</td>
                                                         <td>@(observation.Rssi?.ToString(CultureInfo.CurrentCulture) ?? "-")</td>
-                                                        <td>@(observation.FoundAfterMs?.ToString(CultureInfo.CurrentCulture) ?? "-")</td>
-                                                        <td>@observation.OtherAdvertisementsSeen</td>
+                                                        <td>@(observation.LastSeenMsAgo is { } age ? (age / 1000d).ToString("0.0", CultureInfo.CurrentCulture) : "-")</td>
+                                                        <td>@(observation.EvidenceSource ?? "-")</td>
                                                         <td>@(observation.Adapter ?? "-")</td>
                                                     </tr>
                                                 }
@@ -786,10 +786,10 @@ else
     private string BeaconObservationTooltip(DtoBleBeaconObservation observation)
     {
         var time = observation.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
-        var found = observation.BeaconFound
+        var signal = observation.IsPresent
             ? $"{observation.Rssi?.ToString(CultureInfo.CurrentCulture) ?? "-"} dBm"
             : T(TranslationKeys.SupportNoData);
-        return $"{time} · {found} · {observation.OtherAdvertisementsSeen}";
+        return $"{time} · {signal} · {observation.EvidenceSource ?? "-"}";
     }
 
     private async Task GetBleBeaconScan(int carKey)

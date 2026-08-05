@@ -261,8 +261,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         //(transient BLE failure) or already left. Suspend new charging commands until either a beacon hit proves the
         //car is still there or it has been unreachable long enough to be confirmed as away (which sets IsHome false).
         if (loadpoint.CarId != default
-            && _blePresenceStateService.IsPresenceUncertain(loadpoint.CarId.Value,
-                _configurationWrapper.BleMissesBeforePresenceUncertain()))
+            && _blePresenceStateService.IsPresenceUncertain(loadpoint.CarId.Value))
         {
             _logger.LogDebug("BLE presence of car {carId} is uncertain, suspending charging commands.", loadpoint.CarId);
             _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,

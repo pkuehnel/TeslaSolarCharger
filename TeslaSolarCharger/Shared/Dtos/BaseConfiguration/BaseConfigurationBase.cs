@@ -151,13 +151,16 @@ public class BaseConfigurationBase
     [Range(0, int.MaxValue)]
     [Postfix("min")]
     public int? BleSleepStabilityMinutes { get; set; }
-    //Nullable on purpose, see BleSleepWindowMinutes. Consecutive missed beacon scans before charging commands are
-    //suspended because it is no longer certain the car is still at home.
-    [Range(1, 100)]
-    public int? BleMissesBeforePresenceUncertain { get; set; }
-    //Nullable on purpose, see BleSleepWindowMinutes. Seconds a beacon scan listens before giving up on a car.
-    [Range(1, 60)]
+    //Nullable on purpose, see BleSleepWindowMinutes. How long ago a car may last have been heard - by advertisement
+    //or by a command it answered - and still count as being at home.
+    [Range(30, 600)]
     [Postfix("s")]
+    public int? BlePresenceMaxAgeSeconds { get; set; }
+    //Retired settings of the sampled beacon scan, which no longer exists. Kept so a saved configuration written by an
+    //older version still round trips; nothing reads them.
+    [Obsolete("Presence is no longer sampled, so there are no misses to tolerate. Use BlePresenceMaxAgeSeconds.")]
+    public int? BleMissesBeforePresenceUncertain { get; set; }
+    [Obsolete("The scan is permanent, so there is no window. Use BlePresenceMaxAgeSeconds.")]
     public int? BleBeaconScanWindowSeconds { get; set; }
     public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }

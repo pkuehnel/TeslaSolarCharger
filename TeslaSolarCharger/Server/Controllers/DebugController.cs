@@ -313,14 +313,14 @@ public class DebugController(
     /// hears nothing at all.
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> GetBleBeaconScanResult(int carId)
+    public async Task<IActionResult> GetBlePresence(int carId)
     {
         var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
         if (string.IsNullOrEmpty(vin))
         {
             return BadRequest("Car has no VIN");
         }
-        var result = await bleService.GetBeaconScanResultForVin(vin);
+        var result = await bleService.GetPresenceForVin(vin);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }

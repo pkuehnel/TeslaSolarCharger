@@ -63,7 +63,7 @@ public class GetTargetValueTests : TestBase
     public void GetTargetValue_BlePresenceUncertain_ReturnsNullAndAddsReason()
     {
         // Arrange
-        Mock.Mock<IBlePresenceStateService>().Setup(s => s.IsPresenceUncertain(1, It.IsAny<int>())).Returns(true);
+        Mock.Mock<IBlePresenceStateService>().Setup(s => s.IsPresenceUncertain(1)).Returns(true);
         var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
         var constraintValues = new ConstraintValues
         {
@@ -88,7 +88,7 @@ public class GetTargetValueTests : TestBase
     public void GetTargetValue_BlePresenceUncertainForOtherCar_DoesNotSuspend()
     {
         // Arrange
-        Mock.Mock<IBlePresenceStateService>().Setup(s => s.IsPresenceUncertain(2, It.IsAny<int>())).Returns(true);
+        Mock.Mock<IBlePresenceStateService>().Setup(s => s.IsPresenceUncertain(2)).Returns(true);
         var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
         var constraintValues = new ConstraintValues
         {

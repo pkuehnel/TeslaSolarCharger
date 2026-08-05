@@ -13,7 +13,6 @@ public static class BleApiRoutes
     /// by listening for a window.
     /// </summary>
     public const string Presence = "Presence/Get";
-    public const string BeaconScan = "Command/BeaconScan";
     public const string ListCommands = "Command/ListCommands";
     public const string AdapterList = "Adapter/List";
     public const string TscVersionCompatibility = "Hello/TscVersionCompatibility";
@@ -27,7 +26,6 @@ public static class BleApiRoutes
     public const string KeepWarmSecondsQueryParam = "keepWarmSeconds";
     public const string VinsQueryParam = "vins";
     public const string MaxAgeSecondsQueryParam = "maxAgeSeconds";
-    public const string WindowMsQueryParam = "windowMs";
     public const string AdapterQueryParam = "adapter";
     public const string ApiRoleQueryParam = "apiRole";
     public const string UseDebugQueryParam = "useDebug";

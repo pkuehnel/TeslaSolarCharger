@@ -180,13 +180,13 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Signal (dBm)"),
             new TextLocalizationTranslation(LanguageCodes.German, "Signal (dBm)"));
 
-        Register(TranslationKeys.SupportBleBeaconHistoryColumnFoundAfter,
-            new TextLocalizationTranslation(LanguageCodes.English, "Heard after (ms)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gehört nach (ms)"));
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnAge,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last heard (s ago)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuletzt gehört (vor s)"));
 
-        Register(TranslationKeys.SupportBleBeaconHistoryColumnOtherAdverts,
-            new TextLocalizationTranslation(LanguageCodes.English, "Other adverts"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Andere Advertisements"));
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnSource,
+            new TextLocalizationTranslation(LanguageCodes.English, "Evidence"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nachweis"));
 
         Register(TranslationKeys.SupportBleBeaconHistoryColumnAdapter,
             new TextLocalizationTranslation(LanguageCodes.English, "Adapter"),

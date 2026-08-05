@@ -272,22 +272,13 @@ public class ConfigurationWrapper(
         return value < 0 ? 0 : value;
     }
 
-    public int BleMissesBeforePresenceUncertain()
+    public int BlePresenceMaxAgeSeconds()
     {
-        var value = GetBaseConfiguration().BleMissesBeforePresenceUncertain
-                    ?? ConfigurationDefaults.BleMissesBeforePresenceUncertain;
-        //0 or negative would mean "uncertain before anything was even missed", which would suspend charging commands
-        //forever, so the lowest meaningful value is 1 (suspend on the first miss, the behaviour before this setting).
-        return value < 1 ? 1 : value;
-    }
-
-    public int BleBeaconScanWindowSeconds()
-    {
-        var value = GetBaseConfiguration().BleBeaconScanWindowSeconds
-                    ?? ConfigurationDefaults.BleBeaconScanWindowSeconds;
-        //Matches the container's own clamp: below a second the scan cannot hear anything, above a minute it would
-        //hold the adapter far longer than any sensible refresh interval.
-        return Math.Clamp(value, 1, 60);
+        var value = GetBaseConfiguration().BlePresenceMaxAgeSeconds
+                    ?? ConfigurationDefaults.BlePresenceMaxAgeSeconds;
+        //Matches the container's own clamp. Below half a minute a single slow poll cycle could look like a
+        //departure; above ten minutes a car that really left would keep its last known state for far too long.
+        return Math.Clamp(value, 30, 600);
     }
 
     public double HomeGeofenceLongitude()

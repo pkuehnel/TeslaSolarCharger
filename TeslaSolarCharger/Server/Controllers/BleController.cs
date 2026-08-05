@@ -43,10 +43,10 @@ public class BleController (IBleService bleService) : ApiBaseController
     public Task<List<DtoBleAdapter>> GetAdapters(string bleApiBaseUrl) => bleService.GetAdapters(bleApiBaseUrl);
 
     /// <summary>
-    /// Manual beacon scan for one car, e.g. to check from the UI whether the car is currently seen by its container.
+    /// Manual presence check for one car, e.g. to see from the UI how long ago its container last heard it.
     /// </summary>
     [HttpGet]
-    public Task<DtoBleBeaconScanResult> BeaconScan(string vin) => bleService.GetBeaconScanResultForVin(vin);
+    public Task<DtoBlePresenceResult> Presence(string vin) => bleService.GetPresenceForVin(vin);
 
     [HttpGet]
     public async Task<IActionResult> DownloadLogs(string bleApiBaseUrl)

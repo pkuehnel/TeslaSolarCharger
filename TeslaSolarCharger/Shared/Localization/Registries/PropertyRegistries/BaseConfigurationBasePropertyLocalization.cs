@@ -358,21 +358,13 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "BLE-Schlafstabilität (Min)",
                 "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
 
-        Register(x => x.BleBeaconScanWindowSeconds,
+        Register(x => x.BlePresenceMaxAgeSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                "BLE beacon scan window (s)",
-                "How long each scan listens for a car before giving up. A parked Tesla only announces itself every ten seconds or so, so a short window misses it most of the time even when the signal is strong and the car is right there. The scan stops the moment every car has been heard, so a longer window costs nothing while the cars are at home and only takes its full length when one really is away. Raise it together with the refresh interval above if cars are often reported as out of range. Leave empty to use the default (7 s)."),
+                "BLE presence max age (s)",
+                "How long ago a car may last have been heard and still count as being at home. Both its Bluetooth announcements and every command it answered count, which matters because a Tesla goes completely silent while TeslaSolarCharger is connected to it - the two sources cover exactly the periods the other cannot. Measured on real cars, a parked car is normally heard several times a second, so this value has a lot of headroom; raise it only if cars are reported as out of range while standing at home. Detecting that a car really left takes this time plus a confirmation period of about two and a half minutes. Leave empty to use the default (90 s)."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "BLE-Beacon-Suchfenster (s)",
-                "Wie lange jede Suche auf ein Fahrzeug wartet, bevor sie aufgibt. Ein geparkter Tesla meldet sich nur etwa alle zehn Sekunden, daher verfehlt ihn ein kurzes Fenster meistens, selbst bei starkem Signal und direkt danebenstehendem Fahrzeug. Die Suche endet, sobald alle Fahrzeuge gehört wurden, ein längeres Fenster kostet also nichts, solange die Fahrzeuge zu Hause sind, und dauert nur dann voll, wenn eines tatsächlich weg ist. Erhöhen Sie den Wert zusammen mit dem Abrufintervall oben, wenn Fahrzeuge häufig als außer Reichweite gemeldet werden. Leer lassen für den Standardwert (7 s)."));
-
-        Register(x => x.BleMissesBeforePresenceUncertain,
-            new PropertyLocalizationTranslation(LanguageCodes.English,
-                "BLE misses before presence is uncertain",
-                "How many BLE beacon scans in a row may miss the car before charging commands are suspended because it is no longer certain the car is at home. A weak Bluetooth link misses scans on a car that is standing right there, and every miss blocks charging control until the next hit, so raise this if you see \"BLE connection to the car is unstable\" often. It does not delay detecting that a car really left, which has its own confirmation time. 1 suspends on the very first miss. Leave empty to use the default (2)."),
-            new PropertyLocalizationTranslation(LanguageCodes.German,
-                "BLE-Fehlversuche bis Anwesenheit unsicher",
-                "Wie viele BLE-Beacon-Scans in Folge das Fahrzeug verfehlen dürfen, bevor Ladebefehle ausgesetzt werden, weil nicht mehr sicher ist, ob das Fahrzeug noch zu Hause ist. Eine schwache Bluetooth-Verbindung verfehlt Scans auch bei einem direkt danebenstehenden Fahrzeug, und jeder Fehlversuch blockiert die Ladesteuerung bis zum nächsten Treffer. Erhöhen Sie den Wert daher, wenn „Die BLE-Verbindung zum Fahrzeug ist instabil“ häufig erscheint. Die Erkennung eines tatsächlich weggefahrenen Fahrzeugs wird dadurch nicht verzögert, dafür gibt es eine eigene Bestätigungszeit. 1 setzt Ladebefehle schon beim ersten Fehlversuch aus. Leer lassen für den Standardwert (2)."));
+                "BLE-Anwesenheit maximales Alter (s)",
+                "Wie lange ein Fahrzeug zuletzt gehört worden sein darf, um noch als zu Hause zu gelten. Dabei zählen sowohl seine Bluetooth-Meldungen als auch jeder beantwortete Befehl. Das ist wichtig, weil ein Tesla vollständig verstummt, solange TeslaSolarCharger mit ihm verbunden ist - die beiden Quellen decken also genau die Zeiträume ab, die die jeweils andere nicht abdeckt. An echten Fahrzeugen gemessen wird ein geparktes Fahrzeug normalerweise mehrmals pro Sekunde gehört, dieser Wert hat also viel Reserve; erhöhen Sie ihn nur, wenn Fahrzeuge als außer Reichweite gemeldet werden, obwohl sie zu Hause stehen. Bis erkannt wird, dass ein Fahrzeug wirklich weggefahren ist, vergeht diese Zeit zuzüglich einer Bestätigungszeit von etwa zweieinhalb Minuten. Leer lassen für den Standardwert (90 s)."));
 
         Register(x => x.UseBleDebug,
             new PropertyLocalizationTranslation(LanguageCodes.English,

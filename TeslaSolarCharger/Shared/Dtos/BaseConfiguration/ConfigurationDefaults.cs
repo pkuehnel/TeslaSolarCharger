@@ -28,18 +28,11 @@ public static class ConfigurationDefaults
     public const int BleSleepStabilityMinutes = 5;
 
     /// <summary>
-    /// Consecutive failed BLE beacon scans before a car's presence counts as uncertain and charging commands are
-    /// suspended. 1 suspends on the very first miss. A weak radio misses scans on a car that is provably at home, and
-    /// every miss then blocks charging control until the next hit, so a small tolerance keeps a marginal link usable.
-    /// This never delays the away detection itself, which has its own (longer) confirmation window.
+    /// How old the newest evidence about a car may be and still count as present. Both its BLE advertisements and the
+    /// commands it answered count: a Tesla emits nothing at all while it holds a connection, so the two sources cover
+    /// exactly the periods the other cannot. Measured worst case under a real 13 s poll was 21 s, and the worst a
+    /// parked car went unheard in an idle hour was 0.6 s, so 90 s is generous. The away confirmation sits on top of
+    /// this, putting the away transition at about four minutes of true silence.
     /// </summary>
-    public const int BleMissesBeforePresenceUncertain = 2;
-
-    /// <summary>
-    /// Seconds a beacon scan listens for a car before giving up. Measured on a real car, a parked Tesla advertises
-    /// only every ten seconds or so, so a short window misses it most of the time even at good signal strength. The
-    /// scan ends the moment every car was heard, so a longer window costs nothing while the car is there and only
-    /// takes its full length when a car really is away.
-    /// </summary>
-    public const int BleBeaconScanWindowSeconds = 7;
+    public const int BlePresenceMaxAgeSeconds = 90;
 }

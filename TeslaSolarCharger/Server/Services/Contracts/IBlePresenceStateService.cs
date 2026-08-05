@@ -4,31 +4,27 @@ using TeslaSolarCharger.Shared.Enums;
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
 /// <summary>
-/// Tracks, per BLE data collection car, how long it has continuously been reported as out of BLE range. A single out
-/// of range result can also be caused by a transient BLE stack failure while the car is at home, so the car is only
-/// confirmed as away once it has been unreachable for an uninterrupted period. Also tracks per BLE container/adapter
-/// when the radio last provably received anything, as the only available evidence against a dead radio. State is kept
-/// in memory only.
+/// Turns "how long ago was this car last heard" into a presence decision. The BLE container answers that question
+/// from its permanent background scan and from every command a car answered; a Tesla emits nothing at all while it
+/// holds a connection to us, so those two sources are complementary and only both fall silent when the car is gone.
+/// Also tracks per BLE container/adapter when the radio last provably received anything, as the only available
+/// evidence against a dead radio. State is kept in memory only.
 /// </summary>
 public interface IBlePresenceStateService
 {
     /// <summary>
-    /// Ends the current out of range streak of a car because a BLE read succeeded, proving the car is in range.
+    /// Registers the age of the newest evidence about a car. <paramref name="age"/> is null when nothing can be
+    /// concluded (the container's scan is still warming up, or not running), which keeps the last known state and
+    /// records no miss. Returns <see cref="BlePresenceDecision.JustConfirmedAway"/> exactly once, so the caller runs
+    /// the away transition a single time.
     /// </summary>
-    void RegisterSuccessfulRead(int carId);
+    BlePresenceDecision RegisterPresenceAge(int carId, TimeSpan? age, TimeSpan maxAge);
 
     /// <summary>
-    /// Registers an out of BLE range poll result. Returns <see cref="BleAwayConfirmation.JustConfirmed"/> exactly once,
-    /// on the first poll at which the car has been continuously unreachable for the confirmation duration, so the
-    /// caller can run the away transition exactly once.
+    /// True while the car has not been heard for longer than the max age but is not confirmed away yet. During this
+    /// window the last known car state stays valid but no new charging commands should be sent.
     /// </summary>
-    BleAwayConfirmation RegisterOutOfRange(int carId, DateTime nowUtc);
-
-    /// <summary>
-    /// True while out of range results were registered but the car is not yet confirmed as away. During this window
-    /// the last known car state stays valid but no new charging commands should be sent to the car.
-    /// </summary>
-    bool IsPresenceUncertain(int carId, int missesBeforeUncertain);
+    bool IsPresenceUncertain(int carId);
 
     /// <summary>
     /// Clears the presence state of a car entirely.
@@ -36,21 +32,20 @@ public interface IBlePresenceStateService
     void Reset(int carId);
 
     /// <summary>
-    /// Drops the presence state of every car not contained in <paramref name="carIds"/>. Called with the currently BLE
-    /// polled cars each refresh cycle so a car that left BLE data collection mode (or a disabled global switch) cannot
-    /// keep a stale uncertain state that would suppress its charging commands forever.
+    /// Drops the presence state of every car not contained in <paramref name="carIds"/>. Called with the currently
+    /// BLE polled cars each refresh cycle so a car that left BLE data collection mode (or a disabled global switch)
+    /// cannot keep a stale uncertain state that would suppress its charging commands forever.
     /// </summary>
     void RetainOnly(IReadOnlyCollection<int> carIds);
 
     /// <summary>
-    /// Registers the result of a beacon scan for radio silence tracking: heardAnything is true when the scan received
-    /// any advertisement at all (a car's or another device's). Returns how long the radio has provably received
+    /// Registers whether the container's radio provably received anything at all. Returns how long it has heard
     /// nothing, measured from the first registration if it never heard anything.
     /// </summary>
-    TimeSpan RegisterScanEvidence(string containerKey, bool heardAnything, DateTimeOffset timestamp);
+    TimeSpan RegisterRadioEvidence(string containerKey, bool heardAnything, DateTimeOffset timestamp);
 
     /// <summary>
-    /// Records what a beacon scan observed for a car, whether or not it was found. Purely diagnostic: this never
+    /// Records what was known about a car at one poll, whether or not it was present. Purely diagnostic: this never
     /// influences presence, it exists so an unreliable link can be looked at instead of guessed about.
     /// </summary>
     void RegisterObservation(int carId, DtoBleBeaconObservation observation);

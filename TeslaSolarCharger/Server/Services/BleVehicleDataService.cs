@@ -74,67 +74,73 @@ public class BleVehicleDataService(
     {
         logger.LogTrace("{method}({host}, {adapter}, {carCount} cars)", nameof(RefreshGroup), host, adapter, cars.Count);
         var vins = cars.Select(c => c.Vin!).ToList();
-        DtoBleBeaconScanResult scanResult;
+        var maxAge = TimeSpan.FromSeconds(configurationWrapper.BlePresenceMaxAgeSeconds());
+        DtoBlePresenceResult presence;
         try
         {
             //keepWarmSeconds is only ever sent here, on the scheduled poll: the worker of this adapter stays warm
-            //between polls, while one-off commands never change the warm window.
-            scanResult = await bleService.GetBeaconScanResults(host, adapter, vins, BleConstants.BleKeepWarmSeconds,
-                configurationWrapper.BleBeaconScanWindowSeconds()).ConfigureAwait(false);
+            //between polls - and with it its background scan - while one-off commands never change the warm window.
+            presence = await bleService.GetPresence(host, adapter, vins, BleConstants.BleKeepWarmSeconds,
+                (int)maxAge.TotalSeconds).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Beacon scan for {host} (adapter {adapter}) failed", host, adapter);
-            await HandleScanUnavailable(cars, adapter, $"Beacon scan failed: {ex.Message}", isAdapterMissing: false).ConfigureAwait(false);
+            logger.LogError(ex, "Presence request for {host} (adapter {adapter}) failed", host, adapter);
+            await HandleScanUnavailable(cars, adapter, $"BLE presence request failed: {ex.Message}", isAdapterMissing: false).ConfigureAwait(false);
             return;
         }
-        if (!scanResult.Success || scanResult.Outcome != BleCommandOutcome.Ok)
+        if (!string.IsNullOrEmpty(presence.ErrorMessage))
         {
-            //The scan itself could not run: this carries no presence information for any car, so the last known
+            //The container could not answer: this carries no presence information for any car, so the last known
             //state stays valid and only the error is surfaced.
-            logger.LogError("Beacon scan for {host} (adapter {adapter}) could not run: {outcome} {message}",
-                host, adapter, scanResult.Outcome, scanResult.ResultMessage);
-            await HandleScanUnavailable(cars, adapter,
-                $"Beacon scan could not run ({scanResult.Outcome}): {scanResult.ResultMessage}",
-                isAdapterMissing: scanResult.Outcome == BleCommandOutcome.AdapterNotFound).ConfigureAwait(false);
+            logger.LogError("Presence request for {host} (adapter {adapter}) could not run: {message}",
+                host, adapter, presence.ErrorMessage);
+            await HandleScanUnavailable(cars, adapter, $"BLE presence could not be determined: {presence.ErrorMessage}",
+                isAdapterMissing: presence.ErrorMessage.Contains("not present on this host", StringComparison.OrdinalIgnoreCase)).ConfigureAwait(false);
             return;
         }
-        await HandleRadioEvidence(host, adapter, cars, scanResult).ConfigureAwait(false);
+        await HandleRadioEvidence(host, adapter, cars, presence).ConfigureAwait(false);
         foreach (var car in cars)
         {
-            var vehicleResult = scanResult.Vehicles
+            var vehicle = presence.Vehicles
                 .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-            var beaconFound = vehicleResult is { BeaconFound: true };
-            RecordBeaconObservation(car, adapter, scanResult, vehicleResult, beaconFound);
-            await RefreshCarFromScanOutcome(car, beaconFound).ConfigureAwait(false);
+            //While the scan is still warming up nothing may be concluded: right after a container or worker restart
+            //every car reads as not heard, and that is ignorance, not absence.
+            TimeSpan? age = presence is { WarmingUp: false, ScannerRunning: true } && vehicle?.LastSeenMsAgo is { } lastSeen
+                ? TimeSpan.FromMilliseconds(lastSeen)
+                : null;
+            RecordPresenceObservation(car, adapter, presence, vehicle, age <= maxAge);
+            await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
         }
     }
 
     /// <summary>
-    /// Keeps what the scan saw for later inspection. Only the found/not found bit drives presence, but the rest is
-    /// what tells an unreliable link apart from an absent car, so it is recorded rather than dropped here.
+    /// Keeps what was known about a car at this poll for later inspection. Only presence drives behaviour, but the
+    /// rest is what tells an unreliable link apart from an absent car, so it is recorded rather than dropped here.
     /// </summary>
-    private void RecordBeaconObservation(DtoCar car, string? adapter, DtoBleBeaconScanResult scanResult,
-        DtoBleBeaconVehicleResult? vehicleResult, bool beaconFound)
+    private void RecordPresenceObservation(DtoCar car, string? adapter, DtoBlePresenceResult presence,
+        DtoBlePresenceVehicle? vehicle, bool isPresent)
     {
         blePresenceStateService.RegisterObservation(car.Id, new DtoBleBeaconObservation
         {
             Timestamp = new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero),
-            BeaconFound = beaconFound,
-            Rssi = beaconFound ? vehicleResult?.Rssi : null,
-            FoundAfterMs = beaconFound ? vehicleResult?.FoundAfterMs : null,
-            ScanWindowMs = scanResult.WindowMs,
-            ScanDurationMs = scanResult.ScanDurationMs,
-            OtherAdvertisementsSeen = scanResult.OtherAdvertisementsSeen,
+            IsPresent = isPresent,
+            LastSeenMsAgo = vehicle?.LastSeenMsAgo,
+            EvidenceSource = vehicle?.LastSource,
+            Rssi = vehicle?.Rssi,
+            AdvertisementsSeen = presence.AdvertisementsSeen,
             Adapter = adapter,
         });
     }
 
     /// <summary>
-    /// Applies one beacon scan outcome to a car and publishes the resulting state. Coordinated per car so the
-    /// scheduled refresh and an on demand single car read can never talk to the same car at the same time.
+    /// Applies one presence answer to a car and publishes the resulting state. Coordinated per car so the scheduled
+    /// refresh and an on demand single car read can never talk to the same car at the same time.
+    ///
+    /// A car that is not present is not talked to at all: that is the whole point of asking first. The old design
+    /// paid a scan window, and a command only design would pay a full connect timeout, for a car that is simply gone.
     /// </summary>
-    private async Task RefreshCarFromScanOutcome(DtoCar car, bool beaconFound)
+    private async Task RefreshCarFromPresence(DtoCar car, TimeSpan? age, TimeSpan maxAge)
     {
         if (!bleReadCoordinator.TryBeginRead(car.Id))
         {
@@ -144,13 +150,14 @@ public class BleVehicleDataService(
         {
             try
             {
-                if (beaconFound)
+                var decision = blePresenceStateService.RegisterPresenceAge(car.Id, age, maxAge);
+                if (decision == BlePresenceDecision.Present)
                 {
                     await RefreshPresentCarData(car).ConfigureAwait(false);
                 }
                 else
                 {
-                    await HandleOutOfRangeObservation(car).ConfigureAwait(false);
+                    await HandleAbsentCar(car, decision).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -200,28 +207,31 @@ public class BleVehicleDataService(
         {
             return;
         }
-        DtoBleBeaconScanResult scanResult;
+        var maxAge = TimeSpan.FromSeconds(configurationWrapper.BlePresenceMaxAgeSeconds());
+        DtoBlePresenceResult presence;
         try
         {
             //No keepWarmSeconds: only the scheduled poll owns the container's warm window.
-            scanResult = await bleService.GetBeaconScanResults(car.BleApiBaseUrl, car.BleAdapterAddress,
-                new List<string> { car.Vin }, null, configurationWrapper.BleBeaconScanWindowSeconds()).ConfigureAwait(false);
+            presence = await bleService.GetPresence(car.BleApiBaseUrl, car.BleAdapterAddress,
+                new List<string> { car.Vin }, null, (int)maxAge.TotalSeconds).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Beacon scan for single car {vin} failed", car.Vin);
+            logger.LogError(ex, "Presence request for single car {vin} failed", car.Vin);
             return;
         }
-        if (!scanResult.Success || scanResult.Outcome != BleCommandOutcome.Ok)
+        if (!string.IsNullOrEmpty(presence.ErrorMessage))
         {
-            //The scan could not run, which carries no presence information: leave the state to the scheduled refresh.
-            logger.LogDebug("Beacon scan for single car {vin} could not run: {outcome} {message}", car.Vin,
-                scanResult.Outcome, scanResult.ResultMessage);
+            //Carries no presence information: leave the state to the scheduled refresh.
+            logger.LogDebug("Presence for single car {vin} could not be determined: {message}", car.Vin, presence.ErrorMessage);
             return;
         }
-        var beaconFound = scanResult.Vehicles
-            .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase)) is { BeaconFound: true };
-        await RefreshCarFromScanOutcome(car, beaconFound).ConfigureAwait(false);
+        var vehicle = presence.Vehicles
+            .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
+        TimeSpan? age = presence is { WarmingUp: false, ScannerRunning: true } && vehicle?.LastSeenMsAgo is { } lastSeen
+            ? TimeSpan.FromMilliseconds(lastSeen)
+            : null;
+        await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
     }
 
     private async Task HandleScanUnavailable(List<DtoCar> cars, string? adapter, string message, bool isAdapterMissing)
@@ -243,13 +253,14 @@ public class BleVehicleDataService(
         }
     }
 
-    private async Task HandleRadioEvidence(string? host, string? adapter, List<DtoCar> cars, DtoBleBeaconScanResult scanResult)
+    private async Task HandleRadioEvidence(string? host, string? adapter, List<DtoCar> cars, DtoBlePresenceResult presence)
     {
-        var heardAnything = scanResult.OtherAdvertisementsSeen > 0
-                            || scanResult.DistinctDevicesSeen > 0
-                            || scanResult.Vehicles.Any(v => v.BeaconFound);
+        //Whether the radio received anything at all recently, from any device. Independent of whether a car was
+        //heard: that is what tells a dead radio apart from an empty driveway.
+        var heardAnything = presence.LastAdvertisementMsAgo is { } lastAdvertisement
+                            && lastAdvertisement <= presence.MaxAgeMs;
         var containerKey = $"{host}|{adapter}";
-        var silence = blePresenceStateService.RegisterScanEvidence(containerKey, heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
+        var silence = blePresenceStateService.RegisterRadioEvidence(containerKey, heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
         foreach (var car in cars)
         {
             if (heardAnything)
@@ -271,28 +282,36 @@ public class BleVehicleDataService(
         }
     }
 
-    private async Task HandleOutOfRangeObservation(DtoCar car)
+    /// <summary>
+    /// A car that is not present is never talked to: no connect, no command, no timeout. That is the point of asking
+    /// the container first, and it is what an absent car used to cost a scan window for.
+    /// </summary>
+    private async Task HandleAbsentCar(DtoCar car, BlePresenceDecision decision)
     {
         var vin = car.Vin!;
         var timestamp = dateTimeProvider.UtcNow();
-        var confirmation = blePresenceStateService.RegisterOutOfRange(car.Id, timestamp);
-        switch (confirmation)
+        switch (decision)
         {
-            case BleAwayConfirmation.JustConfirmed:
-                logger.LogInformation("Beacon of car {vin} not found for the whole confirmation duration, car is confirmed as away", vin);
+            case BlePresenceDecision.JustConfirmedAway:
+                logger.LogInformation("Car {vin} has not been heard for the whole confirmation duration, car is confirmed as away", vin);
                 UpdateHomePresence(car, false, timestamp);
                 UpdateOnlineState(car, false, timestamp);
                 ResetChargingValuesForAwayCar(car, timestamp);
                 await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
                 break;
-            case BleAwayConfirmation.AlreadyConfirmed:
+            case BlePresenceDecision.AlreadyAway:
                 //The car is already marked as away: nothing changed, so do not write the same values again.
                 break;
+            case BlePresenceDecision.Unknown:
+                //The container cannot say yet, e.g. its scan is still warming up after a restart. Ignorance is not
+                //absence: keep the last known state and wait.
+                logger.LogDebug("Nothing is known about car {vin} yet, keeping last known state", vin);
+                break;
             default:
-                //Not unreachable long enough yet: keep the last known state; charging commands are suspended via
-                //IsPresenceUncertain until either a hit proves the car is there or the away state is confirmed.
-                logger.LogDebug("Beacon of car {vin} not found, keeping last known state until the away state is confirmed", vin);
+                //Not silent long enough yet: keep the last known state; charging commands are suspended via
+                //IsPresenceUncertain until either the car is heard again or the away state is confirmed.
+                logger.LogDebug("Car {vin} not heard, keeping last known state until the away state is confirmed", vin);
                 break;
         }
     }
@@ -322,7 +341,6 @@ public class BleVehicleDataService(
     {
         logger.LogTrace("{method}({vin})", nameof(RefreshPresentCarData), car.Vin);
         var vin = car.Vin!;
-        blePresenceStateService.RegisterSuccessfulRead(car.Id);
         var timestamp = dateTimeProvider.UtcNow();
         //Persist the presence right away in case the body controller read afterwards fails.
         UpdateHomePresence(car, true, timestamp);
