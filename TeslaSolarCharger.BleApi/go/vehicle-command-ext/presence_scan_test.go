@@ -380,6 +380,60 @@ func TestScannerWatchdogReArmsADeafScan(t *testing.T) {
 	waitFor(t, func() bool { return scanner.snapshot(nil, time.Minute).Restarts > 0 })
 }
 
+// testClock hands out a time the test controls, so the scan time accounting can be asserted exactly instead of
+// against a stopwatch.
+type testClock struct {
+	mu  sync.Mutex
+	now time.Time
+}
+
+func (clock *testClock) get() time.Time {
+	clock.mu.Lock()
+	defer clock.mu.Unlock()
+	return clock.now
+}
+
+func (clock *testClock) advance(delta time.Duration) {
+	clock.mu.Lock()
+	defer clock.mu.Unlock()
+	clock.now = clock.now.Add(delta)
+}
+
+// The normal state of the scanner is one long uninterrupted scan. Counting only scans that already ended made it
+// report a duty cycle falling towards zero while it was in fact scanning the whole time, which is exactly the number
+// the rework has to be judged by.
+func TestScanTimeCountsTheRunningScan(t *testing.T) {
+	clock := &testClock{now: time.Unix(1000, 0)}
+	fake := &fakeRadio{}
+	arbiter := newRadioArbiter()
+	scanner := newPresenceScanner(PresenceScannerConfig{}, arbiter, fake.run, clock.get)
+	scanner.start()
+	t.Cleanup(func() {
+		close(scanner.quit)
+		arbiter.stop()
+		<-scanner.done
+	})
+	waitFor(t, fake.isActive)
+
+	clock.advance(10 * time.Second)
+	snapshot := scanner.snapshot(nil, time.Minute)
+	if snapshot.ScanActiveMs != 10000 {
+		t.Fatalf("the running scan must count as scan time, got %d ms", snapshot.ScanActiveMs)
+	}
+	if snapshot.ObservingMs != 10000 || snapshot.PausedMs != 0 {
+		t.Fatalf("an uninterrupted scan must report no paused time: %+v", snapshot)
+	}
+
+	//Handing the radio to a command has to show up as paused time, and the ended scan must not be counted twice.
+	release := arbiter.acquire()
+	clock.advance(2 * time.Second)
+	snapshot = scanner.snapshot(nil, time.Minute)
+	if snapshot.ScanActiveMs != 10000 || snapshot.PausedMs != 2000 {
+		t.Fatalf("time spent on a command must count as paused: %+v", snapshot)
+	}
+	release()
+}
+
 func TestWaitForVehicleReturnsWhenTheCarIsHeard(t *testing.T) {
 	name := VehicleLocalName(testVin)
 	registry := newPresenceRegistry(10*time.Minute, time.Now())

@@ -490,9 +490,13 @@ type presenceScanner struct {
 	quit chan struct{}
 	done chan struct{}
 
-	mu            sync.Mutex
-	running       bool
-	startedAt     time.Time
+	mu        sync.Mutex
+	running   bool
+	startedAt time.Time
+	//scanActive only counts scans that already ended. The scan that is running right now is counted from
+	//scanningSince when the snapshot is taken - without that, a scanner in one long uninterrupted scan (which is the
+	//normal state) reports a duty cycle that keeps falling towards zero.
+	scanningSince time.Time
 	scanActive    time.Duration
 	restarts      int64
 	scanErrors    int64
@@ -541,6 +545,9 @@ func (scanner *presenceScanner) run() {
 			return
 		}
 		start := scanner.now()
+		scanner.mu.Lock()
+		scanner.scanningSince = start
+		scanner.mu.Unlock()
 		err := scanner.runner(ctx, scanner.observe)
 		scanner.arbiter.endScan()
 		scanner.recordScan(scanner.now().Sub(start), err)
@@ -600,6 +607,7 @@ func (scanner *presenceScanner) observe(localName string, address string, rssi i
 func (scanner *presenceScanner) recordScan(duration time.Duration, err error) {
 	scanner.mu.Lock()
 	defer scanner.mu.Unlock()
+	scanner.scanningSince = time.Time{}
 	scanner.scanActive += duration
 	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 		scanner.scanErrors++
@@ -616,10 +624,14 @@ func (scanner *presenceScanner) markStopped() {
 func (scanner *presenceScanner) snapshot(vins []string, maxAge time.Duration) *PresenceSnapshot {
 	now := scanner.now()
 	scanner.mu.Lock()
+	scanActive := scanner.scanActive
+	if !scanner.scanningSince.IsZero() {
+		scanActive += now.Sub(scanner.scanningSince)
+	}
 	snapshot := &PresenceSnapshot{
 		ScannerRunning:     scanner.running,
 		ObservingMs:        now.Sub(scanner.startedAt).Milliseconds(),
-		ScanActiveMs:       scanner.scanActive.Milliseconds(),
+		ScanActiveMs:       scanActive.Milliseconds(),
 		Restarts:           scanner.restarts,
 		ScanErrors:         scanner.scanErrors,
 		LastScanError:      scanner.lastScanError,
