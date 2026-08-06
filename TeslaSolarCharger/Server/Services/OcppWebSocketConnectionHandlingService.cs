@@ -551,6 +551,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 ocppConnectorState.IsCharging.Update(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged.Update(timestamp, null);
                 ocppConnectorState.ChargingPower.Update(timestamp, 0);
+                //Unplugging invalidates any pending remote start and any charging profile, so the values TSC believes it
+                //has set are no longer true. Without this reset a last set current that never resulted in a transaction
+                //(e.g. a remote start accepted while nothing was plugged in) would be kept forever, as only a stop
+                //transaction resets it, and the connector would never be started again.
+                //Forced as the last set values carry TSC's clock while the timestamp here comes from the charge point.
+                ocppConnectorState.LastSetCurrent.Update(timestamp, 0, true);
+                ocppConnectorState.LastSetPhases.Update(timestamp, null, true);
                 break;
             case ChargePointStatus.Preparing:
                 ocppConnectorState.IsPluggedIn.Update(timestamp, true);
