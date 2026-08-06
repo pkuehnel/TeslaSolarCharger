@@ -289,7 +289,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
     {
         //Recovered from the raw text rather than from the parsed frame, so it is available even when parsing is what
         //failed. A CallError the charge point cannot match to its request does not unblock it.
-        var recoveredUniqueId = TryRecoverUniqueId(jsonMessage);
+        var head = TryRecoverHead(jsonMessage);
+        var recoveredUniqueId = head.UniqueId;
         //A frame nobody could classify is treated as a Call, because that is the one kind whose sender is blocked
         //until it hears back. Answers to our own requests carry our id and must never be answered in turn.
         var frameNeedsAnswer = true;
@@ -303,8 +304,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
             }
             catch (JsonException ex)
             {
-                logger.LogError(ex, "Could not parse message from {chargePointId}, answering with a CallError", dto.ChargePointId);
-                await SendCallError(dto, "FormationViolation", "Frame is not valid JSON", recoveredUniqueId).ConfigureAwait(false);
+                logger.LogError(ex, "Could not parse message from {chargePointId}", dto.ChargePointId);
+                await AnswerUnparseableFrame(dto, head).ConfigureAwait(false);
                 return;
             }
             var root = doc.RootElement;
@@ -392,29 +393,54 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
+    /// <summary>The message id and action of a frame, as far as they could be read without parsing it.</summary>
+    internal sealed record OcppFrameHead(string? UniqueId, string? Action);
+
     /// <summary>
-    /// Pulls the message id out of a frame that could not be parsed, so the charge point still gets an answer it can
-    /// match to its request. Only the head of an OCPP frame is needed for that - [messageTypeId,"uniqueId", ... -
-    /// and that head survives the truncation seen in the field, where the damage is at the end of the payload.
+    /// Pulls the message id and the action out of a frame that could not be parsed, so the charge point still gets an
+    /// answer it can match to its request. Only the head of an OCPP frame is needed for that -
+    /// [messageTypeId,"uniqueId","action", ... - and that head survives the truncation seen in the field, where the
+    /// damage is at the end of the payload.
     ///
     /// The search is bounded to the head so a broken head cannot make some string out of the payload look like an id:
     /// answering with an id the charge point never sent is no better than not answering at all.
     /// </summary>
-    internal static string? TryRecoverUniqueId(string rawMessage)
+    internal static OcppFrameHead TryRecoverHead(string rawMessage)
     {
         const int headLength = 128;
         var head = rawMessage.Length <= headLength ? rawMessage : rawMessage[..headLength];
         var openingBracket = head.IndexOf('[');
         if (openingBracket < 0)
         {
-            return null;
+            return new OcppFrameHead(null, null);
         }
         var comma = head.IndexOf(',', openingBracket);
         if (comma < 0)
         {
-            return null;
+            return new OcppFrameHead(null, null);
         }
-        var openingQuote = head.IndexOf('"', comma);
+        var uniqueId = ReadQuoted(head, comma, out var afterUniqueId);
+        if (uniqueId == null)
+        {
+            return new OcppFrameHead(null, null);
+        }
+        //Only a Call carries an action. On an answer the next quoted string is the first key of its payload, and
+        //reading that as the action would eventually acknowledge a frame on the strength of a payload key.
+        var messageTypeId = head[(openingBracket + 1)..comma].Trim();
+        if (messageTypeId != ((int)MessageTypeId.Call).ToString(CultureInfo.InvariantCulture))
+        {
+            return new OcppFrameHead(uniqueId, null);
+        }
+        //The action is only present when the head reaches that far.
+        var actionComma = head.IndexOf(',', afterUniqueId);
+        var action = actionComma < 0 ? null : ReadQuoted(head, actionComma, out _);
+        return new OcppFrameHead(uniqueId, action);
+    }
+
+    private static string? ReadQuoted(string head, int searchFrom, out int afterClosingQuote)
+    {
+        afterClosingQuote = searchFrom;
+        var openingQuote = head.IndexOf('"', searchFrom);
         if (openingQuote < 0)
         {
             return null;
@@ -424,7 +450,44 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             return null;
         }
+        afterClosingQuote = closingQuote + 1;
         return head[(openingQuote + 1)..closingQuote];
+    }
+
+    /// <summary>
+    /// Whether the response to this action is a bare acknowledgement, carrying no decision of ours that the charge
+    /// point acts on. Only those may be answered without having understood the request.
+    /// </summary>
+    private static bool IsAcknowledgementOnly(string? action) =>
+        action is "MeterValues" or "StatusNotification";
+
+    /// <summary>
+    /// Answers a frame that could not be parsed.
+    ///
+    /// A CallError is the correct answer and is what goes out for anything whose response carries a decision - a
+    /// transaction id, an authorisation, a registration status - because inventing one of those would be a lie the
+    /// charge point acts on.
+    ///
+    /// For MeterValues and StatusNotification the response is an empty object: it means "received" and nothing else.
+    /// Those are acknowledged, because a CallError measurably does not get this charge point moving. It has replayed
+    /// the same corrupt stored MeterValues, byte for byte and under the same message id, for hours across every
+    /// session; answering it with a properly addressed CallError changed nothing, and it fell silent and hung up
+    /// about fourteen seconds later exactly as it did when nothing was sent at all. The sample is unreadable either
+    /// way, so acknowledging it costs a measurement that never existed and is the only answer that lets the charge
+    /// point retire the record.
+    /// </summary>
+    private async Task AnswerUnparseableFrame(DtoOcppWebSocket dto, OcppFrameHead head)
+    {
+        if ((head.UniqueId is { } uniqueId) && IsAcknowledgementOnly(head.Action))
+        {
+            logger.LogWarning("Acknowledging an unreadable {action} of {chargePointId} so its queue can move past it",
+                head.Action, dto.ChargePointId);
+            var envelope = new CallResult<object>(uniqueId, new object());
+            await SendTextAsync(dto.ChargePointId, JsonSerializer.Serialize(envelope, JsonOpts),
+                new CancellationTokenSource(_sendTimeout).Token).ConfigureAwait(false);
+            return;
+        }
+        await SendCallError(dto, "FormationViolation", "Frame is not valid JSON", head.UniqueId).ConfigureAwait(false);
     }
 
     public async Task<TResp> SendRequestAsync<TResp>(string chargePointIdentifier,
@@ -1082,8 +1145,10 @@ public sealed class OcppWebSocketConnectionHandlingService(
         //An invented id resolves nothing on the charge point: it keeps waiting for the request it actually sent and
         //eventually hangs up, which is the same outcome as never answering. The empty string is what OCPP-J
         //prescribes when the id of the offending frame cannot be determined.
+        //The details field is an object in the spec, never null, and a charge point strict enough to reject our frame
+        //over that would be left waiting by the very message meant to unblock it.
         var error = new CallError(uniqueId ?? string.Empty,
-            code, description, details);
+            code, description, details ?? new object());
         return JsonSerializer.Serialize(error, JsonOpts);
     }
 

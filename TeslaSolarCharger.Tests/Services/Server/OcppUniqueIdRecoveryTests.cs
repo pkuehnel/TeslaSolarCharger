@@ -5,16 +5,16 @@ using OcppService = TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHan
 namespace TeslaSolarCharger.Tests.Services.Server;
 
 /// <summary>
-/// Recovering the message id of a frame that could not be parsed is what lets TSC answer it, and answering is what
-/// keeps the connection alive: a charge point that gets no answer to its Call blocks until its own message timeout
-/// and then drops the connection without a close handshake.
+/// Reading the head of a frame that could not be parsed is what lets TSC answer it, and answering is what keeps the
+/// connection alive: a charge point that gets no answer to its Call blocks until its own message timeout and then
+/// drops the connection without a close handshake. The action decides which answer it gets.
 /// </summary>
 public class OcppUniqueIdRecoveryTests
 {
     /// <summary>
-    /// The frame that cost the connection every two minutes in the field, shortened but shaped exactly like it: a
+    /// The frame that costs the connection every two minutes in the field, shortened but shaped exactly like it: a
     /// charge point replaying a stored MeterValues whose payload is padded with newlines, truncated mid array and
-    /// closed with a trailing comma. The head is intact, which is the whole reason the id can be recovered.
+    /// closed with a trailing comma. The head is intact, which is the whole reason it can be answered at all.
     /// </summary>
     private const string TruncatedMeterValues =
         "[2,\"edfe3e6b-6bec-4139-bf21-2b3bdb84711f\",\"MeterValues\",\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
@@ -24,21 +24,28 @@ public class OcppUniqueIdRecoveryTests
         + "                },\n]}]}]";
 
     [Fact]
-    public void RecoversTheIdOfTheTruncatedFrameSeenInTheField()
+    public void RecoversTheHeadOfTheTruncatedFrameSeenInTheField()
     {
-        Assert.Equal("edfe3e6b-6bec-4139-bf21-2b3bdb84711f", OcppService.TryRecoverUniqueId(TruncatedMeterValues));
+        var head = OcppService.TryRecoverHead(TruncatedMeterValues);
+        Assert.Equal("edfe3e6b-6bec-4139-bf21-2b3bdb84711f", head.UniqueId);
+        //Without the action the frame could only be answered with a CallError, which this charge point ignores.
+        Assert.Equal("MeterValues", head.Action);
     }
 
     [Theory]
-    [InlineData("[2,\"abc\",\"Heartbeat\",{}]", "abc")]
-    [InlineData("[3,\"cc15bbff121b4036971cb702dff97804\",{\"status\":\"Accepted\"}]", "cc15bbff121b4036971cb702dff97804")]
+    [InlineData("[2,\"abc\",\"Heartbeat\",{}]", "abc", "Heartbeat")]
+    [InlineData("[2,\"def\",\"StatusNotification\",{\"connectorId\":1}]", "def", "StatusNotification")]
     //Whitespace around the head is legal JSON and must not defeat the recovery.
-    [InlineData(" [ 2 , \"spaced\" , \"Heartbeat\" , {} ]", "spaced")]
-    //Truncated right after the id: still enough to answer.
-    [InlineData("[2,\"only-the-head\"", "only-the-head")]
-    public void RecoversTheIdFromTheFrameHead(string raw, string expected)
+    [InlineData(" [ 2 , \"spaced\" , \"Heartbeat\" , {} ]", "spaced", "Heartbeat")]
+    //A CallResult has no action, and there is nothing to answer anyway.
+    [InlineData("[3,\"cc15bbff121b4036971cb702dff97804\",{\"status\":\"Accepted\"}]", "cc15bbff121b4036971cb702dff97804", null)]
+    //Truncated right after the id: still enough to send a CallError.
+    [InlineData("[2,\"only-the-head\"", "only-the-head", null)]
+    public void RecoversTheIdAndActionFromTheFrameHead(string raw, string expectedId, string? expectedAction)
     {
-        Assert.Equal(expected, OcppService.TryRecoverUniqueId(raw));
+        var head = OcppService.TryRecoverHead(raw);
+        Assert.Equal(expectedId, head.UniqueId);
+        Assert.Equal(expectedAction, head.Action);
     }
 
     /// <summary>
@@ -53,7 +60,7 @@ public class OcppUniqueIdRecoveryTests
     [InlineData("[2,\"\",\"Heartbeat\",{}]")]
     public void ReportsNoIdWhenTheHeadIsUnusable(string raw)
     {
-        Assert.Null(OcppService.TryRecoverUniqueId(raw));
+        Assert.Null(OcppService.TryRecoverHead(raw).UniqueId);
     }
 
     /// <summary>
@@ -64,6 +71,6 @@ public class OcppUniqueIdRecoveryTests
     public void DoesNotTakeAnIdOutOfThePayloadWhenTheHeadIsBroken()
     {
         var raw = "[2" + new string(' ', 200) + ",\"deep-in-the-payload\",\"MeterValues\",{}]";
-        Assert.Null(OcppService.TryRecoverUniqueId(raw));
+        Assert.Null(OcppService.TryRecoverHead(raw).UniqueId);
     }
 }
