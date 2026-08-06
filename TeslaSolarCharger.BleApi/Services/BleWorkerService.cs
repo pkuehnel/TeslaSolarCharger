@@ -35,6 +35,9 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     private readonly ConcurrentQueue<DtoBleWorkerEvent> _events = new();
     private readonly Timer _sweepTimer;
 
+    /// <summary>The worker command that gives the vehicle connection back without touching the adapter or the scan.</summary>
+    private const string DisconnectCommand = "disconnect";
+
     public BleWorkerService(ILogger<BleWorkerService> logger,
         IConfiguration configuration,
         IAdapterEnumerationService adapterEnumerationService,
@@ -84,6 +87,13 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         /// the worker over and over.
         /// </summary>
         public DateTimeOffset LastUnreachableRestartUtc = DateTimeOffset.MinValue;
+        /// <summary>
+        /// Fires once the worker has been left alone long enough that the vehicle connection can be given back. Reset
+        /// by every command, so a burst of them shares one connection.
+        /// </summary>
+        public Timer? ReleaseTimer;
+        /// <summary>The car the last command went to, which is the one whose connection the worker may still hold.</summary>
+        public string? LastCommandedVin;
         public int ConsecutiveStartFailures;
         public int RequestsSent;
         public int NextRequestId;
@@ -136,6 +146,10 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             result.ErrorType = WorkerResponseMapper.MapLegacyErrorType(BleCommandOutcome.CarAbsent);
         }
         NoteReachability(instance, result.Outcome, heardRecently);
+        if (command != DisconnectCommand)
+        {
+            ScheduleVehicleRelease(instance, vin);
+        }
         return CountOutcome(instance, result);
     }
 
@@ -654,6 +668,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
 
     private async Task StopWorkerCore(WorkerInstance instance, string reason, bool killImmediately = false)
     {
+        DisarmVehicleRelease(instance);
         Process? process;
         lock (instance.StateLock)
         {
@@ -1006,6 +1021,102 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Gives the vehicle connection back a short while after the last command, so the car starts advertising again.
+    ///
+    /// A Tesla emits nothing at all while it holds a connection, and the phone key depends on hearing it. Measured on
+    /// the live system over one 21 minute window on the same adapter: the polled car advertised 3399 times and had
+    /// been silent for 55 s, while the car next to it that nothing talks to advertised 60741 times and had been heard
+    /// 225 ms ago. The phone sees exactly what the scanner sees, which is why approaching the car stopped unlocking
+    /// it. The vehicle also only accepts three BLE connections at once, and we permanently occupied one.
+    ///
+    /// The worker's own connection window does not help: it is evaluated when the next command arrives, so the link
+    /// is rebuilt rather than released, and with a poll interval below the window the car is never let go.
+    ///
+    /// The delay is what keeps this cheap. The two reads of one poll arrive about 400 ms apart and share a single
+    /// connection; only the poll as a whole pays a connect, exactly as before.
+    /// </summary>
+    private void ScheduleVehicleRelease(WorkerInstance instance, string vin)
+    {
+        var holdSeconds = _configuration.GetValue<double?>("HoldVehicleConnectionSeconds") ?? 2d;
+        if (holdSeconds <= 0)
+        {
+            //Turned off: the worker then keeps the car until its own connection window expires, which is what it did
+            //before this existed.
+            return;
+        }
+        lock (instance.StateLock)
+        {
+            instance.LastCommandedVin = vin;
+            instance.ReleaseTimer ??= new Timer(_ => ReleaseVehicleConnectionInBackground(instance),
+                null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            instance.ReleaseTimer.Change(TimeSpan.FromSeconds(holdSeconds), Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    /// <summary>
+    /// Stops a pending release. A worker that is going away takes the vehicle connection with it, so there is nothing
+    /// left to give back and a timer firing into a dead worker would only start a new one.
+    /// </summary>
+    private static void DisarmVehicleRelease(WorkerInstance instance)
+    {
+        lock (instance.StateLock)
+        {
+            instance.ReleaseTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            instance.LastCommandedVin = null;
+        }
+    }
+
+    private void ReleaseVehicleConnectionInBackground(WorkerInstance instance)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await ReleaseVehicleConnection(instance).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not release the vehicle connection on {adapter}", instance.Key);
+            }
+        });
+    }
+
+    private async Task ReleaseVehicleConnection(WorkerInstance instance)
+    {
+        string? vin;
+        bool isRunning;
+        lock (instance.StateLock)
+        {
+            vin = instance.LastCommandedVin;
+            isRunning = instance.Process is { HasExited: false };
+        }
+        if (!isRunning || string.IsNullOrEmpty(vin))
+        {
+            //Nothing holds a connection, and starting a worker just to tell it to disconnect would be absurd.
+            return;
+        }
+        var payload = new
+        {
+            id = 0,
+            kind = "command",
+            vin,
+            command = DisconnectCommand,
+            @params = Array.Empty<string>(),
+        };
+        //Serializes against real commands through the same gate, so this can never cut into one.
+        var (_, failure) = await SendRequest(instance, requestId => payload with { id = requestId },
+            TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+        if (failure != default)
+        {
+            //Not worth an error: the connection is given back for the car's sake, and the worker's own window still
+            //closes it eventually.
+            _logger.LogDebug("Could not release the vehicle connection on {adapter}: {message}", instance.Key, failure.Message);
+            return;
+        }
+        _logger.LogDebug("Released the vehicle connection on {adapter} so the car can advertise again", instance.Key);
+    }
+
     private DtoBleCommandResult CountOutcome(WorkerInstance instance, DtoBleCommandResult result)
     {
         instance.OutcomeCounts.AddOrUpdate(result.Outcome?.ToString() ?? "unknown", 1, (_, count) => count + 1);
@@ -1125,6 +1236,7 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         _sweepTimer.Dispose();
         foreach (var instance in _instances.Values)
         {
+            DisarmVehicleRelease(instance);
             StopWorkerCore(instance, "container shutdown").GetAwaiter().GetResult();
         }
         GC.SuppressFinalize(this);
