@@ -354,6 +354,59 @@ public class BlePresenceRegistryTests
         Assert.False(registry.IsDeaf(Adapter, TimeSpan.FromSeconds(90), Start.AddHours(1)));
     }
 
+    /// <summary>
+    /// Measured on the live system: while a car is polled every 13 s the worker holds a link to it and this adapter's
+    /// advertisement total stops moving entirely, for minutes, while every command is answered. Judging deafness by
+    /// advertisements alone therefore restarted a working worker every cooldown for as long as a car was charging,
+    /// and each restart blinded presence for a full max age.
+    /// </summary>
+    [Fact]
+    public void AnAdapterThatAnswersCommandsIsNotDeafHoweverLongItHeardNoAdvertisement()
+    {
+        var registry = Observing(Start);
+        var threshold = TimeSpan.FromSeconds(90);
+        //Four minutes of polling with a held link, which is what a charging car looks like on the radio.
+        for (var second = 13; second <= 240; second += 13)
+        {
+            registry.NoteCommandOutcome(Adapter, Car11Vin, BleCommandOutcome.Ok, Start.AddSeconds(second));
+        }
+        Assert.False(registry.IsDeaf(Adapter, threshold, Start.AddSeconds(245)));
+
+        //Once the commands stop too, nothing is reaching the adapter at all and it really is deaf.
+        Assert.True(registry.IsDeaf(Adapter, threshold, Start.AddSeconds(330)));
+    }
+
+    /// <summary>
+    /// Only outcomes that prove the car answered are evidence the radio works: a link that failed says nothing about
+    /// whether the adapter can hear.
+    /// </summary>
+    [Fact]
+    public void AFailedCommandIsNoEvidenceThatTheAdapterHears()
+    {
+        var registry = Observing(Start);
+        registry.NoteCommandOutcome(Adapter, Car11Vin, BleCommandOutcome.LinkFailed, Start.AddSeconds(85));
+        Assert.True(registry.IsDeaf(Adapter, TimeSpan.FromSeconds(90), Start.AddSeconds(91)));
+    }
+
+    /// <summary>
+    /// A restart gives the adapter a fresh observation window, and that window has to prove itself on its own
+    /// evidence. Without this a restart is judged by what an earlier window heard.
+    /// </summary>
+    [Fact]
+    public void AFreshObservationWindowIsNotJudgedByTheEvidenceOfAnEarlierOne()
+    {
+        var registry = Observing(Start);
+        registry.NoteCommandOutcome(Adapter, Car11Vin, BleCommandOutcome.Ok, Start.AddSeconds(10));
+        registry.ApplyDigest(Adapter, Digest(1, Device("11:11:11:11:11:11", "some-phone", 1, 1)), Start.AddSeconds(10));
+
+        registry.ForgetAdapter(Adapter);
+        registry.ApplyScanState(Adapter, "running", null, Start.AddMinutes(30));
+
+        var threshold = TimeSpan.FromSeconds(90);
+        Assert.False(registry.IsDeaf(Adapter, threshold, Start.AddMinutes(30).AddSeconds(80)));
+        Assert.True(registry.IsDeaf(Adapter, threshold, Start.AddMinutes(30).AddSeconds(91)));
+    }
+
     [Fact]
     public void EveryHeardCarIsTrackedWhetherOrNotItWasAskedAbout()
     {

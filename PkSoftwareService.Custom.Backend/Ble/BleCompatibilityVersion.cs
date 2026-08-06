@@ -7,5 +7,5 @@ namespace PkSoftwareService.Custom.Backend.Ble;
 /// </summary>
 public static class BleCompatibilityVersion
 {
-    public static readonly Version Value = new(2, 43, 0);
+    public static readonly Version Value = new(2, 44, 0);
 }

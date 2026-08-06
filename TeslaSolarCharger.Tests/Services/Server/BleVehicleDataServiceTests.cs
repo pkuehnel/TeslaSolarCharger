@@ -711,6 +711,78 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     /// <summary>
+    /// The field regression this test exists for: the deaf adapter watchdog restarted the worker every few minutes,
+    /// and each restart made the container report a warm up for a full max age. Reading the flag before the evidence
+    /// threw away advertisements that were milliseconds old, so a car sitting in the driveway was declared unknown
+    /// and left untouched for about ninety seconds every five minutes.
+    ///
+    /// Warming up means "do not conclude absence", never "ignore a car we can hear right now".
+    /// </summary>
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public async Task FreshEvidenceProvesPresenceWhateverTheScannerReportsAboutItself(bool warmingUp, bool scannerRunning)
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(90);
+        Mock.Mock<IBleService>()
+            .Setup(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
+            .ReturnsAsync(new DtoBlePresenceResult
+            {
+                ScannerRunning = scannerRunning,
+                WarmingUp = warmingUp,
+                MaxAgeMs = 90000,
+                LastAdvertisementMsAgo = 4,
+                Vehicles = new List<DtoBlePresenceVehicle>
+                {
+                    new() { Vin = TestVin, Heard = true, LastSeenMsAgo = 4, LastSource = "advertisement", Rssi = -65, },
+                },
+            });
+        Mock.Mock<IBlePresenceStateService>()
+            .Setup(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
+            .Returns(BlePresenceDecision.Present);
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBlePresenceStateService>().Verify(
+            p => p.RegisterPresenceAge(dtoCar.Id, TimeSpan.FromMilliseconds(4), It.IsAny<TimeSpan>()), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
+    }
+
+    /// <summary>
+    /// The other half of the same rule: once the evidence is older than the max age the flags do matter again,
+    /// because then the answer really is ignorance rather than absence.
+    /// </summary>
+    [Fact]
+    public async Task StaleEvidenceConcludesNothingWhileTheScannerIsStillWarmingUp()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(90);
+        Mock.Mock<IBleService>()
+            .Setup(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
+            .ReturnsAsync(new DtoBlePresenceResult
+            {
+                ScannerRunning = true,
+                WarmingUp = true,
+                MaxAgeMs = 90000,
+                Vehicles = new List<DtoBlePresenceVehicle>
+                {
+                    new() { Vin = TestVin, Heard = false, LastSeenMsAgo = 600000, },
+                },
+            });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id, null, It.IsAny<TimeSpan>()), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>
     /// A stopped scan is not a silent car either: presence answers carry no information while nothing is listening.
     /// </summary>
     [Fact]

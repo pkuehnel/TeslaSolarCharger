@@ -96,6 +96,11 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         /// </summary>
         public long AdvertisementsAtObservingStart;
         public DateTimeOffset? LastAdvertisementUtc;
+        /// <summary>
+        /// When a car last answered a command on this adapter. Kept next to the advertisement timestamp because it is
+        /// the other half of the evidence that the radio works: see <see cref="IsDeaf"/>.
+        /// </summary>
+        public DateTimeOffset? LastCommandSuccessUtc;
         public bool ScanRunning;
         /// <summary>
         /// When the scan last became available. Presence answers are "unknown" until it has been observing for a
@@ -255,6 +260,9 @@ public class BlePresenceRegistry : IBlePresenceRegistry
             //connection.
             record.LastCommandSuccessUtc = at;
             record.LastSource = SourceCommand;
+            //The adapter wide stamp is not about this car: it records that the radio did something, which is what
+            //tells a broken adapter apart from a quiet one.
+            state.LastCommandSuccessUtc = at;
         }
     }
 
@@ -274,6 +282,17 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         }
     }
 
+    /// <summary>
+    /// Whether the adapter has stopped receiving anything at all, which only a fresh adapter bind recovers from.
+    ///
+    /// Advertisement silence alone does not prove it. Measured on the live system: while a car is polled every 13 s
+    /// the worker holds a link to it, and a held link silences this adapter's scan completely - the adapter wide
+    /// advertisement total did not move for minutes while every command was answered. Judging deafness by
+    /// advertisements alone therefore condemned a working adapter for doing exactly what a charging car makes it do,
+    /// and the restart that followed blinded presence for a full max age every cooldown.
+    ///
+    /// A command the car answered is proof the radio transmits and receives, so it counts as hearing.
+    /// </summary>
     public bool IsDeaf(string adapterKey, TimeSpan silenceThreshold, DateTimeOffset now)
     {
         var state = GetState(adapterKey);
@@ -283,10 +302,16 @@ public class BlePresenceRegistry : IBlePresenceRegistry
             {
                 return false;
             }
-            var lastHeard = state.LastAdvertisementUtc ?? observingSince;
+            var lastEvidence = Latest(state.LastAdvertisementUtc, state.LastCommandSuccessUtc);
+            //A fresh observation window gets the full threshold to prove itself rather than being judged by evidence
+            //an earlier one collected.
+            var lastHeard = lastEvidence is { } evidence && evidence > observingSince ? evidence : observingSince;
             return now - lastHeard > silenceThreshold;
         }
     }
+
+    private static DateTimeOffset? Latest(DateTimeOffset? first, DateTimeOffset? second) =>
+        first is { } left && second is { } right ? (left > right ? left : right) : first ?? second;
 
     public void ForgetAdapter(string adapterKey)
     {

@@ -104,14 +104,35 @@ public class BleVehicleDataService(
         {
             var vehicle = presence.Vehicles
                 .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-            //While the scan is still warming up nothing may be concluded: right after a container or worker restart
-            //every car reads as not heard, and that is ignorance, not absence.
-            TimeSpan? age = presence is { WarmingUp: false, ScannerRunning: true } && vehicle?.LastSeenMsAgo is { } lastSeen
-                ? TimeSpan.FromMilliseconds(lastSeen)
-                : null;
+            var age = EvidenceAge(presence, vehicle, maxAge);
             RecordPresenceObservation(car, adapter, presence, vehicle, age <= maxAge);
             await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// How old the newest evidence about a car is, or null when nothing may be concluded from this answer.
+    ///
+    /// Evidence within the max age proves the car is here however long the scan has been observing: a car heard
+    /// milliseconds ago is present whether or not the container calls itself warmed up. The warm-up and scanner flags
+    /// only gate the negative conclusion, because right after a container or worker restart every car reads as long
+    /// unheard and that is ignorance, not absence.
+    ///
+    /// Reading the flags before the evidence is what made a car unreachable in blocks: the deaf adapter watchdog
+    /// restarted the worker every few minutes, and each restart threw away fresh advertisements for a full max age.
+    /// </summary>
+    internal static TimeSpan? EvidenceAge(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
+    {
+        if (vehicle?.LastSeenMsAgo is not { } lastSeen)
+        {
+            return null;
+        }
+        var age = TimeSpan.FromMilliseconds(lastSeen);
+        if (age <= maxAge)
+        {
+            return age;
+        }
+        return presence is { WarmingUp: false, ScannerRunning: true } ? age : null;
     }
 
     /// <summary>
@@ -228,9 +249,7 @@ public class BleVehicleDataService(
         }
         var vehicle = presence.Vehicles
             .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-        TimeSpan? age = presence is { WarmingUp: false, ScannerRunning: true } && vehicle?.LastSeenMsAgo is { } lastSeen
-            ? TimeSpan.FromMilliseconds(lastSeen)
-            : null;
+        var age = EvidenceAge(presence, vehicle, maxAge);
         await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
     }
 
