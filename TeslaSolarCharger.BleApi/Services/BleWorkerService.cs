@@ -74,6 +74,16 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         public DateTimeOffset BackoffUntil = DateTimeOffset.MinValue;
         /// <summary>Last worker restart caused by a deaf adapter, so a broken one is not restarted every sweep.</summary>
         public DateTimeOffset LastDeafRestartUtc = DateTimeOffset.MinValue;
+        /// <summary>
+        /// Consecutive failures to reach a car this adapter can hear. Any command that got through resets it, so this
+        /// only grows while the radio is listening to a car it cannot open a connection to.
+        /// </summary>
+        public int ConsecutiveUnreachableWhileAudible;
+        /// <summary>
+        /// Last worker restart caused by that, so a car that refuses connections for its own reasons does not restart
+        /// the worker over and over.
+        /// </summary>
+        public DateTimeOffset LastUnreachableRestartUtc = DateTimeOffset.MinValue;
         public int ConsecutiveStartFailures;
         public int RequestsSent;
         public int NextRequestId;
@@ -117,14 +127,15 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         result.ResultMessage = result.ResultMessage?.Trim();
         var now = _timeProvider.GetUtcNow();
         _presenceRegistry.NoteCommandOutcome(instance.Key, vin, result.Outcome, now);
-        if (result.Outcome == BleCommandOutcome.LinkFailed
-            && !_presenceRegistry.WasHeardWithin(instance.Key, vin, PresenceMaxAge(null), now))
+        var heardRecently = _presenceRegistry.WasHeardWithin(instance.Key, vin, PresenceMaxAge(null), now);
+        if (result.Outcome == BleCommandOutcome.LinkFailed && !heardRecently)
         {
             //The worker only reports that it could not reach the car. Whether that means the car is gone is decided
             //here, from what the background scan heard: it is the only place that knows.
             result.Outcome = BleCommandOutcome.CarAbsent;
             result.ErrorType = WorkerResponseMapper.MapLegacyErrorType(BleCommandOutcome.CarAbsent);
         }
+        NoteReachability(instance, result.Outcome, heardRecently);
         return CountOutcome(instance, result);
     }
 
@@ -733,6 +744,17 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                     });
                     continue;
                 }
+                if (ShouldRestartForUnreachableCar(instance, now))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        //The other half of a healthy radio: hearing a car is worth nothing if no connection to it can
+                        //be opened. This state does not clear itself, and a restart clears it immediately.
+                        AddEvent(instance, "unreachable", "The adapter could not connect to a car it can hear, restarting its worker");
+                        await RestartWorkers(instance.Key, "car audible but unreachable").ConfigureAwait(false);
+                    });
+                    continue;
+                }
                 if (idleTimeoutSeconds <= 0 || keepWarmActive)
                 {
                     continue;
@@ -912,6 +934,76 @@ public class BleWorkerService : IBleWorkerService, IDisposable
                 instance.LastError ??= "BLE worker exited unexpectedly";
             }
         }
+    }
+
+    /// <summary>
+    /// Records whether the car could actually be reached, which is what the connect watchdog acts on.
+    ///
+    /// Only the combination matters: the radio hears the car, and we still cannot open a connection to it. Measured on
+    /// the live system, a worker gets into that state and stays there - ten connect attempts in a row timing out at
+    /// their full ten seconds while the car sat in the driveway at -46 dBm - and a worker restart clears it instantly,
+    /// with the next connect taking 752 ms. Nothing below the worker recovers on its own.
+    /// </summary>
+    private void NoteReachability(WorkerInstance instance, BleCommandOutcome? outcome, bool heardRecently)
+    {
+        int streak;
+        lock (instance.StateLock)
+        {
+            streak = NextUnreachableStreak(instance.ConsecutiveUnreachableWhileAudible, outcome, heardRecently);
+            instance.ConsecutiveUnreachableWhileAudible = streak;
+        }
+        if (streak > 0)
+        {
+            _logger.LogDebug("Could not reach an audible car on {adapter}, {streak} times in a row", instance.Key, streak);
+        }
+    }
+
+    /// <summary>
+    /// The streak after one command outcome.
+    ///
+    /// Only a car that was heard and still could not be reached counts. Anything the car answered clears the streak,
+    /// whatever it answered - a refusal proves the link as well as a success does. Everything else leaves the streak
+    /// alone: a car that is not being heard says nothing about the radio, and outcomes that never got as far as the
+    /// link say nothing either.
+    /// </summary>
+    public static int NextUnreachableStreak(int currentStreak, BleCommandOutcome? outcome, bool heardRecently) =>
+        outcome switch
+        {
+            BleCommandOutcome.Ok or BleCommandOutcome.CarRefused or BleCommandOutcome.CarAsleep => 0,
+            BleCommandOutcome.LinkFailed when heardRecently => currentStreak + 1,
+            _ => currentStreak,
+        };
+
+    /// <summary>
+    /// Whether a streak of failures to reach an audible car has gone on long enough to restart the worker.
+    ///
+    /// The cooldown keeps a car that refuses connections for its own reasons from restarting the worker on every
+    /// sweep. A threshold of zero or less turns the watchdog off.
+    /// </summary>
+    public static bool ShouldRestartForUnreachable(int streak, int threshold,
+        DateTimeOffset lastRestart, TimeSpan cooldown, DateTimeOffset now) =>
+        (threshold > 0) && (streak >= threshold) && ((now - lastRestart) >= cooldown);
+
+    /// <summary>
+    /// Whether the adapter has stopped being able to connect to cars it can hear, and enough time has passed since the
+    /// last attempt to fix it.
+    /// </summary>
+    private bool ShouldRestartForUnreachableCar(WorkerInstance instance, DateTimeOffset now)
+    {
+        var threshold = _configuration.GetValue<int?>("ConnectFailuresBeforeWorkerRestart") ?? 5;
+        var cooldown = TimeSpan.FromSeconds(_configuration.GetValue<int?>("UnreachableRestartCooldownSeconds") ?? 60);
+        lock (instance.StateLock)
+        {
+            if (!ShouldRestartForUnreachable(instance.ConsecutiveUnreachableWhileAudible, threshold,
+                    instance.LastUnreachableRestartUtc, cooldown, now))
+            {
+                return false;
+            }
+            instance.LastUnreachableRestartUtc = now;
+            //Cleared here rather than after the restart, so the streak counts attempts since this restart.
+            instance.ConsecutiveUnreachableWhileAudible = 0;
+        }
+        return true;
     }
 
     private DtoBleCommandResult CountOutcome(WorkerInstance instance, DtoBleCommandResult result)
