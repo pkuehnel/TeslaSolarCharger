@@ -238,7 +238,8 @@ public class ChargingServiceV2 : IChargingServiceV2
     }
 
     /// <summary>
-    /// 
+    /// Makes sure a wallbox never limits a car that manages its own charging power: the connector is opened to its
+    /// maximum whenever the car wants more than the connector was last set to.
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <param name="targetChargingValue"></param>
@@ -252,9 +253,20 @@ public class ChargingServiceV2 : IChargingServiceV2
             && (_settings.OcppConnectorStates.TryGetValue(targetChargingValue.LoadPoint.ChargingConnectorId.Value, out var ocppState)))
         {
             _logger.LogDebug("Loadpoint {carId}, {connectorId} is managed by car", targetChargingValue.LoadPoint.CarId, targetChargingValue.LoadPoint.ChargingConnectorId);
-            if (!(ocppState.LastSetCurrent.Value >= targetChargingValue.TargetValues?.TargetCurrent))
+            var targetCurrent = targetChargingValue.TargetValues?.TargetCurrent;
+            if (targetCurrent == default)
             {
-                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetChargingValue.TargetValues?.TargetCurrent);
+                //There is no current the car wants, so there is nothing for the wallbox to make room for. A stop is
+                //exactly this case, and the lifted >= below reads null as "the connector is below target": TSC then
+                //opened the wallbox to its maximum and sent StartCharging on the very tick it told the car to stop,
+                //and did so again every tick until the stop had gone through.
+                _logger.LogDebug("OCPP connector {connectorId} has no target current, leaving it as it is.", targetChargingValue.LoadPoint.ChargingConnectorId);
+                return true;
+            }
+            //A connector that was never set has to be opened up as well, so the missing value counts as too low.
+            if (ocppState.LastSetCurrent.Value is not { } lastSetCurrent || lastSetCurrent < targetCurrent)
+            {
+                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetCurrent);
                 if (!await SetChargingConnectorToMaxPowerAndMaxPhases(targetChargingValue.LoadPoint.ChargingConnectorId.Value, currentDate, cancellationToken, ocppState).ConfigureAwait(false))
                 {
                     return false;

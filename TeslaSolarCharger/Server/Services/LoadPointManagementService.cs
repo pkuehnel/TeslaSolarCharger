@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
@@ -214,6 +215,12 @@ public class LoadPointManagementService : ILoadPointManagementService
         return result;
     }
 
+    /// <summary>
+    /// Whether a connector value was ever actually set, as opposed to still carrying the default it was constructed
+    /// with. The construction timestamp is the minimum, and nothing a charge point reports can be that old.
+    /// </summary>
+    private static bool WasMeasured<T>(DtoTimeStampedValue<T> value) => value.Timestamp > DateTimeOffset.MinValue;
+
     public DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match)
     {
         var loadPoint = new DtoLoadPointWithCurrentChargingValues
@@ -236,11 +243,30 @@ public class LoadPointManagementService : ILoadPointManagementService
         {
             if (_settings.OcppConnectorStates.TryGetValue(match.ChargingConnectorId.Value, out var connector))
             {
-                loadPoint.ChargingPower = connector.ChargingPower.Value;
-                loadPoint.ChargingVoltage = (int)connector.ChargingVoltage.Value;
-                loadPoint.ChargingCurrent = connector.ChargingCurrent.Value;
-                loadPoint.ChargingPhases = connector.PhaseCount.Value;
-                loadPoint.IsChargingAtHome = connector.IsCharging.Value;
+                //A reconnect installs a fresh connector state, and its defaults are zeroes that were never measured.
+                //Publishing those as the current values made every OCPP reconnect show 0 W at 0 A on the way back,
+                //until the first meter value arrived seconds later. A value that was never set carries nothing, so
+                //whatever the car reported stays.
+                if (WasMeasured(connector.ChargingPower))
+                {
+                    loadPoint.ChargingPower = connector.ChargingPower.Value;
+                }
+                if (WasMeasured(connector.ChargingVoltage))
+                {
+                    loadPoint.ChargingVoltage = (int)connector.ChargingVoltage.Value;
+                }
+                if (WasMeasured(connector.ChargingCurrent))
+                {
+                    loadPoint.ChargingCurrent = connector.ChargingCurrent.Value;
+                }
+                if (WasMeasured(connector.PhaseCount))
+                {
+                    loadPoint.ChargingPhases = connector.PhaseCount.Value;
+                }
+                if (WasMeasured(connector.IsCharging))
+                {
+                    loadPoint.IsChargingAtHome = connector.IsCharging.Value;
+                }
             }
         }
 
