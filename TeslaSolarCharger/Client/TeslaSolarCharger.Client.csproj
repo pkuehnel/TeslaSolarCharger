@@ -42,7 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.10" />
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.11" />
     <PackageReference Include="Microsoft.NET.Sdk.WebAssembly.Pack" Version="10.0.10" />
     <Folder Include="Enums\" />
     <Folder Include="Contracts\" />
