@@ -343,6 +343,9 @@ public static class TranslationKeys
     public static string ValueSourceConfigConfigurationDeleted => nameof(ValueSourceConfigConfigurationDeleted);
 
     public static string ValueSourceConfigNodePatternType => nameof(ValueSourceConfigNodePatternType);
+    public static string ValueSourceConfigNodePatternTypeDirect => nameof(ValueSourceConfigNodePatternTypeDirect);
+    public static string ValueSourceConfigNodePatternTypeJson => nameof(ValueSourceConfigNodePatternTypeJson);
+    public static string ValueSourceConfigNodePatternTypeXml => nameof(ValueSourceConfigNodePatternTypeXml);
     public static string ValueSourceConfigUsedFor => nameof(ValueSourceConfigUsedFor);
     public static string ValueSourceConfigOperator => nameof(ValueSourceConfigOperator);
     public static string ValueSourceConfigRegisterType => nameof(ValueSourceConfigRegisterType);
