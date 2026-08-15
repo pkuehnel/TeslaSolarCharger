@@ -128,7 +128,7 @@ else
                                    Margin="Constants.InputMargin">
                             @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
                             {
-                                <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                <MudSelectItem T="NodePatternType" Value="@item">@GetNodePatternTypeName(item)</MudSelectItem>
                             }
                         </MudSelect>
                     </div>
@@ -421,4 +421,15 @@ else
     private string T(string key) =>
         TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
         ?? key;
+
+    private string GetNodePatternTypeName(NodePatternType nodePatternType)
+    {
+        return nodePatternType switch
+        {
+            NodePatternType.Direct => T(TranslationKeys.ValueSourceConfigNodePatternTypeDirect),
+            NodePatternType.Json => T(TranslationKeys.ValueSourceConfigNodePatternTypeJson),
+            NodePatternType.Xml => T(TranslationKeys.ValueSourceConfigNodePatternTypeXml),
+            _ => nodePatternType.ToString(),
+        };
+    }
 }
