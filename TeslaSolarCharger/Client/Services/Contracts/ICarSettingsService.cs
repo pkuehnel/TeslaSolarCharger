@@ -22,5 +22,15 @@ public interface ICarSettingsService
     Task<string?> GetSmartCarOAuthRedeemUrlForNewCar(string baseUrl);
     Task<List<DtoSmartCarCompatibleVehicle>?> GetSmartCarCompatibleVehicles();
     Task SyncSmartCarCars();
-    Task<bool> RefreshTeslaCarsFromAccount();
+
+    /// <summary>
+    /// Imports all cars of the connected Tesla account that are not known to TSC yet.
+    /// </summary>
+    /// <returns>The number of newly added cars, or <c>null</c> if the import failed.</returns>
+    Task<int?> RefreshTeslaCarsFromAccount();
+
+    /// <summary>
+    /// Localized message telling the user how many cars were added by <see cref="RefreshTeslaCarsFromAccount"/>.
+    /// </summary>
+    string GetAddedTeslasMessage(int addedCarsCount);
 }

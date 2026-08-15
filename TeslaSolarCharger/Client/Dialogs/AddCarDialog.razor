@@ -45,7 +45,18 @@
             }
             else if (_step == Step.Tesla)
             {
-                @if (_isLoadingTeslaState)
+                @if (_isAddingTeslas)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarSettingsAddTeslaFromAccountLoading)</MudText>
+                    <LoadingSpinnerComponent />
+                }
+                else if (_addedTeslasCount != null)
+                {
+                    <MudAlert Severity="Severity.Success" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
+                        @CarSettingsService.GetAddedTeslasMessage(_addedTeslasCount.Value)
+                    </MudAlert>
+                }
+                else if (_isLoadingTeslaState)
                 {
                     <LoadingSpinnerComponent />
                 }
@@ -100,28 +111,36 @@
         </div>
     </DialogContent>
     <DialogActions>
-        @if (_step != Step.ChooseType)
+        @if (_step == Step.Tesla && _addedTeslasCount != null)
         {
-            <MudButton OnClick="GoBack" Disabled="_isBusy">@T(TranslationKeys.AddCarBackButton)</MudButton>
+            @* The import is done: the only sensible action left is closing the dialog, which refreshes the car list. *@
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CloseAfterImport">@T(TranslationKeys.GeneralClose)</MudButton>
         }
-        <MudButton OnClick="Cancel" Disabled="_isBusy">@T(TranslationKeys.GeneralCancel)</MudButton>
-        @if (_step == Step.Tesla && _fleetApiTokenState == TokenState.UpToDate)
+        else
         {
-            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddTeslasFromAccount" Disabled="_isBusy">
-                @T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)
-            </MudButton>
-        }
-        else if (_step == Step.Tesla && _fleetApiTokenState is not null and not TokenState.MissingPrecondition)
-        {
-            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectTeslaAccount" Disabled="_isBusy">
-                @T(TranslationKeys.AddCarConnectTeslaButton)
-            </MudButton>
-        }
-        else if (_step == Step.SmartCar)
-        {
-            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectSmartCar" Disabled="_isBusy || _selectedVehicle == null">
-                @T(TranslationKeys.AddCarSmartCarConnectButton)
-            </MudButton>
+            @if (_step != Step.ChooseType)
+            {
+                <MudButton OnClick="GoBack" Disabled="_isBusy">@T(TranslationKeys.AddCarBackButton)</MudButton>
+            }
+            <MudButton OnClick="Cancel" Disabled="_isBusy">@T(TranslationKeys.GeneralCancel)</MudButton>
+            @if (_step == Step.Tesla && _fleetApiTokenState == TokenState.UpToDate)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddTeslasFromAccount" Disabled="_isBusy">
+                    @T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)
+                </MudButton>
+            }
+            else if (_step == Step.Tesla && _fleetApiTokenState is not null and not TokenState.MissingPrecondition)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectTeslaAccount" Disabled="_isBusy">
+                    @T(TranslationKeys.AddCarConnectTeslaButton)
+                </MudButton>
+            }
+            else if (_step == Step.SmartCar)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectSmartCar" Disabled="_isBusy || _selectedVehicle == null">
+                    @T(TranslationKeys.AddCarSmartCarConnectButton)
+                </MudButton>
+            }
         }
     </DialogActions>
 </MudDialog>
@@ -144,6 +163,13 @@
     private bool _isLoadingTeslaState;
     private bool _teslaStateLoaded;
     private bool _isBusy;
+    private bool _isAddingTeslas;
+
+    /// <summary>
+    /// Number of cars the last import added. Not null as soon as the import finished successfully, which switches
+    /// the Tesla step to its result view.
+    /// </summary>
+    private int? _addedTeslasCount;
 
     private List<DtoSmartCarCompatibleVehicle>? _compatibleVehicles;
     private bool _isLoadingCompatibleVehicles;
@@ -174,6 +200,7 @@
     {
         _step = Step.ChooseType;
         _selectedVehicle = null;
+        _addedTeslasCount = null;
     }
 
     private Task ChooseManual()
@@ -224,13 +251,16 @@
     private async Task AddTeslasFromAccount()
     {
         _isBusy = true;
-        var success = await CarSettingsService.RefreshTeslaCarsFromAccount();
+        // Importing needs a round trip to the Tesla account and can take several seconds, so show a spinner
+        // instead of only disabling the button, and keep the dialog open afterwards to report the result.
+        _isAddingTeslas = true;
+        var addedCars = await CarSettingsService.RefreshTeslaCarsFromAccount();
+        _isAddingTeslas = false;
         _isBusy = false;
-        if (success)
-        {
-            MudDialog.Close(DialogResult.Ok(AddCarResultAction.Refresh));
-        }
+        _addedTeslasCount = addedCars;
     }
+
+    private void CloseAfterImport() => MudDialog.Close(DialogResult.Ok(AddCarResultAction.Refresh));
 
     private async Task ConnectSmartCar()
     {

@@ -306,7 +306,10 @@ public static class TranslationKeys
     public static string CarSettingsSmartCarDisconnectSuccess => nameof(CarSettingsSmartCarDisconnectSuccess);
     public static string CarSettingsSmartCarUrlMissingError => nameof(CarSettingsSmartCarUrlMissingError);
     public static string CarSettingsAddTeslaFromAccountButton => nameof(CarSettingsAddTeslaFromAccountButton);
-    public static string CarSettingsAddTeslaFromAccountSuccess => nameof(CarSettingsAddTeslaFromAccountSuccess);
+    public static string CarSettingsAddTeslaFromAccountLoading => nameof(CarSettingsAddTeslaFromAccountLoading);
+    public static string CarSettingsAddTeslaFromAccountNoNewCars => nameof(CarSettingsAddTeslaFromAccountNoNewCars);
+    public static string CarSettingsAddTeslaFromAccountOneCarAdded => nameof(CarSettingsAddTeslaFromAccountOneCarAdded);
+    public static string CarSettingsAddTeslaFromAccountCarsAdded => nameof(CarSettingsAddTeslaFromAccountCarsAdded);
     public static string CarSettingsAddTeslaFromAccountError => nameof(CarSettingsAddTeslaFromAccountError);
     public static string CarSettingsSmartCarBillingConfirmTitle => nameof(CarSettingsSmartCarBillingConfirmTitle);
     public static string CarSettingsSmartCarBillingConfirmText => nameof(CarSettingsSmartCarBillingConfirmText);
@@ -661,6 +664,7 @@ public static class TranslationKeys
 
     public static string GeneralSave => nameof(GeneralSave);
     public static string GeneralCancel => nameof(GeneralCancel);
+    public static string GeneralClose => nameof(GeneralClose);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
     public static string GeneralLoading => nameof(GeneralLoading);

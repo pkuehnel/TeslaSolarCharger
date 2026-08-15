@@ -23,12 +23,13 @@ namespace TeslaSolarCharger.Server.Controllers
         /// Discover and add cars that are present in the connected Tesla account but not yet in TSC.
         /// Mirrors the discovery that runs at startup, so users can pick up newly added Teslas without restarting.
         /// </summary>
+        /// <returns>The number of cars that were newly added.</returns>
         [HttpPost]
-        public async Task<IActionResult> RefreshTeslaCarsFromAccount()
+        public async Task<ActionResult<DtoValue<int>>> RefreshTeslaCarsFromAccount()
         {
-            await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
+            var addedCars = await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
             await configJsonService.AddCarsToSettings(null).ConfigureAwait(false);
-            return Ok();
+            return Ok(new DtoValue<int>(addedCars));
         }
 
         /// <summary>

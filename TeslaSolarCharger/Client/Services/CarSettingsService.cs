@@ -131,16 +131,25 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         await httpClientHelper.SendPostRequestAsync<object>("api/Config/SyncSmartCarCars", null);
     }
 
-    public async Task<bool> RefreshTeslaCarsFromAccount()
+    public async Task<int?> RefreshTeslaCarsFromAccount()
     {
         logger.LogTrace("{method}()", nameof(RefreshTeslaCarsFromAccount));
-        var result = await httpClientHelper.SendPostRequestAsync<object>("api/Config/RefreshTeslaCarsFromAccount", null);
+        var result = await httpClientHelper.SendPostRequestAsync<DtoValue<int>>("api/Config/RefreshTeslaCarsFromAccount", null);
         if (result.HasError)
         {
             snackbar.Add(TF(TranslationKeys.CarSettingsAddTeslaFromAccountError, result.ErrorMessage ?? string.Empty), Severity.Error);
-            return false;
+            return null;
         }
-        snackbar.Add(TF(TranslationKeys.CarSettingsAddTeslaFromAccountSuccess), Severity.Success);
-        return true;
+        return result.Data?.Value ?? 0;
+    }
+
+    public string GetAddedTeslasMessage(int addedCarsCount)
+    {
+        return addedCarsCount switch
+        {
+            0 => TF(TranslationKeys.CarSettingsAddTeslaFromAccountNoNewCars),
+            1 => TF(TranslationKeys.CarSettingsAddTeslaFromAccountOneCarAdded),
+            _ => TF(TranslationKeys.CarSettingsAddTeslaFromAccountCarsAdded, addedCarsCount),
+        };
     }
 }
