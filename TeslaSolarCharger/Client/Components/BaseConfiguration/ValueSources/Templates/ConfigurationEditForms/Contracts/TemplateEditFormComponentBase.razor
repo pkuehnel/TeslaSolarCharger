@@ -1,5 +1,7 @@
 ﻿@implements ITemplateEditFormComponent
+@implements IDisposable
 
+@using Microsoft.AspNetCore.Components.Forms
 @using Newtonsoft.Json.Linq
 @using TeslaSolarCharger.Client.Wrapper
 
@@ -41,6 +43,20 @@
         }
         Configuration ??= new();
         WrappedConfiguration = new(Configuration);
+        //The inputs write directly into the configuration object without notifying this component, so re-render on
+        //every field change. Otherwise inputs that are only rendered for a certain value (e.g. the battery power
+        //fields behind the home battery control switch) would not appear or disappear when that value is changed.
+        WrappedConfiguration.EditContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs args) => StateHasChanged();
+
+    public void Dispose()
+    {
+        if (WrappedConfiguration != default)
+        {
+            WrappedConfiguration.EditContext.OnFieldChanged -= HandleFieldChanged;
+        }
     }
 
     public bool Validate()
