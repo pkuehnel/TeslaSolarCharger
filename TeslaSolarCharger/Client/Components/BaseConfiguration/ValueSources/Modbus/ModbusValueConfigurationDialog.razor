@@ -14,7 +14,6 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 @inject ITextLocalizationService TextLocalizer
 
@@ -44,7 +43,7 @@ else
                                    Margin="Constants.InputMargin">
                             @foreach (ModbusEndianess item in Enum.GetValues(typeof(ModbusEndianess)))
                             {
-                                <MudSelectItem T="ModbusEndianess" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                <MudSelectItem T="ModbusEndianess" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
                             }
                         </MudSelect>
                     </div>
@@ -72,7 +71,7 @@ else
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
                                                 {
-                                                    <MudSelectItem T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                    <MudSelectItem T="ValueUsage" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
                                                 }
                                             </MudSelect>
                                         </div>
@@ -86,7 +85,7 @@ else
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
                                                 {
-                                                    <MudSelectItem T="ModbusRegisterType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                    <MudSelectItem T="ModbusRegisterType" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
                                                 }
                                             </MudSelect>
                                         </div>
@@ -100,7 +99,7 @@ else
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
                                                 {
-                                                    <MudSelectItem T="ModbusValueType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                    <MudSelectItem T="ModbusValueType" Value="@item">@ValueConfigurationEnumNames.Get(item)</MudSelectItem>
                                                 }
                                             </MudSelect>
                                         </div>
@@ -126,7 +125,7 @@ else
                                                                Margin="Constants.InputMargin">
                                                         @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
                                                         {
-                                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                            <MudSelectItem T="ValueOperator" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
                                                         }
                                                     </MudSelect>
                                                 </div>

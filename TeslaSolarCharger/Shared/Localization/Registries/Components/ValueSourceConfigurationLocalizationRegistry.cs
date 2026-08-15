@@ -88,6 +88,46 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.English, "Used for"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verwendet für"));
 
+        Register(TranslationKeys.ValueUsageInverterPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Inverter power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wechselrichterleistung"));
+
+        Register(TranslationKeys.ValueUsageGridPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzleistung"));
+
+        Register(TranslationKeys.ValueUsageHomeBatteryPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home battery power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicherleistung"));
+
+        Register(TranslationKeys.ValueUsageHomeBatterySoc,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home battery SoC"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher-Ladezustand"));
+
+        Register(TranslationKeys.ValueOperatorPlus,
+            new TextLocalizationTranslation(LanguageCodes.English, "Plus"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Plus"));
+
+        Register(TranslationKeys.ValueOperatorMinus,
+            new TextLocalizationTranslation(LanguageCodes.English, "Minus"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Minus"));
+
+        Register(TranslationKeys.ModbusRegisterTypeHolding,
+            new TextLocalizationTranslation(LanguageCodes.English, "Holding register"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Holding-Register"));
+
+        Register(TranslationKeys.ModbusRegisterTypeInput,
+            new TextLocalizationTranslation(LanguageCodes.English, "Input register"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Input-Register"));
+
+        Register(TranslationKeys.ModbusEndianessBig,
+            new TextLocalizationTranslation(LanguageCodes.English, "Big endian"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Big Endian"));
+
+        Register(TranslationKeys.ModbusEndianessLittle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Little endian"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Little Endian"));
+
         Register(TranslationKeys.ValueSourceConfigOperator,
             new TextLocalizationTranslation(LanguageCodes.English, "Operator"),
             new TextLocalizationTranslation(LanguageCodes.German, "Operator"));
