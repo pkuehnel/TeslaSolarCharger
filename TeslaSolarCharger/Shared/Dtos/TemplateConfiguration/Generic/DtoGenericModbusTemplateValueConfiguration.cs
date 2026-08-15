@@ -1,4 +1,5 @@
 using FluentValidation;
+using TeslaSolarCharger.Shared.Attributes;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
 
@@ -13,7 +14,9 @@ public class DtoGenericModbusTemplateValueConfiguration : DtoModbusConfiguration
     /// charging of the home battery.
     /// </summary>
     public bool EnableHomeBatteryControl { get; set; }
+    [Postfix("W")]
     public int MaxBatteryChargePowerW { get; set; } = 4200;
+    [Postfix("W")]
     public int MaxBatteryDischargePowerW { get; set; } = 4200;
 }
 

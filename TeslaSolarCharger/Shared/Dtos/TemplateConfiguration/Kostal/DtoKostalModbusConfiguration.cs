@@ -1,4 +1,5 @@
 using FluentValidation;
+using TeslaSolarCharger.Shared.Attributes;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Kostal;
@@ -16,6 +17,7 @@ public class DtoKostalModbusConfiguration : DtoModbusConfigurationBase
     /// management via Modbus to be activated in the inverter's installer settings.
     /// </summary>
     public bool EnableHomeBatteryControl { get; set; }
+    [Postfix("W")]
     public int MaxBatteryChargePowerW { get; set; } = 4200;
 }
 

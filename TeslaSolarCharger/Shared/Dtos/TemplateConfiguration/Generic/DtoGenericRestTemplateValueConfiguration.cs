@@ -1,5 +1,6 @@
 using FluentValidation;
 using System.ComponentModel.DataAnnotations;
+using TeslaSolarCharger.Shared.Attributes;
 using TeslaSolarCharger.Shared.Helper;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
@@ -19,6 +20,7 @@ public class DtoGenericRestTemplateValueConfiguration
     public string? ApiToken { get; set; }
     public int DeviceId { get; set; }
     public bool EnableHomeBatteryControl { get; set; }
+    [Postfix("W")]
     public int MaxBatteryChargePowerW { get; set; } = 3300;
 }
 
