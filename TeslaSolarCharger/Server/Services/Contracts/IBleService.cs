@@ -25,6 +25,12 @@ public interface IBleService
     Task<DtoBleCommandResult> GetBodyControllerState(string vin);
 
     /// <summary>
+    /// Checks whether TSC can control the given car via BLE and, if it can not, why. Only asks for data, so a
+    /// sleeping car is not woken up: it is reported as asleep instead.
+    /// </summary>
+    Task<DtoBleConnectionTestResult> TestConnection(string vin);
+
+    /// <summary>
     /// Asks one container what it knows about the given cars: how long ago each was last heard, by advertisement or
     /// by a command it answered. Answered from the container's memory, so it never touches the radio, never wakes a
     /// car, and costs nothing at all for a car that is not there.

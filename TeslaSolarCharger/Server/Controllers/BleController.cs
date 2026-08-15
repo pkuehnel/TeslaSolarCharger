@@ -48,6 +48,12 @@ public class BleController (IBleService bleService) : ApiBaseController
     [HttpGet]
     public Task<DtoBlePresenceResult> Presence(string vin) => bleService.GetPresenceForVin(vin);
 
+    /// <summary>
+    /// Checks whether TSC can control the car via BLE and, if not, what the user has to do about it.
+    /// </summary>
+    [HttpGet]
+    public Task<DtoBleConnectionTestResult> TestConnection(string vin) => bleService.TestConnection(vin);
+
     [HttpGet]
     public async Task<IActionResult> DownloadLogs(string bleApiBaseUrl)
     {
