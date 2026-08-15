@@ -69,8 +69,20 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "{0}-Konfiguration gelöscht"));
 
         Register(TranslationKeys.ValueSourceConfigNodePatternType,
-            new TextLocalizationTranslation(LanguageCodes.English, "Node Pattern Type"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Knotenmustertyp"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Data format"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Datenformat"));
+
+        Register(TranslationKeys.ValueSourceConfigNodePatternTypeDirect,
+            new TextLocalizationTranslation(LanguageCodes.English, "Direct"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Direkt"));
+
+        Register(TranslationKeys.ValueSourceConfigNodePatternTypeJson,
+            new TextLocalizationTranslation(LanguageCodes.English, "JSON"),
+            new TextLocalizationTranslation(LanguageCodes.German, "JSON"));
+
+        Register(TranslationKeys.ValueSourceConfigNodePatternTypeXml,
+            new TextLocalizationTranslation(LanguageCodes.English, "XML"),
+            new TextLocalizationTranslation(LanguageCodes.German, "XML"));
 
         Register(TranslationKeys.ValueSourceConfigUsedFor,
             new TextLocalizationTranslation(LanguageCodes.English, "Used for"),
