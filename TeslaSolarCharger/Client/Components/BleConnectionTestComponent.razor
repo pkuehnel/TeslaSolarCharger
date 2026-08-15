@@ -1,0 +1,151 @@
+@using System.Globalization
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Ble
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ICarSettingsService CarSettingsService
+@inject ITextLocalizationService TextLocalizer
+
+@if (_isTesting)
+{
+    <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.BleTestTesting)</MudText>
+    <LoadingSpinnerComponent />
+}
+else if (_result != null)
+{
+    @if (_result.ResultType == BleConnectionTestResultType.Success)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-3">@T(TranslationKeys.BleTestSuccess)</MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-3">
+            <div>@GetResultMessage(_result.ResultType)</div>
+            @if (!string.IsNullOrEmpty(_result.ErrorDetails))
+            {
+                <MudText Typo="Typo.caption">@Format(TranslationKeys.BleTestDetails, _result.ErrorDetails)</MudText>
+            }
+        </MudAlert>
+    }
+}
+
+@if (!_isTesting && !_isPairing)
+{
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="RunTest">
+        @T(TranslationKeys.BleTestAgainButton)
+    </MudButton>
+}
+
+@if (_result != null && _result.ResultType != BleConnectionTestResultType.Success)
+{
+    <div class="mt-4 p-3 border rounded">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.BleTestPairKeyTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.BleTestPairKeyHint)</MudText>
+        @if (_isPairing)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.BleTestPairing)</MudText>
+            <LoadingSpinnerComponent />
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Key"
+                       OnClick="PairKey">
+                @T(TranslationKeys.BleTestPairKeyButton)
+            </MudButton>
+        }
+        @if (_pairKeySucceeded == true)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-3">@T(TranslationKeys.BleTestPairKeySuccess)</MudAlert>
+        }
+        else if (_pairKeySucceeded == false)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@Format(TranslationKeys.BleTestPairKeyError, _pairKeyErrorMessage ?? string.Empty)</MudAlert>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string? Vin { get; set; }
+
+    /// <summary>
+    /// Runs the test as soon as the component is shown. Used where the test is part of a guided flow, e.g. after
+    /// BLE was enabled for a car.
+    /// </summary>
+    [Parameter]
+    public bool AutoTest { get; set; }
+
+    private DtoBleConnectionTestResult? _result;
+    private bool _isTesting;
+    private bool _autoTestTriggered;
+
+    private bool _isPairing;
+    private bool? _pairKeySucceeded;
+    private string? _pairKeyErrorMessage;
+
+    private string T(string key) =>
+        TextLocalizer.Get<BleConnectionTestComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        //Only test once per component instance, further tests are triggered by the user via the test again button.
+        if (AutoTest && !_autoTestTriggered && !string.IsNullOrEmpty(Vin))
+        {
+            _autoTestTriggered = true;
+            await RunTest();
+        }
+    }
+
+    private async Task RunTest()
+    {
+        if (string.IsNullOrEmpty(Vin))
+        {
+            return;
+        }
+        _isTesting = true;
+        _pairKeySucceeded = null;
+        //The test takes up to half a minute, so make sure the spinner is rendered before waiting for the result.
+        StateHasChanged();
+        _result = await CarSettingsService.TestBleConnection(Vin);
+        _isTesting = false;
+    }
+
+    private async Task PairKey()
+    {
+        if (string.IsNullOrEmpty(Vin))
+        {
+            return;
+        }
+        _isPairing = true;
+        StateHasChanged();
+        var result = await CarSettingsService.PairKey(Vin);
+        _isPairing = false;
+        _pairKeySucceeded = result?.Success;
+        _pairKeyErrorMessage = result?.CarErrorMessage ?? result?.ResultMessage;
+    }
+
+    private string GetResultMessage(BleConnectionTestResultType resultType)
+    {
+        return resultType switch
+        {
+            BleConnectionTestResultType.CarNotFound => T(TranslationKeys.BleTestCarNotFound),
+            BleConnectionTestResultType.CarAsleep => T(TranslationKeys.BleTestCarAsleep),
+            BleConnectionTestResultType.KeyNotPaired => T(TranslationKeys.BleTestKeyNotPaired),
+            BleConnectionTestResultType.ContainerProblem => T(TranslationKeys.BleTestContainerProblem),
+            _ => T(TranslationKeys.BleTestUnknown),
+        };
+    }
+}

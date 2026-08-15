@@ -3,6 +3,7 @@ using PkSoftwareService.Custom.Backend.Ble;
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -11,6 +12,8 @@ using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources;
+using VehicleSleepStatus = VCSEC.VehicleSleepStatus_E;
+using VehicleStatus = VCSEC.VehicleStatus;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -94,6 +97,112 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
         return result;
+    }
+
+    public async Task<DtoBleConnectionTestResult> TestConnection(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(TestConnection), vin);
+        //Reading the charge state needs everything BLE control needs: the car in range, a paired key and an awake
+        //infotainment system. Every failure is narrowed down afterwards so the user gets told what to do.
+        var chargeStateResult = await GetChargeState(vin).ConfigureAwait(false);
+        var errorDetails = chargeStateResult.CarErrorMessage ?? chargeStateResult.ResultMessage;
+        var chargeStateVerdict = ClassifyChargeState(chargeStateResult);
+        if (chargeStateVerdict != default)
+        {
+            return new DtoBleConnectionTestResult
+            {
+                ResultType = chargeStateVerdict.Value,
+                ErrorDetails = chargeStateVerdict == BleConnectionTestResultType.Success ? null : errorDetails,
+            };
+        }
+
+        //Presence is answered from the container's memory, so asking costs nothing and never wakes the car.
+        var presence = await GetPresenceForVin(vin).ConfigureAwait(false);
+        var presenceVerdict = ClassifyPresence(presence, vin);
+        if (presenceVerdict != default)
+        {
+            return new DtoBleConnectionTestResult
+            {
+                ResultType = presenceVerdict.Value,
+                ErrorDetails = string.IsNullOrEmpty(presence.ErrorMessage) ? errorDetails : presence.ErrorMessage,
+            };
+        }
+
+        //The car is there but the charge state could not be read. The body controller needs the key as well but no
+        //awake infotainment system, so it tells apart a missing key from a sleeping car.
+        var bodyControllerStateResult = await GetBodyControllerState(vin).ConfigureAwait(false);
+        var isAwake = BleProtoJson.TryParse<VehicleStatus>(bodyControllerStateResult.ResultMessage)?.VehicleSleepStatus
+                      == VehicleSleepStatus.VehicleSleepStatusAwake;
+        return new DtoBleConnectionTestResult
+        {
+            ResultType = ClassifyBodyControllerState(bodyControllerStateResult, isAwake),
+            ErrorDetails = bodyControllerStateResult.Success
+                ? errorDetails
+                : bodyControllerStateResult.CarErrorMessage ?? bodyControllerStateResult.ResultMessage ?? errorDetails,
+        };
+    }
+
+    /// <summary>
+    /// Result of the connection test as far as the charge state alone decides it. Null when the car has to be
+    /// narrowed down further, i.e. when it is unknown whether the car is there at all.
+    /// </summary>
+    internal static BleConnectionTestResultType? ClassifyChargeState(DtoBleCommandResult chargeStateResult)
+    {
+        if (chargeStateResult.Success)
+        {
+            return BleConnectionTestResultType.Success;
+        }
+        return chargeStateResult.Outcome switch
+        {
+            //The car answered the body controller, so it is in range and the key works. Only the infotainment
+            //system is asleep, which is not an error at all.
+            BleCommandOutcome.CarAsleep => BleConnectionTestResultType.CarAsleep,
+            //Local problems: the car was never asked, so nothing about it can be concluded.
+            BleCommandOutcome.AdapterNotFound => BleConnectionTestResultType.ContainerProblem,
+            BleCommandOutcome.AdapterUnavailable => BleConnectionTestResultType.ContainerProblem,
+            BleCommandOutcome.WorkerError => BleConnectionTestResultType.ContainerProblem,
+            BleCommandOutcome.WorkerTimeout => BleConnectionTestResultType.ContainerProblem,
+            BleCommandOutcome.InvalidRequest => BleConnectionTestResultType.ContainerProblem,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Result of the connection test as far as the container's presence knowledge decides it. Null when the car is
+    /// present (or might be) and the reason for the failed command still has to be found.
+    /// </summary>
+    internal static BleConnectionTestResultType? ClassifyPresence(DtoBlePresenceResult presence, string vin)
+    {
+        if (!string.IsNullOrEmpty(presence.ErrorMessage) || !presence.ScannerRunning)
+        {
+            return BleConnectionTestResultType.ContainerProblem;
+        }
+        var vehicle = presence.Vehicles.FirstOrDefault(v => string.Equals(v.Vin, vin, StringComparison.OrdinalIgnoreCase));
+        if (vehicle?.Heard == true)
+        {
+            return null;
+        }
+        //While the scan is warming up nothing may be concluded from silence: not heard yet is not the same as not
+        //there, so the car is asked instead of being declared away.
+        return presence.WarmingUp ? null : BleConnectionTestResultType.CarNotFound;
+    }
+
+    /// <summary>
+    /// Final result for a car the container hears but whose charge state could not be read.
+    /// </summary>
+    internal static BleConnectionTestResultType ClassifyBodyControllerState(DtoBleCommandResult bodyControllerStateResult,
+        bool isAwake)
+    {
+        if (!bodyControllerStateResult.Success)
+        {
+            //A car that does not even answer its body controller either left in the meantime or, far more likely,
+            //never got TSC's key.
+            return bodyControllerStateResult.Outcome == BleCommandOutcome.CarAbsent
+                ? BleConnectionTestResultType.CarNotFound
+                : BleConnectionTestResultType.KeyNotPaired;
+        }
+        //The key works: either the car is asleep or something transient went wrong.
+        return isAwake ? BleConnectionTestResultType.Unknown : BleConnectionTestResultType.CarAsleep;
     }
 
     public async Task<DtoBleCommandResult> StopCharging(string vin)

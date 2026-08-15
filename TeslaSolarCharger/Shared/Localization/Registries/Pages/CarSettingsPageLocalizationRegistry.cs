@@ -445,5 +445,19 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
                 "The car was saved. As TSC can only control the car if it is registered in it, the connection is tested now. The car needs to be awake for the test, so open a door if it is asleep."),
             new TextLocalizationTranslation(LanguageCodes.German,
                 "Das Fahrzeug wurde gespeichert. Da TSC das Fahrzeug nur steuern kann, wenn es dort registriert ist, wird die Verbindung jetzt getestet. Für den Test muss das Fahrzeug wach sein – öffnen Sie daher eine Tür, falls es schläft."));
+
+        Register(TranslationKeys.CarEditBleTestTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Bluetooth connection test"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bluetooth-Verbindungstest"));
+
+        Register(TranslationKeys.CarEditBleTestHint,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "TSC can only control the car via Bluetooth once its key is added to the car, so the connection is tested now. The car has to be parked in range of the BLE container."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "TSC kann das Fahrzeug per Bluetooth erst steuern, wenn sein Schlüssel im Fahrzeug hinterlegt ist. Daher wird die Verbindung jetzt getestet. Das Fahrzeug muss dafür in Reichweite des BLE-Containers stehen."));
+
+        Register(TranslationKeys.CarEditBleTestButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Save and test Bluetooth connection"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Speichern und Bluetooth-Verbindung testen"));
     }
 }

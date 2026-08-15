@@ -77,6 +77,13 @@ public class CarSettingsService(ILogger<CarSettingsService> logger,
         return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoBleCommandResult>(url);
     }
 
+    public async Task<DtoBleConnectionTestResult?> TestBleConnection(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(TestBleConnection), vin);
+        var url = $"/api/Ble/TestConnection?vin={Uri.EscapeDataString(vin)}";
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoBleConnectionTestResult>(url);
+    }
+
     public async Task<DtoBleCommandResult?> SetAmp(string vin, int amps)
     {
         logger.LogTrace("{method}({vin}, {amps})", nameof(SetAmp), vin, amps);
