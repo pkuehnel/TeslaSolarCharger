@@ -23,6 +23,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private readonly IConstants _constants;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
+    private readonly IBlePresenceStateService _blePresenceStateService;
 
     public TargetChargingValueCalculationService(ILogger<TargetChargingValueCalculationService> logger,
         ITeslaSolarChargerContext context,
@@ -30,7 +31,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         IConfigurationWrapper configurationWrapper,
         IConstants constants,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
-        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
+        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
+        IBlePresenceStateService blePresenceStateService)
     {
         _logger = logger;
         _context = context;
@@ -39,6 +41,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _constants = constants;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
         _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
+        _blePresenceStateService = blePresenceStateService;
     }
 
     public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
@@ -251,6 +254,18 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         if (loadpoint.IsPluggedIn != true || loadpoint.IsHome == false)
         {
             _logger.LogTrace("Loadpoint is not plugged in or not home, returning null.");
+            return null;
+        }
+
+        //While BLE scans keep reporting the car as out of BLE range it is unknown whether the car is still at home
+        //(transient BLE failure) or already left. Suspend new charging commands until either a beacon hit proves the
+        //car is still there or it has been unreachable long enough to be confirmed as away (which sets IsHome false).
+        if (loadpoint.CarId != default
+            && _blePresenceStateService.IsPresenceUncertain(loadpoint.CarId.Value))
+        {
+            _logger.LogDebug("BLE presence of car {carId} is uncertain, suspending charging commands.", loadpoint.CarId);
+            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonBlePresenceUncertain));
             return null;
         }
 

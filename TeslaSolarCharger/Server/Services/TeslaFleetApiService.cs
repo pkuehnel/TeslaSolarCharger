@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using PkSoftwareService.Custom.Backend.Ble;
 using System.Net;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -40,7 +41,8 @@ public class TeslaFleetApiService(
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
     IMemoryCache memoryCache,
     IBackendApiService backendApiService,
-    IFleetApiRateLimitService fleetApiRateLimitService)
+    IFleetApiRateLimitService fleetApiRateLimitService,
+    IBleSleepWindowService bleSleepWindowService)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -762,6 +764,13 @@ public class TeslaFleetApiService(
         }
 
         var car = settings.Cars.First(c => c.Vin == vin);
+        if (IsChargeCommand(fleetApiRequest))
+        {
+            //A charge command is about to be sent to the car, so cancel any BLE sleep window: the car is (or is about
+            //to be) actively managed and awake. Without this a window that started in the same charging cycle would
+            //silence the follow up reads, so TSC would never observe that the car started or stopped charging.
+            bleSleepWindowService.ResetSleepWindow(car.Id);
+        }
         if (!isFleetApiTest && fleetApiRequest.BleCompatible && car.UseBle)
         {
             await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
@@ -785,13 +794,7 @@ public class TeslaFleetApiService(
                     result = await bleService.WakeUpCar(vin);
                 }
 
-                if (result.Success
-                    || (result.ErrorType == ErrorType.CarExecution
-                        && (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
-                        && (result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true))
-                    || (result.ErrorType == ErrorType.CarExecution
-                        && (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
-                        && (result.CarErrorMessage?.Contains(IsNotChargingErrorMessage) == true)))
+                if (IsBleCommandFulfilled(result, fleetApiRequest.RequestUrl))
                 {
                     AddRequestToCar(vin, fleetApiRequest);
                     await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
@@ -980,6 +983,17 @@ public class TeslaFleetApiService(
         fleetApiRateLimitService.RecordSuccessfulCommand(car);
     }
 
+    /// <summary>
+    /// Charge relevant commands: sending one means the car is actively managed, so any BLE sleep window is cancelled.
+    /// Wake up is excluded as it is always followed by a set amps / charge start command that cancels the window.
+    /// </summary>
+    private bool IsChargeCommand(DtoFleetApiRequest fleetApiRequest)
+    {
+        return (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl);
+    }
+
     public void ResetApiRequestCounters()
     {
         logger.LogTrace("{method}()", nameof(ResetApiRequestCounters));
@@ -994,6 +1008,36 @@ public class TeslaFleetApiService(
             car.SetChargingAmpsCall.RemoveAll(d => d < currentUtcDate);
             car.OtherCommandCalls.RemoveAll(d => d < currentUtcDate);
         }
+    }
+
+    /// <summary>
+    /// Whether a BLE command achieved what it was sent for. A car that refuses charging-start because it is already
+    /// charging (or charging-stop because it is not charging) did what was asked of it, so this counts as fulfilled
+    /// and no Fleet API fallback is needed. <see cref="DtoBleCommandResult.Outcome"/> is the structured
+    /// classification; the legacy ErrorType check stays as a fallback for BLE containers that do not send an outcome
+    /// yet.
+    /// </summary>
+    internal bool IsBleCommandFulfilled(DtoBleCommandResult result, string requestUrl)
+    {
+        if (result.Success)
+        {
+            return true;
+        }
+        var isCarRefusal = result.Outcome == BleCommandOutcome.CarRefused
+                           || ((result.Outcome == default) && (result.ErrorType == ErrorType.CarExecution));
+        if (!isCarRefusal)
+        {
+            return false;
+        }
+        if (requestUrl == ChargeStartRequest.RequestUrl)
+        {
+            return result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true;
+        }
+        if (requestUrl == ChargeStopRequest.RequestUrl)
+        {
+            return result.CarErrorMessage?.Contains(IsNotChargingErrorMessage) == true;
+        }
+        return false;
     }
 
     private void AddRequestToCar(string vin, DtoFleetApiRequest fleetApiRequest)

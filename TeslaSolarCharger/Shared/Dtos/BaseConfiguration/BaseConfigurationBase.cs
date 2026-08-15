@@ -131,6 +131,37 @@ public class BaseConfigurationBase
     //Nullable on purpose: null means the user never decided, so the default can be changed to true in a future release
     //without overwriting an explicit user decision.
     public bool? GetVehicleDataViaBle { get; set; }
+
+    /// <summary>
+    /// Let the BLE container log the detailed communication with the cars. Only needed while troubleshooting, as the
+    /// logs get very large.
+    /// </summary>
+    public bool UseBleDebug { get; set; }
+    //Nullable on purpose: null means the user never decided, so the default
+    //(ConfigurationDefaults.BleDataRefreshIntervalSeconds) can be changed in a future release without overwriting an
+    //explicit user choice.
+    [Range(1, int.MaxValue)]
+    [Postfix("s")]
+    public int? BleDataRefreshIntervalSeconds { get; set; }
+    //Nullable on purpose, see BleDataRefreshIntervalSeconds. 0 disables the BLE sleep window.
+    [Range(0, int.MaxValue)]
+    [Postfix("min")]
+    public int? BleSleepWindowMinutes { get; set; }
+    //Nullable on purpose, see BleSleepWindowMinutes. Minutes of unchanged BLE polls before a sleep window starts.
+    [Range(0, int.MaxValue)]
+    [Postfix("min")]
+    public int? BleSleepStabilityMinutes { get; set; }
+    //Nullable on purpose, see BleSleepWindowMinutes. How long ago a car may last have been heard - by advertisement
+    //or by a command it answered - and still count as being at home.
+    [Range(30, 600)]
+    [Postfix("s")]
+    public int? BlePresenceMaxAgeSeconds { get; set; }
+    //Retired settings of the sampled beacon scan, which no longer exists. Kept so a saved configuration written by an
+    //older version still round trips; nothing reads them.
+    [Obsolete("Presence is no longer sampled, so there are no misses to tolerate. Use BlePresenceMaxAgeSeconds.")]
+    public int? BleMissesBeforePresenceUncertain { get; set; }
+    [Obsolete("The scan is permanent, so there is no window. Use BlePresenceMaxAgeSeconds.")]
+    public int? BleBeaconScanWindowSeconds { get; set; }
     public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not

@@ -99,6 +99,7 @@ public class ConfigJsonService(
                 ShouldBeManaged = c.ShouldBeManaged == true,
                 UseBle = c.UseBle,
                 BleApiBaseUrl = c.BleApiBaseUrl,
+                BleAdapterAddress = c.BleAdapterAddress,
                 UseFleetTelemetry = c.UseFleetTelemetry,
                 IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields,
                 HomeDetectionVia = c.HomeDetectionVia,
@@ -213,6 +214,7 @@ public class ConfigJsonService(
         databaseCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
+        databaseCar.BleAdapterAddress = carBasicConfiguration.BleAdapterAddress;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
         databaseCar.CarType = carBasicConfiguration.CarType;
         if (carBasicConfiguration.UseFleetTelemetry)
@@ -271,6 +273,7 @@ public class ConfigJsonService(
             dtoCar.Name = carBasicConfiguration.Name;
             dtoCar.UseBle = carBasicConfiguration.UseBle;
             dtoCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
+            dtoCar.BleAdapterAddress = carBasicConfiguration.BleAdapterAddress;
             await loadPointManagementService.CarStateChanged(dtoCar.Id);
         }
         if (databaseCar.CarType == CarType.Tesla)
@@ -511,6 +514,7 @@ public class ConfigJsonService(
                     Name = c.Name,
                     UseBle = c.UseBle,
                     BleApiBaseUrl = c.BleApiBaseUrl,
+                    BleAdapterAddress = c.BleAdapterAddress,
                     WakeUpCalls = c.WakeUpCalls,
                     VehicleDataCalls = c.VehicleDataCalls,
                     VehicleCalls = c.VehicleCalls,
@@ -645,7 +649,10 @@ public class ConfigJsonService(
 
             if (logValue.Type == CarValueType.LocatedAtHome)
             {
-                if (fleetTelemetryConfiguration.HomeDetectionVia == HomeDetectionVia.LocatedAtHome)
+                //Cars that detect their home presence via BLE also store it as LocatedAtHome, so their last known
+                //presence has to be restored from the same value. Without this the car would be shown as not at home
+                //(and its charging power as 0) after every restart until the next successful BLE read.
+                if (fleetTelemetryConfiguration.HomeDetectionVia is HomeDetectionVia.LocatedAtHome or HomeDetectionVia.BlePresence)
                 {
                     dtoCar.IsHomeGeofence.Update(new DateTimeOffset(logValue.Timestamp, TimeSpan.Zero),
                         logValue.BooleanValue == true);

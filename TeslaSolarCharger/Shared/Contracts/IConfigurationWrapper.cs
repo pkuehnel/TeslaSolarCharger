@@ -95,6 +95,38 @@ public interface IConfigurationWrapper
     bool LogLocationData();
     bool GetVehicleDataFromTesla();
     bool GetVehicleDataViaBle();
+
+    /// <summary>
+    /// Whether the BLE container should log its detailed communication with the cars. Only for troubleshooting.
+    /// </summary>
+    bool UseBleDebug();
+
+    /// <summary>
+    /// Seconds between two BLE data refresh runs. Resolves the nullable base configuration value to
+    /// <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleDataRefreshIntervalSeconds"/> when the user never
+    /// set it.
+    /// </summary>
+    int BleDataRefreshIntervalSeconds();
+
+    /// <summary>
+    /// Minutes an idle BLE car is not polled via the infotainment system so it can fall asleep. Resolves the nullable
+    /// base configuration value to <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleSleepWindowMinutes"/>
+    /// when the user never set it. 0 disables the BLE sleep window feature.
+    /// </summary>
+    int BleSleepWindowMinutes();
+
+    /// <summary>
+    /// Minutes of unchanged BLE polls before a BLE sleep window starts. Resolves the nullable base configuration value
+    /// to <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BleSleepStabilityMinutes"/> when never set.
+    /// </summary>
+    int BleSleepStabilityMinutes();
+
+    /// <summary>
+    /// How long ago a car may last have been heard - by BLE advertisement or by a command it answered - and still
+    /// count as being at home. Resolves the nullable base configuration value to
+    /// <see cref="Dtos.BaseConfiguration.ConfigurationDefaults.BlePresenceMaxAgeSeconds"/> when never set.
+    /// </summary>
+    int BlePresenceMaxAgeSeconds();
     int? MaxInverterAcPower();
     string? BleBaseUrl();
     bool SendTeslaApiStatsToBackend();

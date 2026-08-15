@@ -1,21 +1,37 @@
 ﻿using Newtonsoft.Json;
+using PkSoftwareService.Custom.Backend.Ble;
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaBleService(ILogger<TeslaBleService> logger,
     ISettings settings,
     IErrorHandlingService errorHandlingService,
-    IIssueKeys issueKeys) : IBleService
+    IIssueKeys issueKeys,
+    IHttpClientFactory httpClientFactory,
+    IConfigurationWrapper configurationWrapper) : IBleService
 {
+    //Pairing stops the worker of the target adapter, waits for the adapter ownership guard and then runs
+    //tesla-control, so it needs more headroom than a normal command but must not hang forever.
+    private static readonly TimeSpan PairKeyTimeout = TimeSpan.FromSeconds(60);
+    //The container answers within the scan window; the extra headroom covers a worker start.
+    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(29);
+    private static readonly TimeSpan DownloadLogsTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan AdapterListTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan VersionCheckTimeout = TimeSpan.FromSeconds(5);
+
+    private HttpClient CreateBleClient() => httpClientFactory.CreateClient(StaticConstants.HttpClientNameBle);
+
     public async Task<DtoBleCommandResult> StartCharging(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(StartCharging), vin);
@@ -140,17 +156,19 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             };
         }
         
-        bleBaseUrl += "Pairing/PairCar";
+        bleBaseUrl += BleApiRoutes.PairCar;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
-        queryString.Add("vin", vin);
-        queryString.Add("apiRole", apiRole);
+        queryString.Add(BleApiRoutes.VinQueryParam, vin);
+        queryString.Add(BleApiRoutes.ApiRoleQueryParam, apiRole);
+        AddAdapterQueryParameter(queryString, vin);
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(PairKeyTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return new()
@@ -176,6 +194,101 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             };
         }
         
+    }
+
+    public async Task<DtoBlePresenceResult> GetPresence(string? host, string? adapter, List<string> vins,
+        int? keepWarmSeconds, int? maxAgeSeconds = null)
+    {
+        logger.LogTrace("{method}({host}, {adapter}, {@vins}, {keepWarmSeconds}, {maxAgeSeconds})", nameof(GetPresence), host, adapter, vins, keepWarmSeconds, maxAgeSeconds);
+        var bleBaseUrl = GetBleBaseUrlFromConfiguredUrl(host);
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new DtoBlePresenceResult
+            {
+                ErrorMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+            };
+        }
+        var queryString = HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add(BleApiRoutes.VinsQueryParam, string.Join(',', vins));
+        if (!string.IsNullOrWhiteSpace(adapter))
+        {
+            queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
+        }
+        if (keepWarmSeconds != default)
+        {
+            queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, keepWarmSeconds.Value.ToString());
+        }
+        if (maxAgeSeconds != default)
+        {
+            queryString.Add(BleApiRoutes.MaxAgeSecondsQueryParam, maxAgeSeconds.Value.ToString());
+        }
+        var url = $"{bleBaseUrl}{BleApiRoutes.Presence}?{queryString}";
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
+        try
+        {
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                //Includes an old container that does not know the endpoint. The version mismatch is surfaced
+                //separately; here it only means no presence information, never "car is away".
+                logger.LogError("Failed to get BLE presence. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+                return new DtoBlePresenceResult
+                {
+                    ErrorMessage = $"BLE container answered with {response.StatusCode}: {responseContent}",
+                };
+            }
+            return JsonConvert.DeserializeObject<DtoBlePresenceResult>(responseContent)
+                   ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBlePresenceResult)}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get BLE presence.");
+            return new DtoBlePresenceResult { ErrorMessage = ex.Message };
+        }
+    }
+
+    public Task<DtoBlePresenceResult> GetPresenceForVin(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(GetPresenceForVin), vin);
+        var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (car == default)
+        {
+            return Task.FromResult(new DtoBlePresenceResult { ErrorMessage = $"No car with VIN {vin} is known." });
+        }
+        return GetPresence(car.BleApiBaseUrl, car.BleAdapterAddress, new List<string> { vin }, null);
+    }
+
+    public async Task<List<DtoBleAdapter>> GetAdapters(string? host)
+    {
+        logger.LogTrace("{method}({host})", nameof(GetAdapters), host);
+        var bleBaseUrl = GetBleBaseUrlFromConfiguredUrl(host);
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new List<DtoBleAdapter>();
+        }
+        var url = bleBaseUrl + BleApiRoutes.AdapterList;
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(AdapterListTimeout);
+        try
+        {
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Could not get Bluetooth adapters from {url}. StatusCode: {statusCode}", url, response.StatusCode);
+                return new List<DtoBleAdapter>();
+            }
+            return JsonConvert.DeserializeObject<List<DtoBleAdapter>>(responseContent) ?? new List<DtoBleAdapter>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not get Bluetooth adapters from {url}.", url);
+            return new List<DtoBleAdapter>();
+        }
     }
 
     public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -208,17 +321,17 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             return "Could not generate a base url based on the inserted URL";
         }
-        var url = baseUrl + "Hello/TscVersionCompatibility";
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(5);
+        var url = baseUrl + BleApiRoutes.TscVersionCompatibility;
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(VersionCheckTimeout);
         var vins = settings.Cars
             .Where(c => c.BleApiBaseUrl == host && c.UseBle && (c.ShouldBeManaged == true))
             .Select(c => c.Vin)
             .ToList();
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 foreach (var vin in vins)
@@ -256,7 +369,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 36, 0);
+            var correctVersion = BleCompatibilityVersion.Value;
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)
@@ -317,19 +430,19 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             return null;
         }
-        var url = baseUrl + "Debug/DownloadInMemoryLogs";
+        var url = baseUrl + BleApiRoutes.DownloadInMemoryLogs;
         logger.LogTrace("Ble Url: {bleUrl}", url);
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(DownloadLogsTimeout);
         try
         {
-            var response = await client.GetAsync(url).ConfigureAwait(false);
+            var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to download BLE logs from {url}. StatusCode: {statusCode}", url, response.StatusCode);
                 return null;
             }
-            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             return new MemoryStream(bytes);
         }
         catch (Exception ex)
@@ -352,23 +465,29 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 ErrorType = ErrorType.TscConfiguration,
             };
         }
-        bleBaseUrl += "Command/ExecuteCommand";
+        bleBaseUrl += BleApiRoutes.ExecuteCommand;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
-        queryString.Add("vin", request.Vin);
-        queryString.Add("command", request.CommandName);
+        queryString.Add(BleApiRoutes.VinQueryParam, request.Vin);
+        queryString.Add(BleApiRoutes.CommandQueryParam, request.CommandName);
         if (!string.IsNullOrEmpty(request.Domain))
         {
-            queryString.Add("domain", request.Domain);
+            queryString.Add(BleApiRoutes.DomainQueryParam, request.Domain);
+        }
+        AddAdapterQueryParameter(queryString, request.Vin);
+        AddUseDebugQueryParameter(queryString);
+        if (request.KeepWarmSeconds != default)
+        {
+            queryString.Add(BleApiRoutes.KeepWarmSecondsQueryParam, request.KeepWarmSeconds.Value.ToString());
         }
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
-        using var client = new HttpClient();
+        var client = CreateBleClient();
+        using var cancellationTokenSource = new CancellationTokenSource(CommandTimeout);
         try
         {
-            client.Timeout = TimeSpan.FromSeconds(29);
-            var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.PostAsJsonAsync(url, request.Parameters, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
@@ -394,6 +513,31 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         var car = settings.Cars.First(c => c.Vin == vin);
         return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+    }
+
+    /// <summary>
+    /// Adds the car's adapter selection to the request. Cars without a selection use the container's default adapter,
+    /// which is exactly the behaviour of BLE containers that do not know the parameter yet.
+    /// </summary>
+    private void AddAdapterQueryParameter(System.Collections.Specialized.NameValueCollection queryString, string vin)
+    {
+        var adapter = settings.Cars.FirstOrDefault(c => c.Vin == vin)?.BleAdapterAddress;
+        if (!string.IsNullOrWhiteSpace(adapter))
+        {
+            queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
+        }
+    }
+
+    /// <summary>
+    /// Adds the debug logging setting to the request. Only sent when enabled, so the parameter never appears in the
+    /// normal case and the container's worker keeps running with its default.
+    /// </summary>
+    private void AddUseDebugQueryParameter(System.Collections.Specialized.NameValueCollection queryString)
+    {
+        if (configurationWrapper.UseBleDebug())
+        {
+            queryString.Add(BleApiRoutes.UseDebugQueryParam, "true");
+        }
     }
 
     private static string? GetBleBaseUrlFromConfiguredUrl(string? bleApiBaseUrl)

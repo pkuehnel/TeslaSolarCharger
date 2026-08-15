@@ -1,0 +1,210 @@
+@using System.Globalization
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+@implements IDisposable
+
+@inject IHomeService HomeService
+@inject ISnackbar Snackbar
+@inject ITextLocalizationService TextLocalizer
+
+<div class="d-flex align-items-center flex-wrap gap-2">
+    <MudTooltip Text="@T(TranslationKeys.CarDetailsSleepTooltip)">
+        <span>@LabelText()</span>
+    </MudTooltip>
+    @if (Phase == BleSleepPhase.TryingToSleep)
+    {
+        <MudButton Size="Size.Small"
+                   Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Disabled="_isCommandRunning"
+                   OnClick="CancelSleepAttempt">
+            @T(TranslationKeys.CarDetailsCancelSleepButton)
+        </MudButton>
+    }
+    else
+    {
+        <MudTooltip Text="@StartButtonTooltip()">
+            <MudButton Size="Size.Small"
+                       Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Disabled="@(_isCommandRunning || CarClosedAndEmpty != true)"
+                       OnClick="StartSleepAttempt">
+                @T(TranslationKeys.CarDetailsStartSleepButton)
+            </MudButton>
+        </MudTooltip>
+    }
+</div>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public int CarId { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public BleSleepPhase Phase { get; set; }
+
+    [Parameter]
+    public int? CountdownSeconds { get; set; }
+
+    /// <summary>
+    /// True: the car is closed up and empty, so a sleep attempt can start. False: blocked by an open closure or an
+    /// occupant. Null: not known yet (nothing polled since the car woke up).
+    /// </summary>
+    [Parameter]
+    public bool? CarClosedAndEmpty { get; set; }
+
+    private const int TickIntervalMilliseconds = 1000;
+
+    //The server only pushes a new car state about every 30 seconds, but the countdown is a plain linear countdown, so
+    //it is ticked down locally between pushes. Counting the seconds elapsed since the value arrived (instead of using
+    //an absolute target time) keeps this immune to clock differences between server and browser.
+    private int _baseSeconds;
+    private DateTimeOffset _baseReceivedAt;
+    private System.Threading.Timer? _timer;
+
+    private BleSleepPhase? _lastKnownPhase;
+    private int? _lastKnownCountdownSeconds;
+    private bool _isCommandRunning;
+
+    protected override void OnParametersSet()
+    {
+        //Only resync on values that actually changed: a re-render of the parent (e.g. after a SoC update) repeats the
+        //same parameter values and must not jerk the locally ticking countdown back to the last pushed value.
+        if (_lastKnownPhase == Phase && _lastKnownCountdownSeconds == CountdownSeconds)
+        {
+            return;
+        }
+        _lastKnownPhase = Phase;
+        _lastKnownCountdownSeconds = CountdownSeconds;
+        _baseSeconds = Math.Max(0, CountdownSeconds ?? 0);
+        _baseReceivedAt = DateTimeOffset.UtcNow;
+        if (RemainingSeconds() > 0)
+        {
+            _timer ??= new System.Threading.Timer(_ => OnTick(), null, TickIntervalMilliseconds, TickIntervalMilliseconds);
+        }
+        else
+        {
+            DisposeTimer();
+        }
+    }
+
+    private void OnTick()
+    {
+        _ = InvokeAsync(() =>
+        {
+            StateHasChanged();
+            if (RemainingSeconds() <= 0)
+            {
+                //Nothing left to count down: wait for the next server push instead of rerendering every second.
+                DisposeTimer();
+            }
+        });
+    }
+
+    private int RemainingSeconds()
+    {
+        var elapsedSeconds = (int)(DateTimeOffset.UtcNow - _baseReceivedAt).TotalSeconds;
+        return Math.Max(0, _baseSeconds - elapsedSeconds);
+    }
+
+    private string LabelText()
+    {
+        if (Phase == BleSleepPhase.TryingToSleep)
+        {
+            return Format(TranslationKeys.CarDetailsSleepTryingToSleep, FormatCountdown(RemainingSeconds()));
+        }
+        //Waiting: an open closure or an occupant blocks the sleep window, so the countdown to the end of the stability
+        //period is meaningless and would just tick to zero without anything happening.
+        if (CarClosedAndEmpty == false)
+        {
+            return T(TranslationKeys.CarDetailsSleepBlocked);
+        }
+        if (CarClosedAndEmpty == null)
+        {
+            //Nothing observed yet (e.g. the car just woke up): say nothing more than that it is awake.
+            return T(TranslationKeys.CarDetailsSleepAwakeWaiting);
+        }
+        var remainingSeconds = RemainingSeconds();
+        return remainingSeconds > 0
+            ? Format(TranslationKeys.CarDetailsSleepWaitingCountdown, FormatCountdown(remainingSeconds))
+            : T(TranslationKeys.CarDetailsSleepStartsShortly);
+    }
+
+    private string StartButtonTooltip() => CarClosedAndEmpty switch
+    {
+        true => T(TranslationKeys.CarDetailsStartSleepTooltip),
+        false => T(TranslationKeys.CarDetailsStartSleepBlockedByCarStateTooltip),
+        _ => T(TranslationKeys.CarDetailsStartSleepBlockedTooltip),
+    };
+
+    private static string FormatCountdown(int seconds)
+    {
+        var total = Math.Max(0, seconds);
+        return $"{total / 60}:{total % 60:00}";
+    }
+
+    private async Task StartSleepAttempt()
+    {
+        _isCommandRunning = true;
+        try
+        {
+            var result = await HomeService.StartBleSleepAttempt(CarId);
+            if (result.HasError)
+            {
+                Snackbar.Add(Format(TranslationKeys.CarDetailsFailedToStartSleep, result.ErrorMessage), Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(T(TranslationKeys.CarDetailsSleepAttemptStarted), Severity.Success);
+            }
+        }
+        finally
+        {
+            _isCommandRunning = false;
+        }
+    }
+
+    private async Task CancelSleepAttempt()
+    {
+        _isCommandRunning = true;
+        try
+        {
+            var result = await HomeService.CancelBleSleepAttempt(CarId);
+            if (result.HasError)
+            {
+                Snackbar.Add(Format(TranslationKeys.CarDetailsFailedToCancelSleep, result.ErrorMessage), Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(T(TranslationKeys.CarDetailsSleepCancelled), Severity.Success);
+            }
+        }
+        finally
+        {
+            _isCommandRunning = false;
+        }
+    }
+
+    private void DisposeTimer()
+    {
+        _timer?.Dispose();
+        _timer = default;
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarDetailsComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    public void Dispose()
+    {
+        DisposeTimer();
+    }
+}

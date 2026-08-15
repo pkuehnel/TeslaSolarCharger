@@ -1,11 +1,12 @@
-﻿using TeslaSolarCharger.BleApi.Dtos;
+using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.BleApi.Services.Contracts;
 
 namespace TeslaSolarCharger.BleApi.Services;
 
 public class PairingService(ILogger<PairingService> logger,
     ICommandLineExecutionService commandLineExecutionService,
-    IConfiguration configuration) : IPairingService
+    IConfiguration configuration,
+    IBleWorkerService bleWorkerService) : IPairingService
 {
     public async Task GenerateKeyPair()
     {
@@ -41,16 +42,23 @@ public class PairingService(ILogger<PairingService> logger,
         await CreateFile(publicKeyPath, publicKeyGenerationResult.ResultMessage, true);
     }
 
-    public async Task<DtoBleCommandResult> PairCar(string vin, string apiRole)
+    public async Task<DtoBleCommandResult> PairCar(string vin, string apiRole, string? adapter)
     {
-        logger.LogTrace("{method}({vin}, {apiRole})", nameof(PairCar), vin, apiRole);
+        logger.LogTrace("{method}({vin}, {apiRole}, {adapter})", nameof(PairCar), vin, apiRole, adapter);
         var publicKeyPath = configuration.GetValue<string>("PublicKeyPath");
         if (!File.Exists(publicKeyPath))
         {
             await GenerateKeyPair().ConfigureAwait(false);
         }
-        var result = await commandLineExecutionService.ExecuteCommand("/app/go/tesla-control", $"-ble -vin {vin} add-key-request {publicKeyPath} {apiRole} cloud_key");
-        return result;
+        //Pairing runs its own tesla-control process, which would fight the worker for the Bluetooth adapter: the
+        //worker of the target adapter is stopped for the duration and restarts lazily on the next request. Workers
+        //on other adapters keep serving.
+        return await bleWorkerService.RunWithExclusiveAdapter(adapter, async hciId =>
+        {
+            var adapterParameter = string.IsNullOrEmpty(hciId) ? string.Empty : $"-bt-adapter {hciId} ";
+            return await commandLineExecutionService.ExecuteCommand("/app/go/tesla-control",
+                $"-ble {adapterParameter}-vin {vin} add-key-request {publicKeyPath} {apiRole} cloud_key").ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     private async Task CreateFile(string fullName, string content, bool overwrite)

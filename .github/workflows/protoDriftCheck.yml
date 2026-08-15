@@ -1,0 +1,43 @@
+name: protoDriftCheck
+
+# The vendored protos in TeslaSolarCharger.Protobuf and the ref the BLE container's Go build uses
+# (VEHICLE_COMMAND_REF in its Dockerfile) describe the SAME wire format and must never drift apart: TSC would decode
+# the container's output with a different version of the definitions that produced it. syncTeslaProtos.yml always
+# moves both together, so drift can only come from a manual edit - which is exactly what this catches.
+on:
+  pull_request:
+    paths:
+      - 'TeslaSolarCharger.Protobuf/protos/**'
+      - 'TeslaSolarCharger.BleApi/Dockerfile'
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: Vendored protos match the pinned ref
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compare vendored protos against the pinned ref
+        run: |
+          set -euo pipefail
+          REF=$(grep -oP '(?<=^ARG VEHICLE_COMMAND_REF=).*' TeslaSolarCharger.BleApi/Dockerfile)
+          if [ -z "$REF" ]; then
+            echo "::error::Could not read VEHICLE_COMMAND_REF from TeslaSolarCharger.BleApi/Dockerfile"
+            exit 1
+          fi
+          echo "Pinned ref: $REF"
+
+          mkdir -p /tmp/upstream-protos
+          for f in car_server common errors keys managed_charging signatures universal_message vcsec vehicle; do
+            curl -fsSL -o "/tmp/upstream-protos/$f.proto" \
+              "https://raw.githubusercontent.com/teslamotors/vehicle-command/${REF}/pkg/protocol/protobuf/$f.proto"
+          done
+
+          if ! diff -ru /tmp/upstream-protos TeslaSolarCharger.Protobuf/protos; then
+            echo "::error::The vendored protos do not match VEHICLE_COMMAND_REF ($REF). Do not hand edit them - let syncTeslaProtos.yml update the protos and the Dockerfile ARG together."
+            exit 1
+          fi
+          echo "Vendored protos match the pinned ref."

@@ -334,6 +334,46 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Daten über BLE abrufen",
                 "Wenn aktiviert, senden Teslas mit aktiviertem BLE keine Daten mehr über Fleet Telemetry, sondern werden über BLE abgefragt. Die Anwesenheit wird über BLE erkannt: Das Fahrzeug gilt als zu Hause, sobald es in BLE-Reichweite ist. Die Änderung wird für ein Fahrzeug übernommen, sobald dessen Fahrzeugeinstellungen gespeichert werden. Fahrzeuge mit aktivierten Tracking-relevanten Feldern sind nicht betroffen."));
 
+        Register(x => x.BleDataRefreshIntervalSeconds,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE data refresh interval (s)",
+                "How often cars whose data is collected via BLE are polled. This runs independently of the charging cycle, so a car that is slow to answer or away can not delay the charging value calculation. Keep this clearly above the beacon scan window below, otherwise a scan for an absent car fills the whole interval. Leave empty to use the default (13 s)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Datenabrufintervall (s)",
+                "Wie oft Fahrzeuge abgefragt werden, deren Daten über BLE erfasst werden. Dies läuft unabhängig vom Ladezyklus, sodass ein langsam antwortendes oder abwesendes Fahrzeug die Berechnung der Ladewerte nicht verzögern kann. Der Wert sollte deutlich über dem Beacon-Suchfenster weiter unten liegen, sonst füllt die Suche nach einem abwesenden Fahrzeug das gesamte Intervall. Leer lassen für den Standardwert (13 s)."));
+
+        Register(x => x.BleSleepWindowMinutes,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE sleep window (min)",
+                "Minutes an idle car whose data is collected via BLE is not polled via the infotainment system so its standby timer can run out and it can fall asleep. Presence detection via BLE keeps running. When the window ends the car is polled once and, if still idle, a new window starts. Leave empty to use the default (13 min). Set to 0 to disable and poll every cycle like before."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Schlaffenster (Min)",
+                "Minuten, in denen ein inaktives Fahrzeug, dessen Daten über BLE abgerufen werden, nicht über das Infotainmentsystem abgefragt wird, damit sein Standby-Timer ablaufen und es einschlafen kann. Die Anwesenheitserkennung über BLE läuft weiter. Nach Ablauf des Fensters wird das Fahrzeug einmal abgefragt und, falls weiterhin inaktiv, startet ein neues Fenster. Leer lassen für den Standardwert (13 Min). 0 deaktiviert die Funktion und fragt wie bisher in jedem Zyklus ab."));
+
+        Register(x => x.BleSleepStabilityMinutes,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE sleep stability (min)",
+                "Minutes the car must stay unchanged (all doors, frunk and trunk closed and unchanged, no occupant, and no change of the plugged in state or charge limit) before a BLE sleep window starts. Also applies after cancelling a sleep attempt. Leave empty to use the default (5 min)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Schlafstabilität (Min)",
+                "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
+
+        Register(x => x.BlePresenceMaxAgeSeconds,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE presence max age (s)",
+                "How long ago a car may last have been heard and still count as being at home. Both its Bluetooth announcements and every command it answered count, which matters because a Tesla goes completely silent while TeslaSolarCharger is connected to it - the two sources cover exactly the periods the other cannot. Measured on real cars, a parked car is normally heard several times a second, so this value has a lot of headroom; raise it only if cars are reported as out of range while standing at home. Detecting that a car really left takes this time plus a confirmation period of about two and a half minutes. Leave empty to use the default (90 s)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Anwesenheit maximales Alter (s)",
+                "Wie lange ein Fahrzeug zuletzt gehört worden sein darf, um noch als zu Hause zu gelten. Dabei zählen sowohl seine Bluetooth-Meldungen als auch jeder beantwortete Befehl. Das ist wichtig, weil ein Tesla vollständig verstummt, solange TeslaSolarCharger mit ihm verbunden ist - die beiden Quellen decken also genau die Zeiträume ab, die die jeweils andere nicht abdeckt. An echten Fahrzeugen gemessen wird ein geparktes Fahrzeug normalerweise mehrmals pro Sekunde gehört, dieser Wert hat also viel Reserve; erhöhen Sie ihn nur, wenn Fahrzeuge als außer Reichweite gemeldet werden, obwohl sie zu Hause stehen. Bis erkannt wird, dass ein Fahrzeug wirklich weggefahren ist, vergeht diese Zeit zuzüglich einer Bestätigungszeit von etwa zweieinhalb Minuten. Leer lassen für den Standardwert (90 s)."));
+
+        Register(x => x.UseBleDebug,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE debug logging",
+                "Let the BLE container log its detailed communication with the cars. Only enable while troubleshooting a BLE problem: the logs grow very large. Changing this restarts the worker process of a Bluetooth adapter the next time a car on that adapter is contacted, which briefly interrupts the connection to that car."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Debug-Protokollierung",
+                "Lässt den BLE-Container die detaillierte Kommunikation mit den Fahrzeugen protokollieren. Nur zur Fehlersuche aktivieren, da die Protokolle sehr groß werden. Eine Änderung startet den Worker-Prozess eines Bluetooth-Adapters neu, sobald das nächste Fahrzeug auf diesem Adapter kontaktiert wird, wodurch die Verbindung zu diesem Fahrzeug kurz unterbrochen wird."));
+
         Register(x => x.UseTeslaMateIntegration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use TeslaMate Integration",

@@ -2,8 +2,10 @@
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -14,16 +16,57 @@ public class HomeController : ApiBaseController
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly ITeslaService _teslaService;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly IBleSleepWindowService _bleSleepWindowService;
+    private readonly IBleVehicleDataService _bleVehicleDataService;
+    private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public HomeController(IHomeService homeService,
         ILoadPointManagementService loadPointManagementService,
         ITeslaService teslaService,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
+        IBleSleepWindowService bleSleepWindowService,
+        IBleVehicleDataService bleVehicleDataService,
+        IConfigurationWrapper configurationWrapper,
+        IDateTimeProvider dateTimeProvider)
     {
         _homeService = homeService;
         _loadPointManagementService = loadPointManagementService;
         _teslaService = teslaService;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
+        _bleSleepWindowService = bleSleepWindowService;
+        _bleVehicleDataService = bleVehicleDataService;
+        _configurationWrapper = configurationWrapper;
+        _dateTimeProvider = dateTimeProvider;
+    }
+
+    /// <summary>
+    /// Cancels a BLE sleep attempt for a car: TSC immediately re-reads the car state and then restarts the stability
+    /// period, so a new sleep window only begins after the configured stability minutes. Never wakes a sleeping car.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CancelBleSleepAttempt(int carId)
+    {
+        _bleSleepWindowService.ResetSleepWindow(carId);
+        await _bleVehicleDataService.RefreshSingleCarData(carId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Starts a BLE sleep attempt right away, skipping the remaining waiting time. Only possible while the car is
+    /// awake, closed up and empty; deliberately does not poll the car, as that is exactly what has to stop.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> StartBleSleepAttempt(int carId)
+    {
+        var started = _bleSleepWindowService.TryStartWindowNow(carId, _dateTimeProvider.UtcNow(),
+            _configurationWrapper.BleSleepWindowMinutes());
+        if (!started)
+        {
+            return BadRequest("The car can not start a sleep attempt right now.");
+        }
+        await _loadPointManagementService.CarStateChanged(carId).ConfigureAwait(false);
+        return Ok();
     }
 
     [HttpGet]

@@ -60,6 +60,7 @@ public class JobManager(
         var homeBatteryModeJob = JobBuilder.Create<HomeBatteryModeJob>().WithIdentity(nameof(HomeBatteryModeJob)).Build();
         var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
         var manualCarsDataClearingJob = JobBuilder.Create<ManualCarsDataClearingJob>().WithIdentity(nameof(ManualCarsDataClearingJob)).Build();
+        var bleDataRefreshJob = JobBuilder.Create<BleDataRefreshJob>().WithIdentity(nameof(BleDataRefreshJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -73,6 +74,12 @@ public class JobManager(
             .WithIdentity("chargingValueTrigger")
             .StartAt(chargingTriggerStartTime)
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds))
+            .Build();
+
+        var bleDataRefreshTrigger = TriggerBuilder.Create()
+            .WithIdentity("bleDataRefreshTrigger")
+            .StartAt(chargingTriggerStartTime)
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(configurationWrapper.BleDataRefreshIntervalSeconds()))
             .Build();
 
 
@@ -207,6 +214,7 @@ public class JobManager(
         if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             triggersAndJobs.Add(chargingValueJob, new HashSet<ITrigger> { chargingValueTrigger });
+            triggersAndJobs.Add(bleDataRefreshJob, new HashSet<ITrigger> { bleDataRefreshTrigger });
             triggersAndJobs.Add(carStateCachingJob, new HashSet<ITrigger> { carStateCachingTrigger });
             triggersAndJobs.Add(finishedChargingProcessFinalizingJob, new HashSet<ITrigger> { finishedChargingProcessFinalizingTrigger });
             triggersAndJobs.Add(mqttReconnectionJob, new HashSet<ITrigger> { mqttReconnectionTrigger });

@@ -34,6 +34,8 @@ public class IssueKeys : IIssueKeys
     public string FleetTelemetryConfigurationError => "FleetTelemetryConfigurationError";
     public string FleetTelemetryConfigurationDeletionError => "FleetTelemetryConfigurationDeletionError";
     public string BleDataCollectionError => "BleDataCollectionError";
+    public string BleAdapterNotFound => "BleAdapterNotFound";
+    public string BleRadioSilence => "BleRadioSilence";
     public string MultipleCarsMatchChargingConnector => "MultipleCarsMatchChargingConnector";
 }
 

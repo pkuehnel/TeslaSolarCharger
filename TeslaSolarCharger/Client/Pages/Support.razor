@@ -199,7 +199,73 @@ else
                                                          IsLoading="@_loadingCarCommands.Contains(car.Key)"
                                                          IsDisabled="@(car.Value.Vin == default)"
                                                          OnButtonClicked="@(() => GetBleChargeState(car.Key))"></RightAlignedButtonComponent>
+                            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportGetBleBeaconScanButton)'
+                                                         IsLoading="@_loadingCarCommands.Contains(car.Key)"
+                                                         IsDisabled="@(car.Value.Vin == default)"
+                                                         OnButtonClicked="@(() => GetBleBeaconScan(car.Key))"></RightAlignedButtonComponent>
+                            <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.SupportBleBeaconHistoryButton)'
+                                                         IsLoading="@_loadingBeaconHistories.Contains(car.Key)"
+                                                         OnButtonClicked="@(() => ToggleBleBeaconHistory(car.Key))"></RightAlignedButtonComponent>
                         </div>
+                        @if (_beaconHistories.TryGetValue(car.Key, out var beaconHistory))
+                        {
+                            <div class="mt-2">
+                                <h6>@T(TranslationKeys.SupportBleBeaconHistoryTitle)</h6>
+                                @if (beaconHistory.TotalScans < 1)
+                                {
+                                    <MudAlert Severity="Severity.Info" Dense="true">@T(TranslationKeys.SupportBleBeaconHistoryEmpty)</MudAlert>
+                                }
+                                else
+                                {
+                                    <div>
+                                        @Format(TranslationKeys.SupportBleBeaconHistorySummaryFormat,
+                                            beaconHistory.FoundScans, beaconHistory.TotalScans,
+                                            beaconHistory.HitRatePercent?.ToString("0.#", CultureInfo.CurrentCulture) ?? "-",
+                                            beaconHistory.AverageRssi?.ToString("0.#", CultureInfo.CurrentCulture) ?? "-",
+                                            beaconHistory.LongestMissStreak)
+                                    </div>
+                                    @*One box per scan, newest on the right: the pattern of an unreliable link is visible
+                                        far faster here than in the table below.*@
+                                    <div class="d-flex flex-wrap gap-1 my-2">
+                                        @foreach (var observation in beaconHistory.Observations)
+                                        {
+                                            <MudTooltip Text="@BeaconObservationTooltip(observation)">
+                                                <div style="width: 12px; height: 18px; border-radius: 2px;"
+                                                     class="@(observation.IsPresent ? "mud-theme-success" : "mud-theme-error")"></div>
+                                            </MudTooltip>
+                                        }
+                                    </div>
+                                    <div class="mud-text-secondary mb-2"><small>@T(TranslationKeys.SupportBleBeaconHistoryHint)</small></div>
+                                    <div style="overflow-x: auto;">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnTime)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnFound)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnRssi)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnAge)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnSource)</th>
+                                                    <th>@T(TranslationKeys.SupportBleBeaconHistoryColumnAdapter)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var observation in beaconHistory.Observations.AsEnumerable().Reverse())
+                                                {
+                                                    <tr>
+                                                        <td>@observation.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture)</td>
+                                                        <td>@(observation.IsPresent ? "✓" : "✗")</td>
+                                                        <td>@(observation.Rssi?.ToString(CultureInfo.CurrentCulture) ?? "-")</td>
+                                                        <td>@(observation.LastSeenMsAgo is { } age ? (age / 1000d).ToString("0.0", CultureInfo.CurrentCulture) : "-")</td>
+                                                        <td>@(observation.EvidenceSource ?? "-")</td>
+                                                        <td>@(observation.Adapter ?? "-")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        }
                     }
                     @if (_chargingAmpsToSet.ContainsKey(car.Key))
                     {
@@ -492,6 +558,8 @@ else
     private string? _fileLogLevelSetErrorMessage;
 
     private List<DtoBleContainer>? _bleContainers;
+    private readonly Dictionary<int, DtoBleBeaconHistory> _beaconHistories = new();
+    private readonly HashSet<int> _loadingBeaconHistories = new();
 
     private bool _loadingMeterValues;
     private string? _meterValueDetails;
@@ -686,6 +754,48 @@ else
     {
         _loadingCarCommands.Add(carKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetBleChargeState?carId={carKey}", null);
+        _carCommandResults[carKey] = result.HasError
+            ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
+            : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));
+        _loadingCarCommands.Remove(carKey);
+    }
+
+    /// <summary>
+    /// Opens or closes the recorded beacon history of a car. Reloads on every open so the figures are current; the
+    /// history itself is collected by the scheduled BLE refresh, not by this page.
+    /// </summary>
+    private async Task ToggleBleBeaconHistory(int carKey)
+    {
+        if (_beaconHistories.Remove(carKey))
+        {
+            return;
+        }
+        _loadingBeaconHistories.Add(carKey);
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoBleBeaconHistory>($"api/Debug/GetBleBeaconHistory?carId={carKey}");
+        if (result.HasError)
+        {
+            _carCommandResults[carKey] = result.ErrorMessage ?? T(TranslationKeys.SupportNoError);
+        }
+        else
+        {
+            _beaconHistories[carKey] = result.Data ?? new DtoBleBeaconHistory();
+        }
+        _loadingBeaconHistories.Remove(carKey);
+    }
+
+    private string BeaconObservationTooltip(DtoBleBeaconObservation observation)
+    {
+        var time = observation.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+        var signal = observation.IsPresent
+            ? $"{observation.Rssi?.ToString(CultureInfo.CurrentCulture) ?? "-"} dBm"
+            : T(TranslationKeys.SupportNoData);
+        return $"{time} · {signal} · {observation.EvidenceSource ?? "-"}";
+    }
+
+    private async Task GetBleBeaconScan(int carKey)
+    {
+        _loadingCarCommands.Add(carKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/GetBleBeaconScanResult?carId={carKey}", null);
         _carCommandResults[carKey] = result.HasError
             ? (result.ErrorMessage ?? T(TranslationKeys.SupportNoError))
             : (result.Data?.Value ?? T(TranslationKeys.SupportNoData));

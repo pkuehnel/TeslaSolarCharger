@@ -31,28 +31,36 @@ public class HomeBatteryModeServiceTests : TestBase
 
     [Theory]
     //No required mode and mode never modified -> nothing to write
-    [InlineData(HomeBatteryMode.Unknown, null, 50, 95, null)]
-    [InlineData(HomeBatteryMode.Normal, null, 50, 95, null)]
+    [InlineData(HomeBatteryMode.Unknown, null, 50, 95, true, null)]
+    [InlineData(HomeBatteryMode.Normal, null, 50, 95, true, null)]
     //Required mode differs from current mode -> write it
-    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Hold, 50, 95, HomeBatteryMode.Hold)]
-    [InlineData(HomeBatteryMode.Normal, HomeBatteryMode.Charge, 50, 95, HomeBatteryMode.Charge)]
-    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Normal, 50, 95, HomeBatteryMode.Normal)]
+    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Hold, 50, 95, true, HomeBatteryMode.Hold)]
+    [InlineData(HomeBatteryMode.Normal, HomeBatteryMode.Charge, 50, 95, true, HomeBatteryMode.Charge)]
+    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Normal, 50, 95, true, HomeBatteryMode.Normal)]
     //Required mode equals current mode -> write only on transitions
-    [InlineData(HomeBatteryMode.Hold, HomeBatteryMode.Hold, 50, 95, null)]
-    [InlineData(HomeBatteryMode.Normal, HomeBatteryMode.Normal, 50, 95, null)]
+    [InlineData(HomeBatteryMode.Hold, HomeBatteryMode.Hold, 50, 95, true, null)]
+    [InlineData(HomeBatteryMode.Normal, HomeBatteryMode.Normal, 50, 95, true, null)]
     //No required mode anymore but mode was modified -> restore normal
-    [InlineData(HomeBatteryMode.Hold, null, 50, 95, HomeBatteryMode.Normal)]
-    [InlineData(HomeBatteryMode.Charge, null, 50, 95, HomeBatteryMode.Normal)]
+    [InlineData(HomeBatteryMode.Hold, null, 50, 95, true, HomeBatteryMode.Normal)]
+    [InlineData(HomeBatteryMode.Charge, null, 50, 95, true, HomeBatteryMode.Normal)]
     //Charge is demoted to hold when max charge soc is reached
-    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Charge, 95, 95, HomeBatteryMode.Hold)]
-    [InlineData(HomeBatteryMode.Charge, HomeBatteryMode.Charge, 96, 95, HomeBatteryMode.Hold)]
-    [InlineData(HomeBatteryMode.Hold, HomeBatteryMode.Charge, 96, 95, null)]
+    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Charge, 95, 95, true, HomeBatteryMode.Hold)]
+    [InlineData(HomeBatteryMode.Charge, HomeBatteryMode.Charge, 96, 95, true, HomeBatteryMode.Hold)]
+    [InlineData(HomeBatteryMode.Hold, HomeBatteryMode.Charge, 96, 95, true, null)]
     //Unknown soc does not demote charge
-    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Charge, null, 95, HomeBatteryMode.Charge)]
+    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Charge, null, 95, true, HomeBatteryMode.Charge)]
+    //Before the first write of this process the devices might still be in a mode a previous process left behind,
+    //so normal is restored once even though this process never modified the mode
+    [InlineData(HomeBatteryMode.Unknown, null, 50, 95, false, HomeBatteryMode.Normal)]
+    //A required mode still wins over the startup restore
+    [InlineData(HomeBatteryMode.Unknown, HomeBatteryMode.Hold, 50, 95, false, HomeBatteryMode.Hold)]
+    //Once a mode was written the current mode is trustworthy again
+    [InlineData(HomeBatteryMode.Normal, null, 50, 95, false, null)]
     public void CalculatesCorrectModeToWrite(HomeBatteryMode currentMode, HomeBatteryMode? requiredMode, int? homeBatterySoc,
-        int maxChargeSoc, HomeBatteryMode? expectedModeToWrite)
+        int maxChargeSoc, bool modeWrittenSinceStartup, HomeBatteryMode? expectedModeToWrite)
     {
-        var result = HomeBatteryModeService.CalculateModeToWrite(currentMode, requiredMode, homeBatterySoc, maxChargeSoc);
+        var result = HomeBatteryModeService.CalculateModeToWrite(currentMode, requiredMode, homeBatterySoc, maxChargeSoc,
+            modeWrittenSinceStartup);
         Assert.Equal(expectedModeToWrite, result);
     }
 
@@ -192,7 +200,7 @@ public class HomeBatteryModeServiceTests : TestBase
     }
 
     //Test plan case 14: with grid price based control disabled, leftover schedule windows from a previous toggle-on
-    //period are ignored and no mode is written.
+    //period are ignored. The only write is the restore of the normal mode after startup, no hold from the windows.
     [Fact]
     public async Task ApplyRequiredMode_AutomaticControlDisabled_IgnoresLeftoverScheduleWindows()
     {
@@ -202,7 +210,42 @@ public class HomeBatteryModeServiceTests : TestBase
 
         await service.ApplyRequiredModeAsync(CancellationToken.None);
 
-        Assert.Empty(writtenModes);
+        Assert.Equal(new[] { HomeBatteryMode.Normal, }, writtenModes);
+    }
+
+    //A previous process might have been killed while the devices were in hold or charge mode, so the vendor default
+    //behavior is restored once after startup. Afterwards the tracked mode is trustworthy and nothing is rewritten.
+    [Fact]
+    public async Task ApplyRequiredMode_AfterStartup_RestoresNormalModeOnce()
+    {
+        var writtenModes = SetupSingleControllerCapturingWrites();
+        SetupAutomaticControl(gridPriceBasedControlEnabled: false);
+        var service = Mock.Create<HomeBatteryModeService>();
+
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+
+        Assert.Equal(new[] { HomeBatteryMode.Normal, }, writtenModes);
+    }
+
+    //While no mode could be written the devices might still be in a mode a previous process left behind, so the
+    //restore is retried instead of being swallowed by the first failed attempt.
+    [Fact]
+    public async Task ApplyRequiredMode_FailingStartupRestore_IsRetried()
+    {
+        var writeAttempts = 0;
+        SetupSingleController((_, _) =>
+        {
+            writeAttempts++;
+            throw new InvalidOperationException("Device not reachable");
+        });
+        SetupAutomaticControl(gridPriceBasedControlEnabled: false);
+        var service = Mock.Create<HomeBatteryModeService>();
+
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+        await service.ApplyRequiredModeAsync(CancellationToken.None);
+
+        Assert.Equal(2, writeAttempts);
     }
 
     /// <summary>
@@ -229,11 +272,20 @@ public class HomeBatteryModeServiceTests : TestBase
     private List<HomeBatteryMode> SetupSingleControllerCapturingWrites()
     {
         var writtenModes = new List<HomeBatteryMode>();
-        var controller = new DtoHomeBatteryModeController(1, "TestController", (mode, _) =>
+        SetupSingleController((mode, _) =>
         {
             writtenModes.Add(mode);
             return Task.CompletedTask;
-        }, null);
+        });
+        return writtenModes;
+    }
+
+    /// <summary>
+    /// Provides a single home battery mode controller with the given write behavior through the scoped setup services.
+    /// </summary>
+    private void SetupSingleController(Func<HomeBatteryMode, CancellationToken, Task> setMode)
+    {
+        var controller = new DtoHomeBatteryModeController(1, "TestController", setMode, null);
         var setupServiceMock = new Mock<IHomeBatteryModeSetupService>();
         setupServiceMock.Setup(s => s.GetControllersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DtoHomeBatteryModeController> { controller, });
@@ -243,7 +295,6 @@ public class HomeBatteryModeServiceTests : TestBase
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.Setup(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
         Mock.Mock<IServiceScopeFactory>().Setup(f => f.CreateScope()).Returns(scopeMock.Object);
-        return writtenModes;
     }
 
     private static DtoHomeBatteryScheduleWindow CreateWindow(HomeBatteryMode mode, DateTimeOffset validFrom, DateTimeOffset validTo)

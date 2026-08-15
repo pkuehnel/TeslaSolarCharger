@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.BleApi.Abstracts;
 using TeslaSolarCharger.BleApi.Dtos;
 using TeslaSolarCharger.BleApi.Services.Contracts;
@@ -14,5 +15,5 @@ public class HelloController (IHelloService service) :ApiBaseController
     public Task<bool> FinallyTest() => service.IsAlive();
 
     [HttpGet]
-    public DtoValue<Version> TscVersionCompatibility() => new(new(2, 36, 0));
+    public DtoValue<Version> TscVersionCompatibility() => new(BleCompatibilityVersion.Value);
 }

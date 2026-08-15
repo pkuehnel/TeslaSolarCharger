@@ -88,7 +88,44 @@ public class ConfigJsonService : TestBase
             .Verify(f => f.SetFleetTelemetryConfiguration(TestVin, false), Times.Once);
     }
 
-    private void SetupCarForBleDataCollectionTests()
+    [Fact]
+    public async Task StoresTheSelectedBluetoothAdapterOnTheCar()
+    {
+        SetupCarForBleDataCollectionTests();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.DeleteFleetTelemetryConfiguration(TestVin))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var carBasicConfiguration = GenerateBleCarBasicConfiguration();
+        carBasicConfiguration.BleAdapterAddress = "AA:BB:CC:DD:EE:FF";
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, carBasicConfiguration);
+
+        //Both the database and the in memory car must carry the selection: the database survives restarts, the in
+        //memory car is what every BLE request reads to decide which adapter to use.
+        Assert.Equal("AA:BB:CC:DD:EE:FF", Context.Cars.Single(c => c.Id == 1).BleAdapterAddress);
+        Assert.Equal("AA:BB:CC:DD:EE:FF", Mock.Mock<ISettings>().Object.Cars.Single(c => c.Id == 1).BleAdapterAddress);
+    }
+
+    [Fact]
+    public async Task ClearingTheAdapterSelectionFallsBackToTheContainerDefault()
+    {
+        SetupCarForBleDataCollectionTests(bleAdapterAddress: "AA:BB:CC:DD:EE:FF");
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.DeleteFleetTelemetryConfiguration(TestVin))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var carBasicConfiguration = GenerateBleCarBasicConfiguration();
+        carBasicConfiguration.BleAdapterAddress = null;
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, carBasicConfiguration);
+
+        Assert.Null(Context.Cars.Single(c => c.Id == 1).BleAdapterAddress);
+    }
+
+    private void SetupCarForBleDataCollectionTests(string? bleAdapterAddress = null)
     {
         Context.Cars.Add(new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car
         {
@@ -100,10 +137,11 @@ public class ConfigJsonService : TestBase
             UseFleetTelemetry = true,
             IncludeTrackingRelevantFields = false,
             HomeDetectionVia = HomeDetectionVia.LocatedAtHome,
+            BleAdapterAddress = bleAdapterAddress,
         });
         Context.SaveChangesAsync().GetAwaiter().GetResult();
         DetachAllEntities();
-        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { new() { Id = 1, Vin = TestVin } });
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { new() { Id = 1, Vin = TestVin, BleAdapterAddress = bleAdapterAddress } });
     }
 
     private static CarBasicConfiguration GenerateBleCarBasicConfiguration()

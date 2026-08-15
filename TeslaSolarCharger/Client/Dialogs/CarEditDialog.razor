@@ -1,4 +1,6 @@
+@using System.Globalization
 @using MudBlazor
+@using PkSoftwareService.Custom.Backend.Ble
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
@@ -77,7 +79,36 @@
                                           OnValueChanged="newValue => { OnUseBleChanged(newValue); Car.ClearErrors(nameof(Car.Item.BleApiBaseUrl), nameof(Car.Item.UseFleetTelemetry), nameof(Car.Item.HomeDetectionVia)); StateHasChanged(); }" />
                             @if (Car.Item.UseBle)
                             {
-                                <GenericInput For="() => Car.Item.BleApiBaseUrl" />
+                                <GenericInput T="string"
+                                              For="() => Car.Item.BleApiBaseUrl"
+                                              OnValueChanged="@((string _) => LoadBleAdaptersAsync())" />
+                                <div class="px-2 pt-2">
+                                    <MudSelect T="string"
+                                               Value="@(Car.Item.BleAdapterAddress ?? string.Empty)"
+                                               ValueChanged="@(value => Car.Item.BleAdapterAddress = string.IsNullOrEmpty(value) ? null : value)"
+                                               Variant="Variant.Outlined"
+                                               Label="@T(TranslationKeys.CarSettingsBleAdapterLabel)"
+                                               HelperText="@T(TranslationKeys.CarSettingsBleAdapterHelperText)"
+                                               Margin="Constants.InputMargin"
+                                               Adornment="@(_isLoadingBleAdapters ? Adornment.End : Adornment.None)"
+                                               AdornmentIcon="@Icons.Material.Filled.HourglassEmpty">
+                                        <MudSelectItem T="string" Value="@string.Empty">@T(TranslationKeys.CarSettingsBleAdapterContainerDefault)</MudSelectItem>
+                                        @foreach (var adapter in _bleAdapters)
+                                        {
+                                            <MudSelectItem T="string" Value="@adapter.StableId">@GetAdapterDisplayName(adapter)</MudSelectItem>
+                                        }
+                                        @* An adapter that is configured but currently not listed (container offline or
+                                           adapter unplugged) must stay selectable, otherwise opening the dialog would
+                                           silently reset the car to the container's default radio. *@
+                                        @if (!string.IsNullOrEmpty(Car.Item.BleAdapterAddress)
+                                             && _bleAdapters.All(a => a.StableId != Car.Item.BleAdapterAddress))
+                                        {
+                                            <MudSelectItem T="string" Value="@Car.Item.BleAdapterAddress">
+                                                @Format(TranslationKeys.CarSettingsBleAdapterMissingFormat, Car.Item.BleAdapterAddress)
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
                             }
 
                             <div class="px-2 pt-2">
@@ -152,12 +183,17 @@
     private EditFormComponent<CarBasicConfiguration>? _editForm;
     private bool _isSaving;
     private bool _getVehicleDataViaBle;
+    private List<DtoBleAdapter> _bleAdapters = new();
+    private bool _isLoadingBleAdapters;
 
     private bool IsBleDataCollectionActive => _getVehicleDataViaBle && Car.Item.UseBle && !Car.Item.IncludeTrackingRelevantFields;
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,6 +203,37 @@
         //so reflect that state in the UI right away.
         ApplyBleDataCollectionDefaultsIfNeeded();
         StateHasChanged();
+        await LoadBleAdaptersAsync();
+    }
+
+    private async Task LoadBleAdaptersAsync()
+    {
+        if (!Car.Item.UseBle || string.IsNullOrWhiteSpace(Car.Item.BleApiBaseUrl))
+        {
+            _bleAdapters = new List<DtoBleAdapter>();
+            StateHasChanged();
+            return;
+        }
+        _isLoadingBleAdapters = true;
+        StateHasChanged();
+        var result = await HttpClientHelper.SendGetRequestAsync<List<DtoBleAdapter>>(
+            $"api/Ble/GetAdapters?bleApiBaseUrl={Uri.EscapeDataString(Car.Item.BleApiBaseUrl)}");
+        //An unreachable or outdated container just means no list to choose from; the stored selection is kept.
+        _bleAdapters = result.HasError ? new List<DtoBleAdapter>() : (result.Data ?? new List<DtoBleAdapter>());
+        _isLoadingBleAdapters = false;
+        StateHasChanged();
+    }
+
+    private string GetAdapterDisplayName(DtoBleAdapter adapter)
+    {
+        var busName = adapter.Bus switch
+        {
+            "usb" => T(TranslationKeys.CarSettingsBleAdapterUsb),
+            "uart" => T(TranslationKeys.CarSettingsBleAdapterOnboard),
+            _ => adapter.Bus,
+        };
+        var product = string.IsNullOrWhiteSpace(adapter.UsbProduct) ? string.Empty : $" {adapter.UsbProduct}";
+        return $"{busName}{product} ({adapter.Name}, {adapter.StableId}) - {adapter.State}";
     }
 
     private void ApplyBleDataCollectionDefaultsIfNeeded()

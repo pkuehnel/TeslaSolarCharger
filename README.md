@@ -295,7 +295,64 @@ volumes:
 ##### Setup BLE (same device and separate device)
 The BLE API Base URL is configured per car. Go to `Car Settings`, open the car you want to control, enable `Use BLE` and enter the BLE API Base URL `http://<IP of device with BLE API running>:7210/`. Click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeded, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
 
+##### Troubleshooting BLE
 
+**Pairing fails with `RF-kill` on a freshly installed Raspberry Pi**
+
+If pairing or any BLE command fails with an error like this:
+
+```
+ble: failed to enable device: can't init hci: no devices available: (hci0: can't up device: operation not possible due to RF-kill)
+```
+
+then the Bluetooth adapter is blocked by the *host* operating system, not by the BLE API container. Raspberry Pi OS keeps the Wi-Fi and Bluetooth radios disabled (`rfkill` soft block) until a WLAN regulatory country has been configured, which is often not the case after a fresh install. As the block is enforced by the host kernel, the container cannot work around it, even though it runs with `privileged: true` and `network_mode: host`.
+
+Run the following commands **on the device that runs the BLE API** (not inside the container):
+
+1. Check the current state. The Bluetooth entry will most likely show `Soft blocked: yes`.
+    ```
+    rfkill list
+    ```
+1. Remove the block
+    ```
+    sudo rfkill unblock all
+    ```
+1. Set your WLAN country, otherwise the block is reapplied on the next reboot. Replace `DE` with your own [country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
+    ```
+    sudo raspi-config nonint do_wifi_country DE
+    ```
+1. Bring the adapter up and verify it is available
+    ```
+    sudo hciconfig hci0 up && hciconfig
+    ```
+1. Restart the BLE API container, so it can initialize the adapter again
+    ```
+    docker restart TeslaSolarChargerBleApi
+    ```
+
+If `rfkill list` shows `Hard blocked: yes` or does not list a Bluetooth device at all, Bluetooth is disabled in the firmware configuration instead. Check if `/boot/firmware/config.txt` contains a `dtoverlay=disable-bt` line, remove it and reboot. You can also check whether the Bluetooth stack is running at all with `systemctl status bluetooth hciuart`.
+
+**Unreliable BLE connection on a Raspberry Pi: Wi-Fi and Bluetooth share one antenna**
+
+On a Raspberry Pi the onboard Wi-Fi and Bluetooth radios share a single antenna. A poor Wi-Fi link therefore starves Bluetooth, and the symptom is not an obvious Wi-Fi problem: BLE connections to the car keep failing while the car is standing right next to the device. This was measured on a Pi 5 whose 5 GHz link had degraded to 6 Mbit/s: of 491 connection attempts only 8 completed (1.6 %). Moving the same Pi to Ethernet brought it to 95 % without any other change.
+
+If BLE is unreliable, check in this order:
+
+1. **Use Ethernet** for the device that runs the BLE API, or improve the Wi-Fi link (move the device, switch to 2.4 GHz, use a better access point). If the device does not need Wi-Fi at all, block the radio with `sudo rfkill block wifi` so it cannot interfere.
+1. **Use a USB Bluetooth adapter.** A USB adapter has its own antenna and is not affected by Wi-Fi at all. Plug it in and select it per car (see below) - this is the most reliable fix if Ethernet is not an option.
+1. Check the distance to the car. Without walls in between, roughly 4 metres is the practical limit for the onboard adapter.
+
+**Choosing which Bluetooth adapter a car uses**
+
+One BLE API container serves all Bluetooth adapters of its host. Each adapter gets its own worker process that opens the adapter once and keeps it open, so two adapters can talk to two cars in parallel.
+
+In `Car Settings`, every BLE car has a `Bluetooth adapter` selection listing the adapters the container found, showing whether an adapter is onboard (UART) or USB and whether it is currently in use. The default is `Container default`, which behaves exactly as before: the adapter from the container's `BluetoothAdapter` environment variable, or the first available one.
+
+Cars are pinned by the adapter's Bluetooth address, not by its `hciX` name, because `hciX` numbering follows the probe order and can change between reboots or after replugging a USB adapter. If a selected adapter is not present anymore (for example the USB adapter was unplugged), the affected car reports an error instead of silently falling back to a different radio.
+
+**A note on "car is not at home"**
+
+TSC decides whether a car is at home by listening for its Bluetooth advertisement, without connecting to it. Only repeated scans without any sign of the car mark it as away, so a single failed connection never moves a car that is standing in the garage. Note that at a location where no other Bluetooth devices are ever nearby, a completely dead radio cannot be told apart from an absent car - if the car is reported as away although it is at home, check the radio using the steps above.
 
 ## Setting up solar power values
 

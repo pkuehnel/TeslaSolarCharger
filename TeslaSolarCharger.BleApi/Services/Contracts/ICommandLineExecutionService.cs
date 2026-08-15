@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.BleApi.Dtos;
+using PkSoftwareService.Custom.Backend.Ble;
 
 namespace TeslaSolarCharger.BleApi.Services.Contracts;
 

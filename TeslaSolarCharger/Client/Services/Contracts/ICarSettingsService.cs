@@ -1,3 +1,4 @@
+using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;

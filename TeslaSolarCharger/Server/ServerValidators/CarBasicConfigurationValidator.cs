@@ -106,6 +106,23 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                         }
                     });
 
+                RuleFor(x => x.BleAdapterAddress)
+                    .CustomAsync(async (bleAdapterAddress, context, _) =>
+                    {
+                        if (string.IsNullOrWhiteSpace(bleAdapterAddress))
+                        {
+                            return;
+                        }
+                        var adapters = await bleService.GetAdapters(context.InstanceToValidate.BleApiBaseUrl);
+                        //An empty list means the container is unreachable or outdated, which the URL rule already
+                        //reports. Only complain when the container answered but does not know this adapter, as
+                        //commands for that car would fail instead of silently using a different radio.
+                        if (adapters.Count > 0 && adapters.All(a => !string.Equals(a.StableId, bleAdapterAddress, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            context.AddFailure($"The selected Bluetooth adapter {bleAdapterAddress} is not available on the BLE container. Choose one of the listed adapters or the container default.");
+                        }
+                    });
+
             });
         });
     }

@@ -20,6 +20,7 @@ public class DebugController(
     ITscOnlyChargingCostService tscOnlyChargingCostService,
     IHomeBatteryModeService homeBatteryModeService,
     IBleService bleService,
+    IBlePresenceStateService blePresenceStateService,
     ISettings settings) : ApiBaseController
 {
 
@@ -304,6 +305,35 @@ public class DebugController(
         var result = await bleService.GetChargeState(vin);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
+    }
+
+    /// <summary>
+    /// Passive beacon scan for one car: it never connects, so it can not wake the car. Next to the presence answer the
+    /// result carries the advertisement counters of the scan window, which tell an absent car apart from a radio that
+    /// hears nothing at all.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> GetBlePresence(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetPresenceForVin(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    /// <summary>
+    /// The beacon scan results recorded for a car by the scheduled BLE refresh, newest last, plus the hit rate, mean
+    /// signal strength and longest miss streak. Answers whether an unstable BLE link is a weak signal or a car that
+    /// simply advertises rarely, without having to run scans by hand.
+    /// </summary>
+    [HttpGet]
+    public IActionResult GetBleBeaconHistory(int carId)
+    {
+        return Ok(blePresenceStateService.GetObservations(carId));
     }
 
     [HttpGet]

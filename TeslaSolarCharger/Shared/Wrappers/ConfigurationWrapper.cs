@@ -245,6 +245,42 @@ public class ConfigurationWrapper(
         return value == true;
     }
 
+    public bool UseBleDebug()
+    {
+        return GetBaseConfiguration().UseBleDebug;
+    }
+
+    public int BleDataRefreshIntervalSeconds()
+    {
+        //Null means the user never decided, so fall back to the current default. An interval below one second makes no
+        //sense and would hammer the BLE container, so clamp it.
+        var value = GetBaseConfiguration().BleDataRefreshIntervalSeconds ?? ConfigurationDefaults.BleDataRefreshIntervalSeconds;
+        return value < 1 ? 1 : value;
+    }
+
+    public int BleSleepWindowMinutes()
+    {
+        //Null means the user never decided, so fall back to the current default. A negative value makes no sense; 0 is
+        //valid and disables the feature, so only clamp negatives.
+        var value = GetBaseConfiguration().BleSleepWindowMinutes ?? ConfigurationDefaults.BleSleepWindowMinutes;
+        return value < 0 ? 0 : value;
+    }
+
+    public int BleSleepStabilityMinutes()
+    {
+        var value = GetBaseConfiguration().BleSleepStabilityMinutes ?? ConfigurationDefaults.BleSleepStabilityMinutes;
+        return value < 0 ? 0 : value;
+    }
+
+    public int BlePresenceMaxAgeSeconds()
+    {
+        var value = GetBaseConfiguration().BlePresenceMaxAgeSeconds
+                    ?? ConfigurationDefaults.BlePresenceMaxAgeSeconds;
+        //Matches the container's own clamp. Below half a minute a single slow poll cycle could look like a
+        //departure; above ten minutes a car that really left would keep its last known state for far too long.
+        return Math.Clamp(value, 30, 600);
+    }
+
     public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;
@@ -944,8 +980,6 @@ public class ConfigurationWrapper(
         {
             return;
         }
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMilliseconds(500);
         //ToDo: as the plugin has to use the host network the pluginname is unknown
         //try
         //{

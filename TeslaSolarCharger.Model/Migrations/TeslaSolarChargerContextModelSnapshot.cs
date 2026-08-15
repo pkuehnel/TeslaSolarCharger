@@ -15,7 +15,7 @@ namespace TeslaSolarCharger.Model.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.4");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.BackendNotification", b =>
                 {
@@ -84,6 +84,9 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("BleAdapterAddress")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("BleApiBaseUrl")
                         .HasColumnType("TEXT");

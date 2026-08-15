@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.BleApi.InMemoryValues.Contracts;
+namespace TeslaSolarCharger.BleApi.InMemoryValues.Contracts;
 
 public interface ISettings
 {
