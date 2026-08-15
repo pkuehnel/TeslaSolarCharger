@@ -85,7 +85,7 @@ jobs:
       # of on someone's car. A renamed or renumbered field shows up as a build or test failure.
       - name: Build and test
         if: steps.diff.outputs.changed == 'true'
-        run: dotnet test TeslaSolarCharger.Tests/TeslaSolarCharger.Tests.csproj --configuration Release
+        run: dotnet run --project TeslaSolarCharger.Tests/TeslaSolarCharger.Tests.csproj --configuration Release
 
       - name: Create pull request
         if: steps.diff.outputs.changed == 'true'

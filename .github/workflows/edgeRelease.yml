@@ -47,7 +47,7 @@ jobs:
           echo "version=$(./minver/minver --default-pre-release-identifiers edge --tag-prefix v)" >> "$GITHUB_ENV"
     
     - name: Run unit tests
-      run: dotnet test TeslaSolarCharger.Tests
+      run: dotnet run --project TeslaSolarCharger.Tests
       
     - name: Buildx
       id: buildx
