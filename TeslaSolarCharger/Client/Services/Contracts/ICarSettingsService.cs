@@ -15,6 +15,12 @@ public interface ICarSettingsService
     Task<DtoCarDeletionProgress?> GetCarDeletionProgress(int id);
     Task<TokenState?> GetFleetApiTokenState();
     Task<DtoBleCommandResult?> PairKey(string vin);
+
+    /// <summary>
+    /// Checks whether TSC can control the car via BLE. Uses the car's saved BLE configuration, so the car has to be
+    /// saved before testing.
+    /// </summary>
+    Task<DtoBleConnectionTestResult?> TestBleConnection(string vin);
     Task<DtoBleCommandResult?> SetAmp(string vin, int amps);
     Task<DtoBleCommandResult?> WakeUp(string vin);
     Task<bool> DisconnectCarFromSmartCar(int carId);

@@ -1,6 +1,7 @@
 @using System.Globalization
 @using MudBlazor
 @using PkSoftwareService.Custom.Backend.Ble
+@using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
@@ -16,6 +17,7 @@
 @inject IConstants Constants
 @inject ISnackbar Snackbar
 @inject ICarSettingsService CarSettingsService
+@inject IHomeService HomeService
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
 @inject IHttpClientHelper HttpClientHelper
@@ -29,6 +31,25 @@
     </TitleContent>
     <DialogContent>
         <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
+            @if (_showConnectionTests)
+            {
+                @if (_testFleetApiAccess)
+                {
+                    <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditFleetApiTestTitle)</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarEditFleetApiTestHint)</MudText>
+                    <FleetApiTestComponent CarId="Car.Item.Id" AutoTest="true" />
+                }
+                @if (_testBleConnection)
+                {
+                    <div class="@(_testFleetApiAccess ? "mt-4" : "")">
+                        <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditBleTestTitle)</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarEditBleTestHint)</MudText>
+                        <BleConnectionTestComponent Vin="Car.Item.Vin" AutoTest="true" />
+                    </div>
+                }
+            }
+            else
+            {
             <EditFormComponent T="CarBasicConfiguration" WrappedElement="Car"
                                HideSubmitButton="true" @ref="_editForm">
                 
@@ -109,6 +130,21 @@
                                         }
                                     </MudSelect>
                                 </div>
+                                @if (Car.Item.Id != default)
+                                {
+                                    @* The test runs against the saved configuration, so it saves the car first.
+                                       Without a car id there is nothing to save to, which only happens for a new
+                                       manual car - those are never Teslas and can not use BLE anyway. *@
+                                    <div class="px-2 pt-2">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.Bluetooth"
+                                                   OnClick="SaveAndTestBleConnection"
+                                                   Disabled="_isSaving">
+                                            @T(TranslationKeys.CarEditBleTestButton)
+                                        </MudButton>
+                                    </div>
+                                }
                             }
 
                             <div class="px-2 pt-2">
@@ -162,11 +198,21 @@
                     </div>
                 }
             </EditFormComponent>
+            }
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@T(TranslationKeys.GeneralCancel)</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="_isSaving">@T(TranslationKeys.GeneralSave)</MudButton>
+        @if (_showConnectionTests)
+        {
+            @* The configuration is already saved at this point, so the tests never block: the user can close the
+               dialog at any time and the car stays configured. *@
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CloseAfterConnectionTests">@T(TranslationKeys.GeneralClose)</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="Cancel">@T(TranslationKeys.GeneralCancel)</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="_isSaving">@T(TranslationKeys.GeneralSave)</MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -186,6 +232,28 @@
     private List<DtoBleAdapter> _bleAdapters = new();
     private bool _isLoadingBleAdapters;
 
+    /// <summary>
+    /// Whether the car was already managed when the dialog was opened. Only a car that is switched to be managed
+    /// needs the Fleet API connection test, an already managed car has been through it before.
+    /// </summary>
+    private bool _wasManagedOnOpen;
+    private TeslaCarFleetApiState? _fleetApiStateOnOpen;
+
+    /// <summary>
+    /// Whether BLE was already enabled when the dialog was opened. Only a car that gets BLE enabled needs the
+    /// connection test, as only then it is unknown whether TSC's key is added to the car.
+    /// </summary>
+    private bool _useBleOnOpen;
+
+    /// <summary>
+    /// Set when the user explicitly asked for a BLE test, so the test also runs for a car that already used BLE.
+    /// </summary>
+    private bool _bleTestRequested;
+
+    private bool _showConnectionTests;
+    private bool _testFleetApiAccess;
+    private bool _testBleConnection;
+
     private bool IsBleDataCollectionActive => _getVehicleDataViaBle && Car.Item.UseBle && !Car.Item.IncludeTrackingRelevantFields;
 
     private string T(string key) =>
@@ -197,6 +265,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _wasManagedOnOpen = Car.Item.ShouldBeManaged;
+        _useBleOnOpen = Car.Item.UseBle;
+        if (Car.Item.CarType == CarType.Tesla && Car.Item.Id != default)
+        {
+            var fleetApiStateResult = await HomeService.GetFleetApiState(Car.Item.Id);
+            _fleetApiStateOnOpen = fleetApiStateResult.Data;
+        }
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<bool>>("api/BaseConfiguration/GetVehicleDataViaBle");
         _getVehicleDataViaBle = !result.HasError && (result.Data?.Value == true);
         //Saving a car config while Get data via BLE is enabled switches the car to BLE data collection on the server,
@@ -296,6 +371,38 @@
 
     private void Cancel() => MudDialog.Cancel();
 
+    private void CloseAfterConnectionTests() => MudDialog.Close(DialogResult.Ok(true));
+
+    /// <summary>
+    /// A Tesla that is switched to be managed needs a working Fleet API connection. Cars whose access is known to
+    /// work are not tested again, so no unnecessary wake up is triggered.
+    /// </summary>
+    private bool ShouldTestFleetApiAccess => Car.Item.CarType == CarType.Tesla
+                                             && Car.Item.Id != default
+                                             && Car.Item.ShouldBeManaged
+                                             && !_wasManagedOnOpen
+                                             && _fleetApiStateOnOpen != TeslaCarFleetApiState.Ok;
+
+    /// <summary>
+    /// BLE only works once TSC's key is added to the car, which nothing else checks. Test whenever BLE is switched
+    /// on and whenever the user asks for it.
+    /// </summary>
+    private bool ShouldTestBleConnection => Car.Item.CarType == CarType.Tesla
+                                            && Car.Item.Id != default
+                                            && Car.Item.UseBle
+                                            && !string.IsNullOrEmpty(Car.Item.Vin)
+                                            && (!_useBleOnOpen || _bleTestRequested);
+
+    /// <summary>
+    /// The connection test uses the car's saved BLE configuration, so unsaved changes (e.g. a just entered BLE url)
+    /// would be tested against the old values. Save first, then test.
+    /// </summary>
+    private async Task SaveAndTestBleConnection()
+    {
+        _bleTestRequested = true;
+        await Submit();
+    }
+
     private async Task Submit()
     {
         // Run client-side (FluentValidation) validation before hitting the server so invalid values are shown
@@ -311,6 +418,17 @@
 
         if (!result.HasError)
         {
+            //A car TSC is not registered in can not be controlled, neither via the Fleet API nor via BLE. Instead of
+            //letting the user find that out via the error box on the home page, run the tests right away and guide
+            //them through registering the key. The car is saved already, so this never blocks anything.
+            _testFleetApiAccess = ShouldTestFleetApiAccess;
+            _testBleConnection = ShouldTestBleConnection;
+            _bleTestRequested = false;
+            if (_testFleetApiAccess || _testBleConnection)
+            {
+                _showConnectionTests = true;
+                return;
+            }
             MudDialog.Close(DialogResult.Ok(true));
             return;
         }

@@ -73,6 +73,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, ChargingTargetConfigurationComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, EnergyPredictionComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FleetApiTestComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, BleConnectionTestComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, HiddenErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LegendItemComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()

@@ -409,6 +409,22 @@ public static class TranslationKeys
     public static string FleetApiTestNotConfigured => nameof(FleetApiTestNotConfigured);
     public static string FleetApiTestRegisteredButNotTested => nameof(FleetApiTestRegisteredButNotTested);
 
+    public static string BleTestTesting => nameof(BleTestTesting);
+    public static string BleTestSuccess => nameof(BleTestSuccess);
+    public static string BleTestCarNotFound => nameof(BleTestCarNotFound);
+    public static string BleTestCarAsleep => nameof(BleTestCarAsleep);
+    public static string BleTestKeyNotPaired => nameof(BleTestKeyNotPaired);
+    public static string BleTestContainerProblem => nameof(BleTestContainerProblem);
+    public static string BleTestUnknown => nameof(BleTestUnknown);
+    public static string BleTestAgainButton => nameof(BleTestAgainButton);
+    public static string BleTestDetails => nameof(BleTestDetails);
+    public static string BleTestPairKeyTitle => nameof(BleTestPairKeyTitle);
+    public static string BleTestPairKeyHint => nameof(BleTestPairKeyHint);
+    public static string BleTestPairKeyButton => nameof(BleTestPairKeyButton);
+    public static string BleTestPairing => nameof(BleTestPairing);
+    public static string BleTestPairKeySuccess => nameof(BleTestPairKeySuccess);
+    public static string BleTestPairKeyError => nameof(BleTestPairKeyError);
+
     public static string HiddenErrorsTitle => nameof(HiddenErrorsTitle);
     public static string HiddenErrorsDescription => nameof(HiddenErrorsDescription);
     public static string HiddenErrorsUpdateHint => nameof(HiddenErrorsUpdateHint);
@@ -661,6 +677,7 @@ public static class TranslationKeys
 
     public static string GeneralSave => nameof(GeneralSave);
     public static string GeneralCancel => nameof(GeneralCancel);
+    public static string GeneralClose => nameof(GeneralClose);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
     public static string GeneralLoading => nameof(GeneralLoading);
@@ -810,6 +827,11 @@ public static class TranslationKeys
 
     public static string CarEditManagementSettings => nameof(CarEditManagementSettings);
     public static string CarEditTeslaSpecific => nameof(CarEditTeslaSpecific);
+    public static string CarEditFleetApiTestTitle => nameof(CarEditFleetApiTestTitle);
+    public static string CarEditFleetApiTestHint => nameof(CarEditFleetApiTestHint);
+    public static string CarEditBleTestTitle => nameof(CarEditBleTestTitle);
+    public static string CarEditBleTestHint => nameof(CarEditBleTestHint);
+    public static string CarEditBleTestButton => nameof(CarEditBleTestButton);
 
     public static string ChargingStationOverviewConnectors => nameof(ChargingStationOverviewConnectors);
     public static string ChargingStationOverviewPhaseSwitching => nameof(ChargingStationOverviewPhaseSwitching);
