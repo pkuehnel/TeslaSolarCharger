@@ -118,7 +118,11 @@ else
             await RefreshFleetApiTokenState();
             if (_fleetApiTokenState == TokenState.UpToDate)
             {
-                await CarSettingsService.RefreshTeslaCarsFromAccount();
+                var addedCars = await CarSettingsService.RefreshTeslaCarsFromAccount();
+                if (addedCars != null)
+                {
+                    Snackbar.Add(CarSettingsService.GetAddedTeslasMessage(addedCars.Value), Severity.Success);
+                }
             }
             DropQueryParam(Constants.QueryParamTeslaConnected);
         }

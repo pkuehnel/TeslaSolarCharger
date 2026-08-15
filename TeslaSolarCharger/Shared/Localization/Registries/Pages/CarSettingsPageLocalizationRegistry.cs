@@ -228,9 +228,21 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.English, "Add cars from Tesla account"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge aus Tesla-Konto hinzufügen"));
 
-        Register(TranslationKeys.CarSettingsAddTeslaFromAccountSuccess,
-            new TextLocalizationTranslation(LanguageCodes.English, "Checked your Tesla account for new cars."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Konto auf neue Fahrzeuge geprüft."));
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountLoading,
+            new TextLocalizationTranslation(LanguageCodes.English, "Loading cars from your Tesla account. This can take a few seconds."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge werden aus Ihrem Tesla-Konto geladen. Das kann einige Sekunden dauern."));
+
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountNoNewCars,
+            new TextLocalizationTranslation(LanguageCodes.English, "No new cars found in your Tesla account."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Keine neuen Fahrzeuge in Ihrem Tesla-Konto gefunden."));
+
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountOneCarAdded,
+            new TextLocalizationTranslation(LanguageCodes.English, "1 car was added."),
+            new TextLocalizationTranslation(LanguageCodes.German, "1 Fahrzeug wurde hinzugefügt."));
+
+        Register(TranslationKeys.CarSettingsAddTeslaFromAccountCarsAdded,
+            new TextLocalizationTranslation(LanguageCodes.English, "{0} cars were added."),
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} Fahrzeuge wurden hinzugefügt."));
 
         Register(TranslationKeys.CarSettingsAddTeslaFromAccountError,
             new TextLocalizationTranslation(LanguageCodes.English, "Could not load cars from your Tesla account: {0}"),
