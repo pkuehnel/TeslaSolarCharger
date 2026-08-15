@@ -357,6 +357,20 @@ public static class TranslationKeys
     public static string ValueSourceConfigHttpMethod => nameof(ValueSourceConfigHttpMethod);
     public static string ValueSourceConfigType => nameof(ValueSourceConfigType);
 
+    public static string ValueUsageInverterPower => nameof(ValueUsageInverterPower);
+    public static string ValueUsageGridPower => nameof(ValueUsageGridPower);
+    public static string ValueUsageHomeBatteryPower => nameof(ValueUsageHomeBatteryPower);
+    public static string ValueUsageHomeBatterySoc => nameof(ValueUsageHomeBatterySoc);
+
+    public static string ValueOperatorPlus => nameof(ValueOperatorPlus);
+    public static string ValueOperatorMinus => nameof(ValueOperatorMinus);
+
+    public static string ModbusRegisterTypeHolding => nameof(ModbusRegisterTypeHolding);
+    public static string ModbusRegisterTypeInput => nameof(ModbusRegisterTypeInput);
+
+    public static string ModbusEndianessBig => nameof(ModbusEndianessBig);
+    public static string ModbusEndianessLittle => nameof(ModbusEndianessLittle);
+
     public static string ValueSourceConfigFormNull => nameof(ValueSourceConfigFormNull);
     public static string ValueSourceConfigConfigNull => nameof(ValueSourceConfigConfigNull);
     public static string ValueSourceConfigConfigInvalid => nameof(ValueSourceConfigConfigInvalid);
