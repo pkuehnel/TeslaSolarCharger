@@ -1,4 +1,5 @@
 using FluentValidation;
+using TeslaSolarCharger.Shared.Attributes;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.TeslaPowerwall;
 
@@ -13,6 +14,7 @@ public class DtoTeslaPowerwallTemplateValueConfiguration
     /// <summary>
     /// Backup reserve percent that is restored when no battery mode is forced.
     /// </summary>
+    [Postfix("%")]
     public int NormalModeBackupReservePercent { get; set; } = 20;
 }
 

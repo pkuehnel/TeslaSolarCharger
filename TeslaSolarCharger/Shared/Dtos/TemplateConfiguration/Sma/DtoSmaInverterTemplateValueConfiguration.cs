@@ -1,4 +1,5 @@
 using FluentValidation;
+using TeslaSolarCharger.Shared.Attributes;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic;
 
 namespace TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
@@ -15,7 +16,9 @@ public class DtoSmaInverterTemplateValueConfiguration : DtoModbusConfigurationBa
     /// Only relevant for hybrid inverters. When enabled TSC can block discharging and force charging of the home battery.
     /// </summary>
     public bool EnableHomeBatteryControl { get; set; }
+    [Postfix("W")]
     public int MaxBatteryChargePowerW { get; set; } = 4200;
+    [Postfix("W")]
     public int MaxBatteryDischargePowerW { get; set; } = 4200;
 }
 
