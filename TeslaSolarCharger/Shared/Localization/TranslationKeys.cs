@@ -661,6 +661,7 @@ public static class TranslationKeys
 
     public static string GeneralSave => nameof(GeneralSave);
     public static string GeneralCancel => nameof(GeneralCancel);
+    public static string GeneralClose => nameof(GeneralClose);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
     public static string GeneralLoading => nameof(GeneralLoading);
@@ -810,6 +811,8 @@ public static class TranslationKeys
 
     public static string CarEditManagementSettings => nameof(CarEditManagementSettings);
     public static string CarEditTeslaSpecific => nameof(CarEditTeslaSpecific);
+    public static string CarEditFleetApiTestTitle => nameof(CarEditFleetApiTestTitle);
+    public static string CarEditFleetApiTestHint => nameof(CarEditFleetApiTestHint);
 
     public static string ChargingStationOverviewConnectors => nameof(ChargingStationOverviewConnectors);
     public static string ChargingStationOverviewPhaseSwitching => nameof(ChargingStationOverviewPhaseSwitching);

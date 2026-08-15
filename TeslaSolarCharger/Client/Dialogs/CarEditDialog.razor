@@ -1,6 +1,7 @@
 @using System.Globalization
 @using MudBlazor
 @using PkSoftwareService.Custom.Backend.Ble
+@using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
@@ -16,6 +17,7 @@
 @inject IConstants Constants
 @inject ISnackbar Snackbar
 @inject ICarSettingsService CarSettingsService
+@inject IHomeService HomeService
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
 @inject IHttpClientHelper HttpClientHelper
@@ -29,6 +31,14 @@
     </TitleContent>
     <DialogContent>
         <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
+            @if (_showFleetApiTest)
+            {
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditFleetApiTestTitle)</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarEditFleetApiTestHint)</MudText>
+                <FleetApiTestComponent CarId="Car.Item.Id" AutoTest="true" />
+            }
+            else
+            {
             <EditFormComponent T="CarBasicConfiguration" WrappedElement="Car"
                                HideSubmitButton="true" @ref="_editForm">
                 
@@ -162,11 +172,21 @@
                     </div>
                 }
             </EditFormComponent>
+            }
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@T(TranslationKeys.GeneralCancel)</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="_isSaving">@T(TranslationKeys.GeneralSave)</MudButton>
+        @if (_showFleetApiTest)
+        {
+            @* The configuration is already saved at this point, so the test never blocks: the user can close the
+               dialog at any time and the car stays managed. *@
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CloseAfterFleetApiTest">@T(TranslationKeys.GeneralClose)</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="Cancel">@T(TranslationKeys.GeneralCancel)</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="_isSaving">@T(TranslationKeys.GeneralSave)</MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -186,6 +206,14 @@
     private List<DtoBleAdapter> _bleAdapters = new();
     private bool _isLoadingBleAdapters;
 
+    /// <summary>
+    /// Whether the car was already managed when the dialog was opened. Only a car that is switched to be managed
+    /// needs the Fleet API connection test, an already managed car has been through it before.
+    /// </summary>
+    private bool _wasManagedOnOpen;
+    private TeslaCarFleetApiState? _fleetApiStateOnOpen;
+    private bool _showFleetApiTest;
+
     private bool IsBleDataCollectionActive => _getVehicleDataViaBle && Car.Item.UseBle && !Car.Item.IncludeTrackingRelevantFields;
 
     private string T(string key) =>
@@ -197,6 +225,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _wasManagedOnOpen = Car.Item.ShouldBeManaged;
+        if (Car.Item.CarType == CarType.Tesla && Car.Item.Id != default)
+        {
+            var fleetApiStateResult = await HomeService.GetFleetApiState(Car.Item.Id);
+            _fleetApiStateOnOpen = fleetApiStateResult.Data;
+        }
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<bool>>("api/BaseConfiguration/GetVehicleDataViaBle");
         _getVehicleDataViaBle = !result.HasError && (result.Data?.Value == true);
         //Saving a car config while Get data via BLE is enabled switches the car to BLE data collection on the server,
@@ -296,6 +330,18 @@
 
     private void Cancel() => MudDialog.Cancel();
 
+    private void CloseAfterFleetApiTest() => MudDialog.Close(DialogResult.Ok(true));
+
+    /// <summary>
+    /// A Tesla that is switched to be managed needs a working Fleet API connection. Cars whose access is known to
+    /// work are not tested again, so no unnecessary wake up is triggered.
+    /// </summary>
+    private bool ShouldTestFleetApiAccess => Car.Item.CarType == CarType.Tesla
+                                             && Car.Item.Id != default
+                                             && Car.Item.ShouldBeManaged
+                                             && !_wasManagedOnOpen
+                                             && _fleetApiStateOnOpen != TeslaCarFleetApiState.Ok;
+
     private async Task Submit()
     {
         // Run client-side (FluentValidation) validation before hitting the server so invalid values are shown
@@ -311,6 +357,14 @@
 
         if (!result.HasError)
         {
+            if (ShouldTestFleetApiAccess)
+            {
+                //A car that is not registered in the Tesla account can not be controlled by TSC. Instead of letting
+                //the user find that out via the error box on the home page, run the test right away and guide them
+                //through registering the virtual key. The car is saved already, so this never blocks anything.
+                _showFleetApiTest = true;
+                return;
+            }
             MudDialog.Close(DialogResult.Ok(true));
             return;
         }
