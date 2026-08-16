@@ -16,7 +16,6 @@
 @inject ISnackbar Snackbar
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<CarDetailsComponent> Logger
-@inject IJavaScriptWrapper JavaScriptWrapper
 @inject ITextLocalizationService TextLocalizer
 
 @if (CarSettings == default || CarState == default)
@@ -92,11 +91,7 @@ else
                               LabelName='@T(TranslationKeys.CarDetailsChargeModeLabel)'
                               OnValueChanged="ChargeModeUpdated" />
             </div>
-            <div class="me-2 flex-grow-0">
-                <MudIconButton Icon="@Icons.Material.Outlined.Info"
-                               Color="Color.Primary"
-                               OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
-            </div>
+            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.CarDetailsChargeModeExplanation)" />
         </div>
 
         @if (CarSettings.ChargeMode == ChargeModeV2.Auto)

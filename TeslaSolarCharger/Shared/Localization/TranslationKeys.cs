@@ -346,6 +346,9 @@ public static class TranslationKeys
     public static string ValueSourceConfigConfigurationDeleted => nameof(ValueSourceConfigConfigurationDeleted);
 
     public static string ValueSourceConfigNodePatternType => nameof(ValueSourceConfigNodePatternType);
+    public static string ValueSourceConfigNodePatternTypeDirect => nameof(ValueSourceConfigNodePatternTypeDirect);
+    public static string ValueSourceConfigNodePatternTypeJson => nameof(ValueSourceConfigNodePatternTypeJson);
+    public static string ValueSourceConfigNodePatternTypeXml => nameof(ValueSourceConfigNodePatternTypeXml);
     public static string ValueSourceConfigUsedFor => nameof(ValueSourceConfigUsedFor);
     public static string ValueSourceConfigOperator => nameof(ValueSourceConfigOperator);
     public static string ValueSourceConfigRegisterType => nameof(ValueSourceConfigRegisterType);
@@ -353,6 +356,44 @@ public static class TranslationKeys
     public static string ValueSourceConfigEndianess => nameof(ValueSourceConfigEndianess);
     public static string ValueSourceConfigHttpMethod => nameof(ValueSourceConfigHttpMethod);
     public static string ValueSourceConfigType => nameof(ValueSourceConfigType);
+
+    public static string ValueUsageInverterPower => nameof(ValueUsageInverterPower);
+    public static string ValueUsageGridPower => nameof(ValueUsageGridPower);
+    public static string ValueUsageHomeBatteryPower => nameof(ValueUsageHomeBatteryPower);
+    public static string ValueUsageHomeBatterySoc => nameof(ValueUsageHomeBatterySoc);
+
+    public static string ValueOperatorPlus => nameof(ValueOperatorPlus);
+    public static string ValueOperatorMinus => nameof(ValueOperatorMinus);
+
+    public static string ModbusRegisterTypeHolding => nameof(ModbusRegisterTypeHolding);
+    public static string ModbusRegisterTypeInput => nameof(ModbusRegisterTypeInput);
+
+    public static string ModbusEndianessBig => nameof(ModbusEndianessBig);
+    public static string ModbusEndianessLittle => nameof(ModbusEndianessLittle);
+
+    public static string ValueConfigInfoUsedFor => nameof(ValueConfigInfoUsedFor);
+    public static string ValueConfigInfoOperator => nameof(ValueConfigInfoOperator);
+    public static string ValueConfigInfoCorrectionFactor => nameof(ValueConfigInfoCorrectionFactor);
+    public static string ValueConfigInfoDataFormat => nameof(ValueConfigInfoDataFormat);
+    public static string ValueConfigInfoPathToValue => nameof(ValueConfigInfoPathToValue);
+    public static string ValueConfigInfoXmlAttributeHeaderName => nameof(ValueConfigInfoXmlAttributeHeaderName);
+    public static string ValueConfigInfoXmlAttributeHeaderValue => nameof(ValueConfigInfoXmlAttributeHeaderValue);
+    public static string ValueConfigInfoXmlAttributeValueName => nameof(ValueConfigInfoXmlAttributeValueName);
+    public static string ValueConfigInfoRestUrl => nameof(ValueConfigInfoRestUrl);
+    public static string ValueConfigInfoHttpMethod => nameof(ValueConfigInfoHttpMethod);
+    public static string ValueConfigInfoHeaders => nameof(ValueConfigInfoHeaders);
+    public static string ValueConfigInfoModbusHost => nameof(ValueConfigInfoModbusHost);
+    public static string ValueConfigInfoModbusPort => nameof(ValueConfigInfoModbusPort);
+    public static string ValueConfigInfoUnitIdentifier => nameof(ValueConfigInfoUnitIdentifier);
+    public static string ValueConfigInfoConnectDelay => nameof(ValueConfigInfoConnectDelay);
+    public static string ValueConfigInfoReadTimeout => nameof(ValueConfigInfoReadTimeout);
+    public static string ValueConfigInfoEndianess => nameof(ValueConfigInfoEndianess);
+    public static string ValueConfigInfoRegisterType => nameof(ValueConfigInfoRegisterType);
+    public static string ValueConfigInfoValueType => nameof(ValueConfigInfoValueType);
+    public static string ValueConfigInfoAddress => nameof(ValueConfigInfoAddress);
+    public static string ValueConfigInfoLength => nameof(ValueConfigInfoLength);
+    public static string ValueConfigInfoBitStartIndex => nameof(ValueConfigInfoBitStartIndex);
+    public static string ValueConfigInfoMqttTopic => nameof(ValueConfigInfoMqttTopic);
 
     public static string ValueSourceConfigFormNull => nameof(ValueSourceConfigFormNull);
     public static string ValueSourceConfigConfigNull => nameof(ValueSourceConfigConfigNull);
@@ -501,6 +542,7 @@ public static class TranslationKeys
     public static string CarDetailsManualSocHelperText => nameof(CarDetailsManualSocHelperText);
     public static string CarDetailsStateOfChargeLabel => nameof(CarDetailsStateOfChargeLabel);
     public static string CarDetailsChargeModeLabel => nameof(CarDetailsChargeModeLabel);
+    public static string CarDetailsChargeModeExplanation => nameof(CarDetailsChargeModeExplanation);
     public static string CarDetailsManualModeTeslaHint => nameof(CarDetailsManualModeTeslaHint);
     public static string CarDetailsCurrentToSetLabel => nameof(CarDetailsCurrentToSetLabel);
     public static string CarDetailsSetCurrentButton => nameof(CarDetailsSetCurrentButton);
@@ -681,6 +723,7 @@ public static class TranslationKeys
     public static string GeneralSave => nameof(GeneralSave);
     public static string GeneralCancel => nameof(GeneralCancel);
     public static string GeneralClose => nameof(GeneralClose);
+    public static string GeneralExplanation => nameof(GeneralExplanation);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
     public static string GeneralLoading => nameof(GeneralLoading);

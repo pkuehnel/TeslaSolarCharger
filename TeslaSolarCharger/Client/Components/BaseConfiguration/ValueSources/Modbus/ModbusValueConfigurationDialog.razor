@@ -1,4 +1,5 @@
-﻿@using TeslaSolarCharger.Shared.Resources.Contracts
+﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration
@@ -14,7 +15,6 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 @inject ITextLocalizationService TextLocalizer
 
@@ -31,25 +31,52 @@ else
         <ChildContent>
             <MudDialog>
                 <DialogContent>
-                    <GenericInput For="() => EditableValueConfiguration.Item.UnitIdentifier"></GenericInput>
-                    <GenericInput For="() => EditableValueConfiguration.Item.Host"></GenericInput>
-                    <GenericInput For="() => EditableValueConfiguration.Item.Port"></GenericInput>
-                    <div class="px-2 pt-2">
-                        <MudSelect T="ModbusEndianess"
-                                   Class="@Constants.DefaultMargin"
-                                   Variant="Variant.Outlined"
-                                   Value="@EditableValueConfiguration.Item.Endianess"
-                                   ValueChanged="(newItem) => UpdateEndianess(EditableValueConfiguration.Item, newItem)"
-                                   Label="@T(TranslationKeys.ValueSourceConfigEndianess)"
-                                   Margin="Constants.InputMargin">
-                            @foreach (ModbusEndianess item in Enum.GetValues(typeof(ModbusEndianess)))
-                            {
-                                <MudSelectItem T="ModbusEndianess" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                            }
-                        </MudSelect>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <GenericInput For="() => EditableValueConfiguration.Item.UnitIdentifier"></GenericInput>
+                        </div>
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoUnitIdentifier)" />
                     </div>
-                    <GenericInput For="() => EditableValueConfiguration.Item.ConnectDelayMilliseconds"></GenericInput>
-                    <GenericInput For="() => EditableValueConfiguration.Item.ReadTimeoutMilliseconds"></GenericInput>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <GenericInput For="() => EditableValueConfiguration.Item.Host"></GenericInput>
+                        </div>
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoModbusHost)" />
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <GenericInput For="() => EditableValueConfiguration.Item.Port"></GenericInput>
+                        </div>
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoModbusPort)" />
+                    </div>
+                    <div class="d-flex align-items-center @Constants.DefaultMargin">
+                        <div class="px-2 pt-2 flex-grow-1">
+                            <MudSelect T="ModbusEndianess"
+                                       Variant="Variant.Outlined"
+                                       Value="@EditableValueConfiguration.Item.Endianess"
+                                       ValueChanged="(newItem) => UpdateEndianess(EditableValueConfiguration.Item, newItem)"
+                                       Label="@T(TranslationKeys.ValueSourceConfigEndianess)"
+                                       Margin="Constants.InputMargin">
+                                @foreach (ModbusEndianess item in Enum.GetValues(typeof(ModbusEndianess)))
+                                {
+                                    <MudSelectItem T="ModbusEndianess" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoEndianess)" />
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <GenericInput For="() => EditableValueConfiguration.Item.ConnectDelayMilliseconds"></GenericInput>
+                        </div>
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoConnectDelay)" />
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <GenericInput For="() => EditableValueConfiguration.Item.ReadTimeoutMilliseconds"></GenericInput>
+                        </div>
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoReadTimeout)" />
+                    </div>
                     @foreach (var editableResultConfig in EditableResultConfigurations)
                     {
                         <EditFormComponent T="DtoModbusValueResultConfiguration"
@@ -63,76 +90,104 @@ else
                                         {
                                             <GenericInput For="() => editableResultConfig.Item.Id" IsDisabledParameter="true"></GenericInput>
                                         }
-                                        <div class="p-2">
-                                            <MudSelect T="ValueUsage"
-                                                       Class="@Constants.DefaultMargin"
-                                                       Variant="Variant.Outlined"
-                                                       @bind-Value="@editableResultConfig.Item.UsedFor"
-                                                       Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
-                                                       Margin="Constants.InputMargin">
-                                                @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
-                                                {
-                                                    <MudSelectItem T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                }
-                                            </MudSelect>
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="p-2 flex-grow-1">
+                                                <MudSelect T="ValueUsage"
+                                                           Variant="Variant.Outlined"
+                                                           @bind-Value="@editableResultConfig.Item.UsedFor"
+                                                           Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
+                                                           Margin="Constants.InputMargin">
+                                                    @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
+                                                    {
+                                                        <MudSelectItem T="ValueUsage" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoUsedFor)" />
                                         </div>
-                                        <div class="px-2 pt-2">
-                                            <MudSelect T="ModbusRegisterType"
-                                                       Class="@Constants.DefaultMargin"
-                                                       Variant="Variant.Outlined"
-                                                       Value="@editableResultConfig.Item.RegisterType"
-                                                       ValueChanged="(newItem) => UpdateRegisterType(editableResultConfig.Item, newItem)"
-                                                       Label="@T(TranslationKeys.ValueSourceConfigRegisterType)"
-                                                       Margin="Constants.InputMargin">
-                                                @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
-                                                {
-                                                    <MudSelectItem T="ModbusRegisterType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                }
-                                            </MudSelect>
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="px-2 pt-2 flex-grow-1">
+                                                <MudSelect T="ModbusRegisterType"
+                                                           Variant="Variant.Outlined"
+                                                           Value="@editableResultConfig.Item.RegisterType"
+                                                           ValueChanged="(newItem) => UpdateRegisterType(editableResultConfig.Item, newItem)"
+                                                           Label="@T(TranslationKeys.ValueSourceConfigRegisterType)"
+                                                           Margin="Constants.InputMargin">
+                                                    @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
+                                                    {
+                                                        <MudSelectItem T="ModbusRegisterType" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoRegisterType)" />
                                         </div>
-                                        <div class="px-2 pt-2">
-                                            <MudSelect T="ModbusValueType"
-                                                       Class="@Constants.DefaultMargin"
-                                                       Variant="Variant.Outlined"
-                                                       Value="@editableResultConfig.Item.ValueType"
-                                                       ValueChanged="(newItem) => UpdateValueType(editableResultConfig.Item, newItem)"
-                                                       Label="@T(TranslationKeys.ValueSourceConfigValueType)"
-                                                       Margin="Constants.InputMargin">
-                                                @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
-                                                {
-                                                    <MudSelectItem T="ModbusValueType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                }
-                                            </MudSelect>
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="px-2 pt-2 flex-grow-1">
+                                                <MudSelect T="ModbusValueType"
+                                                           Variant="Variant.Outlined"
+                                                           Value="@editableResultConfig.Item.ValueType"
+                                                           ValueChanged="(newItem) => UpdateValueType(editableResultConfig.Item, newItem)"
+                                                           Label="@T(TranslationKeys.ValueSourceConfigValueType)"
+                                                           Margin="Constants.InputMargin">
+                                                    @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
+                                                    {
+                                                        <MudSelectItem T="ModbusValueType" Value="@item">@ValueConfigurationEnumNames.Get(item)</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoValueType)" />
                                         </div>
-                                        <GenericInput For="() => editableResultConfig.Item.Address"></GenericInput>
-                                        <GenericInput For="() => editableResultConfig.Item.Length"></GenericInput>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <GenericInput For="() => editableResultConfig.Item.Address"></GenericInput>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoAddress)" />
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <GenericInput For="() => editableResultConfig.Item.Length"></GenericInput>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoLength)" />
+                                        </div>
                                         @if (editableResultConfig.Item.ValueType == ModbusValueType.Bool)
                                         {
-                                            <GenericInput For="() => editableResultConfig.Item.BitStartIndex"></GenericInput>
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-grow-1">
+                                                    <GenericInput For="() => editableResultConfig.Item.BitStartIndex"></GenericInput>
+                                                </div>
+                                                <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoBitStartIndex)" />
+                                            </div>
                                         }
                                         else
                                         {
                                             <GenericInput T="int?" For="() => editableResultConfig.Item.InvertedByModbusResultConfigurationId" OnValueChanged="StateHasChanged"></GenericInput>
                                         }
-                                        <div class="row">
-                                            <div class="col">
-                                                <div class="px-2 pt-2">
-                                                    <MudSelect T="ValueOperator"
-                                                               Class="@Constants.DefaultMargin"
-                                                               Variant="Variant.Outlined"
-                                                               Value="@editableResultConfig.Item.Operator"
-                                                               ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
-                                                               Label="@T(TranslationKeys.ValueSourceConfigOperator)"
-                                                               Margin="Constants.InputMargin">
-                                                        @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
-                                                        {
-                                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                        }
-                                                    </MudSelect>
+                                        <div class="row @Constants.DefaultMargin">
+                                            <div class="col-12 col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="px-2 pt-2 flex-grow-1">
+                                                        <MudSelect T="ValueOperator"
+                                                                   Variant="Variant.Outlined"
+                                                                   Value="@editableResultConfig.Item.Operator"
+                                                                   ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
+                                                                   Label="@T(TranslationKeys.ValueSourceConfigOperator)"
+                                                                   Margin="Constants.InputMargin">
+                                                            @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
+                                                            {
+                                                                <MudSelectItem T="ValueOperator" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                                            }
+                                                        </MudSelect>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoOperator)" />
                                                 </div>
                                             </div>
-                                            <div class="col">
-                                                <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                            <div class="col-12 col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoCorrectionFactor)" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -332,6 +387,6 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(ValueConfigurationInfoLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 }

@@ -13,7 +13,6 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 @inject ITextLocalizationService TextLocalizer
 
@@ -58,79 +57,107 @@ else
                             <ChildContent>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 flex-grow-1">
-                                        <GenericInput For="() => editableResultConfig.Item.Topic"></GenericInput>
-                                        <div class="px-2 pt-2">
-                                            <MudSelect T="NodePatternType"
-                                                       Class="@Constants.DefaultMargin"
-                                                       Variant="Variant.Outlined"
-                                                       Value="@editableResultConfig.Item.NodePatternType"
-                                                       ValueChanged="@((newValue) => UpdateNodePatternType(editableResultConfig.Item, newValue))"
-                                                       Label="@T(TranslationKeys.ValueSourceConfigNodePatternType)"
-                                                       Margin="Constants.InputMargin">
-                                                @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
-                                                {
-                                                    <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                }
-                                            </MudSelect>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <GenericInput For="() => editableResultConfig.Item.Topic"></GenericInput>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoMqttTopic)" />
                                         </div>
-                                        <div class="p-2">
-                                            <MudSelect T="ValueUsage"
-                                                       Class="@Constants.DefaultMargin"
-                                                       Variant="Variant.Outlined"
-                                                       @bind-Value="@editableResultConfig.Item.UsedFor"
-                                                       Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
-                                                       Margin="Constants.InputMargin">
-                                                @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
-                                                {
-                                                    <MudSelectItem T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                }
-                                            </MudSelect>
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="px-2 pt-2 flex-grow-1">
+                                                <MudSelect T="NodePatternType"
+                                                           Variant="Variant.Outlined"
+                                                           Value="@editableResultConfig.Item.NodePatternType"
+                                                           ValueChanged="@((newValue) => UpdateNodePatternType(editableResultConfig.Item, newValue))"
+                                                           Label="@T(TranslationKeys.ValueSourceConfigNodePatternType)"
+                                                           Margin="Constants.InputMargin">
+                                                    @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
+                                                    {
+                                                        <MudSelectItem T="NodePatternType" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoDataFormat)" />
+                                        </div>
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="p-2 flex-grow-1">
+                                                <MudSelect T="ValueUsage"
+                                                           Variant="Variant.Outlined"
+                                                           @bind-Value="@editableResultConfig.Item.UsedFor"
+                                                           Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
+                                                           Margin="Constants.InputMargin">
+                                                    @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
+                                                    {
+                                                        <MudSelectItem T="ValueUsage" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </div>
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoUsedFor)" />
                                         </div>
                                         <div class="row">
                                             @if (editableResultConfig.Item.NodePatternType != NodePatternType.Direct)
                                             {
-                                                <div class="col">
-                                                    <GenericInput For="() => editableResultConfig.Item.NodePattern"></GenericInput>
+                                                <div class="col d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.NodePattern"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoPathToValue)" />
                                                 </div>
                                             }
                                             @if (editableResultConfig.Item.NodePatternType == NodePatternType.Xml)
                                             {
-                                                <div>
-                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderName"></GenericInput>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderName"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoXmlAttributeHeaderName)" />
                                                 </div>
                                             }
                                         </div>
                                         @if (editableResultConfig.Item.NodePatternType == NodePatternType.Xml)
                                         {
                                             <div class="col">
-                                                <div>
-                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderValue"></GenericInput>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderValue"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoXmlAttributeHeaderValue)" />
                                                 </div>
-                                                <div>
-                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeValueName"></GenericInput>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.XmlAttributeValueName"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoXmlAttributeValueName)" />
                                                 </div>
                                             </div>
 
                                         }
-                                        <div class="row">
-                                            <div class="col">
-                                                <div class="p-2">
-                                                    <MudSelect T="ValueOperator"
-                                                               Class="@Constants.DefaultMargin"
-                                                               Variant="Variant.Outlined"
-                                                               Value="@editableResultConfig.Item.Operator"
-                                                               ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
-                                                               Label="@T(TranslationKeys.ValueSourceConfigOperator)"
-                                                               Margin="Constants.InputMargin">
-                                                        @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
-                                                        {
-                                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                                        }
-                                                    </MudSelect>
+                                        <div class="row @Constants.DefaultMargin">
+                                            <div class="col-12 col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="p-2 flex-grow-1">
+                                                        <MudSelect T="ValueOperator"
+                                                                   Variant="Variant.Outlined"
+                                                                   Value="@editableResultConfig.Item.Operator"
+                                                                   ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
+                                                                   Label="@T(TranslationKeys.ValueSourceConfigOperator)"
+                                                                   Margin="Constants.InputMargin">
+                                                            @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
+                                                            {
+                                                                <MudSelectItem T="ValueOperator" Value="@item">@ValueConfigurationEnumNames.Get(TextLocalizer, item)</MudSelectItem>
+                                                            }
+                                                        </MudSelect>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoOperator)" />
                                                 </div>
                                             </div>
-                                            <div class="col">
-                                                <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                            <div class="col-12 col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoCorrectionFactor)" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -315,7 +342,7 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(ValueConfigurationInfoLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
 }
