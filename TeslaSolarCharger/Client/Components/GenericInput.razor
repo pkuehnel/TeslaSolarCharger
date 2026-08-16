@@ -388,6 +388,10 @@
                 </MudFab>
             </div>
         }
+        @if (!string.IsNullOrEmpty(InfoText))
+        {
+            <InfoButtonComponent Title="@(string.IsNullOrEmpty(InfoTitle) ? LabelName : InfoTitle)" Text="@InfoText" />
+        }
     </div>
 }
 
@@ -574,6 +578,19 @@
 
     [Parameter]
     public string? PostfixButtonStartIcon { get; set; }
+
+    /// <summary>
+    /// Explanation shown behind the input in an info dialog. Pass it already localized. Nothing is rendered while
+    /// this is empty.
+    /// </summary>
+    [Parameter]
+    public string? InfoText { get; set; }
+
+    /// <summary>
+    /// Title of the info dialog. Defaults to the input's label.
+    /// </summary>
+    [Parameter]
+    public string? InfoTitle { get; set; }
 
     [Parameter]
     public bool? IsButtonDisabled { get; set; }
