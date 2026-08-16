@@ -30,10 +30,9 @@ else
         <ChildContent>
             <MudDialog>
                 <DialogContent>
-                    <div class="px-2 pt-2 d-flex align-center">
+                    <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
                         <div class="flex-grow-1">
                             <MudSelect T="HttpVerb"
-                                       Class="@Constants.DefaultMargin"
                                        Variant="Variant.Outlined"
                                        Value="@EditableRestValueConfiguration.Item.HttpMethod"
                                        ValueChanged="(newItem) => UpdateHttpVerb(EditableRestValueConfiguration.Item, newItem)"
@@ -124,10 +123,9 @@ else
                         }
                     }
                     <hr />
-                    <div class="px-2 pt-2 d-flex align-center">
+                    <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
                         <div class="flex-grow-1">
                             <MudSelect T="NodePatternType"
-                                       Class="@Constants.DefaultMargin"
                                        Variant="Variant.Outlined"
                                        Value="@EditableRestValueConfiguration.Item.NodePatternType"
                                        ValueChanged="@((newValue) => UpdateNodePatternType(EditableRestValueConfiguration.Item, newValue))"
@@ -152,10 +150,9 @@ else
                             <ChildContent>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 flex-grow-1">
-                                        <div class="p-2 d-flex align-center">
+                                        <div class="p-2 d-flex align-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
                                                 <MudSelect T="ValueUsage"
-                                                           Class="@Constants.DefaultMargin"
                                                            Variant="Variant.Outlined"
                                                            @bind-Value="@editableResultConfig.Item.UsedFor"
                                                            Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
@@ -201,10 +198,9 @@ else
                                         }
                                         <div class="row">
                                             <div class="col-12 col-md-6">
-                                                <div class="p-2 d-flex align-center">
+                                                <div class="p-2 d-flex align-center @Constants.DefaultMargin">
                                                     <div class="flex-grow-1">
                                                         <MudSelect T="ValueOperator"
-                                                                   Class="@Constants.DefaultMargin"
                                                                    Variant="Variant.Outlined"
                                                                    Value="@editableResultConfig.Item.Operator"
                                                                    ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"

@@ -36,10 +36,9 @@ else
                                   InfoText="@T(TranslationKeys.ValueConfigInfoModbusHost)"></GenericInput>
                     <GenericInput For="() => EditableValueConfiguration.Item.Port"
                                   InfoText="@T(TranslationKeys.ValueConfigInfoModbusPort)"></GenericInput>
-                    <div class="px-2 pt-2 d-flex align-center">
+                    <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
                         <div class="flex-grow-1">
                             <MudSelect T="ModbusEndianess"
-                                       Class="@Constants.DefaultMargin"
                                        Variant="Variant.Outlined"
                                        Value="@EditableValueConfiguration.Item.Endianess"
                                        ValueChanged="(newItem) => UpdateEndianess(EditableValueConfiguration.Item, newItem)"
@@ -71,10 +70,9 @@ else
                                         {
                                             <GenericInput For="() => editableResultConfig.Item.Id" IsDisabledParameter="true"></GenericInput>
                                         }
-                                        <div class="p-2 d-flex align-center">
+                                        <div class="p-2 d-flex align-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
                                                 <MudSelect T="ValueUsage"
-                                                           Class="@Constants.DefaultMargin"
                                                            Variant="Variant.Outlined"
                                                            @bind-Value="@editableResultConfig.Item.UsedFor"
                                                            Label="@T(TranslationKeys.ValueSourceConfigUsedFor)"
@@ -88,10 +86,9 @@ else
                                             <InfoButtonComponent Title="@T(TranslationKeys.ValueSourceConfigUsedFor)"
                                                                  Text="@T(TranslationKeys.ValueConfigInfoUsedFor)" />
                                         </div>
-                                        <div class="px-2 pt-2 d-flex align-center">
+                                        <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
                                                 <MudSelect T="ModbusRegisterType"
-                                                           Class="@Constants.DefaultMargin"
                                                            Variant="Variant.Outlined"
                                                            Value="@editableResultConfig.Item.RegisterType"
                                                            ValueChanged="(newItem) => UpdateRegisterType(editableResultConfig.Item, newItem)"
@@ -106,10 +103,9 @@ else
                                             <InfoButtonComponent Title="@T(TranslationKeys.ValueSourceConfigRegisterType)"
                                                                  Text="@T(TranslationKeys.ValueConfigInfoRegisterType)" />
                                         </div>
-                                        <div class="px-2 pt-2 d-flex align-center">
+                                        <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
                                                 <MudSelect T="ModbusValueType"
-                                                           Class="@Constants.DefaultMargin"
                                                            Variant="Variant.Outlined"
                                                            Value="@editableResultConfig.Item.ValueType"
                                                            ValueChanged="(newItem) => UpdateValueType(editableResultConfig.Item, newItem)"
@@ -139,10 +135,9 @@ else
                                         }
                                         <div class="row">
                                             <div class="col-12 col-md-6">
-                                                <div class="px-2 pt-2 d-flex align-center">
+                                                <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
                                                     <div class="flex-grow-1">
                                                     <MudSelect T="ValueOperator"
-                                                               Class="@Constants.DefaultMargin"
                                                                Variant="Variant.Outlined"
                                                                Value="@editableResultConfig.Item.Operator"
                                                                ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
