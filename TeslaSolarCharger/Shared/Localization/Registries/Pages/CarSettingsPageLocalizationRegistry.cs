@@ -229,8 +229,8 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge aus Tesla-Konto hinzufügen"));
 
         Register(TranslationKeys.CarSettingsAddTeslaFromAccountLoading,
-            new TextLocalizationTranslation(LanguageCodes.English, "Loading cars from your Tesla account. This can take a few seconds."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge werden aus Ihrem Tesla-Konto geladen. Das kann einige Sekunden dauern."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Loading cars from your Tesla account. This can take a few minutes."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuge werden aus Ihrem Tesla-Konto geladen. Das kann einige Minuten dauern."));
 
         Register(TranslationKeys.CarSettingsAddTeslaFromAccountNoNewCars,
             new TextLocalizationTranslation(LanguageCodes.English, "No new cars found in your Tesla account."),
