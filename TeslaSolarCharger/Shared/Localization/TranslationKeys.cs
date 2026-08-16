@@ -371,30 +371,6 @@ public static class TranslationKeys
     public static string ModbusEndianessBig => nameof(ModbusEndianessBig);
     public static string ModbusEndianessLittle => nameof(ModbusEndianessLittle);
 
-    public static string ValueConfigInfoUsedFor => nameof(ValueConfigInfoUsedFor);
-    public static string ValueConfigInfoOperator => nameof(ValueConfigInfoOperator);
-    public static string ValueConfigInfoCorrectionFactor => nameof(ValueConfigInfoCorrectionFactor);
-    public static string ValueConfigInfoDataFormat => nameof(ValueConfigInfoDataFormat);
-    public static string ValueConfigInfoPathToValue => nameof(ValueConfigInfoPathToValue);
-    public static string ValueConfigInfoXmlAttributeHeaderName => nameof(ValueConfigInfoXmlAttributeHeaderName);
-    public static string ValueConfigInfoXmlAttributeHeaderValue => nameof(ValueConfigInfoXmlAttributeHeaderValue);
-    public static string ValueConfigInfoXmlAttributeValueName => nameof(ValueConfigInfoXmlAttributeValueName);
-    public static string ValueConfigInfoRestUrl => nameof(ValueConfigInfoRestUrl);
-    public static string ValueConfigInfoHttpMethod => nameof(ValueConfigInfoHttpMethod);
-    public static string ValueConfigInfoHeaders => nameof(ValueConfigInfoHeaders);
-    public static string ValueConfigInfoModbusHost => nameof(ValueConfigInfoModbusHost);
-    public static string ValueConfigInfoModbusPort => nameof(ValueConfigInfoModbusPort);
-    public static string ValueConfigInfoUnitIdentifier => nameof(ValueConfigInfoUnitIdentifier);
-    public static string ValueConfigInfoConnectDelay => nameof(ValueConfigInfoConnectDelay);
-    public static string ValueConfigInfoReadTimeout => nameof(ValueConfigInfoReadTimeout);
-    public static string ValueConfigInfoEndianess => nameof(ValueConfigInfoEndianess);
-    public static string ValueConfigInfoRegisterType => nameof(ValueConfigInfoRegisterType);
-    public static string ValueConfigInfoValueType => nameof(ValueConfigInfoValueType);
-    public static string ValueConfigInfoAddress => nameof(ValueConfigInfoAddress);
-    public static string ValueConfigInfoLength => nameof(ValueConfigInfoLength);
-    public static string ValueConfigInfoBitStartIndex => nameof(ValueConfigInfoBitStartIndex);
-    public static string ValueConfigInfoMqttTopic => nameof(ValueConfigInfoMqttTopic);
-
     public static string ValueSourceConfigFormNull => nameof(ValueSourceConfigFormNull);
     public static string ValueSourceConfigConfigNull => nameof(ValueSourceConfigConfigNull);
     public static string ValueSourceConfigConfigInvalid => nameof(ValueSourceConfigConfigInvalid);

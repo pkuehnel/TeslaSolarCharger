@@ -1,22 +1,17 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 
-@inject IDialogHelper DialogHelper
+@inject IJavaScriptWrapper JavaScriptWrapper
 
-@* Small info affordance next to an input: opens a dialog explaining what the value means. The texts are passed in
-   already localized so the component stays usable from any page. *@
+@* Info affordance next to an input, opening the matching README section in a new tab. Same button the charge mode
+   on the home page uses, so the documentation stays the single place where the values are explained. *@
 
-<MudIconButton Icon="@Icons.Material.Outlined.Info"
-               Size="Size.Small"
-               Color="Color.Default"
-               aria-label="@Title"
-               OnClick="ShowInfo" />
+<div class="me-2 flex-grow-0">
+    <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                   Color="Color.Primary"
+                   OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab(Url))" />
+</div>
 
 @code {
     [Parameter, EditorRequired]
-    public string Title { get; set; } = string.Empty;
-
-    [Parameter, EditorRequired]
-    public string Text { get; set; } = string.Empty;
-
-    private Task ShowInfo() => DialogHelper.ShowTextDialog(Title, Text);
+    public string Url { get; set; } = string.Empty;
 }

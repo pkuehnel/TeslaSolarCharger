@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.SharedModel.Enums
@@ -57,9 +58,13 @@ else
                             <ChildContent>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 flex-grow-1">
-                                        <GenericInput For="() => editableResultConfig.Item.Topic"
-                                                      InfoText="@T(TranslationKeys.ValueConfigInfoMqttTopic)"></GenericInput>
-                                        <div class="px-2 pt-2 d-flex align-center @Constants.DefaultMargin">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <GenericInput For="() => editableResultConfig.Item.Topic"></GenericInput>
+                                            </div>
+                                            <InfoButtonComponent Url="@ReadmeLinks.SolarValueSources" />
+                                        </div>
+                                        <div class="px-2 pt-2 d-flex align-items-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
                                                 <MudSelect T="NodePatternType"
                                                            Variant="Variant.Outlined"
@@ -73,10 +78,9 @@ else
                                                     }
                                                 </MudSelect>
                                             </div>
-                                            <InfoButtonComponent Title="@T(TranslationKeys.ValueSourceConfigNodePatternType)"
-                                                                 Text="@T(TranslationKeys.ValueConfigInfoDataFormat)" />
+                                            <InfoButtonComponent Url="@ReadmeLinks.SolarValueSources" />
                                         </div>
-                                        <div class="p-2 d-flex align-center @Constants.DefaultMargin">
+                                        <div class="p-2 d-flex align-items-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
                                                 <MudSelect T="ValueUsage"
                                                            Variant="Variant.Outlined"
@@ -89,42 +93,49 @@ else
                                                     }
                                                 </MudSelect>
                                             </div>
-                                            <InfoButtonComponent Title="@T(TranslationKeys.ValueSourceConfigUsedFor)"
-                                                                 Text="@T(TranslationKeys.ValueConfigInfoUsedFor)" />
+                                            <InfoButtonComponent Url="@ReadmeLinks.CorrectionFactors" />
                                         </div>
                                         <div class="row">
                                             @if (editableResultConfig.Item.NodePatternType != NodePatternType.Direct)
                                             {
-                                                <div class="col">
-                                                    <GenericInput For="() => editableResultConfig.Item.NodePattern"
-                                                                  InfoText="@T(TranslationKeys.ValueConfigInfoPathToValue)"></GenericInput>
+                                                <div class="col d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.NodePattern"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Url="@(editableResultConfig.Item.NodePatternType == NodePatternType.Xml ? ReadmeLinks.XmlPath : ReadmeLinks.JsonPath)" />
                                                 </div>
                                             }
                                             @if (editableResultConfig.Item.NodePatternType == NodePatternType.Xml)
                                             {
-                                                <div>
-                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderName"
-                                                                  InfoText="@T(TranslationKeys.ValueConfigInfoXmlAttributeHeaderName)"></GenericInput>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderName"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Url="@ReadmeLinks.XmlPath" />
                                                 </div>
                                             }
                                         </div>
                                         @if (editableResultConfig.Item.NodePatternType == NodePatternType.Xml)
                                         {
                                             <div class="col">
-                                                <div>
-                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderValue"
-                                                                  InfoText="@T(TranslationKeys.ValueConfigInfoXmlAttributeHeaderValue)"></GenericInput>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderValue"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Url="@ReadmeLinks.XmlPath" />
                                                 </div>
-                                                <div>
-                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeValueName"
-                                                                  InfoText="@T(TranslationKeys.ValueConfigInfoXmlAttributeValueName)"></GenericInput>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.XmlAttributeValueName"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Url="@ReadmeLinks.XmlPath" />
                                                 </div>
                                             </div>
 
                                         }
                                         <div class="row">
                                             <div class="col-12 col-md-6">
-                                                <div class="p-2 d-flex align-center @Constants.DefaultMargin">
+                                                <div class="p-2 d-flex align-items-center @Constants.DefaultMargin">
                                                     <div class="flex-grow-1">
                                                         <MudSelect T="ValueOperator"
                                                                    Variant="Variant.Outlined"
@@ -138,13 +149,14 @@ else
                                                             }
                                                         </MudSelect>
                                                     </div>
-                                                    <InfoButtonComponent Title="@T(TranslationKeys.ValueSourceConfigOperator)"
-                                                                         Text="@T(TranslationKeys.ValueConfigInfoOperator)" />
+                                                    <InfoButtonComponent Url="@ReadmeLinks.CorrectionFactors" />
                                                 </div>
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"
-                                                              InfoText="@T(TranslationKeys.ValueConfigInfoCorrectionFactor)"></GenericInput>
+                                            <div class="col-12 col-md-6 d-flex align-items-center">
+                                                <div class="flex-grow-1">
+                                                    <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                                </div>
+                                                <InfoButtonComponent Url="@ReadmeLinks.CorrectionFactors" />
                                             </div>
                                         </div>
                                     </div>
@@ -329,7 +341,7 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(ValueConfigurationInfoLocalizationRegistry))
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
         ?? key;
 
 }

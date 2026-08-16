@@ -23,11 +23,7 @@
 {
     <div class="d-flex align-items-center">
         <div class="@($"p-{Padding} flex-grow-1")">
-            @* With an info button the input shares a row with it, so the button stays centered on the input instead
-               of on the whole column, whose height also contains the helper text. Without one the divs stay
-               unstyled, so nothing about the existing layout changes. *@
-            <div class="@(HasInfoButton ? "d-flex align-items-center" : null)">
-                <div class="@(HasInfoButton ? "flex-grow-1" : null)">
+            <div>
                 @if (typeof(T) == typeof(DateTime?) || typeof(T) == typeof(DateTime))
                 {
                     <MudDatePicker id="@InputId"
@@ -372,11 +368,6 @@
                 {
                     throw new ArgumentOutOfRangeException();
                 }
-                </div>
-                @if (HasInfoButton)
-                {
-                    <InfoButtonComponent Title="@(string.IsNullOrEmpty(InfoTitle) ? LabelName : InfoTitle)" Text="@(InfoText ?? string.Empty)" />
-                }
             </div>
             @if (!string.IsNullOrEmpty(HelperText))
             {
@@ -583,21 +574,6 @@
 
     [Parameter]
     public string? PostfixButtonStartIcon { get; set; }
-
-    /// <summary>
-    /// Explanation shown behind the input in an info dialog. Pass it already localized. Nothing is rendered while
-    /// this is empty.
-    /// </summary>
-    [Parameter]
-    public string? InfoText { get; set; }
-
-    /// <summary>
-    /// Title of the info dialog. Defaults to the input's label.
-    /// </summary>
-    [Parameter]
-    public string? InfoTitle { get; set; }
-
-    private bool HasInfoButton => !string.IsNullOrEmpty(InfoText);
 
     [Parameter]
     public bool? IsButtonDisabled { get; set; }

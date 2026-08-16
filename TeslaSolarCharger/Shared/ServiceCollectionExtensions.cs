@@ -89,6 +89,5 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, DialogsLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, TimeSeriesChartPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ValueSourceConfigurationLocalizationRegistry>()
-            .AddSingleton<ITextLocalizationRegistry, ValueConfigurationInfoLocalizationRegistry>()
         ;
 }
