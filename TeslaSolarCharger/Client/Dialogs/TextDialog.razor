@@ -6,7 +6,9 @@
 
 <MudDialog>
     <DialogContent>
-        @(Text)
+        @* Explanations and error details are written with line breaks, so keep them instead of collapsing
+           everything into one paragraph. *@
+        <div style="white-space: pre-line;">@(Text)</div>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Submit">@T(TranslationKeys.TextDialogOk)</MudButton>

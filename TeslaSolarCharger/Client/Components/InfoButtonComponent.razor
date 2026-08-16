@@ -1,0 +1,22 @@
+@using TeslaSolarCharger.Client.Helper.Contracts
+
+@inject IDialogHelper DialogHelper
+
+@* Small info affordance next to an input: opens a dialog explaining what the value means. The texts are passed in
+   already localized so the component stays usable from any page. *@
+
+<MudIconButton Icon="@Icons.Material.Outlined.Info"
+               Size="Size.Small"
+               Color="Color.Default"
+               aria-label="@Title"
+               OnClick="ShowInfo" />
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    private Task ShowInfo() => DialogHelper.ShowTextDialog(Title, Text);
+}
