@@ -50,6 +50,31 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.English, "Charge Mode"),
             new TextLocalizationTranslation(LanguageCodes.German, "Lademodus"));
 
+        Register(TranslationKeys.CarDetailsChargeModeExplanation,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                """
+                Off: The car does not charge at all. Useful if you need your solar power for other devices.
+
+                Manual: You set the charging speed yourself.
+
+                Auto: TSC sets the charging speed based on the available solar power. With a charging target set, it
+                charges so the target is reached in time, based on the predicted solar energy and the energy prices.
+
+                Max Power: The car charges as fast as possible, e.g. before a trip.
+                """),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                """
+                Aus: Das Fahrzeug lädt gar nicht. Sinnvoll, wenn Sie Ihren Solarstrom für andere Geräte benötigen.
+
+                Manuell: Sie legen die Ladegeschwindigkeit selbst fest.
+
+                Automatisch: TSC richtet die Ladegeschwindigkeit nach dem verfügbaren Solarstrom. Ist ein Ladeziel
+                gesetzt, wird so geladen, dass das Ziel rechtzeitig erreicht wird – auf Basis der vorhergesagten
+                Solarenergie und der Energiepreise.
+
+                Maximale Leistung: Das Fahrzeug lädt so schnell wie möglich, zum Beispiel vor einer Reise.
+                """));
+
         Register(TranslationKeys.CarDetailsManualModeTeslaHint,
             new TextLocalizationTranslation(LanguageCodes.English, "You need to manually wake up the car and start charging via the Tesla app. You can only change the current here."),
             new TextLocalizationTranslation(LanguageCodes.German, "Sie müssen das Fahrzeug manuell aufwecken und den Ladevorgang über die Tesla-App starten. Sie können hier nur den Strom ändern."));

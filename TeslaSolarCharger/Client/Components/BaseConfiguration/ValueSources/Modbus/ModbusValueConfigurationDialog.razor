@@ -35,19 +35,19 @@ else
                         <div class="flex-grow-1">
                             <GenericInput For="() => EditableValueConfiguration.Item.UnitIdentifier"></GenericInput>
                         </div>
-                        <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoUnitIdentifier)" />
                     </div>
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <GenericInput For="() => EditableValueConfiguration.Item.Host"></GenericInput>
                         </div>
-                        <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoModbusHost)" />
                     </div>
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <GenericInput For="() => EditableValueConfiguration.Item.Port"></GenericInput>
                         </div>
-                        <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoModbusPort)" />
                     </div>
                     <div class="px-2 pt-2 d-flex align-items-center @Constants.DefaultMargin">
                         <div class="flex-grow-1">
@@ -63,19 +63,19 @@ else
                                 }
                             </MudSelect>
                         </div>
-                        <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoEndianess)" />
                     </div>
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <GenericInput For="() => EditableValueConfiguration.Item.ConnectDelayMilliseconds"></GenericInput>
                         </div>
-                        <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoConnectDelay)" />
                     </div>
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <GenericInput For="() => EditableValueConfiguration.Item.ReadTimeoutMilliseconds"></GenericInput>
                         </div>
-                        <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                        <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoReadTimeout)" />
                     </div>
                     @foreach (var editableResultConfig in EditableResultConfigurations)
                     {
@@ -103,7 +103,7 @@ else
                                                     }
                                                 </MudSelect>
                                             </div>
-                                            <InfoButtonComponent Url="@ReadmeLinks.CorrectionFactors" />
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoUsedFor)" />
                                         </div>
                                         <div class="px-2 pt-2 d-flex align-items-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
@@ -119,7 +119,7 @@ else
                                                     }
                                                 </MudSelect>
                                             </div>
-                                            <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoRegisterType)" />
                                         </div>
                                         <div class="px-2 pt-2 d-flex align-items-center @Constants.DefaultMargin">
                                             <div class="flex-grow-1">
@@ -135,19 +135,19 @@ else
                                                     }
                                                 </MudSelect>
                                             </div>
-                                            <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoValueType)" />
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <div class="flex-grow-1">
                                                 <GenericInput For="() => editableResultConfig.Item.Address"></GenericInput>
                                             </div>
-                                            <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoAddress)" />
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <div class="flex-grow-1">
                                                 <GenericInput For="() => editableResultConfig.Item.Length"></GenericInput>
                                             </div>
-                                            <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                                            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoLength)" />
                                         </div>
                                         @if (editableResultConfig.Item.ValueType == ModbusValueType.Bool)
                                         {
@@ -155,7 +155,7 @@ else
                                                 <div class="flex-grow-1">
                                                     <GenericInput For="() => editableResultConfig.Item.BitStartIndex"></GenericInput>
                                                 </div>
-                                                <InfoButtonComponent Url="@ReadmeLinks.ModbusValues" />
+                                                <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoBitStartIndex)" />
                                             </div>
                                         }
                                         else
@@ -178,14 +178,14 @@ else
                                                             }
                                                         </MudSelect>
                                                     </div>
-                                                    <InfoButtonComponent Url="@ReadmeLinks.CorrectionFactors" />
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoOperator)" />
                                                 </div>
                                             </div>
                                             <div class="col-12 col-md-6 d-flex align-items-center">
                                                 <div class="flex-grow-1">
                                                     <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
                                                 </div>
-                                                <InfoButtonComponent Url="@ReadmeLinks.CorrectionFactors" />
+                                                <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoCorrectionFactor)" />
                                             </div>
                                         </div>
                                     </div>
@@ -385,6 +385,6 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(ValueConfigurationInfoLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 }
