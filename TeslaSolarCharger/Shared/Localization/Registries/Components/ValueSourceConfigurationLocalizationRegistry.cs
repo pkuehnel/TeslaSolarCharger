@@ -73,8 +73,8 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Datenformat"));
 
         Register(TranslationKeys.ValueSourceConfigNodePatternTypeDirect,
-            new TextLocalizationTranslation(LanguageCodes.English, "Direct"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Direkt"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Single value"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einzelner Wert"));
 
         Register(TranslationKeys.ValueSourceConfigNodePatternTypeJson,
             new TextLocalizationTranslation(LanguageCodes.English, "JSON"),
@@ -102,7 +102,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
 
         Register(TranslationKeys.ValueUsageHomeBatterySoc,
             new TextLocalizationTranslation(LanguageCodes.English, "Home battery SoC"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher-Ladezustand"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher-Ladestand"));
 
         Register(TranslationKeys.ValueOperatorPlus,
             new TextLocalizationTranslation(LanguageCodes.English, "Plus"),

@@ -29,6 +29,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPropertyLocalizationRegistry, CarOverviewSettingsPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, CarChargingTargetPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, ModbusValueResultConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, ValueConfigurationBasePropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, JsonXmlResultConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, ChargePricePropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoSmaEnergyMeterTemplateValueConfigurationPropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, DtoModbusConfigurationBasePropertyLocalization>()
