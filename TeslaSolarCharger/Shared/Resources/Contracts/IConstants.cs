@@ -28,6 +28,7 @@ public interface IConstants
     string HandledChargesConverted { get; }
     string GridPoleIcon { get; }
     int ChargingDetailsAddTriggerEveryXSeconds { get; }
+    TimeSpan MaxMeterValueGapForEnergyCalculation { get; }
     string ChargingDetailsSolarPowerShareFixed { get; }
     string SolarValuesConverted { get; }
     string ChargeStartRequestUrl { get; }

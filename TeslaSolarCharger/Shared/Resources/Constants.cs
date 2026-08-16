@@ -31,6 +31,10 @@ public class Constants : IConstants
     public TimeSpan MinTokenRestLifetime => TimeSpan.FromMinutes(2);
     public int MaxTokenUnauthorizedCount => 5;
     public int ChargingDetailsAddTriggerEveryXSeconds => 11;
+    //Must NOT be derived from ChargingDetailsAddTriggerEveryXSeconds: charging energy is recalculated from historic
+    //meter values, which were logged with the interval that was configured back then (59 seconds before v2.40.0).
+    //A threshold based on the current interval discards every older meter value and zeroes the charged energy.
+    public TimeSpan MaxMeterValueGapForEnergyCalculation => TimeSpan.FromMinutes(5);
     public string ChargeStartRequestUrl => "FleetApiRequests/ChargeStart";
     public string ChargeStopRequestUrl => "FleetApiRequests/ChargeStop";
     public string SetChargingAmpsRequestUrl => "FleetApiRequests/SetChargingAmps";

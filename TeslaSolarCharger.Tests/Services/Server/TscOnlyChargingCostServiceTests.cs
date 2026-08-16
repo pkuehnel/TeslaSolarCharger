@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
@@ -128,6 +129,87 @@ public class TscOnlyChargingCostServiceTests : TestBase
         {
             Assert.Equal(expectedGridPrice, price.GridPrice);
         }
+    }
+
+    [Theory]
+    //Interval used before v2.40.0. Meter values of every charging process recorded back then still have this spacing,
+    //so a threshold derived from the current interval discarded all of them and zeroed the charged energy (issue #2768).
+    [InlineData(59)]
+    //Current interval.
+    [InlineData(11)]
+    public void CalculateChargedEnergyAndCost_UsesMeterValuesOfAnyLoggingInterval(int loggingIntervalSeconds)
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TscOnlyChargingCostService>();
+        var start = new DateTimeOffset(2025, 8, 25, 9, 0, 0, TimeSpan.Zero);
+        const int intervalCount = 60;
+        //Charging with 6000 W in total, of which 1000 W come from the grid and 500 W from the home battery.
+        var meterValues = GenerateMeterValues(start, TimeSpan.FromSeconds(loggingIntervalSeconds),
+            intervalCount, 6000, 1000, 500);
+        var prices = SinglePrice(start.AddDays(-1), start.AddDays(1), gridPrice: 0.30m, solarPrice: 0.10m);
+
+        // Act
+        var result = service.CalculateChargedEnergyAndCost(meterValues, prices);
+
+        // Assert
+        //The first meter value only starts the process, so energy is charged during the intervals following it.
+        var chargedHours = intervalCount * loggingIntervalSeconds / 3600d;
+        Assert.Equal(4500 * chargedHours, (double)result.SolarEnergyWh, 6);
+        Assert.Equal(1000 * chargedHours, (double)result.GridEnergyWh, 6);
+        Assert.Equal(500 * chargedHours, (double)result.HomeBatteryEnergyWh, 6);
+        //Grid energy is billed with the grid price, solar and home battery energy with the solar price.
+        Assert.Equal(((1000 * 0.30) + (5000 * 0.10)) * chargedHours, (double)result.Cost, 6);
+    }
+
+    [Fact]
+    public void CalculateChargedEnergyAndCost_IgnoresMeterValuesAfterALongPause()
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.TscOnlyChargingCostService>();
+        var start = new DateTimeOffset(2025, 8, 25, 9, 0, 0, TimeSpan.Zero);
+        var meterValues = GenerateMeterValues(start, TimeSpan.FromSeconds(11), 1, 6000, 1000, 500);
+        //The car was unplugged and plugged in again an hour later, so the power of the meter value after the pause
+        //must not be applied to the whole pause.
+        meterValues.Add(new MeterValue(start.AddHours(1), MeterValueKind.Car, 6000)
+        {
+            CarId = 1, MeasuredGridPower = 1000, MeasuredHomeBatteryPower = 500,
+        });
+        var prices = SinglePrice(start.AddDays(-1), start.AddDays(1), gridPrice: 0.30m, solarPrice: 0.10m);
+
+        // Act
+        var result = service.CalculateChargedEnergyAndCost(meterValues, prices);
+
+        // Assert
+        //Only the 11 seconds between the first two meter values are counted, the hour long gap is skipped.
+        var chargedHours = 11 / 3600d;
+        Assert.Equal(4500 * chargedHours, (double)result.SolarEnergyWh, 6);
+        Assert.Equal(1000 * chargedHours, (double)result.GridEnergyWh, 6);
+        Assert.Equal(500 * chargedHours, (double)result.HomeBatteryEnergyWh, 6);
+    }
+
+    private static List<MeterValue> GenerateMeterValues(DateTimeOffset start, TimeSpan interval, int intervalCount,
+        int measuredPower, int measuredGridPower, int measuredHomeBatteryPower)
+    {
+        var meterValues = new List<MeterValue>();
+        for (var i = 0; i <= intervalCount; i++)
+        {
+            meterValues.Add(new MeterValue(start.Add(interval * i), MeterValueKind.Car, measuredPower)
+            {
+                CarId = 1,
+                MeasuredGridPower = measuredGridPower,
+                MeasuredHomeBatteryPower = measuredHomeBatteryPower,
+            });
+        }
+
+        return meterValues;
+    }
+
+    private static List<Price> SinglePrice(DateTimeOffset validFrom, DateTimeOffset validTo, decimal gridPrice, decimal solarPrice)
+    {
+        return new List<Price>
+        {
+            new() { ValidFrom = validFrom, ValidTo = validTo, GridPrice = gridPrice, SolarPrice = solarPrice },
+        };
     }
 
     public static TheoryData<string, DateTimeOffset, DateTimeOffset, List<(DateTimeOffset Start, decimal Price)>, List<(DateTimeOffset From, DateTimeOffset To)>> GetSpotPriceScenarios()
