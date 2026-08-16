@@ -47,8 +47,10 @@
             {
                 @if (_isAddingTeslas)
                 {
-                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarSettingsAddTeslaFromAccountLoading)</MudText>
-                    <LoadingSpinnerComponent />
+                    <div class="d-flex align-center mb-3">
+                        <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" Class="me-3 flex-none" />
+                        <MudText Typo="Typo.body2">@T(TranslationKeys.CarSettingsAddTeslaFromAccountLoading)</MudText>
+                    </div>
                 }
                 else if (_addedTeslasCount != null)
                 {
