@@ -63,8 +63,8 @@ else
                                             </div>
                                             <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoMqttTopic)" />
                                         </div>
-                                        <div class="px-2 pt-2 d-flex align-items-center @Constants.DefaultMargin">
-                                            <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="px-2 pt-2 flex-grow-1">
                                                 <MudSelect T="NodePatternType"
                                                            Variant="Variant.Outlined"
                                                            Value="@editableResultConfig.Item.NodePatternType"
@@ -79,8 +79,8 @@ else
                                             </div>
                                             <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoDataFormat)" />
                                         </div>
-                                        <div class="p-2 d-flex align-items-center @Constants.DefaultMargin">
-                                            <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center @Constants.DefaultMargin">
+                                            <div class="p-2 flex-grow-1">
                                                 <MudSelect T="ValueUsage"
                                                            Variant="Variant.Outlined"
                                                            @bind-Value="@editableResultConfig.Item.UsedFor"
@@ -132,10 +132,10 @@ else
                                             </div>
 
                                         }
-                                        <div class="row">
+                                        <div class="row @Constants.DefaultMargin">
                                             <div class="col-12 col-md-6">
-                                                <div class="p-2 d-flex align-items-center @Constants.DefaultMargin">
-                                                    <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="p-2 flex-grow-1">
                                                         <MudSelect T="ValueOperator"
                                                                    Variant="Variant.Outlined"
                                                                    Value="@editableResultConfig.Item.Operator"
@@ -151,11 +151,13 @@ else
                                                     <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoOperator)" />
                                                 </div>
                                             </div>
-                                            <div class="col-12 col-md-6 d-flex align-items-center">
-                                                <div class="flex-grow-1">
-                                                    <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                            <div class="col-12 col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                                    </div>
+                                                    <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoCorrectionFactor)" />
                                                 </div>
-                                                <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.ValueConfigInfoCorrectionFactor)" />
                                             </div>
                                         </div>
                                     </div>
