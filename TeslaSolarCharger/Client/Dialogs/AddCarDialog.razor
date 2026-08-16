@@ -47,10 +47,8 @@
             {
                 @if (_isAddingTeslas)
                 {
-                    <div class="d-flex align-center mb-3">
-                        <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" Class="me-3 flex-none" />
-                        <MudText Typo="Typo.body2">@T(TranslationKeys.CarSettingsAddTeslaFromAccountLoading)</MudText>
-                    </div>
+                    @* The progress is shown in the import button itself, so the content only explains the wait. *@
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarSettingsAddTeslaFromAccountLoading)</MudText>
                 }
                 else if (_addedTeslasCount != null)
                 {
@@ -128,7 +126,15 @@
             @if (_step == Step.Tesla && _fleetApiTokenState == TokenState.UpToDate)
             {
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddTeslasFromAccount" Disabled="_isBusy">
-                    @T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)
+                    @if (_isAddingTeslas)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">@T(TranslationKeys.GeneralProcessing)</MudText>
+                    }
+                    else
+                    {
+                        <MudText>@T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)</MudText>
+                    }
                 </MudButton>
             }
             else if (_step == Step.Tesla && _fleetApiTokenState is not null and not TokenState.MissingPrecondition)
