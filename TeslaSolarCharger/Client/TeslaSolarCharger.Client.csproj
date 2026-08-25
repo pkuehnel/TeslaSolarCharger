@@ -31,7 +31,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.11" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.11" />
-    <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <PackageReference Include="MudBlazor" Version="9.9.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
   </ItemGroup>
