@@ -363,7 +363,7 @@ public class TeslaFleetApiService(
                         Timestamp = timeStamp,
                         Type = CarValueType.IsCharging,
                         Source = CarValueSource.FleetApi,
-                        BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Charging",
+                        BooleanValue = vehicleDataResult.ChargeState.ChargingState == "Charging",
                     });
                     car.ChargerRequestedCurrent.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargeCurrentRequest);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
