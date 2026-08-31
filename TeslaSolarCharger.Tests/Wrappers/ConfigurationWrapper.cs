@@ -3,7 +3,6 @@ using System.IO;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Wrappers;
 

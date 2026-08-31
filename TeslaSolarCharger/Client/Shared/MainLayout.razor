@@ -1,13 +1,18 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 
 @inject IAppColors AppColors
 @inject ITextLocalizationService TextLocalizer
 @inject IJSRuntime JsRuntime
 @inject IThemeStateService ThemeStateService
+@inject NavigationManager NavigationManager
+@inject IHttpClientHelper HttpClientHelper
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -15,17 +20,45 @@
                    MaxWidth="MaxWidth.Medium" />
 <MudSnackbarProvider />
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<MudLayout>
+    <MudAppBar Elevation="1">
+        @if (_isFirstRun == false)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                           aria-label="@TNav(TranslationKeys.NavMenuToggleLabel)" OnClick="@DrawerToggle" />
+        }
+        <MudLink Href="" Underline="Underline.None" Color="Color.Inherit" Class="d-flex align-center ml-2">
+            <span class="d-flex flex-column s4c-wordmark">
+                <Solar4CarLogo Height="30" />
+                <span class="s4c-wordmark-sub">@TNav(TranslationKeys.NavMenuFormerlyTitle)</span>
+            </span>
+        </MudLink>
+        <MudSpacer />
+        <MudLink Href="https://github.com/pkuehnel/TeslaSolarCharger" Target="_blank" Color="Color.Inherit">
+            <MudIcon Icon="@Icons.Custom.Brands.GitHub" Title="GitHub" />
+        </MudLink>
+    </MudAppBar>
 
-    <main>
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+    @if (_isFirstRun == false)
+    {
+        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+            <NavMenu />
+        </MudDrawer>
+    }
+
+    <MudMainContent>
+        <div class="pa-4">
+            @if (_isFirstRun == null)
+            {
+                <LoadingSpinnerComponent />
+            }
+            else
+            {
+                @Body
+            }
+        </div>
+    </MudMainContent>
+</MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
     @T(TranslationKeys.MainLayoutUnhandledError)
@@ -39,33 +72,95 @@
         TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
         ?? key;
 
+    private string TNav(string key) =>
+        TextLocalizer.Get<NavMenuComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
     private MudThemeProvider? _mudThemeProvider;
 
     private MudTheme? _tscTheme;
 
     private bool _wasMudThemeProviderNull;
     private bool _isDarkMode;
+    private bool? _isFirstRun;
+    private bool _drawerOpen = true;
 
-    protected override void OnInitialized()
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    protected override async Task OnInitializedAsync()
     {
         _tscTheme = new MudTheme
         {
             PaletteLight = new PaletteLight
             {
                 Primary = AppColors.PrimaryColor,
+                PrimaryDarken = AppColors.PrimaryDarkenColor,
+                PrimaryLighten = AppColors.PrimaryLightenColor,
                 Secondary = AppColors.SecondaryColor,
-                AppbarBackground = AppColors.PrimaryColor, // or a const you define
+                Tertiary = AppColors.TertiaryColor,
+                AppbarBackground = AppColors.AppBarBackgroundColor,
+                AppbarText = AppColors.InkColor,
+                Background = AppColors.PageBackgroundColor,
+                Surface = "#FFFFFF",
+                DrawerBackground = "#FFFFFF",
+                DrawerText = "#334155",
+                DrawerIcon = AppColors.PrimaryColor,
+                TextPrimary = AppColors.InkColor,
+                TextSecondary = AppColors.SecondaryColor,
+                Success = "#2E9E5B",
+                Warning = AppColors.TertiaryColor,
+                Info = AppColors.PrimaryColor,
+                Error = "#D14343",
             },
             PaletteDark = new PaletteDark
             {
                 Primary = AppColors.PrimaryColor,
+                PrimaryDarken = AppColors.PrimaryDarkenColor,
+                PrimaryLighten = AppColors.PrimaryLightenColor,
                 Secondary = AppColors.SecondaryColor,
-                AppbarBackground = AppColors.PrimaryColor, // or a const you define
+                Tertiary = AppColors.TertiaryColor,
+                AppbarBackground = AppColors.DarkModeAppBarColor,
+                AppbarText = "#E6EFE9",
                 Background = AppColors.DarkModeBackgroundColor,
                 BackgroundGray = AppColors.DarkModeBackgroundColor,
-                Surface = AppColors.DarkModeBackgroundColor,
+                Surface = AppColors.DarkModeSurfaceColor,
+                DrawerBackground = AppColors.DarkModeSurfaceColor,
+                DrawerText = "#CBD5D0",
+                DrawerIcon = AppColors.PrimaryLightenColor,
+                TextPrimary = "#E6EFE9",
+                TextSecondary = "#9DB0A6",
+                Success = "#2E9E5B",
+                Warning = AppColors.TertiaryColor,
+                Info = AppColors.PrimaryLightenColor,
+                Error = "#E57373",
             },
+            Typography = new Typography
+            {
+                Default = new DefaultTypography
+                {
+                    FontFamily = new[] { "Poppins", "Roboto", "Helvetica", "Arial", "sans-serif" }
+                }
+            },
+            LayoutProperties = new LayoutProperties
+            {
+                DefaultBorderRadius = "10px"
+            }
         };
+
+        var response = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+        _isFirstRun = response?.IsFirstRun ?? false;
+
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        if (_isFirstRun == true
+            && !relativePath.Equals("setup", StringComparison.OrdinalIgnoreCase)
+            && !relativePath.StartsWith("setup/", StringComparison.OrdinalIgnoreCase)
+            && !relativePath.StartsWith("setup?", StringComparison.OrdinalIgnoreCase))
+        {
+            NavigationManager.NavigateTo("/setup");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -86,7 +181,7 @@
                 {
                     await _mudThemeProvider.WatchSystemDarkModeAsync(OnSystemDarkModeChanged);
                     StateHasChanged();
-                }); 
+                });
             }
 
         }

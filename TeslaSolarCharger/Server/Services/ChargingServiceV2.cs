@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
@@ -14,6 +15,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Localization;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -37,6 +39,8 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IChargingScheduleService _chargingScheduleService;
     private readonly IConstants _constants;
+    private readonly IHomeBatteryScheduleService _homeBatteryScheduleService;
+    private readonly IBlePresenceStateService _blePresenceStateService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -53,7 +57,9 @@ public class ChargingServiceV2 : IChargingServiceV2
         ITargetChargingValueCalculationService targetChargingValueCalculationService,
         IAppStateNotifier appStateNotifier,
         IChargingScheduleService chargingScheduleService,
-        IConstants constants)
+        IConstants constants,
+        IHomeBatteryScheduleService homeBatteryScheduleService,
+        IBlePresenceStateService blePresenceStateService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -71,6 +77,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         _appStateNotifier = appStateNotifier;
         _chargingScheduleService = chargingScheduleService;
         _constants = constants;
+        _homeBatteryScheduleService = homeBatteryScheduleService;
+        _blePresenceStateService = blePresenceStateService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -120,6 +128,17 @@ public class ChargingServiceV2 : IChargingServiceV2
             Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
         };
         await _appStateNotifier.NotifyStateUpdateAsync(chargingScheduleChange).ConfigureAwait(false);
+
+        try
+        {
+            //Plan home battery hold/charge windows based on the just generated charging schedules.
+            await _homeBatteryScheduleService.PlanScheduleWindows(currentDate, chargingSchedules, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            //Home battery planning must never prevent car charging control.
+            _logger.LogError(ex, "Error while planning home battery schedule windows");
+        }
 
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
@@ -219,7 +238,8 @@ public class ChargingServiceV2 : IChargingServiceV2
     }
 
     /// <summary>
-    /// 
+    /// Makes sure a wallbox never limits a car that manages its own charging power: the connector is opened to its
+    /// maximum whenever the car wants more than the connector was last set to.
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <param name="targetChargingValue"></param>
@@ -233,9 +253,20 @@ public class ChargingServiceV2 : IChargingServiceV2
             && (_settings.OcppConnectorStates.TryGetValue(targetChargingValue.LoadPoint.ChargingConnectorId.Value, out var ocppState)))
         {
             _logger.LogDebug("Loadpoint {carId}, {connectorId} is managed by car", targetChargingValue.LoadPoint.CarId, targetChargingValue.LoadPoint.ChargingConnectorId);
-            if (!(ocppState.LastSetCurrent.Value >= targetChargingValue.TargetValues?.TargetCurrent))
+            var targetCurrent = targetChargingValue.TargetValues?.TargetCurrent;
+            if (targetCurrent == default)
             {
-                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetChargingValue.TargetValues?.TargetCurrent);
+                //There is no current the car wants, so there is nothing for the wallbox to make room for. A stop is
+                //exactly this case, and the lifted >= below reads null as "the connector is below target": TSC then
+                //opened the wallbox to its maximum and sent StartCharging on the very tick it told the car to stop,
+                //and did so again every tick until the stop had gone through.
+                _logger.LogDebug("OCPP connector {connectorId} has no target current, leaving it as it is.", targetChargingValue.LoadPoint.ChargingConnectorId);
+                return true;
+            }
+            //A connector that was never set has to be opened up as well, so the missing value counts as too low.
+            if (ocppState.LastSetCurrent.Value is not { } lastSetCurrent || lastSetCurrent < targetCurrent)
+            {
+                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetCurrent);
                 if (!await SetChargingConnectorToMaxPowerAndMaxPhases(targetChargingValue.LoadPoint.ChargingConnectorId.Value, currentDate, cancellationToken, ocppState).ConfigureAwait(false))
                 {
                     return false;
@@ -325,7 +356,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!_settings.OcppConnectorStates.ContainsKey(connectorId))
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId,
-                    new NotChargingWithExpectedPowerReasonTemplate("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonOcppConnectionNotEstablished));
             }
         }
     }
@@ -337,13 +368,13 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (dtoCar.IsHomeGeofence.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
-                    new NotChargingWithExpectedPowerReasonTemplate("Car is not at home"));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarNotAtHome));
             }
 
             if (dtoCar.PluggedIn.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
-                    new NotChargingWithExpectedPowerReasonTemplate("Car is not plugged in"));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarNotPluggedIn));
             }
         }
 
@@ -352,7 +383,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!settingsOcppConnectorState.Value.IsPluggedIn.Value)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key,
-                    new NotChargingWithExpectedPowerReasonTemplate("Charging connector is not plugged in"));
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonConnectorNotPluggedIn));
             }
         }
     }
@@ -431,7 +462,9 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (c.ChargerRequestedCurrent.Value != c.MaximumAmpere)
                         && (c.ChargerPilotCurrent.Value > c.ChargerRequestedCurrent.Value)
                         && (c.IsCharging.Value == false)
-                        && (c.ChargeModeV2 == ChargeModeV2.Auto))
+                        && (c.ChargeModeV2 == ChargeModeV2.Auto)
+                        //While BLE presence is uncertain the car may already have left home, so do not send commands.
+                        && !_blePresenceStateService.IsPresenceUncertain(c.Id))
             .ToList();
 
         foreach (var car in carsToSetToMaxCurrent)

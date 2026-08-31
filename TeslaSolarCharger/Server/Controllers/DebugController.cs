@@ -4,8 +4,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
@@ -14,13 +17,40 @@ public class DebugController(
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService,
-    ITscOnlyChargingCostService tscOnlyChargingCostService) : ApiBaseController
+    ITscOnlyChargingCostService tscOnlyChargingCostService,
+    IHomeBatteryModeService homeBatteryModeService,
+    IBleService bleService,
+    IBlePresenceStateService blePresenceStateService,
+    ISettings settings) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
     {
         Formatting = Formatting.Indented, Converters = new List<JsonConverter> { new StringEnumConverter(), },
     };
+
+    [HttpGet]
+    public async Task<IActionResult> GetHomeBatteryControlState()
+    {
+        var state = await homeBatteryModeService.GetControlStateAsync(HttpContext.RequestAborted);
+        return Ok(state);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetHomeBatteryMode(HomeBatteryMode mode, int durationMinutes)
+    {
+        await homeBatteryModeService.SetManualModeAsync(mode, TimeSpan.FromMinutes(durationMinutes), HttpContext.RequestAborted);
+        var state = await homeBatteryModeService.GetControlStateAsync(HttpContext.RequestAborted);
+        return Ok(state);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ClearHomeBatteryMode()
+    {
+        await homeBatteryModeService.ClearManualModeAsync(HttpContext.RequestAborted);
+        var state = await homeBatteryModeService.GetControlStateAsync(HttpContext.RequestAborted);
+        return Ok(state);
+    }
 
     /// <summary>
     /// Gets the current startup logs
@@ -225,6 +255,85 @@ public class DebugController(
         var result = debugService.GetDtoCar(carId);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> WakeUpCar(int carId)
+    {
+        var result = await teslaFleetApiService.WakeUpCar(carId, true);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetChargingAmps(int carId, int amps)
+    {
+        var result = await teslaFleetApiService.SetChargingAmps(carId, amps);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetVehicleOnlineState(int carId)
+    {
+        var result = await teslaFleetApiService.GetVehicleOnlineState(carId);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetBleBodyControllerState(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetBodyControllerState(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetBleChargeState(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetChargeState(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    /// <summary>
+    /// Passive beacon scan for one car: it never connects, so it can not wake the car. Next to the presence answer the
+    /// result carries the advertisement counters of the scan window, which tell an absent car apart from a radio that
+    /// hears nothing at all.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> GetBlePresence(int carId)
+    {
+        var vin = settings.Cars.FirstOrDefault(c => c.Id == carId)?.Vin;
+        if (string.IsNullOrEmpty(vin))
+        {
+            return BadRequest("Car has no VIN");
+        }
+        var result = await bleService.GetPresenceForVin(vin);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    /// <summary>
+    /// The beacon scan results recorded for a car by the scheduled BLE refresh, newest last, plus the hit rate, mean
+    /// signal strength and longest miss streak. Answers whether an unstable BLE link is a weak signal or a car that
+    /// simply advertises rarely, without having to run scans by hand.
+    /// </summary>
+    [HttpGet]
+    public IActionResult GetBleBeaconHistory(int carId)
+    {
+        return Ok(blePresenceStateService.GetObservations(carId));
     }
 
     [HttpGet]

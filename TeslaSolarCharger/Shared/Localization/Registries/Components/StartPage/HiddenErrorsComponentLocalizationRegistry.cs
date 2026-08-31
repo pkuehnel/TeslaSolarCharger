@@ -18,8 +18,12 @@ public class HiddenErrorsComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.English, "The list is only updated once per minute"),
             new TextLocalizationTranslation(LanguageCodes.German, "Die Liste wird nur einmal pro Minute aktualisiert"));
 
+        Register(TranslationKeys.HiddenErrorsReasonFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Hide reason: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Grund für das Ausblenden: {0}"));
+
         Register(TranslationKeys.HiddenErrorsReasonNotEnoughOccurrences,
-            new TextLocalizationTranslation(LanguageCodes.English, "Not Enough occurrences"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Not enough occurrences"),
             new TextLocalizationTranslation(LanguageCodes.German, "Nicht genügend Vorkommnisse"));
 
         Register(TranslationKeys.HiddenErrorsReasonDismissed,
@@ -27,7 +31,7 @@ public class HiddenErrorsComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.German, "Verworfen"));
 
         Register(TranslationKeys.HiddenErrorsOccurrenceCount,
-            new TextLocalizationTranslation(LanguageCodes.English, "{0} occured {1} time(s)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1} mal auf"));
+            new TextLocalizationTranslation(LanguageCodes.English, "{0} occurred {1} time(s)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} trat {1}-mal auf"));
     }
 }

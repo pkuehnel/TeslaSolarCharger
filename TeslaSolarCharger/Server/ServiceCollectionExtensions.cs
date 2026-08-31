@@ -23,6 +23,8 @@ using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
@@ -33,8 +35,13 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericModbus;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.SunSpec;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.SunSpec.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Fronius;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Solax;
@@ -70,8 +77,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
-            .AddTransient<BackendTokenRefreshJob>()
-            .AddTransient<FleetApiTokenRefreshJob>()
+            .AddTransient<TokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<BackendNotificationRefreshJob>()
@@ -84,8 +90,10 @@ public static class ServiceCollectionExtensions
             .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
+            .AddTransient<HomeBatteryModeJob>()
             .AddTransient<RefreshableValuesRefreshJob>()
             .AddTransient<ManualCarsDataClearingJob>()
+            .AddTransient<BleDataRefreshJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -127,13 +135,19 @@ public static class ServiceCollectionExtensions
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
+            .AddTransient<IFleetApiRateLimitService, FleetApiRateLimitService>()
             .AddTransient<ITokenHelper, TokenHelper>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
+            .AddTransient<ISetupCacheService, SetupCacheService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()
             .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddTransient<IBleService, TeslaBleService>()
+            .AddTransient<IBleVehicleDataService, BleVehicleDataService>()
+            .AddSingleton<IBleReadCoordinator, BleReadCoordinator>()
+            .AddSingleton<IBleSleepWindowService, BleSleepWindowService>()
+            .AddSingleton<IBlePresenceStateService, BlePresenceStateService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()
@@ -169,6 +183,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IChargerValueLogService, ChargerValueLogService>()
             .AddTransient<ICarValueEstimationService, CarValueEstimationService>()
             .AddTransient<IMqttClientSetupService, MqttClientSetupService>()
+            .AddTransient<ISmartCarApiService, SmartCarApiService>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
@@ -205,6 +220,23 @@ public static class ServiceCollectionExtensions
             .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
             .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
             .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericModbusTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericJsonRestTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericSunSpecTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, FroniusSolarApiSetupService>()
+            //Needs to be singleton so the discovered SunSpec model layout is cached across refreshes
+            .AddSingleton<ISunSpecClient, SunSpecClient>()
+
+            //Needs to be singleton as it tracks the mode currently applied to the home battery devices
+            .AddSingleton<IHomeBatteryModeService, HomeBatteryModeService>()
+            .AddTransient<IHomeBatteryScheduleService, HomeBatteryScheduleService>()
+            .AddTransient<IHomeBatteryModeSetupService, SmaHybridInverterHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, KostalHybridInverterHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, TeslaPowerwallHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericModbusHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericJsonRestHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericSunSpecHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, FroniusSolarApiHomeBatteryModeService>()
 
             .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
             .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()
@@ -220,6 +252,11 @@ public static class ServiceCollectionExtensions
         });
         services.AddHttpClient(StaticConstants.HttpClientNameDefaultTimeout, client =>
         {
+        });
+        //Per call timeouts are set via CancellationTokenSource, this is only a backstop.
+        services.AddHttpClient(StaticConstants.HttpClientNameBle, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(120);
         });
         services.AddHttpClient();
         return services;

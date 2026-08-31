@@ -10,4 +10,6 @@ public interface IModbusTcpClient : IDisposable
     void Disconnect();
     Task<byte[]> GetByteArrayFromHoldingRegisters(byte unitIdentifier, ushort startingAddress, ushort quantity, TimeSpan readTimeout);
     Task<byte[]> GetByteArrayFromInputRegisters(byte unitIdentifier, ushort startingAddress, ushort quantity, TimeSpan readTimeout);
+    Task WriteHoldingRegisters(byte unitIdentifier, ushort startingAddress, byte[] data, TimeSpan writeTimeout);
+    Task WriteSingleHoldingRegister(byte unitIdentifier, ushort address, ushort value, TimeSpan writeTimeout);
 }

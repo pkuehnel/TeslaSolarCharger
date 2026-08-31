@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -23,6 +24,10 @@ public class Settings : ISettings
     public NextSunEvent NextSunEvent { get; set; } = NextSunEvent.Unknown;
 
     public bool IsHomeBatteryDischargingActive { get; set; } = true;
+
+    public DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
+    public DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
+    public ConcurrentBag<DtoHomeBatteryScheduleWindow> HomeBatteryScheduleWindows { get; set; } = new();
 
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 
@@ -51,6 +56,8 @@ public class Settings : ISettings
     public DateTimeOffset? StartupTime { get; set; }
 
     public DtoProgress? ChargePricesUpdateProgress { get; set; }
+    public ConcurrentDictionary<int, DtoCarDeletionProgress> CarDeletionProgresses { get; set; } = new();
+    public ConcurrentDictionary<int, DtoChargingStationDeletionProgress> ChargingStationDeletionProgresses { get; set; } = new();
     public int LastPvDemoCase { get; set; }
 
     public bool IsPreRelease { get; set; }

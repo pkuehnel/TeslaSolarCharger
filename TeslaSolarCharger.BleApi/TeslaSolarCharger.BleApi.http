@@ -1,0 +1,6 @@
+@TeslaSolarCharger.BleApi_HostAddress = http://localhost:5133
+
+GET {{TeslaSolarCharger.BleApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

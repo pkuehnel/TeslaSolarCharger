@@ -9,6 +9,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
@@ -18,7 +19,8 @@ public class ConfigurationWrapper(
     IConfiguration configuration,
     INodePatternTypeHelper nodePatternTypeHelper,
     IDateTimeProvider dateTimeProvider,
-    ISettings settings)
+    ISettings settings,
+    IConstants constants)
     : IConfigurationWrapper
 {
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
@@ -178,13 +180,6 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public TimeSpan BleUsageStopAfterError()
-    {
-        var environmentVariableName = "BleUsageStopAfterErrorSeconds";
-        var value = configuration.GetValue<int>(environmentVariableName);
-        return TimeSpan.FromSeconds(value);
-    }
-
     public TimeSpan FleetApiRefreshInterval()
     {
         var environmentVariableName = "FleetApiRefreshIntervalSeconds";
@@ -241,6 +236,49 @@ public class ConfigurationWrapper(
     {
         var value = GetBaseConfiguration().UseTeslaMateIntegration;
         return value;
+    }
+
+    public bool GetVehicleDataViaBle()
+    {
+        //null defaults to false while the feature is being tested; will default to true in a future release.
+        var value = GetBaseConfiguration().GetVehicleDataViaBle;
+        return value == true;
+    }
+
+    public bool UseBleDebug()
+    {
+        return GetBaseConfiguration().UseBleDebug;
+    }
+
+    public int BleDataRefreshIntervalSeconds()
+    {
+        //Null means the user never decided, so fall back to the current default. An interval below one second makes no
+        //sense and would hammer the BLE container, so clamp it.
+        var value = GetBaseConfiguration().BleDataRefreshIntervalSeconds ?? ConfigurationDefaults.BleDataRefreshIntervalSeconds;
+        return value < 1 ? 1 : value;
+    }
+
+    public int BleSleepWindowMinutes()
+    {
+        //Null means the user never decided, so fall back to the current default. A negative value makes no sense; 0 is
+        //valid and disables the feature, so only clamp negatives.
+        var value = GetBaseConfiguration().BleSleepWindowMinutes ?? ConfigurationDefaults.BleSleepWindowMinutes;
+        return value < 0 ? 0 : value;
+    }
+
+    public int BleSleepStabilityMinutes()
+    {
+        var value = GetBaseConfiguration().BleSleepStabilityMinutes ?? ConfigurationDefaults.BleSleepStabilityMinutes;
+        return value < 0 ? 0 : value;
+    }
+
+    public int BlePresenceMaxAgeSeconds()
+    {
+        var value = GetBaseConfiguration().BlePresenceMaxAgeSeconds
+                    ?? ConfigurationDefaults.BlePresenceMaxAgeSeconds;
+        //Matches the container's own clamp. Below half a minute a single slow poll cycle could look like a
+        //departure; above ten minutes a car that really left would keep its last known state for far too long.
+        return Math.Clamp(value, 30, 600);
     }
 
     public double HomeGeofenceLongitude()
@@ -630,9 +668,36 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().DynamicMinSocCalculationBuffer;
     }
 
+    public int HoldHomeBatteryChargeSocBufferInPercent()
+    {
+        var stored = GetBaseConfiguration().HoldHomeBatteryChargeSocBuffer;
+        return stored ?? constants.DefaultHoldHomeBatteryChargeSocBuffer;
+    }
+
+    public int ChargeHomeBatterySocBufferInPercent()
+    {
+        var stored = GetBaseConfiguration().ChargeHomeBatterySocBuffer;
+        return stored ?? constants.DefaultChargeHomeBatterySocBuffer;
+    }
+
+    public bool GridPriceBasedHomeBatteryControl()
+    {
+        return GetBaseConfiguration().GridPriceBasedHomeBatteryControl;
+    }
+
+    public decimal HomeBatteryUsageCostsPerKwh()
+    {
+        return GetBaseConfiguration().HomeBatteryUsageCostsPerKwh;
+    }
+
     public bool ForceFullHomeBatteryBySunset()
     {
         return GetBaseConfiguration().ForceFullHomeBatteryBySunset;
+    }
+
+    public int HomeBatteryMaxChargeSoc()
+    {
+        return GetBaseConfiguration().HomeBatteryMaxChargeSoc;
     }
 
     public int CarChargeLoss()
@@ -915,8 +980,6 @@ public class ConfigurationWrapper(
         {
             return;
         }
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMilliseconds(500);
         //ToDo: as the plugin has to use the host network the pluginname is unknown
         //try
         //{
@@ -981,7 +1044,7 @@ public class ConfigurationWrapper(
 
             if (!File.Exists(filePath))
             {
-                var baseConfiguration = new DtoBaseConfiguration();
+                var baseConfiguration = new DtoBaseConfiguration { IsFirstRun = true };
                 var baseConfigurationJson = JsonConvert.SerializeObject(baseConfiguration);
                 await File.WriteAllTextAsync(filePath, baseConfigurationJson).ConfigureAwait(false);
             }

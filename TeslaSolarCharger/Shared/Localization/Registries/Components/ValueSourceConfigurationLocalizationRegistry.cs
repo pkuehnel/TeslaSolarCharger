@@ -46,15 +46,15 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
 
         Register(TranslationKeys.ValueSourceConfigAddHeader,
             new TextLocalizationTranslation(LanguageCodes.English, "Add Header"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Header hinzufügen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Kopfzeile hinzufügen"));
 
         Register(TranslationKeys.ValueSourceConfigHeaders,
             new TextLocalizationTranslation(LanguageCodes.English, "Headers"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Header"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Kopfzeilen"));
 
         Register(TranslationKeys.ValueSourceConfigTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} Value Configuration"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} Wertkonfiguration"));
+            new TextLocalizationTranslation(LanguageCodes.German, "{0}-Wertkonfiguration"));
 
         Register(TranslationKeys.ValueSourceConfigDeleteConfirm,
             new TextLocalizationTranslation(LanguageCodes.English, "Delete {0} Configuration"),
@@ -69,20 +69,68 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "{0}-Konfiguration gelöscht"));
 
         Register(TranslationKeys.ValueSourceConfigNodePatternType,
-            new TextLocalizationTranslation(LanguageCodes.English, "Node Pattern Type"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Knotenmustertyp"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Data format"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Datenformat"));
+
+        Register(TranslationKeys.ValueSourceConfigNodePatternTypeDirect,
+            new TextLocalizationTranslation(LanguageCodes.English, "Single value"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Einzelner Wert"));
+
+        Register(TranslationKeys.ValueSourceConfigNodePatternTypeJson,
+            new TextLocalizationTranslation(LanguageCodes.English, "JSON"),
+            new TextLocalizationTranslation(LanguageCodes.German, "JSON"));
+
+        Register(TranslationKeys.ValueSourceConfigNodePatternTypeXml,
+            new TextLocalizationTranslation(LanguageCodes.English, "XML"),
+            new TextLocalizationTranslation(LanguageCodes.German, "XML"));
 
         Register(TranslationKeys.ValueSourceConfigUsedFor,
             new TextLocalizationTranslation(LanguageCodes.English, "Used for"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verwendet für"));
 
+        Register(TranslationKeys.ValueUsageInverterPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Inverter power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wechselrichterleistung"));
+
+        Register(TranslationKeys.ValueUsageGridPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzleistung"));
+
+        Register(TranslationKeys.ValueUsageHomeBatteryPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home battery power"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicherleistung"));
+
+        Register(TranslationKeys.ValueUsageHomeBatterySoc,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home battery SoC"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeicher-Ladestand"));
+
+        Register(TranslationKeys.ValueOperatorPlus,
+            new TextLocalizationTranslation(LanguageCodes.English, "Plus"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Plus"));
+
+        Register(TranslationKeys.ValueOperatorMinus,
+            new TextLocalizationTranslation(LanguageCodes.English, "Minus"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Minus"));
+
+        Register(TranslationKeys.ModbusRegisterTypeHolding,
+            new TextLocalizationTranslation(LanguageCodes.English, "Holding register"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Holding-Register"));
+
+        Register(TranslationKeys.ModbusRegisterTypeInput,
+            new TextLocalizationTranslation(LanguageCodes.English, "Input register"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Input-Register"));
+
+        Register(TranslationKeys.ModbusEndianessBig,
+            new TextLocalizationTranslation(LanguageCodes.English, "Big endian"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Big Endian"));
+
+        Register(TranslationKeys.ModbusEndianessLittle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Little endian"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Little Endian"));
+
         Register(TranslationKeys.ValueSourceConfigOperator,
             new TextLocalizationTranslation(LanguageCodes.English, "Operator"),
             new TextLocalizationTranslation(LanguageCodes.German, "Operator"));
-
-        Register(TranslationKeys.ValueSourceConfigSolar,
-            new TextLocalizationTranslation(LanguageCodes.English, "Solar"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Solar"));
 
         Register(TranslationKeys.ValueSourceConfigRegisterType,
             new TextLocalizationTranslation(LanguageCodes.English, "Register Type"),
@@ -93,7 +141,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Werttyp"));
 
         Register(TranslationKeys.ValueSourceConfigEndianess,
-            new TextLocalizationTranslation(LanguageCodes.English, "Endianess"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Endianness"),
             new TextLocalizationTranslation(LanguageCodes.German, "Byte-Reihenfolge"));
 
         Register(TranslationKeys.ValueSourceConfigHttpMethod,
@@ -105,7 +153,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Typ"));
 
         Register(TranslationKeys.ValueSourceConfigFormNull,
-            new TextLocalizationTranslation(LanguageCodes.English, "Config form is null, can not save values"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Config form is null, cannot save values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsformular ist null, Werte können nicht gespeichert werden"));
 
         Register(TranslationKeys.ValueSourceConfigConfigNull,
@@ -144,9 +192,21 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.English, "Configuration validation failed"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsvalidierung fehlgeschlagen"));
 
+        Register(TranslationKeys.ValueSourceConfigLoadFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load configuration: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration konnte nicht geladen werden: {0}"));
+
+        Register(TranslationKeys.ValueSourceConfigSaveFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not save configuration: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration konnte nicht gespeichert werden: {0}"));
+
+        Register(TranslationKeys.ValueSourceConfigDeleteFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not delete configuration: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration konnte nicht gelöscht werden: {0}"));
+
         Register(TranslationKeys.ModbusUrlUnitIdentifier,
-            new TextLocalizationTranslation(LanguageCodes.English, "Unit Identifier"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Einheiten-ID"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Unit ID"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Unit-ID"));
 
         Register(TranslationKeys.ModbusUrlRegisterType,
             new TextLocalizationTranslation(LanguageCodes.English, "Register Type"),
@@ -189,7 +249,7 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.German, "Ergebnistyp"));
 
         Register(TranslationKeys.NodePatternJsonPattern,
-            new TextLocalizationTranslation(LanguageCodes.English, "{0} Json Pattern"),
+            new TextLocalizationTranslation(LanguageCodes.English, "{0} JSON Pattern"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} JSON-Muster"));
 
         Register(TranslationKeys.NodePatternXmlPattern,

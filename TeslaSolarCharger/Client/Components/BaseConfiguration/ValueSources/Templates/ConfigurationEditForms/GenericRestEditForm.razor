@@ -1,0 +1,74 @@
+@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Helper
+
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+<TemplateEditFormComponentBase TConfiguration="DtoGenericRestTemplateValueConfiguration"
+                               Configuration="ConfigurationWithDefaults"
+                               @ref="TemplateEditForm">
+    <ChildContent Context="wrapped">
+        <GenericInput For="() => wrapped.Item.Host"></GenericInput>
+        <GenericInput For="() => wrapped.Item.Port"></GenericInput>
+        @if (Defaults.RequiresCredentials)
+        {
+            <GenericInput For="() => wrapped.Item.Username"></GenericInput>
+            <GenericInput For="() => wrapped.Item.Password"></GenericInput>
+        }
+        @if (Defaults.ShowDeviceId)
+        {
+            <GenericInput For="() => wrapped.Item.DeviceId"></GenericInput>
+        }
+        @if (Defaults.SupportsHomeBatteryControl)
+        {
+            <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+            @if (wrapped.Item.EnableHomeBatteryControl)
+            {
+                @if (Defaults.UsesApiToken)
+                {
+                    <GenericInput For="() => wrapped.Item.ApiToken"></GenericInput>
+                }
+                <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
+            }
+        }
+    </ChildContent>
+</TemplateEditFormComponentBase>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DtoGenericRestTemplateValueConfiguration? Configuration { get; set; }
+
+    [Parameter, EditorRequired]
+    public TemplateValueGatherType GatherType { get; set; }
+
+    private TemplateEditFormComponentBase<DtoGenericRestTemplateValueConfiguration>? TemplateEditForm { get; set; }
+
+    private GenericRestTemplateDefaults Defaults => GenericRestTemplateSettings.GetDefaults(GatherType);
+
+    private DtoGenericRestTemplateValueConfiguration? ConfigurationWithDefaults { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        //Keep the same instance across re-renders so edits are not lost
+        ConfigurationWithDefaults ??= Configuration ?? new DtoGenericRestTemplateValueConfiguration
+        {
+            Port = Defaults.Port,
+            MaxBatteryChargePowerW = Defaults.DefaultMaxChargePowerW > 0 ? Defaults.DefaultMaxChargePowerW : 3300,
+        };
+    }
+
+    public bool Validate()
+    {
+        return TemplateEditForm?.Validate() ?? false;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
+}

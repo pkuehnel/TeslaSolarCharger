@@ -231,40 +231,57 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             context.MeterValues.Add(fakeMeterValue);
             meterValues.Add(fakeMeterValue);
         }
+        chargingProcess.EndDate = meterValues.Last().Timestamp.UtcDateTime;
+        var prices = await GetGridPricesInTimeSpan(meterValues.First().Timestamp.UtcDateTime, chargingProcess.EndDate.Value);
+        var energyAndCost = CalculateChargedEnergyAndCost(meterValues, prices);
+        chargingProcess.UsedSolarEnergyKwh = energyAndCost.SolarEnergyWh / 1000m;
+        chargingProcess.UsedHomeBatteryEnergyKwh = energyAndCost.HomeBatteryEnergyWh / 1000m;
+        chargingProcess.UsedGridEnergyKwh = energyAndCost.GridEnergyWh / 1000m;
+        chargingProcess.Cost = energyAndCost.Cost / 1000m;
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Integrates the measured power of the given meter values over time to get the charged energy and its cost.
+    /// </summary>
+    /// <param name="meterValues">Meter values of one charging process, ordered ascending by timestamp.</param>
+    /// <param name="prices">Prices covering the time span of the given meter values.</param>
+    /// <returns>Charged energy in Wh per source and the cost in currency * 1000.</returns>
+    internal (decimal SolarEnergyWh, decimal HomeBatteryEnergyWh, decimal GridEnergyWh, decimal Cost) CalculateChargedEnergyAndCost(
+        List<MeterValue> meterValues, List<Price> prices)
+    {
+        logger.LogTrace("{method}({meterValueCount})", nameof(CalculateChargedEnergyAndCost), meterValues.Count);
         decimal usedSolarEnergyWh = 0;
         decimal usedHomeBatteryEnergyWh = 0;
         decimal usedGridEnergyWh = 0;
         decimal cost = 0;
-        chargingProcess.EndDate = meterValues.Last().Timestamp.UtcDateTime;
-        var prices = await GetGridPricesInTimeSpan(meterValues.First().Timestamp.UtcDateTime, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
-        var maxChargingDetailsDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
+        //When a charging process is stopped and resumed later, the last meter value is too old and should not be used because it would use the last value during the whole time although the car was not charging
+        var maxMeterValueGap = constants.MaxMeterValueGapForEnergyCalculation;
         for (var index = 1; index < meterValues.Count; index++)
         {
             var price = GetPriceByTimeStamp(prices, meterValues[index].Timestamp.UtcDateTime);
             logger.LogTrace("Price for timestamp {timeStamp}: {@price}", meterValues[index].Timestamp, price);
             var meterValue = meterValues[index];
-            var timeSpanSinceLastDetail = meterValue.Timestamp - meterValues[index - 1].Timestamp;
+            var timeSpanSinceLastMeterValue = meterValue.Timestamp - meterValues[index - 1].Timestamp;
 
-            if (timeSpanSinceLastDetail > maxChargingDetailsDuration)
+            if (timeSpanSinceLastMeterValue > maxMeterValueGap)
             {
-                logger.LogWarning("Do not use charging detail as last charging detail ist too old");
+                logger.LogWarning("Do not use meter value {meterValueTimestamp} as the previous meter value is {gap} old, which is more than the allowed {maxGap}",
+                    meterValue.Timestamp, timeSpanSinceLastMeterValue, maxMeterValueGap);
                 continue;
             }
-            var usedSolarWhSinceLastChargingDetail = (decimal)((meterValue.MeasuredPower - meterValue.MeasuredHomeBatteryPower - meterValue.MeasuredGridPower) * timeSpanSinceLastDetail.TotalHours);
-            usedSolarEnergyWh += usedSolarWhSinceLastChargingDetail;
-            var usedHomeBatteryWhSinceLastChargingDetail = (decimal)(meterValue.MeasuredHomeBatteryPower * timeSpanSinceLastDetail.TotalHours);
-            usedHomeBatteryEnergyWh += usedHomeBatteryWhSinceLastChargingDetail;
-            var usedGridPowerSinceLastChargingDetail = (decimal)(meterValue.MeasuredGridPower * timeSpanSinceLastDetail.TotalHours);
-            usedGridEnergyWh += usedGridPowerSinceLastChargingDetail;
-            cost += usedGridPowerSinceLastChargingDetail * price.GridPrice;
-            cost += usedSolarWhSinceLastChargingDetail * price.SolarPrice;
-            cost += usedHomeBatteryWhSinceLastChargingDetail * price.SolarPrice;
+            var usedSolarWhSinceLastMeterValue = (decimal)((meterValue.MeasuredPower - meterValue.MeasuredHomeBatteryPower - meterValue.MeasuredGridPower) * timeSpanSinceLastMeterValue.TotalHours);
+            usedSolarEnergyWh += usedSolarWhSinceLastMeterValue;
+            var usedHomeBatteryWhSinceLastMeterValue = (decimal)(meterValue.MeasuredHomeBatteryPower * timeSpanSinceLastMeterValue.TotalHours);
+            usedHomeBatteryEnergyWh += usedHomeBatteryWhSinceLastMeterValue;
+            var usedGridPowerSinceLastMeterValue = (decimal)(meterValue.MeasuredGridPower * timeSpanSinceLastMeterValue.TotalHours);
+            usedGridEnergyWh += usedGridPowerSinceLastMeterValue;
+            cost += usedGridPowerSinceLastMeterValue * price.GridPrice;
+            cost += usedSolarWhSinceLastMeterValue * price.SolarPrice;
+            cost += usedHomeBatteryWhSinceLastMeterValue * price.SolarPrice;
         }
-        chargingProcess.UsedSolarEnergyKwh = usedSolarEnergyWh / 1000m;
-        chargingProcess.UsedHomeBatteryEnergyKwh = usedHomeBatteryEnergyWh / 1000m;
-        chargingProcess.UsedGridEnergyKwh = usedGridEnergyWh / 1000m;
-        chargingProcess.Cost = cost / 1000m;
-        await context.SaveChangesAsync().ConfigureAwait(false);
+
+        return (usedSolarEnergyWh, usedHomeBatteryEnergyWh, usedGridEnergyWh, cost);
     }
 
     private Price GetPriceByTimeStamp(List<Price> prices, DateTime timeStamp)

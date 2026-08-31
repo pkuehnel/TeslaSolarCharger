@@ -7,7 +7,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.SharedModel.Enums;
 using TeslaSolarCharger.Tests.Data;
 using Xunit;
-using Xunit.Abstractions;
+
 #pragma warning disable xUnit2013
 
 namespace TeslaSolarCharger.Tests.Services.Services;

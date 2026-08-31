@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using PkSoftwareService.Custom.Backend.Ble;
 using System.Net;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -39,7 +40,9 @@ public class TeslaFleetApiService(
     ITokenHelper tokenHelper,
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
     IMemoryCache memoryCache,
-    IBackendApiService backendApiService)
+    IBackendApiService backendApiService,
+    IFleetApiRateLimitService fleetApiRateLimitService,
+    IBleSleepWindowService bleSleepWindowService)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -123,7 +126,7 @@ public class TeslaFleetApiService(
     }
 
 
-    public async Task WakeUpCar(int carId, bool isFleetApiTest)
+    public async Task<DtoGenericTeslaResponse<DtoVehicleWakeUpResult>?> WakeUpCar(int carId, bool isFleetApiTest)
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
         var car = settings.Cars.First(c => c.Id == carId);
@@ -134,6 +137,24 @@ public class TeslaFleetApiService(
             //await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
         }
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<DtoGenericTeslaResponse<DtoVehicleCommandResult>?> SetChargingAmps(int carId, int amps)
+    {
+        logger.LogTrace("{method}({carId}, {amps})", nameof(SetChargingAmps), carId, amps);
+        var vin = GetVinByCarId(carId);
+        //isFleetApiTest: true forces the Fleet API path (bypassing BLE) as this is a debug command triggered from the support page.
+        return await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps, isFleetApiTest: true).ConfigureAwait(false);
+    }
+
+    public async Task<DtoGenericTeslaResponse<DtoVehicleResult>?> GetVehicleOnlineState(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetVehicleOnlineState), carId);
+        var vin = GetVinByCarId(carId);
+        //This is the Fleet API "get vehicle" call that only returns the online state, not the full vehicle data.
+        //isFleetApiTest: true forces the Fleet API path (bypassing BLE) as this is a debug command triggered from the support page.
+        return await SendCommandToTeslaApi<DtoVehicleResult>(vin, VehicleRequest, isFleetApiTest: true).ConfigureAwait(false);
     }
 
     public async Task StopCharging(int carId)
@@ -342,7 +363,7 @@ public class TeslaFleetApiService(
                         Timestamp = timeStamp,
                         Type = CarValueType.IsCharging,
                         Source = CarValueSource.FleetApi,
-                        BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Charging",
+                        BooleanValue = vehicleDataResult.ChargeState.ChargingState == "Charging",
                     });
                     car.ChargerRequestedCurrent.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargeCurrentRequest);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
@@ -436,9 +457,9 @@ public class TeslaFleetApiService(
         return;
     }
 
-    public async Task RefreshFleetApiTokenIfNeeded()
+    public async Task RefreshFleetApiTokenIfRequired()
     {
-        logger.LogTrace("{method}()", nameof(RefreshFleetApiTokenIfNeeded));
+        logger.LogTrace("{method}()", nameof(RefreshFleetApiTokenIfRequired));
         var fleetApiTokenExpiration = await tokenHelper.GetFleetApiTokenExpirationDate(true);
         if (fleetApiTokenExpiration == default)
         {
@@ -447,7 +468,7 @@ public class TeslaFleetApiService(
             return;
         }
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        if(fleetApiTokenExpiration > currentDate.AddMinutes(1))
+        if (fleetApiTokenExpiration.Value > currentDate.AddSeconds(constants.TokenRefreshIntervalSeconds * 2))
         {
             logger.LogDebug("Do not refresh Fleet API Token as it is still valid until {expiration}", fleetApiTokenExpiration);
             return;
@@ -501,10 +522,24 @@ public class TeslaFleetApiService(
         logger.LogDebug("Latest car refresh: {latestRefresh}", latestRefresh);
         var currentUtcDate = dateTimeProvider.UtcNow();
         var latestChangeToDetect = currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
-        var fleetTelemetryEnabled = await teslaSolarChargerContext.Cars
+        var carDataSourceSettings = await teslaSolarChargerContext.Cars
             .Where(c => c.Vin == car.Vin)
-            .Select(c => c.UseFleetTelemetry)
+            .Select(c => new
+            {
+                c.UseFleetTelemetry,
+                c.UseBle,
+                c.IncludeTrackingRelevantFields,
+            })
             .FirstOrDefaultAsync();
+        var fleetTelemetryEnabled = carDataSourceSettings?.UseFleetTelemetry == true;
+        if (configurationWrapper.GetVehicleDataViaBle()
+            && (carDataSourceSettings?.UseBle == true)
+            && !fleetTelemetryEnabled
+            && (carDataSourceSettings.IncludeTrackingRelevantFields == false))
+        {
+            logger.LogDebug("Do not refresh via Fleet API as car data is collected via BLE");
+            return false;
+        }
         if (fleetTelemetryEnabled)
         {
             logger.LogDebug("Do not refresh via Fleet API as Fleet Telemetry is enabled");
@@ -714,124 +749,106 @@ public class TeslaFleetApiService(
             if(!fleetTelemetryWebSocketService.IsClientConnected(vin))
             {
                 logger.LogError("Do not send command to car {vin} as Fleet Telemetry is enabled but client is not connected", vin);
-                return null;
+                return new() { Error = "FleetTelemetryNotConnected", ErrorDescription = "Fleet Telemetry is enabled for this car but the Fleet Telemetry client is not connected, so no command was sent.", };
             }
         }
         if (await tokenHelper.GetBackendTokenState(true) != TokenState.UpToDate)
         {
-            return null;
+            return new() { Error = "BackendTokenNotUpToDate", ErrorDescription = "The Solar4Car backend token is not up to date. Check the Tesla token state in the settings.", };
         }
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (isBaseAppLicensed.Data != true)
         {
             logger.LogError("Can not send request to car as base app is not licensed");
-            return null;
+            return new() { Error = "BaseAppNotLicensed", ErrorDescription = "The base app is not licensed, so no command was sent to the car.", };
         }
 
         var car = settings.Cars.First(c => c.Vin == vin);
-        if (!isFleetApiTest && fleetApiRequest.BleCompatible)
+        if (IsChargeCommand(fleetApiRequest))
         {
-            
-            var isCarBleEnabled = car.UseBle;
-            if (isCarBleEnabled)
+            //A charge command is about to be sent to the car, so cancel any BLE sleep window: the car is (or is about
+            //to be) actively managed and awake. Without this a window that started in the same charging cycle would
+            //silence the follow up reads, so TSC would never observe that the car started or stopped charging.
+            bleSleepWindowService.ResetSleepWindow(car.Id);
+        }
+        if (!isFleetApiTest && fleetApiRequest.BleCompatible && car.UseBle)
+        {
+            await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
+            var result = new DtoBleCommandResult();
+            try
             {
-                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
-                //When changing this condition also change it in ErrorHandlingService.DetectErrors as there the error will be set to resolved.
-                if ((car.LastNonSuccessBleCall != default) && (car.LastNonSuccessBleCall.Value >
-                    (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
+                if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
                 {
-                    logger.LogWarning("BLE is not used for car {carVin} as last non success BLE call was at {lastNonSuccessBleCall}", car.Vin, car.LastNonSuccessBleCall);
+                    result = await bleService.StartCharging(vin);
                 }
-                else
+                else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
                 {
-                    var result = new DtoBleCommandResult();
-                    try
-                    {
-                        if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
-                        {
-                            result = await bleService.StartCharging(vin);
-                        }
-                        else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
-                        {
-                            result = await bleService.StopCharging(vin);
-                        }
-                        else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
-                        {
-                            result = await bleService.SetAmp(vin, intParam!.Value);
-                        }
-                        else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
-                        {
-                            result = await bleService.WakeUpCar(vin);
-                        }
+                    result = await bleService.StopCharging(vin);
+                }
+                else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
+                {
+                    result = await bleService.SetAmp(vin, intParam!.Value);
+                }
+                else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
+                {
+                    result = await bleService.WakeUpCar(vin);
+                }
 
-                        if (result.Success
-                            || (result.ErrorType == ErrorType.CarExecution
-                                && (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
-                                && (result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true))
-                            || (result.ErrorType == ErrorType.CarExecution
-                                && (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
-                                && (result.CarErrorMessage?.Contains(IsNotChargingErrorMessage) == true)))
-                        {
-                            AddRequestToCar(vin, fleetApiRequest);
-                            await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
-                            await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
-                            if (typeof(T) == typeof(DtoVehicleCommandResult))
+                if (IsBleCommandFulfilled(result, fleetApiRequest.RequestUrl))
+                {
+                    AddRequestToCar(vin, fleetApiRequest);
+                    await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
+                    if (typeof(T) == typeof(DtoVehicleCommandResult))
+                    {
+                        var comamndResult = new DtoGenericTeslaResponse<T> { Response = (T)(object)new DtoVehicleCommandResult()
                             {
-                                var comamndResult = new DtoGenericTeslaResponse<T> { Response = (T)(object)new DtoVehicleCommandResult()
-                                    {
-                                        //Do not use result.Success as on is_charging and not_charging errors this would be false but should be true
-                                        Result = true,
-                                        Reason = result.ResultMessage ?? string.Empty,
-                                    },
-                                };
-                                return comamndResult;
-                            }
-
-                            return new();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Error while calling BLE API");
+                                //Do not use result.Success as on is_charging and not_charging errors this would be false but should be true
+                                Result = true,
+                                Reason = result.ResultMessage ?? string.Empty,
+                            },
+                        };
+                        return comamndResult;
                     }
 
-
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
-                        $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
-                        issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
-                    if (await backendApiService.IsFleetApiLicensed(car.Vin, true))
-                    {
-                        car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
-                        var fallbackUntilLocalTimeString =
-                            (car.LastNonSuccessBleCall + configurationWrapper.BleUsageStopAfterError()).Value.ToLocalTime();
-                        logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback until {fallbackUntil}.", fallbackUntilLocalTimeString);
-                        await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                            $"Using Fleet API as BLE fallback for car {car.Vin}",
-                            $"As the BLE command did not succeed, Fleet API is used as fallback until {fallbackUntilLocalTimeString}. Note: During this time it is not possible to retry BLE automatically you need to go to the car settings page and test BLE access manually.",
-                            issueKeys.UsingFleetApiAsBleFallback, car.Vin, null).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        //Do not use Fleet API if not licensed
-                        logger.LogInformation("Do not use Fleet API as Fallback as Fleet API is not licensed for car {vin}", car.Vin);
-                        return null;
-                    }
-                    
+                    return new();
                 }
-                
             }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error while calling BLE API");
+            }
+
+
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
+                $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
+                issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
+            logger.LogWarning("BLE command {command} for car {vin} did not succeed, using Fleet API as fallback.", fleetApiRequest.RequestUrl, car.Vin);
         }
 
         if (!isFleetApiTest
             && (fleetApiRequest.RequestUrl != VehicleRequest.RequestUrl)
             && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
         {
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
-                "Can not send Fleet API commands to car as Fleet API is not licensed",
-                issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
+            if (!car.UseBle || !IsRateLimitedWithoutCarLicense(fleetApiRequest))
+            {
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
+                    "Can not send Fleet API commands to car as Fleet API is not licensed",
+                    issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
 
-            logger.LogError("Can not send Fleet API commands to car {vin} as car is not licensed", car.Vin);
-            return null;
+                logger.LogError("Can not send Fleet API commands to car {vin} as car is not licensed", car.Vin);
+                return new() { Error = "FleetApiNotLicensed", ErrorDescription = "Fleet API is not licensed for this car, so no command was sent.", };
+            }
+            var nextAllowedUtc = fleetApiRateLimitService.GetNextAllowedUtc(car);
+            if (nextAllowedUtc != null)
+            {
+                var nextAllowedLocalTime = nextAllowedUtc.Value.ToLocalTime();
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    $"Fleet API commands rate limited for car {car.Vin}",
+                    $"As the car has no Fleet API license, Fleet API can only be used as BLE fallback for one command per hour. The command {fleetApiRequest.RequestUrl} was not sent, the next command is allowed at {nextAllowedLocalTime}. To remove this limit fix the BLE connection or buy a Fleet API license for the car.",
+                    issueKeys.FleetApiCommandRateLimited, car.Vin, null).ConfigureAwait(false);
+                logger.LogWarning("Do not send Fleet API command {command} to car {vin} as commands are rate limited until {nextAllowed}", fleetApiRequest.RequestUrl, car.Vin, nextAllowedLocalTime);
+                return new() { Error = "FleetApiCommandRateLimited", ErrorDescription = $"The car has no Fleet API license, so Fleet API fallback commands are rate limited. The next command is allowed at {nextAllowedLocalTime}.", };
+            }
         }
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
 
@@ -841,7 +858,7 @@ public class TeslaFleetApiService(
             if (lastWakeUp != default && lastWakeUp > dateTimeProvider.UtcNow().AddMinutes(-30))
             {
                 logger.LogDebug("Do not send wake up command as last wake up was at {lastWakeUp}", lastWakeUp);
-                return null;
+                return new() { Error = "WakeUpThrottled", ErrorDescription = $"No wake up command was sent because the last wake up was at {lastWakeUp:o} (less than 30 minutes ago).", };
             }
         }
 
@@ -849,14 +866,14 @@ public class TeslaFleetApiService(
         if (accessToken == default)
         {
             logger.LogError("Access token not found do not send command");
-            return null;
+            return new() { Error = "AccessTokenNotFound", ErrorDescription = "No Solar4Car backend access token was found, so no command was sent.", };
         }
         var fleetApiProxyRequired = await IsFleetApiProxyEnabled(vin).ConfigureAwait(false);
         var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
         if (decryptionKey == default)
         {
             logger.LogError("Decryption key not found do not send command");
-            return null;
+            return new() { Error = "DecryptionKeyNotFound", ErrorDescription = "No Tesla token encryption key was found, so no command was sent.", };
         }
         var requestUri = $"{fleetApiRequest.RequestUrl}?encryptionKey={Uri.EscapeDataString(decryptionKey)}&vin={vin}&carRequiresProxy={fleetApiProxyRequired.Value}";
         if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
@@ -866,11 +883,21 @@ public class TeslaFleetApiService(
         var backendResult = await backendApiService.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Post, accessToken.AccessToken, requestUri, null).ConfigureAwait(false);
         if (backendResult.HasError)
         {
+            if (backendResult.ProblemDetails?.Status == (int)HttpStatusCode.TooManyRequests)
+            {
+                fleetApiRateLimitService.RecordRateLimited(car);
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    $"Fleet API commands rate limited for car {car.Vin}",
+                    $"The Solar4Car backend rejected the command {fleetApiRequest.RequestUrl} as rate limited: {backendResult.ErrorMessage}",
+                    issueKeys.FleetApiCommandRateLimited, car.Vin, null).ConfigureAwait(false);
+                logger.LogWarning("Backend rejected Fleet API command {command} for car {vin} as rate limited: {errorMessage}", fleetApiRequest.RequestUrl, car.Vin, backendResult.ErrorMessage);
+                return new() { Error = "FleetApiCommandRateLimited", ErrorDescription = backendResult.ErrorMessage, };
+            }
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Solar4Car related error while sending command to car {car.Vin}",
                 $"Sending command to Tesla API resulted in non succes status code. The issue very likely is not on Tesla's side but on Solar4Car side. Error Message: {backendResult.ErrorMessage} : Command name:{fleetApiRequest.RequestUrl}, Int Param:{intParam}.",
                 issueKeys.Solar4CarSideFleetApiNonSuccessStatusCode + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
             logger.LogError("Sending command to Tesla API resulted in non succes status code. The issue very likely is not on Tesla's side but on Solar4Car side. ErrorMessage: {errorMessage} : Command name:{commandName}, Int Param:{intParam}.", backendResult.ErrorMessage, fleetApiRequest.RequestUrl, intParam);
-            return null;
+            return new() { Error = "Solar4CarBackendRequestFailed", ErrorDescription = backendResult.ErrorMessage, };
         }
         else
         {
@@ -880,7 +907,7 @@ public class TeslaFleetApiService(
         if (backendApiResponse == default)
         {
             logger.LogError("Could not deserialize Backend API Tesla Response.");
-            return null;
+            return new() { Error = "BackendResponseNotDeserializable", ErrorDescription = "The Solar4Car backend response could not be deserialized.", };
         }
 
         if (backendApiResponse.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices)
@@ -896,7 +923,7 @@ public class TeslaFleetApiService(
             logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Int Param:{intParam}. Tesla Result: {result}", backendApiResponse.StatusCode, fleetApiRequest.RequestUrl, intParam, backendApiResponse.JsonResponse);
             //ToDo: should be able to handle null backend API response. e.g. with an error "incompatible version".
             await HandleNonSuccessTeslaApiStatusCodes(backendApiResponse.StatusCode, backendApiResponse.JsonResponse, vin).ConfigureAwait(false);
-            return null;
+            return new() { Error = $"TeslaApiNonSuccessStatusCode ({(int)backendApiResponse.StatusCode} {backendApiResponse.StatusCode})", ErrorDescription = backendApiResponse.JsonResponse, };
         }
 
 
@@ -918,10 +945,53 @@ public class TeslaFleetApiService(
             else
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + fleetApiRequest.RequestUrl, car.Vin);
+                await HandleSuccessfulFleetApiCommand(car, fleetApiRequest).ConfigureAwait(false);
             }
+        }
+        else
+        {
+            //No DtoVehicleCommandResult response (e.g. wake up), so the success status code means the command was successful.
+            await HandleSuccessfulFleetApiCommand(car, fleetApiRequest).ConfigureAwait(false);
         }
         logger.LogDebug("Response: {responseString}", backendApiResponse.JsonResponse);
         return teslaCommandResultResponse;
+    }
+
+    /// <summary>
+    /// Commands that count against the hourly Fleet API rate limit of BLE enabled cars without a Fleet API license.
+    /// Must match the commands the Solar4Car backend rate limits for unlicensed cars.
+    /// </summary>
+    private static bool IsRateLimitedWithoutCarLicense(DtoFleetApiRequest fleetApiRequest)
+    {
+        return fleetApiRequest.TeslaApiRequestType is TeslaApiRequestType.Charging
+            or TeslaApiRequestType.Command
+            or TeslaApiRequestType.WakeUp;
+    }
+
+    private async Task HandleSuccessfulFleetApiCommand(DtoCar car, DtoFleetApiRequest fleetApiRequest)
+    {
+        logger.LogTrace("{method}({vin}, {request})", nameof(HandleSuccessfulFleetApiCommand), car.Vin, fleetApiRequest.RequestUrl);
+        if (!IsRateLimitedWithoutCarLicense(fleetApiRequest))
+        {
+            return;
+        }
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiCommandRateLimited, car.Vin);
+        if (await backendApiService.IsFleetApiLicensed(car.Vin, true))
+        {
+            return;
+        }
+        fleetApiRateLimitService.RecordSuccessfulCommand(car);
+    }
+
+    /// <summary>
+    /// Charge relevant commands: sending one means the car is actively managed, so any BLE sleep window is cancelled.
+    /// Wake up is excluded as it is always followed by a set amps / charge start command that cancels the window.
+    /// </summary>
+    private bool IsChargeCommand(DtoFleetApiRequest fleetApiRequest)
+    {
+        return (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+               || (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl);
     }
 
     public void ResetApiRequestCounters()
@@ -938,6 +1008,36 @@ public class TeslaFleetApiService(
             car.SetChargingAmpsCall.RemoveAll(d => d < currentUtcDate);
             car.OtherCommandCalls.RemoveAll(d => d < currentUtcDate);
         }
+    }
+
+    /// <summary>
+    /// Whether a BLE command achieved what it was sent for. A car that refuses charging-start because it is already
+    /// charging (or charging-stop because it is not charging) did what was asked of it, so this counts as fulfilled
+    /// and no Fleet API fallback is needed. <see cref="DtoBleCommandResult.Outcome"/> is the structured
+    /// classification; the legacy ErrorType check stays as a fallback for BLE containers that do not send an outcome
+    /// yet.
+    /// </summary>
+    internal bool IsBleCommandFulfilled(DtoBleCommandResult result, string requestUrl)
+    {
+        if (result.Success)
+        {
+            return true;
+        }
+        var isCarRefusal = result.Outcome == BleCommandOutcome.CarRefused
+                           || ((result.Outcome == default) && (result.ErrorType == ErrorType.CarExecution));
+        if (!isCarRefusal)
+        {
+            return false;
+        }
+        if (requestUrl == ChargeStartRequest.RequestUrl)
+        {
+            return result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true;
+        }
+        if (requestUrl == ChargeStopRequest.RequestUrl)
+        {
+            return result.CarErrorMessage?.Contains(IsNotChargingErrorMessage) == true;
+        }
+        return false;
     }
 
     private void AddRequestToCar(string vin, DtoFleetApiRequest fleetApiRequest)
@@ -1171,6 +1271,46 @@ public class TeslaFleetApiService(
             if (backendResponse.HasError)
             {
                 logger.LogError("Error while getting powerwall live status: {errorMessage}", backendResponse.ErrorMessage);
+                throw new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
+            }
+            var teslaBackendResult = backendResponse.Data;
+            if (teslaBackendResult == null)
+            {
+                logger.LogError("Could not deserialize Solar4CarBackend response body");
+                throw new InvalidOperationException("Could not deserialize response body");
+            }
+            return teslaBackendResult;
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogError(e, "An HTTP request error occured");
+            throw;
+        }
+    }
+
+    public async Task<DtoBackendApiTeslaResponse> SetEnergySiteBackupReserve(string energySiteId, int backupReservePercent)
+    {
+        logger.LogTrace("{method}({energySiteId}, {backupReservePercent})", nameof(SetEnergySiteBackupReserve), energySiteId, backupReservePercent);
+        var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (accessToken == default)
+        {
+            logger.LogError("Can not set backup reserve as no Backend token was found.");
+            throw new InvalidOperationException("Can not set backup reserve as no Backend token was found.");
+        }
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("Decryption key not found do not send command");
+        }
+        var requestUri = $"FleetApiRequests/SetEnergySiteBackupReserve?encryptionKey={Uri.EscapeDataString(decryptionKey)}&energySiteId={Uri.EscapeDataString(energySiteId)}&backupReservePercent={backupReservePercent}";
+        try
+        {
+            var backendResponse = await backendApiService.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Post,
+                accessToken.AccessToken, requestUri, null);
+            if (backendResponse.HasError)
+            {
+                logger.LogError("Error while setting backup reserve: {errorMessage}", backendResponse.ErrorMessage);
                 throw new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
             }
             var teslaBackendResult = backendResponse.Data;

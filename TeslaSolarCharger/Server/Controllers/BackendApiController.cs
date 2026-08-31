@@ -22,4 +22,44 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
 
     [HttpPost]
     public Task LoginToBackend(DtoBackendLogin login) => backendApiService.GetToken(login);
+
+    [HttpGet]
+    public async Task<IActionResult> GetTeslaOAuthRedeemUrl(string baseUrl)
+    {
+        var result = await backendApiService.GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(baseUrl);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSmartCarOAuthRedeemUrl(string baseUrl, string? vin)
+    {
+        var result = await backendApiService.GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(baseUrl, vin);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<DtoCarLicenseInfo> GetFleetApiLicenseInfo()
+    {
+        return await backendApiService.GetFleetApiLicenseInfo();
+    }
+
+    [HttpGet]
+    public async Task<DtoValue<bool>> IsBaseAppLicensed(bool useCache)
+    {
+        var result = await backendApiService.IsBaseAppLicensed(useCache);
+        return new(result.Data == true);
+    }
+
+    [HttpGet]
+    public async Task<List<DtoSmartCarCompatibleVehicle>> GetSmartCarCompatibleVehicles()
+    {
+        return await backendApiService.GetSmartCarCompatibleVehicles();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ConnectCarToSmartCar(string vin)
+    {
+        await backendApiService.ConnectCarToSmartCarByVin(vin);
+        return Ok();
+    }
 }

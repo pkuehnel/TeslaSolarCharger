@@ -155,7 +155,7 @@ public class ChargingScheduleService : IChargingScheduleService
                 continue;
             }
 
-            if (false && _configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
+            if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules())
             {
                 _logger.LogTrace("Using predicted solar power generation for charging schedules for target {@target}.", nextTarget);
                 if (minCurrent == default)
@@ -166,7 +166,8 @@ public class ChargingScheduleService : IChargingScheduleService
                 {
                     var minPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, minCurrent.Value, voltage);
                     _logger.LogTrace("Min charging power for predicted solar scheduling: {minPower}W", minPower);
-                    var maxPowerCappedPredictedHoursWithAtLeastMinPowerSurpluses = predictedSurplusSlices
+                    var surplusSlicesAvailableForCar = ReserveHomeBatteryChargingEnergyFromSurplus(predictedSurplusSlices);
+                    var maxPowerCappedPredictedHoursWithAtLeastMinPowerSurpluses = surplusSlicesAvailableForCar
                         .Where(s => s.Value > minPower && s.Key < nextTarget.NextExecutionTime)
                         .OrderBy(s => s.Key)
                         .ToDictionary(s => s.Key, s => s.Value > maxPower ? maxPower : s.Value);
@@ -206,7 +207,11 @@ public class ChargingScheduleService : IChargingScheduleService
                 {
                     var availableDischargePower = Math.Min(maxPower, homeBatteryDischargePower.Value);
                     _logger.LogTrace("Available discharge power: {availableDischargePower}W", availableDischargePower);
-                    if (availableDischargePower > 0)
+                    //The house consumes part of the discharge power, so only the rest reaches the car and may be credited as charging energy
+                    var predictedHouseConsumptionPower = GetPredictedAverageNetHouseConsumptionPower(predictedSurplusSlices, currentDate, nextTarget.NextExecutionTime);
+                    var estimatedDischargePowerForCar = availableDischargePower - predictedHouseConsumptionPower;
+                    _logger.LogTrace("Estimated discharge power reaching the car after subtracting predicted house consumption ({predictedHouseConsumptionPower}W): {estimatedDischargePowerForCar}W", predictedHouseConsumptionPower, estimatedDischargePowerForCar);
+                    if (estimatedDischargePowerForCar > 0)
                     {
                         var loopCount = 0;
                         while (homeBatteryEnergyToCharge > 100)
@@ -215,7 +220,7 @@ public class ChargingScheduleService : IChargingScheduleService
                             {
                                 break;
                             }
-                            var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);
+                            var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, estimatedDischargePowerForCar);
                             var scheduleEnd = nextTarget.NextExecutionTime;
                             _logger.LogTrace("Discharge duration: {dischargeDuration}; Scheduled end: {scheduledEnd}; scheduled start: {scheduledStart}",
                                 dischargeDuration, scheduleEnd, currentDate);
@@ -226,23 +231,30 @@ public class ChargingScheduleService : IChargingScheduleService
                                     ValidFrom = currentDate,
                                     ValidTo = scheduleEnd,
                                     TargetHomeBatteryPower = availableDischargePower,
+                                    EstimatedHomeBatteryPowerForCar = estimatedDischargePowerForCar,
                                 };
                                 (schedules, var addedEnergy) = AddChargingSchedule(schedules, homeBatteryChargingSchedule, maxPower, homeBatteryEnergyToCharge, otherLoadPointsSchedules);
                                 _logger.LogTrace("Added home battery discharge schedule. AddedEnergy={addedEnergy}Wh; Remaining homeBatteryEnergyToCharge before subtract={remainingEnergy}", addedEnergy, homeBatteryEnergyToCharge);
                                 homeBatteryEnergyToCharge -= addedEnergy;
                                 minimumEnergyToCharge -= addedEnergy;
                                 //As we want to discharge the complete home battery to min soc if DischargeHomeBatteryToMinSoc is set, we do not break here when minimumEnergyToCharge <= 0
+                                if (addedEnergy < 1)
+                                {
+                                    _logger.LogTrace("Breaking home battery discharge planning as the time window until the target is fully scheduled. Remaining homeBatteryEnergyToCharge={remainingEnergy}", homeBatteryEnergyToCharge);
+                                    break;
+                                }
                             }
                             else
                             {
                                 _logger.LogTrace("Skipping home battery discharge schedule because scheduleStart >= scheduleEnd (start={scheduleStart}, end={scheduleEnd})", currentDate, scheduleEnd);
+                                break;
                             }
                         }
                         _logger.LogTrace("Finished home battery discharge planning for target {@target}. Remaining homeBatteryEnergyToCharge={homeBatteryEnergyToCharge}, minimumEnergyToCharge={minimumEnergyToCharge}", nextTarget, homeBatteryEnergyToCharge, minimumEnergyToCharge);
                     }
                     else
                     {
-                        _logger.LogTrace("No available discharge power for home battery discharge scheduling.");
+                        _logger.LogTrace("No discharge power left for the car after predicted house consumption. No discharge scheduling performed.");
                     }
                 }
                 else
@@ -506,6 +518,7 @@ public class ChargingScheduleService : IChargingScheduleService
         // Check all power-relevant properties and identifiers
         return a.TargetMinPower == b.TargetMinPower &&
                a.TargetHomeBatteryPower == b.TargetHomeBatteryPower &&
+               a.EstimatedHomeBatteryPowerForCar == b.EstimatedHomeBatteryPowerForCar &&
                a.EstimatedSolarPower == b.EstimatedSolarPower &&
                a.MaxPossiblePower == b.MaxPossiblePower &&
                a.CarId == b.CarId &&
@@ -731,6 +744,7 @@ public class ChargingScheduleService : IChargingScheduleService
             var originalTargetMinPower = overlappingExistingChargingSchedule.TargetMinPower;
             var originalEstimatedSolarPower = overlappingExistingChargingSchedule.EstimatedSolarPower;
             var originalTargetHomeBatteryPower = overlappingExistingChargingSchedule.TargetHomeBatteryPower;
+            var originalEstimatedHomeBatteryPowerForCar = overlappingExistingChargingSchedule.EstimatedHomeBatteryPowerForCar;
             var originalScheduleReasons = new HashSet<ScheduleReason>(overlappingExistingChargingSchedule.ScheduleReasons);
 
             var newMinTargetPower = Math.Max(overlappingExistingChargingSchedule.TargetMinPower, dtoChargingSchedule.TargetMinPower);
@@ -740,17 +754,22 @@ public class ChargingScheduleService : IChargingScheduleService
             newMinTargetPower = Math.Min(newMinTargetPower, dtoChargingSchedule.MaxPossiblePower);
 
             int? newTargetHomeBatteryPower = null;
+            int? newEstimatedHomeBatteryPowerForCar = null;
             if (dtoChargingSchedule.TargetHomeBatteryPower.HasValue || overlappingExistingChargingSchedule.TargetHomeBatteryPower.HasValue)
             {
                 newTargetHomeBatteryPower = Math.Max(overlappingExistingChargingSchedule.TargetHomeBatteryPower ?? 0,
                     dtoChargingSchedule.TargetHomeBatteryPower ?? 0);
+                newEstimatedHomeBatteryPowerForCar = Math.Max(
+                    overlappingExistingChargingSchedule.EstimatedHomeBatteryPowerForCar ?? overlappingExistingChargingSchedule.TargetHomeBatteryPower ?? 0,
+                    dtoChargingSchedule.EstimatedHomeBatteryPowerForCar ?? dtoChargingSchedule.TargetHomeBatteryPower ?? 0);
             }
-            _logger.LogTrace("Calculated merged targets: newMinTargetPower={newMinTargetPower}, newEstimatedSolarPower={newEstimatedSolarPower}, newTargetHomeBatteryPower={newTargetHomeBatteryPower}", newMinTargetPower, newEstimatedSolarPower, newTargetHomeBatteryPower);
+            _logger.LogTrace("Calculated merged targets: newMinTargetPower={newMinTargetPower}, newEstimatedSolarPower={newEstimatedSolarPower}, newTargetHomeBatteryPower={newTargetHomeBatteryPower}, newEstimatedHomeBatteryPowerForCar={newEstimatedHomeBatteryPowerForCar}", newMinTargetPower, newEstimatedSolarPower, newTargetHomeBatteryPower, newEstimatedHomeBatteryPowerForCar);
 
 
             overlappingExistingChargingSchedule.TargetMinPower = newMinTargetPower;
             overlappingExistingChargingSchedule.EstimatedSolarPower = newEstimatedSolarPower;
             overlappingExistingChargingSchedule.TargetHomeBatteryPower = newTargetHomeBatteryPower;
+            overlappingExistingChargingSchedule.EstimatedHomeBatteryPowerForCar = newEstimatedHomeBatteryPowerForCar;
             overlappingExistingChargingSchedule.ScheduleReasons.UnionWith(dtoChargingSchedule.ScheduleReasons);
 
             // Also update MaxPossiblePower on the existing schedule to reflect the constraint for this segment
@@ -777,6 +796,7 @@ public class ChargingScheduleService : IChargingScheduleService
                     TargetMinPower = originalTargetMinPower,
                     EstimatedSolarPower = originalEstimatedSolarPower,
                     TargetHomeBatteryPower = originalTargetHomeBatteryPower,
+                    EstimatedHomeBatteryPowerForCar = originalEstimatedHomeBatteryPowerForCar,
                 };
 
                 if (ShouldScheduleFromStartInsteadOfUntilEnd(splittedExistingChargingSchedules, dtoChargingSchedule))
@@ -934,6 +954,104 @@ public class ChargingScheduleService : IChargingScheduleService
             : default;
     }
 
+
+    /// <summary>
+    /// Calculates the average predicted house consumption power that is not covered by solar production between
+    /// <paramref name="from"/> and <paramref name="to"/> based on the predicted surplus slices. Slices with a
+    /// predicted surplus contribute no consumption as their house consumption is covered by solar. A surplus is never
+    /// credited against the consumption of other slices: that energy already reaches the car via solar based
+    /// schedules and via the power to control at execution time, so crediting it here would credit it twice.
+    /// </summary>
+    /// <param name="predictedSurplusSlices">Predicted surplus energy in Wh per slice, keyed by slice start. Slice length
+    /// is <see cref="IConstants.SolarPowerSurplusPredictionIntervalHours"/>.</param>
+    /// <returns>The average net house consumption in W within the time range, or 0 if no prediction covers the range.</returns>
+    internal int GetPredictedAverageNetHouseConsumptionPower(Dictionary<DateTimeOffset, int> predictedSurplusSlices,
+        DateTimeOffset from, DateTimeOffset to)
+    {
+        _logger.LogTrace("{method}({@predictedSurplusSlices}, {from}, {to})",
+            nameof(GetPredictedAverageNetHouseConsumptionPower), predictedSurplusSlices, from, to);
+        if (to <= from)
+        {
+            return 0;
+        }
+        var sliceLength = TimeSpan.FromHours(_constants.SolarPowerSurplusPredictionIntervalHours);
+        var weightedConsumptionEnergy = 0.0;
+        var coveredHours = 0.0;
+        foreach (var slice in predictedSurplusSlices)
+        {
+            var overlapStart = slice.Key > from ? slice.Key : from;
+            var sliceEnd = slice.Key + sliceLength;
+            var overlapEnd = sliceEnd < to ? sliceEnd : to;
+            if (overlapEnd <= overlapStart)
+            {
+                continue;
+            }
+            var overlapHours = (overlapEnd - overlapStart).TotalHours;
+            //Surplus slices contribute no consumption but still count as covered time
+            var sliceConsumptionPower = slice.Value < 0 ? -slice.Value / sliceLength.TotalHours : 0.0;
+            weightedConsumptionEnergy += sliceConsumptionPower * overlapHours;
+            coveredHours += overlapHours;
+        }
+        if (coveredHours <= 0)
+        {
+            _logger.LogTrace("No predicted surplus slices overlap the requested time range. Assuming no house consumption.");
+            return 0;
+        }
+        var averageConsumptionPower = weightedConsumptionEnergy / coveredHours;
+        _logger.LogTrace("Average predicted uncovered house consumption power between {from} and {to}: {averageConsumptionPower}W", from, to, averageConsumptionPower);
+        return (int)Math.Round(averageConsumptionPower);
+    }
+
+    /// <summary>
+    /// While the home battery is below its min SoC the execution side reserves the home battery charging power from the
+    /// solar surplus before the car gets anything (see PowerToControlCalculationService). This method mirrors that
+    /// behavior for planning: it removes the energy the home battery needs to reach its min SoC from the predicted
+    /// surplus slices so solar based charging schedules do not credit the car with energy that will charge the home
+    /// battery instead. The reservation is applied chronologically and is capped at the home battery charging power per
+    /// slice. The passed dictionary is not modified as it is shared between loadpoints and other consumers.
+    /// </summary>
+    internal Dictionary<DateTimeOffset, int> ReserveHomeBatteryChargingEnergyFromSurplus(
+        Dictionary<DateTimeOffset, int> predictedSurplusSlices)
+    {
+        _logger.LogTrace("{method}({@predictedSurplusSlices})", nameof(ReserveHomeBatteryChargingEnergyFromSurplus), predictedSurplusSlices);
+        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        var homeBatteryChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        var homeBatterySoc = _settings.HomeBatterySoc;
+        //When one of these values is unknown the execution side does not reserve any power for the home battery either,
+        //so the planning must not reserve anything to stay consistent with the execution.
+        if (homeBatteryUsableEnergy == default
+            || homeBatteryMinSoc == default
+            || homeBatterySoc == default
+            || !(homeBatteryChargingPower > 0))
+        {
+            _logger.LogTrace("Not reserving any surplus for the home battery as at least one required value is unknown.");
+            return predictedSurplusSlices;
+        }
+        var remainingDeficitEnergy = GetHomeBatteryEnergyFromSocDifference(homeBatteryMinSoc.Value - homeBatterySoc.Value);
+        if (remainingDeficitEnergy <= 0)
+        {
+            _logger.LogTrace("Home battery SoC {homeBatterySoc} is not below min SoC {homeBatteryMinSoc}. Not reserving any surplus.", homeBatterySoc, homeBatteryMinSoc);
+            return predictedSurplusSlices;
+        }
+        _logger.LogDebug("Reserving up to {deficitEnergy}Wh of predicted surplus for the home battery to reach min SoC {homeBatteryMinSoc} from {homeBatterySoc}.",
+            remainingDeficitEnergy, homeBatteryMinSoc, homeBatterySoc);
+        var maxReservableEnergyPerSlice = homeBatteryChargingPower.Value * _constants.SolarPowerSurplusPredictionIntervalHours;
+        var surplusSlicesAvailableForCar = new Dictionary<DateTimeOffset, int>(predictedSurplusSlices.Count);
+        foreach (var slice in predictedSurplusSlices.OrderBy(s => s.Key))
+        {
+            var reservedEnergy = Math.Min(Math.Min(slice.Value, maxReservableEnergyPerSlice), remainingDeficitEnergy);
+            if (reservedEnergy <= 0)
+            {
+                surplusSlicesAvailableForCar[slice.Key] = slice.Value;
+                continue;
+            }
+            remainingDeficitEnergy -= reservedEnergy;
+            surplusSlicesAvailableForCar[slice.Key] = slice.Value - reservedEnergy;
+            _logger.LogTrace("Reserved {reservedEnergy}Wh of slice {sliceStart} for the home battery. Remaining deficit: {remainingDeficitEnergy}Wh", reservedEnergy, slice.Key, remainingDeficitEnergy);
+        }
+        return surplusSlicesAvailableForCar;
+    }
 
     internal int GetHomeBatteryEnergyFromSocDifference(int socDifference)
     {

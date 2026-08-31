@@ -28,6 +28,7 @@ public interface IConstants
     string HandledChargesConverted { get; }
     string GridPoleIcon { get; }
     int ChargingDetailsAddTriggerEveryXSeconds { get; }
+    TimeSpan MaxMeterValueGapForEnergyCalculation { get; }
     string ChargingDetailsSolarPowerShareFixed { get; }
     string SolarValuesConverted { get; }
     string ChargeStartRequestUrl { get; }
@@ -44,6 +45,7 @@ public interface IConstants
     string BackendTokenStateKey { get; }
     string IsBaseAppLicensedKey { get; }
     string IsFleetApiLicensedKey { get; }
+    string SetupCacheKey { get; }
     int FleetTelemetryReconfigurationBufferHours { get; }
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervallHours { get; }
@@ -53,6 +55,7 @@ public interface IConstants
     string OcppChargePointConnectorIdDelimiter { get; }
     string DefaultIdTag { get; }
     int HomeBatteryMinSocRefreshIntervalMinutes { get; }
+    int HomeBatteryModeJobIntervalSeconds { get; }
     string SunriseIcon { get; }
     string SunsetIcon { get; }
     string UnknownCarName { get; }
@@ -68,4 +71,17 @@ public interface IConstants
     int ManualCarMinutesUntilForgetSoc { get; }
     int RefreshableValuesRefreshIntervalSeconds { get; }
     int SolarPowerSurplusPredictionIntervalHours { get; }
+    string SmartCarTokenStatesKey { get; }
+    int TokenRefreshIntervalSeconds { get; }
+
+    string QueryParamSuccess { get; }
+    string QueryParamMessage { get; }
+    string QueryParamWarning { get; }
+    string QueryParamError { get; }
+    string QueryParamVin { get; }
+    string QueryParamSmartCarAdded { get; }
+    string QueryParamTeslaConnected { get; }
+
+    int DefaultHoldHomeBatteryChargeSocBuffer { get; }
+    int DefaultChargeHomeBatterySocBuffer { get; }
 }

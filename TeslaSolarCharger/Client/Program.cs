@@ -1,4 +1,5 @@
 using ApexCharts;
+using FluentValidation;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using MudBlazor.Services;
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckService>();
+builder.Services.AddScoped<ICarSettingsService, CarSettingsService>();
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
@@ -47,14 +49,20 @@ builder.Services.AddScoped<IThemeStateService, ThemeStateService>();
 builder.Services.AddScoped<IAppColors, AppColors>();
 builder.Services.AddScoped<IChargePriceService, ChargePriceService>();
 builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
+builder.Services.AddScoped<ISetupService, SetupService>();
 builder.Services.AddScoped<IBaseConfigurationService, BaseConfigurationService>();
 builder.Services.AddScoped<ITemplateValueConfigurationService, TemplateValueConfigurationService>();
+builder.Services.AddScoped<IOAuthNotificationService, OAuthNotificationService>();
 builder.Services.AddSingleton<IEntityKeyGenerationHelper, EntityKeyGenerationHelper>();
 builder.Services.AddTransient<IChartWidthCalculator, ChartWidthCalculator>();
 builder.Services.AddTransient<IApexChartHelper, ApexChartHelper>();
 builder.Services.AddSingleton<ISignalRStateService, SignalRStateService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
+// Blazilla's FluentValidator (used in EditFormComponent) resolves validators from DI only — unlike the
+// previously used Blazored.FluentValidation there is no assembly-scanning fallback at render time, so
+// without this registration no client-side validation runs at all.
+builder.Services.AddValidatorsFromAssemblyContaining<TeslaSolarCharger.Shared.Dtos.CarBasicConfigurationValidator>(ServiceLifetime.Singleton);
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>
 {

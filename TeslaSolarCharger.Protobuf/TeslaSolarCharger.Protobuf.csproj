@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<!--
+		Everything in this project is generated from Tesla's protos at build time (nothing is committed), so the
+		generated C# must not be held to this solution's analyzer or documentation standards.
+		-->
+		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);CS1591;CS8981;CS0612;CS0618</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Google.Protobuf" Version="3.35.1" />
+		<PackageReference Include="Grpc.Tools" Version="2.83.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--
+		Messages only: TSC never speaks gRPC, it only decodes the protojson the BLE container prints. The protos are
+		vendored verbatim from teslamotors/vehicle-command at the ref pinned in TeslaSolarCharger.BleApi/Dockerfile
+		(VEHICLE_COMMAND_REF) and are kept in sync by .github/workflows/syncTeslaProtos.yml. Never hand edit them.
+		-->
+		<Protobuf Include="protos\*.proto" ProtoRoot="protos" GrpcServices="None" CompileOutputs="true" />
+	</ItemGroup>
+
+</Project>

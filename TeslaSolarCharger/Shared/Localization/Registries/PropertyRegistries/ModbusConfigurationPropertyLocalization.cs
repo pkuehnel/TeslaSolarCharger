@@ -7,8 +7,8 @@ public class ModbusConfigurationPropertyLocalization : PropertyLocalizationRegis
     protected override void Configure()
     {
         Register(x => x.UnitIdentifier,
-            new PropertyLocalizationTranslation(LanguageCodes.English, "Unit Identifier", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "Unit Identifier", null));
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Unit ID", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Unit-ID", null));
 
         Register(x => x.Host,
             new PropertyLocalizationTranslation(LanguageCodes.English, "Host", null),

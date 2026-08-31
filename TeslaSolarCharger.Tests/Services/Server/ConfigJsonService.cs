@@ -1,17 +1,169 @@
-﻿using System.Collections.Generic;
+﻿using Moq;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
 public class ConfigJsonService : TestBase
 {
+    private const string TestVin = "TESTVIN123456789A";
+
     public ConfigJsonService(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
+    }
+
+    [Fact]
+    public async Task SwitchesCarToBleDataCollectionOnManualSave()
+    {
+        SetupCarForBleDataCollectionTests();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.DeleteFleetTelemetryConfiguration(TestVin))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, GenerateBleCarBasicConfiguration());
+
+        var databaseCar = Context.Cars.Single(c => c.Id == 1);
+        Assert.False(databaseCar.UseFleetTelemetry);
+        Assert.Equal(HomeDetectionVia.BlePresence, databaseCar.HomeDetectionVia);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Verify(f => f.DeleteFleetTelemetryConfiguration(TestVin), Times.Once);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Verify(f => f.SetFleetTelemetryConfiguration(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DoesNotSwitchToBleDataCollectionWhenGetVehicleDataViaBleIsDisabled()
+    {
+        SetupCarForBleDataCollectionTests();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(false);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.SetFleetTelemetryConfiguration(TestVin, false))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, GenerateBleCarBasicConfiguration());
+
+        var databaseCar = Context.Cars.Single(c => c.Id == 1);
+        Assert.True(databaseCar.UseFleetTelemetry);
+        Assert.Equal(HomeDetectionVia.LocatedAtHome, databaseCar.HomeDetectionVia);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Verify(f => f.DeleteFleetTelemetryConfiguration(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Verify(f => f.SetFleetTelemetryConfiguration(TestVin, false), Times.Once);
+    }
+
+    [Fact]
+    public async Task DoesNotSwitchToBleDataCollectionWithTrackingRelevantFields()
+    {
+        SetupCarForBleDataCollectionTests();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.SetFleetTelemetryConfiguration(TestVin, false))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var carBasicConfiguration = GenerateBleCarBasicConfiguration();
+        carBasicConfiguration.IncludeTrackingRelevantFields = true;
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, carBasicConfiguration);
+
+        var databaseCar = Context.Cars.Single(c => c.Id == 1);
+        Assert.True(databaseCar.UseFleetTelemetry);
+        Assert.Equal(HomeDetectionVia.LocatedAtHome, databaseCar.HomeDetectionVia);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Verify(f => f.DeleteFleetTelemetryConfiguration(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Verify(f => f.SetFleetTelemetryConfiguration(TestVin, false), Times.Once);
+    }
+
+    [Fact]
+    public async Task StoresTheSelectedBluetoothAdapterOnTheCar()
+    {
+        SetupCarForBleDataCollectionTests();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.DeleteFleetTelemetryConfiguration(TestVin))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var carBasicConfiguration = GenerateBleCarBasicConfiguration();
+        carBasicConfiguration.BleAdapterAddress = "AA:BB:CC:DD:EE:FF";
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, carBasicConfiguration);
+
+        //Both the database and the in memory car must carry the selection: the database survives restarts, the in
+        //memory car is what every BLE request reads to decide which adapter to use.
+        Assert.Equal("AA:BB:CC:DD:EE:FF", Context.Cars.Single(c => c.Id == 1).BleAdapterAddress);
+        Assert.Equal("AA:BB:CC:DD:EE:FF", Mock.Mock<ISettings>().Object.Cars.Single(c => c.Id == 1).BleAdapterAddress);
+    }
+
+    [Fact]
+    public async Task ClearingTheAdapterSelectionFallsBackToTheContainerDefault()
+    {
+        SetupCarForBleDataCollectionTests(bleAdapterAddress: "AA:BB:CC:DD:EE:FF");
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        Mock.Mock<IFleetTelemetryConfigurationService>()
+            .Setup(f => f.DeleteFleetTelemetryConfiguration(TestVin))
+            .ReturnsAsync(new DtoFleetTelemetryConfigurationResult { Success = true });
+
+        var carBasicConfiguration = GenerateBleCarBasicConfiguration();
+        carBasicConfiguration.BleAdapterAddress = null;
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
+        await service.UpdateCarBasicConfiguration(1, carBasicConfiguration);
+
+        Assert.Null(Context.Cars.Single(c => c.Id == 1).BleAdapterAddress);
+    }
+
+    private void SetupCarForBleDataCollectionTests(string? bleAdapterAddress = null)
+    {
+        Context.Cars.Add(new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car
+        {
+            Id = 1,
+            Vin = TestVin,
+            CarType = CarType.Tesla,
+            ShouldBeManaged = true,
+            UseBle = true,
+            UseFleetTelemetry = true,
+            IncludeTrackingRelevantFields = false,
+            HomeDetectionVia = HomeDetectionVia.LocatedAtHome,
+            BleAdapterAddress = bleAdapterAddress,
+        });
+        Context.SaveChangesAsync().GetAwaiter().GetResult();
+        DetachAllEntities();
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { new() { Id = 1, Vin = TestVin, BleAdapterAddress = bleAdapterAddress } });
+    }
+
+    private static CarBasicConfiguration GenerateBleCarBasicConfiguration()
+    {
+        return new CarBasicConfiguration(1, "Test Car")
+        {
+            Vin = TestVin,
+            CarType = CarType.Tesla,
+            ShouldBeManaged = true,
+            UseBle = true,
+            BleApiBaseUrl = "http://ble-container:7210",
+            //The UI normally already disables Fleet Telemetry for BLE data collection cars, but the server must also
+            //handle stale clients that still send true.
+            UseFleetTelemetry = true,
+            IncludeTrackingRelevantFields = false,
+            HomeDetectionVia = HomeDetectionVia.LocatedAtHome,
+            MinimumAmpere = 6,
+            MaximumAmpere = 16,
+            UsableEnergy = 75,
+            ChargingPriority = 1,
+            MaximumPhases = 3,
+        };
     }
 
     //ToDo: need to be able to handle vins instead of IDs

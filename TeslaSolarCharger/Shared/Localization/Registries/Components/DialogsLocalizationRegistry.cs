@@ -16,6 +16,14 @@ public class DialogsLocalizationRegistry : TextLocalizationRegistry<DialogsLocal
             new TextLocalizationTranslation(LanguageCodes.English, "Yes"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ja"));
 
+        Register(TranslationKeys.DeleteDialogConfirmationPromptFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "This will permanently delete all related data. Type \"{0}\" to confirm."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Dadurch werden alle zugehörigen Daten unwiderruflich gelöscht. Geben Sie zur Bestätigung \"{0}\" ein."));
+
+        Register(TranslationKeys.DeleteDialogConfirmationLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Name"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Name"));
+
         Register(TranslationKeys.TextDialogOk,
             new TextLocalizationTranslation(LanguageCodes.English, "OK"),
             new TextLocalizationTranslation(LanguageCodes.German, "OK"));

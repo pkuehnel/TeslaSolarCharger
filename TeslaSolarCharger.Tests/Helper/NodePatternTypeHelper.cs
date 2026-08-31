@@ -1,7 +1,6 @@
-﻿using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.SharedModel.Enums;
+﻿using TeslaSolarCharger.SharedModel.Enums;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Helper;
 

@@ -11,6 +11,11 @@
         <GenericInput For="() => wrapped.Item.Host"></GenericInput>
         <GenericInput For="() => wrapped.Item.Port"></GenericInput>
         <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
+        <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+        @if (wrapped.Item.EnableHomeBatteryControl)
+        {
+            <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
+        }
     </ChildContent>
 </TemplateEditFormComponentBase>
 

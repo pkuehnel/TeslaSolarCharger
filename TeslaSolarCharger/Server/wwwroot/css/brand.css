@@ -1,0 +1,116 @@
+/* ============================================================================
+   Solar4Car – brand styles for TeslaSolarCharger
+   The app is built with MudBlazor; this file only adds the brand-specific bits
+   MudBlazor/Bootstrap can't express (wordmark, eyebrows, pill CTAs, icon badge,
+   card hover-lift, hero/CTA gradient). It is loaded last so it can override
+   MudBlazor's own utility rules.
+   Colours come from the MudTheme via MudBlazor's CSS variables
+   (var(--mud-palette-*)), so everything here adapts to dark mode automatically.
+   The palette itself lives in AppColors.cs / the MudTheme in MainLayout.razor:
+     solar green  ·  green dark  ·  sun amber  ·  ink
+   Keep additions here minimal and grouped by section.
+   ============================================================================ */
+
+/* ----- Brand wordmark (app bar) ----- */
+.s4c-wordmark {
+    font-weight: 600;
+    letter-spacing: .2px;
+    line-height: 1.05;
+}
+
+/* small "formerly TeslaSolarCharger" caption under the wordmark */
+.s4c-wordmark-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: .2px;
+    line-height: 1;
+    opacity: .65;
+}
+
+/* ----- Eyebrow kicker (small label above a section title) ----- */
+.eyebrow {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mud-palette-primary);
+    margin-bottom: 4px;
+}
+
+/* ----- Pill CTA button (brand button that swaps fill/outline on hover) -----
+   !important keeps it authoritative over MudBlazor's own button rules. Works on
+   both light and dark backgrounds (transparent fill + green text on hover). */
+.cta-button.mud-button-root {
+    border-radius: 999px !important;
+    padding: 8px 24px !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    background-color: var(--mud-palette-primary) !important;
+    border: 2px solid var(--mud-palette-primary) !important;
+    color: var(--mud-palette-primary-text) !important;
+    transition: background-color .2s ease-in-out, color .2s ease-in-out;
+}
+
+    .cta-button.mud-button-root:hover {
+        background-color: transparent !important;
+        color: var(--mud-palette-primary) !important;
+    }
+
+/* ----- Circular tinted icon badge (e.g. on cards) ----- */
+.feature-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    color: var(--mud-palette-primary);
+    background-color: var(--mud-palette-primary-hover);
+}
+
+    .feature-badge .mud-icon-root {
+        font-size: 28px;
+    }
+
+/* ----- Card hover-lift (add class to a MudCard/MudPaper) ----- */
+.s4c-hover-card {
+    transition: transform .2s ease-in-out, box-shadow .2s ease-in-out;
+}
+
+    .s4c-hover-card:hover {
+        transform: translateY(-4px);
+    }
+
+/* ----- Hero / CTA gradient block (rounded, white text, soft sun glow) ----- */
+.s4c-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    color: #ffffff;
+    background-image: linear-gradient(135deg, #1F9D57 0%, #0E7C4A 55%, #0B5E3A 100%);
+}
+
+    /* soft "sun" glow in the top-right corner */
+    .s4c-hero::after {
+        content: "";
+        position: absolute;
+        top: -90px;
+        right: -70px;
+        width: 300px;
+        height: 300px;
+        pointer-events: none;
+        background: radial-gradient(circle, rgba(245, 166, 35, .45) 0%, rgba(245, 166, 35, 0) 70%);
+    }
+
+.s4c-hero-inner {
+    position: relative;
+    z-index: 1;
+    padding: 28px 28px;
+}
+
+.s4c-hero-title {
+    font-weight: 700;
+    line-height: 1.1;
+}

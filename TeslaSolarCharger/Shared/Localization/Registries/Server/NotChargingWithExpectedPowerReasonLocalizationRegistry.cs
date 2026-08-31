@@ -6,76 +6,92 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
 {
     protected override void Configure()
     {
-        Register("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again.",
+        Register(TranslationKeys.NotChargingReasonOcppConnectionNotEstablished,
             new TextLocalizationTranslation(LanguageCodes.English, "OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."),
-            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Verbindung nicht hergestellt. Nach einem Neustart von TSC oder der Wallbox kann es bis zu 5 Minuten dauern, bis die Wallbox wieder verbunden ist."));
+            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Verbindung nicht hergestellt. Nach einem Neustart von TSC oder der Ladestation kann es bis zu 5 Minuten dauern, bis die Ladestation wieder verbunden ist."));
 
-        Register("Car is not at home",
+        Register(TranslationKeys.NotChargingReasonCarNotAtHome,
             new TextLocalizationTranslation(LanguageCodes.English, "Car is not at home"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto befindet sich nicht zu Hause"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug befindet sich nicht zu Hause"));
 
-        Register("Car is not plugged in",
+        Register(TranslationKeys.NotChargingReasonCarNotPluggedIn,
             new TextLocalizationTranslation(LanguageCodes.English, "Car is not plugged in"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Auto ist nicht eingesteckt"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug ist nicht eingesteckt"));
 
-        Register("Charging connector is not plugged in",
+        Register(TranslationKeys.NotChargingReasonConnectorNotPluggedIn,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging connector is not plugged in"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschluss ist nicht eingesteckt"));
 
-        Register("Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule.",
-            new TextLocalizationTranslation(LanguageCodes.English, "Charging can’t start because the car isn’t allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Das Laden kann nicht gestartet werden, da das Auto es nicht zulässt. Mögliche Gründe sind, dass die Batterie bereits voll ist, das Laden im Auto oder in der App gestoppt wurde, das Auto im Standby- oder Ruhemodus ist oder eine Ladezeit geplant wurde."));
+        Register(TranslationKeys.NotChargingReasonCarNotAllowing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging can't start because the car isn't allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Das Laden kann nicht gestartet werden, da das Fahrzeug es nicht zulässt. Mögliche Gründe sind, dass die Batterie bereits voll ist, das Laden im Fahrzeug oder in der App gestoppt wurde, das Fahrzeug im Standby- oder Ruhemodus ist oder eine Ladezeit geplant wurde."));
 
-        Register("Waiting phase switch cooldown time before starting to charge",
+        Register(TranslationKeys.NotChargingReasonWaitingPhaseSwitchCooldown,
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting phase switch cooldown time before starting to charge"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Warte auf Abkühlzeit für Phasenumschaltung, bevor mit dem Laden begonnen wird"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Warten auf Abkühlzeit für Phasenumschaltung, bevor mit dem Laden begonnen wird"));
 
-        Register("Waiting for phase increase",
+        Register(TranslationKeys.NotChargingReasonWaitingPhaseIncrease,
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting for phase increase"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Warte auf Erhöhung der Phasen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Warten auf Erhöhung der Phasen"));
 
-        Register("Waiting for phase reduction",
+        Register(TranslationKeys.NotChargingReasonWaitingPhaseReduction,
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting for phase reduction"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Warte auf Reduzierung der Phasen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Warten auf Reduzierung der Phasen"));
 
-        Register("Waiting for charge stop",
+        Register(TranslationKeys.NotChargingReasonWaitingChargeStop,
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting for charge stop"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Warte auf Lade-Stopp"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Warten auf Ladestopp"));
 
-        Register("Configured max Soc is reached",
-            new TextLocalizationTranslation(LanguageCodes.English, "Configured max Soc is reached"),
+        Register(TranslationKeys.NotChargingReasonMaxSocReached,
+            new TextLocalizationTranslation(LanguageCodes.English, "Configured max SoC is reached"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurierter maximaler Ladestand ist erreicht"));
 
-        Register("Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {0}% higher than the actual SOC.",
-            new TextLocalizationTranslation(LanguageCodes.English, "Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {0}% higher than the actual SOC."),
+        Register(TranslationKeys.NotChargingReasonCarSideSocLimitReached,
+            new TextLocalizationTranslation(LanguageCodes.English, "Car side SoC limit is reached. To start charging, the car side SoC limit needs to be at least {0}% higher than the actual SoC."),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugseitiges Ladelimit ist erreicht. Um mit dem Laden zu beginnen, muss das Fahrzeuglimit mindestens {0}% höher als der aktuelle Ladestand sein."));
 
-        Register("Charging stopped by car, e.g. it is full or its charge limit is reached.",
+        Register(TranslationKeys.NotChargingReasonStoppedByCar,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging stopped by car, e.g. it is full or its charge limit is reached."),
             new TextLocalizationTranslation(LanguageCodes.German, "Laden wurde vom Fahrzeug gestoppt, z. B. weil es voll ist oder das Ladeziel erreicht wurde."));
 
-        Register("Waiting for charge start",
+        Register(TranslationKeys.NotChargingReasonWaitingChargeStart,
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting for charge start"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Warte auf Lade-Start"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Warten auf Ladestart"));
 
-        Register("Charging stopped because of not enough max combined current.",
+        Register(TranslationKeys.NotChargingReasonNotEnoughCombinedCurrent,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging stopped because of not enough max combined current."),
             new TextLocalizationTranslation(LanguageCodes.German, "Laden gestoppt, da nicht genug maximale kombinierte Stromstärke verfügbar ist."));
 
-        Register("Charge mode is off or max SoC is reached.",
+        Register(TranslationKeys.NotChargingReasonChargeModeOffOrMaxSocReached,
             new TextLocalizationTranslation(LanguageCodes.English, "Charge mode is off or max SoC is reached."),
             new TextLocalizationTranslation(LanguageCodes.German, "Lademodus ist aus oder der maximale Ladestand ist erreicht."));
 
-        Register("Min Phases or Max Phases is unknown. Check the logs for further details.",
+        Register(TranslationKeys.NotChargingReasonUnknownPhases,
             new TextLocalizationTranslation(LanguageCodes.English, "Min Phases or Max Phases is unknown. Check the logs for further details."),
             new TextLocalizationTranslation(LanguageCodes.German, "Minimale oder maximale Phasenanzahl ist unbekannt. Weitere Details stehen im Log."));
 
-        Register("Estimated voltage while charging is unknown. Check the logs for further details.",
+        Register(TranslationKeys.NotChargingReasonUnknownEstimatedVoltage,
             new TextLocalizationTranslation(LanguageCodes.English, "Estimated voltage while charging is unknown. Check the logs for further details."),
             new TextLocalizationTranslation(LanguageCodes.German, "Geschätzte Spannung während des Ladens ist unbekannt. Weitere Details stehen im Log."));
 
-        Register("Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)",
+        Register(TranslationKeys.NotChargingReasonReservedForHomeBattery,
             new TextLocalizationTranslation(LanguageCodes.English, "Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Reserviere {0}W zum Laden der Hausbatterie, da ihr Ladestand ({1}%) unter dem Mindest-Ladestand ({2}%) liegt."));
+            new TextLocalizationTranslation(LanguageCodes.German, "{0}W zum Laden der Heimbatterie reserviert, da ihr Ladestand ({1}%) unter dem Mindest-Ladestand ({2}%) liegt."));
+
+        Register(TranslationKeys.NotChargingReasonSolarValuesTooOld,
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar values are too old"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solarwerte sind zu alt"));
+
+        Register(TranslationKeys.NotChargingReasonPowerBufferDecreased,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging speed is decreased due to power buffer being set to {0}W"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird verringert, da ein Leistungspuffer von {0}W eingestellt ist"));
+
+        Register(TranslationKeys.NotChargingReasonPowerBufferIncreased,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging speed is increased due to power buffer being set to {0}W"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird erhöht, da ein Leistungspuffer von {0}W eingestellt ist"));
+
+        Register(TranslationKeys.NotChargingReasonBlePresenceUncertain,
+            new TextLocalizationTranslation(LanguageCodes.English, "BLE connection to the car is unstable. Checking whether the car is still at home before sending new charging commands."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Die BLE-Verbindung zum Fahrzeug ist instabil. Es wird geprüft, ob das Fahrzeug noch zu Hause ist, bevor neue Ladebefehle gesendet werden."));
     }
 }

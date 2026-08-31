@@ -5,6 +5,9 @@ using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
+using TeslaSolarCharger.Shared.Localization;
+using TeslaSolarCharger.Shared.Localization.Contracts;
+using TeslaSolarCharger.Shared.Localization.Registries.Components;
 
 namespace TeslaSolarCharger.Client.Services;
 
@@ -13,15 +16,21 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
     private readonly ILogger<TemplateValueConfigurationService> _logger;
     private readonly IHttpClientHelper _httpClientHelper;
     private readonly ISnackbar _snackbar;
+    private readonly ITextLocalizationService _textLocalizer;
 
     public TemplateValueConfigurationService(ILogger<TemplateValueConfigurationService> logger,
         IHttpClientHelper httpClientHelper,
-        ISnackbar snackbar)
+        ISnackbar snackbar,
+        ITextLocalizationService textLocalizer)
     {
         _logger = logger;
         _httpClientHelper = httpClientHelper;
         _snackbar = snackbar;
+        _textLocalizer = textLocalizer;
     }
+
+    private string TF(string key, params object?[] args) =>
+        _textLocalizer.GetFormat<ValueSourceConfigurationLocalizationRegistry>(key, args);
 
 
     public async Task<Result<DtoTemplateValueConfigurationBase>> GetAsync(int id)
@@ -30,7 +39,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         var result = await _httpClientHelper.SendGetRequestAsync<DtoTemplateValueConfigurationBase>($"api/TemplateValueConfiguration/GetConfiguration?id={id}");
         if (result.HasError)
         {
-            _snackbar.Add($"Could not load configuration: {result.ErrorMessage}", Severity.Error);
+            _snackbar.Add(TF(TranslationKeys.ValueSourceConfigLoadFailed, result.ErrorMessage), Severity.Error);
         }
         return result;
     }
@@ -41,7 +50,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         var result = await _httpClientHelper.SendPostRequestAsync<DtoValue<int>>("api/TemplateValueConfiguration/SaveConfiguration", configuration);
         if (result.HasError)
         {
-            _snackbar.Add($"Could not load configuration: {result.ErrorMessage}", Severity.Error);
+            _snackbar.Add(TF(TranslationKeys.ValueSourceConfigSaveFailed, result.ErrorMessage), Severity.Error);
             return new(default, result.ErrorMessage, result.ValidationProblemDetails);
         }
         return new(result.Data!.Value, null, null);
@@ -53,7 +62,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         var result = await _httpClientHelper.SendGetRequestAsync<List<DtoValueConfigurationOverview>>("api/TemplateValueConfiguration/GetTemplateValueOverviews");
         if (result.HasError)
         {
-            _snackbar.Add($"Could not load configuration: {result.ErrorMessage}", Severity.Error);
+            _snackbar.Add(TF(TranslationKeys.ValueSourceConfigLoadFailed, result.ErrorMessage), Severity.Error);
         }
         return result.Data ?? new();
     }
@@ -64,7 +73,7 @@ public class TemplateValueConfigurationService : ITemplateValueConfigurationServ
         var result = await _httpClientHelper.SendDeleteRequestAsync<object?>($"api/TemplateValueConfiguration/DeleteConfiguration?id={id}");
         if (result.HasError)
         {
-            _snackbar.Add($"Could not load configuration: {result.ErrorMessage}", Severity.Error);
+            _snackbar.Add(TF(TranslationKeys.ValueSourceConfigDeleteFailed, result.ErrorMessage), Severity.Error);
         }
         return result;
     }

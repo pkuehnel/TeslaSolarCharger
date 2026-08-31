@@ -8,6 +8,13 @@ public class Car
     public int? TeslaMateCarId { get; set; }
     public string? Name { get; set; }
     public string? Vin { get; set; }
+
+    /// <summary>
+    /// SmartCar's internal vehicle id. Known the moment a SmartCar connection exists (before the VIN),
+    /// so it is the stable join key for SmartCar cars while the <see cref="Vin"/> backfills.
+    /// </summary>
+    public string? SmartCarVehicleId { get; set; }
+
     public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
     public bool IsFleetTelemetryHardwareIncompatible { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }
@@ -31,6 +38,12 @@ public class Car
     public bool VehicleCommandProtocolRequired { get; set; }
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
+
+    /// <summary>
+    /// Stable id (BD address) of the Bluetooth adapter this car should be reached through, e.g. a USB adapter with
+    /// its own antenna. Null means the BLE container's default adapter.
+    /// </summary>
+    public string? BleAdapterAddress { get; set; }
     public bool UseFleetTelemetry { get; set; }
     public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }

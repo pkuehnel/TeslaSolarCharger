@@ -44,8 +44,7 @@ public class JobManager(
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().WithIdentity(nameof(MqttReconnectionJob)).Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().WithIdentity(nameof(NewVersionCheckJob)).Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().WithIdentity(nameof(SpotPriceJob)).Build();
-        var backendTokenRefreshJob = JobBuilder.Create<BackendTokenRefreshJob>().WithIdentity(nameof(BackendTokenRefreshJob)).Build();
-        var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().WithIdentity(nameof(FleetApiTokenRefreshJob)).Build();
+        var tokenRefreshJob = JobBuilder.Create<TokenRefreshJob>().WithIdentity(nameof(TokenRefreshJob)).Build();
         var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().WithIdentity(nameof(VehicleDataRefreshJob)).Build();
         var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().WithIdentity(nameof(TeslaMateChargeCostUpdateJob)).Build();
         var backendNotificationRefreshJob = JobBuilder.Create<BackendNotificationRefreshJob>().WithIdentity(nameof(BackendNotificationRefreshJob)).Build();
@@ -58,8 +57,10 @@ public class JobManager(
         var databaseBufferedValuesSaveJob = JobBuilder.Create<DatabaseBufferedValuesSaveJob>().WithIdentity(nameof(DatabaseBufferedValuesSaveJob)).Build();
         var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
+        var homeBatteryModeJob = JobBuilder.Create<HomeBatteryModeJob>().WithIdentity(nameof(HomeBatteryModeJob)).Build();
         var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
         var manualCarsDataClearingJob = JobBuilder.Create<ManualCarsDataClearingJob>().WithIdentity(nameof(ManualCarsDataClearingJob)).Build();
+        var bleDataRefreshJob = JobBuilder.Create<BleDataRefreshJob>().WithIdentity(nameof(BleDataRefreshJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -73,6 +74,12 @@ public class JobManager(
             .WithIdentity("chargingValueTrigger")
             .StartAt(chargingTriggerStartTime)
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds))
+            .Build();
+
+        var bleDataRefreshTrigger = TriggerBuilder.Create()
+            .WithIdentity("bleDataRefreshTrigger")
+            .StartAt(chargingTriggerStartTime)
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(configurationWrapper.BleDataRefreshIntervalSeconds()))
             .Build();
 
 
@@ -107,13 +114,8 @@ public class JobManager(
             .StartAt(dateTimeProvider.DateTimeOffSetUtcNow().AddHours(constants.SpotPriceRefreshIntervalHours))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.SpotPriceRefreshIntervalHours)).Build();
 
-        var backendTokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("backendTokenRefreshTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
-
-        var fleetApiTokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("fleetApiTokenRefreshTrigger")
-            //start 5 seconds later, so backend token is already refreshed
-            .StartAt(currentDate.AddSeconds(5))
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(58)).Build();
+        var tokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("tokenRefreshTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.TokenRefreshIntervalSeconds)).Build();
 
         var vehicleDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("vehicleDataRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(configurationWrapper.CarRefreshAfterCommandSeconds())).Build();
@@ -154,6 +156,11 @@ public class JobManager(
             //Delay refresh to reduce initial load as many services try to calculate expcted home power and solar values
             .StartAt(currentDate.Add(TimeSpan.FromMinutes(1)))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.HomeBatteryMinSocRefreshIntervalMinutes)).Build();
+
+        var homeBatteryModeTrigger = TriggerBuilder.Create().WithIdentity("homeBatteryModeTrigger")
+            //Delay start so solar values are available before the first mode evaluation
+            .StartAt(currentDate.AddSeconds(20))
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.HomeBatteryModeJobIntervalSeconds)).Build();
 
         var refreshableValuesRefreshTrigger = TriggerBuilder.Create().WithIdentity("refreshableValuesRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.RefreshableValuesRefreshIntervalSeconds)).Build();
@@ -199,6 +206,7 @@ public class JobManager(
             {databaseBufferedValuesSaveJob, new HashSet<ITrigger> {databaseBufferedValuesSaveTrigger}},
             {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
+            {homeBatteryModeJob, new HashSet<ITrigger> {homeBatteryModeTrigger}},
             {refreshableValuesRefreshJob, new HashSet<ITrigger> {refreshableValuesRefreshTrigger}},
             {manualCarsDataClearingJob, new HashSet<ITrigger> {manualCarsDataClearingTrigger}},
         };
@@ -206,11 +214,11 @@ public class JobManager(
         if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             triggersAndJobs.Add(chargingValueJob, new HashSet<ITrigger> { chargingValueTrigger });
+            triggersAndJobs.Add(bleDataRefreshJob, new HashSet<ITrigger> { bleDataRefreshTrigger });
             triggersAndJobs.Add(carStateCachingJob, new HashSet<ITrigger> { carStateCachingTrigger });
             triggersAndJobs.Add(finishedChargingProcessFinalizingJob, new HashSet<ITrigger> { finishedChargingProcessFinalizingTrigger });
             triggersAndJobs.Add(mqttReconnectionJob, new HashSet<ITrigger> { mqttReconnectionTrigger });
-            triggersAndJobs.Add(backendTokenRefreshJob, new HashSet<ITrigger> { backendTokenRefreshTrigger });
-            triggersAndJobs.Add(fleetApiTokenRefreshJob, new HashSet<ITrigger> { fleetApiTokenRefreshTrigger });
+            triggersAndJobs.Add(tokenRefreshJob, new HashSet<ITrigger> { tokenRefreshTrigger });
             triggersAndJobs.Add(vehicleDataRefreshJob, new HashSet<ITrigger> { vehicleDataRefreshTrigger });
             triggersAndJobs.Add(teslaMateChargeCostUpdateJob, new HashSet<ITrigger> { teslaMateChargeCostUpdateTrigger });
             triggersAndJobs.Add(backendNotificationRefreshJob, new HashSet<ITrigger> { triggerAtNight, triggerNow });

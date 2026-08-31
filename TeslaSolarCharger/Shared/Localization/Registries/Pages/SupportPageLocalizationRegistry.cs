@@ -16,11 +16,11 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportNeverShareLogsPubliclyTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Never share logs publicly"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gib Protokolle niemals öffentlich weiter"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie Protokolle niemals öffentlich weiter"));
 
         Register(TranslationKeys.SupportNeverShareLogsPubliclyContent,
             new TextLocalizationTranslation(LanguageCodes.English, "Logs might contain sensitive information like your vehicle's location. Do not share logs publicly."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Protokolle können sensible Informationen wie den Standort deines Fahrzeugs enthalten. Teile Protokolle nicht öffentlich."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Protokolle können sensible Informationen wie den Standort Ihres Fahrzeugs enthalten. Teilen Sie Protokolle nicht öffentlich."));
 
         Register(TranslationKeys.SupportDownloadServerLogsButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Download Server Logs"),
@@ -28,7 +28,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportConfigurationWarning,
             new TextLocalizationTranslation(LanguageCodes.English, "Do not change the configuration as this might lead to extremely high memory usage. All Settings will be reset after a restart."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ändere die Konfiguration nicht, da dies zu extrem hohem Speicherverbrauch führen kann. Alle Einstellungen werden nach einem Neustart zurückgesetzt."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ändern Sie die Konfiguration nicht, da dies zu extrem hohem Speicherverbrauch führen kann. Alle Einstellungen werden nach einem Neustart zurückgesetzt."));
 
         Register(TranslationKeys.SupportInMemoryLogLevelLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "In Memory Log Level"),
@@ -45,6 +45,18 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
         Register(TranslationKeys.SupportDownloadServerFileLogsButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Download Server File Logs"),
             new TextLocalizationTranslation(LanguageCodes.German, "Server-Dateiprotokolle herunterladen"));
+
+        Register(TranslationKeys.SupportBleContainerLogsSectionTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "BLE Container Logs"),
+            new TextLocalizationTranslation(LanguageCodes.German, "BLE-Container-Protokolle"));
+
+        Register(TranslationKeys.SupportBleContainerUsedByFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Used by: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verwendet von: {0}"));
+
+        Register(TranslationKeys.SupportDownloadBleContainerLogsButtonFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Download BLE Logs ({0})"),
+            new TextLocalizationTranslation(LanguageCodes.German, "BLE-Protokolle herunterladen ({0})"));
 
         Register(TranslationKeys.SupportUiLogsSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "UI Logs"),
@@ -78,6 +90,10 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Is Available in Tesla account: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Im Tesla-Konto verfügbar: {0}"));
 
+        Register(TranslationKeys.SupportIsOnlineFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Is online: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ist online: {0}"));
+
         Register(TranslationKeys.SupportShouldBeManagedFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "Should be managed: {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Soll verwaltet werden: {0}"));
@@ -106,13 +122,95 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Force Fleet Configuration Set"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fleet-Konfiguration erzwingen"));
 
+        Register(TranslationKeys.SupportWakeUpCarButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Wake up (Fleet API)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aufwecken (Fleet API)"));
+
+        Register(TranslationKeys.SupportGetVehicleOnlineStateButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Get online state (Fleet API)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Onlinestatus abrufen (Fleet API)"));
+
+        Register(TranslationKeys.SupportGetBleBodyControllerStateButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Get body controller state (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Body-Controller-Status abrufen (BLE)"));
+
+        Register(TranslationKeys.SupportGetBleChargeStateButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Get charge state (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladezustand abrufen (BLE)"));
+
+        Register(TranslationKeys.SupportGetBleBeaconScanButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Beacon scan (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Beacon-Scan (BLE)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Beacon history (BLE)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Beacon-Verlauf (BLE)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Recorded beacon scans"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aufgezeichnete Beacon-Scans"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryEmpty,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "No beacon scans recorded yet. They are collected by the scheduled BLE refresh, so the car has to use BLE data collection and the first scans need a moment."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Noch keine Beacon-Scans aufgezeichnet. Sie werden vom geplanten BLE-Abruf gesammelt, das Fahrzeug muss also die BLE-Datenerfassung nutzen und die ersten Scans brauchen einen Moment."));
+
+        Register(TranslationKeys.SupportBleBeaconHistorySummaryFormat,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "Car heard in {0} of {1} scans ({2} %), average signal {3} dBm, longest run of misses {4}"),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Fahrzeug in {0} von {1} Scans gehört ({2} %), durchschnittliches Signal {3} dBm, längste Serie ohne Treffer {4}"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryHint,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "A strong signal on the scans that do find the car means the radio is fine and the car simply advertises rarely; raise the beacon scan window in the base configuration. Misses with no other advertisements at all point at the adapter instead."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Ein starkes Signal bei den Scans, die das Fahrzeug finden, bedeutet, dass der Empfänger in Ordnung ist und sich das Fahrzeug nur selten meldet; erhöhen Sie dann das Beacon-Suchfenster in der Basiskonfiguration. Fehlversuche ganz ohne andere Advertisements deuten dagegen auf den Adapter hin."));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnTime,
+            new TextLocalizationTranslation(LanguageCodes.English, "Time"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zeit"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnFound,
+            new TextLocalizationTranslation(LanguageCodes.English, "Found"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gefunden"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnRssi,
+            new TextLocalizationTranslation(LanguageCodes.English, "Signal (dBm)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Signal (dBm)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnAge,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last heard (s ago)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zuletzt gehört (vor s)"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnSource,
+            new TextLocalizationTranslation(LanguageCodes.English, "Evidence"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nachweis"));
+
+        Register(TranslationKeys.SupportBleBeaconHistoryColumnAdapter,
+            new TextLocalizationTranslation(LanguageCodes.English, "Adapter"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Adapter"));
+
+        Register(TranslationKeys.SupportChargingAmpsToSetLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging current to set (A)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Ladestrom (A)"));
+
+        Register(TranslationKeys.SupportChargingAmpsToSetHelperText,
+            new TextLocalizationTranslation(LanguageCodes.English, "The charging current in ampere that will be sent to the car via Fleet API."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladestrom in Ampere, der über die Fleet API an das Fahrzeug gesendet wird."));
+
+        Register(TranslationKeys.SupportSetChargingAmpsButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Set charge current (Fleet API)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestrom setzen (Fleet API)"));
+
         Register(TranslationKeys.SupportChargingStationDebugDetailsSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging station debug details"),
             new TextLocalizationTranslation(LanguageCodes.German, "Debugdetails der Ladestation"));
 
         Register(TranslationKeys.SupportConnectorFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} Connector: {1} ({2})"),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} Anschluss: {1} ({2})"));
+            new TextLocalizationTranslation(LanguageCodes.German, "{0} Ladeanschluss: {1} ({2})"));
 
         Register(TranslationKeys.SupportChargingCurrentToSetLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Current to set"),
@@ -128,7 +226,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportChargingPhasesToSetHelperText,
             new TextLocalizationTranslation(LanguageCodes.English, "When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Beim Starten eines Ladevorgangs oder beim Ändern des Stroms wird dieser Wert verwendet. Hinweis: Das Ladegerät kann die Anforderung ablehnen, wenn es keine Phasenumschaltung unterstützt oder du 3 auswählst, obwohl das Ladegerät nur an eine Phase angeschlossen ist. Leer lassen, um keinen Wert für das Ladegerät zu setzen."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Beim Starten eines Ladevorgangs oder beim Ändern des Stroms wird dieser Wert verwendet. Hinweis: Die Ladestation kann die Anforderung ablehnen, wenn sie keine Phasenumschaltung unterstützt oder Sie 3 auswählen, obwohl die Ladestation nur an eine Phase angeschlossen ist. Leer lassen, um keinen Wert für die Ladestation zu setzen."));
 
         Register(TranslationKeys.SupportStartChargingButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Start Charging"),
@@ -148,23 +246,23 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportGetConnectorStateButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get ConnectorState"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Anschlussstatus abrufen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladeanschluss-Status abrufen"));
 
         Register(TranslationKeys.SupportGetConfigurationKeyButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get Configuration Key"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsschlüssel abrufen"));
 
         Register(TranslationKeys.SupportSetMeterDataConfigurationButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter data configuration"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Meterdatenkonfiguration setzen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter Data Configuration"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zählerdatenkonfiguration setzen"));
 
         Register(TranslationKeys.SupportSetMeterIntervalConfigurationButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter interval Configuration"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Set Meter Interval Configuration"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zählerintervall-Konfiguration setzen"));
 
         Register(TranslationKeys.SupportRebootChargerButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Reboot Charger"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladegerät neu starten"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestation neu starten"));
 
         Register(TranslationKeys.SupportTriggerStatusNotificationButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Trigger Status Notification"),
@@ -172,7 +270,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportCommandResultTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Command Result:"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Befehlergebnis:"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Befehlsergebnis:"));
 
         Register(TranslationKeys.SupportMeterValuesSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "MeterValues"),
@@ -180,7 +278,7 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
 
         Register(TranslationKeys.SupportMeterValuesLoadingMessage,
             new TextLocalizationTranslation(LanguageCodes.English, "Depending on your database size and hardware this might take a few minutes, please wait..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Je nach Datenbankgröße und Hardware kann dies einige Minuten dauern. Bitte warte..."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Je nach Datenbankgröße und Hardware kann dies einige Minuten dauern. Bitte warten Sie..."));
 
         Register(TranslationKeys.SupportGetLatestMeterValuesButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get latest Meter values"),
@@ -198,21 +296,25 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.English, "Reload page"),
             new TextLocalizationTranslation(LanguageCodes.German, "Seite neu laden"));
 
+        Register(TranslationKeys.SupportClearTeslaTokenEncryptionKeyButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Clear Tesla Token Encryption Key"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Token-Verschlüsselungsschlüssel zurücksetzen"));
+
         Register(TranslationKeys.SupportVinUnknownError,
             new TextLocalizationTranslation(LanguageCodes.English, "VIN is unknown"),
             new TextLocalizationTranslation(LanguageCodes.German, "FIN ist unbekannt"));
 
         Register(TranslationKeys.SupportCarNotPartOfTeslaAccountTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can not check config as car is not part of Tesla account"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht geprüft werden, da das Auto nicht Teil des Tesla-Kontos ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot check config as car is not part of Tesla account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht geprüft werden, da das Fahrzeug nicht Teil des Tesla-Kontos ist."));
 
         Register(TranslationKeys.SupportVinUnknownTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can not check config as Vin is unknown"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot check config as VIN is unknown"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht geprüft werden, da die FIN unbekannt ist."));
 
         Register(TranslationKeys.SupportCarNotPartOfTeslaAccountSetTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "Can not set config as car is not part of Tesla account"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht gesetzt werden, da das Auto nicht Teil des Tesla-Kontos ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Cannot set config as car is not part of Tesla account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfiguration kann nicht gesetzt werden, da das Fahrzeug nicht Teil des Tesla-Kontos ist."));
 
         Register(TranslationKeys.SupportLogLevelUpdatedNotification,
             new TextLocalizationTranslation(LanguageCodes.English, "Log level updated"),
@@ -265,5 +367,149 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
         Register(TranslationKeys.SupportGetPriceValuesButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get Price Values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Preiswerte abrufen"));
+
+        Register(TranslationKeys.SupportHomeBatterySectionTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home Battery Control"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeichersteuerung"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoControllersMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No controllable home battery configured. Enable home battery control in a supported solar value source configuration (SMA Hybrid Inverter, Kostal Hybrid Inverter or Tesla Powerwall)."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Kein steuerbarer Heimspeicher konfiguriert. Aktivieren Sie die Heimspeichersteuerung in einer unterstützten Solarwert-Quellenkonfiguration (SMA-Hybrid-Wechselrichter, Kostal-Hybrid-Wechselrichter oder Tesla Powerwall)."));
+
+        Register(TranslationKeys.SupportHomeBatteryCurrentModeFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Current mode: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktueller Modus: {0}"));
+
+        Register(TranslationKeys.SupportHomeBatteryOverrideFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Manual override {0} active until {1}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Manuelle Übersteuerung {0} aktiv bis {1}"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoOverrideMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No manual override active"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Keine manuelle Übersteuerung aktiv"));
+
+        Register(TranslationKeys.SupportHomeBatterySocFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Battery SoC: {0} %"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Batterie-Ladestand: {0} %"));
+
+        Register(TranslationKeys.SupportHomeBatteryPowerFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Battery power: {0} W (positive = charging)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Batterieleistung: {0} W (positiv = lädt)"));
+
+        Register(TranslationKeys.SupportHomeBatteryMaxChargeSocFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Max charge SoC: {0} % (charge mode is demoted to hold when reached)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Maximaler Lade-SoC: {0} % (Lademodus wird bei Erreichen auf Halten zurückgestuft)"));
+
+        Register(TranslationKeys.SupportHomeBatteryModeToSetLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Mode to set"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Modus"));
+
+        Register(TranslationKeys.SupportHomeBatteryDurationLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Override duration in minutes"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Dauer der Übersteuerung in Minuten"));
+
+        Register(TranslationKeys.SupportHomeBatterySetModeButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Set mode"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Modus setzen"));
+
+        Register(TranslationKeys.SupportHomeBatteryClearOverrideButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Clear override"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Übersteuerung aufheben"));
+
+        Register(TranslationKeys.SupportHomeBatteryRefreshButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Refresh state"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Status aktualisieren"));
+
+        Register(TranslationKeys.SupportHomeBatteryModeSetNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home battery mode set"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimspeichermodus gesetzt"));
+
+        Register(TranslationKeys.SupportHomeBatteryOverrideClearedNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "Manual override cleared"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Manuelle Übersteuerung aufgehoben"));
+
+        Register(TranslationKeys.SupportHomeBatteryPeriodicRewriteText,
+            new TextLocalizationTranslation(LanguageCodes.English, "Setpoints are rewritten periodically"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sollwerte werden periodisch neu geschrieben"));
+
+        Register(TranslationKeys.SupportHomeBatteryLastWriteFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last successful write: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Letzter erfolgreicher Schreibvorgang: {0}"));
+
+        Register(TranslationKeys.SupportHomeBatteryLastErrorFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Last error: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Letzter Fehler: {0}"));
+
+        Register(TranslationKeys.SupportHomeBatteryValidationHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "To validate the configuration set hold mode while the battery is discharging (battery power should go to about 0 W) or charge mode (battery power should go to about the configured max charge power). The override automatically expires after the configured duration and normal mode is restored."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zur Überprüfung der Konfiguration setzen Sie den Halten-Modus, während die Batterie entlädt (Batterieleistung sollte auf ca. 0 W gehen), oder den Lade-Modus (Batterieleistung sollte auf ca. die konfigurierte maximale Ladeleistung gehen). Die Übersteuerung läuft nach der konfigurierten Dauer automatisch ab und der Normalmodus wird wiederhergestellt."));
+
+        Register(TranslationKeys.SupportHomeBatteryChargeDemotedWarningFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Forced charging is suppressed because the battery SoC ({0} %) has reached the configured max charge SoC ({1} %). Hold mode is applied instead. To test forced charging, increase the Home Battery Max Charge SoC in the base configuration or wait until the battery is discharged below the limit."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erzwungenes Laden wird unterdrückt, da der Batterie-Ladestand ({0} %) den konfigurierten maximalen Lade-Ladestand ({1} %) erreicht hat. Stattdessen wird der Halten-Modus angewendet. Um erzwungenes Laden zu testen, erhöhen Sie den maximalen Lade-Ladestand der Heimbatterie in der Basiskonfiguration oder warten Sie, bis die Batterie unter die Grenze entladen ist."));
+
+        Register(TranslationKeys.SupportHomeBatteryAutomaticControlEnabledMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price based home battery control is enabled."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreisbasierte Heimbatteriesteuerung ist aktiviert."));
+
+        Register(TranslationKeys.SupportHomeBatteryPlannedWindowsTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Planned hold/charge windows"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geplante Halte-/Ladefenster"));
+
+        Register(TranslationKeys.SupportHomeBatteryNoPlannedWindowsMessage,
+            new TextLocalizationTranslation(LanguageCodes.English, "No hold or charge windows are planned. The battery stays in normal mode."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Es sind keine Halte- oder Ladefenster geplant. Die Batterie bleibt im Normalmodus."));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowFromHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "From"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Von"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowToHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "To"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bis"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowModeHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Mode"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Modus"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowReasonHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Reason"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Grund"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowEnergyHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Energy"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energie"));
+
+        Register(TranslationKeys.SupportHomeBatteryWindowPriceHeader,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonCarGridCharging,
+            new TextLocalizationTranslation(LanguageCodes.English, "Car charges from grid"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Auto lädt aus dem Netz"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonPreserveForDeficit,
+            new TextLocalizationTranslation(LanguageCodes.English, "Preserve energy for later"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Energie für später aufheben"));
+
+        Register(TranslationKeys.HomeBatteryWindowReasonGridChargeForDeficit,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge at cheap grid price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bei günstigem Netzpreis laden"));
+
+        Register(TranslationKeys.HomeBatteryModeUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "Unknown (not modified by TSC)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Unbekannt (nicht durch TSC verändert)"));
+
+        Register(TranslationKeys.HomeBatteryModeNormal,
+            new TextLocalizationTranslation(LanguageCodes.English, "Normal"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Normal"));
+
+        Register(TranslationKeys.HomeBatteryModeHold,
+            new TextLocalizationTranslation(LanguageCodes.English, "Hold (block discharging)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Halten (Entladen blockieren)"));
+
+        Register(TranslationKeys.HomeBatteryModeCharge,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge (force charging)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Laden (Laden erzwingen)"));
     }
 }

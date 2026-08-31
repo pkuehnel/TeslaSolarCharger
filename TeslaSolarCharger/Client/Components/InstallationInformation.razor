@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
@@ -102,7 +103,7 @@
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<InstallationInformationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<InstallationInformationLocalizationRegistry>(key, typeof(BaseConfigurationPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     private void ShowInstallationIdWarning()

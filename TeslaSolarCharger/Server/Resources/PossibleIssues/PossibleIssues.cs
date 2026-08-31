@@ -162,14 +162,6 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HasPlaceHolderIssueKey = false,
             }
         },
-        { issueKeys.UsingFleetApiAsBleFallback, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Warning,
-                IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 2,
-                HasPlaceHolderIssueKey = false,
-            }
-        },
         { issueKeys.BleVersionCompatibility, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
@@ -233,6 +225,15 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = true,
             }
         },
+        { issueKeys.FleetApiCommandRateLimited, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
         { issueKeys.FleetTelemetryNotConnected, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
@@ -247,6 +248,26 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = false,
+            }
+        },
+        { issueKeys.FleetTelemetryConfigurationDeletionError, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = false,
+            }
+        },
+        { issueKeys.BleDataCollectionError, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                //BLE communication can fail sporadically, e.g. while the car is connecting, so only show the error
+                //after multiple consecutive failures.
+                ShowErrorAfterOccurrences = 3,
                 HasPlaceHolderIssueKey = false,
                 HideOccurrenceCount = false,
             }

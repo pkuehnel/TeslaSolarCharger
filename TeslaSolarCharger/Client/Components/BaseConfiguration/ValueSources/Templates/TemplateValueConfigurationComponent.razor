@@ -14,12 +14,16 @@
 @inject ITextLocalizationService TextLocalizer
 
 <GenericValueConfigurationComponent SourceName="Template"
+                                    ShowHeading="ShowHeading"
                                     ConfigurationOverviews="_configurationOverviews"
                                     OnRefreshClicked="RefreshRequestResults"
                                     OnConfigureClicked="id => OpenValueConfigurationDialog(id)"
                                     OnDeleteClicked="id => DeleteValueConfiguration(id)"></GenericValueConfigurationComponent>
 
 @code {
+    [Parameter]
+    public bool ShowHeading { get; set; } = true;
+
     private List<DtoValueConfigurationOverview>? _configurationOverviews;
 
 

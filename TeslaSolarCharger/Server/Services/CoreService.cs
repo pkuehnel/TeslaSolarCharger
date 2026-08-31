@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -29,6 +30,7 @@ public class CoreService : ICoreService
     private readonly ITelegramService _telegramService;
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
+    private readonly IHomeBatteryModeService _homeBatteryModeService;
 
     public CoreService(ILogger<CoreService> logger, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
@@ -36,7 +38,8 @@ public class CoreService : ICoreService
         IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
         IConstants constants, ITelegramService telegramService,
         ILoadPointManagementService loadPointManagementService,
-        IPowerToControlCalculationService powerToControlCalculationService)
+        IPowerToControlCalculationService powerToControlCalculationService,
+        IHomeBatteryModeService homeBatteryModeService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -52,6 +55,7 @@ public class CoreService : ICoreService
         _telegramService = telegramService;
         _loadPointManagementService = loadPointManagementService;
         _powerToControlCalculationService = powerToControlCalculationService;
+        _homeBatteryModeService = homeBatteryModeService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -187,6 +191,7 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(KillAllServices));
         await StopJobs().ConfigureAwait(false);
+        await _homeBatteryModeService.RestoreNormalModeAsync().ConfigureAwait(false);
         await DisconnectMqttServices().ConfigureAwait(false);
         await _configJsonService.CacheCarStates().ConfigureAwait(false);
     }

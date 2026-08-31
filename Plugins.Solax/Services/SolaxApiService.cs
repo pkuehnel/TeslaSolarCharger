@@ -11,12 +11,15 @@ public class SolaxApiService : ICurrentValuesService
     private readonly ILogger<SolaxApiService> _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public SolaxApiService(ILogger<SolaxApiService> logger, IDateTimeProvider dateTimeProvider, IConfiguration configuration)
+    public SolaxApiService(ILogger<SolaxApiService> logger, IDateTimeProvider dateTimeProvider, IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<DtoCurrentPvValues> GetCurrentPvValues()
@@ -77,10 +80,10 @@ public class SolaxApiService : ICurrentValuesService
     private async Task<HttpResponseMessage> GetHttpResonse(string url, List<KeyValuePair<string, string>> parameters)
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(GetHttpResonse), url, parameters);
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
         var content = new FormUrlEncodedContent(parameters);
         request.Content = content;
-        using var httpClient = new HttpClient();
+        var httpClient = _httpClientFactory.CreateClient();
         var response = await httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode)
         {

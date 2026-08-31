@@ -5,6 +5,8 @@ public static class TranslationKeys
     public static string DeleteDialogContentFormat => nameof(DeleteDialogContentFormat);
     public static string DeleteDialogCancel => nameof(DeleteDialogCancel);
     public static string DeleteDialogConfirm => nameof(DeleteDialogConfirm);
+    public static string DeleteDialogConfirmationPromptFormat => nameof(DeleteDialogConfirmationPromptFormat);
+    public static string DeleteDialogConfirmationLabel => nameof(DeleteDialogConfirmationLabel);
     public static string TextDialogOk => nameof(TextDialogOk);
 
     public static string BaseConfigurationPageTitle => nameof(BaseConfigurationPageTitle);
@@ -35,6 +37,9 @@ public static class TranslationKeys
     public static string SupportInMemoryLogCapacityLabel => nameof(SupportInMemoryLogCapacityLabel);
     public static string SupportFileLogLevelLabel => nameof(SupportFileLogLevelLabel);
     public static string SupportDownloadServerFileLogsButton => nameof(SupportDownloadServerFileLogsButton);
+    public static string SupportBleContainerLogsSectionTitle => nameof(SupportBleContainerLogsSectionTitle);
+    public static string SupportBleContainerUsedByFormat => nameof(SupportBleContainerUsedByFormat);
+    public static string SupportDownloadBleContainerLogsButtonFormat => nameof(SupportDownloadBleContainerLogsButtonFormat);
     public static string SupportUiLogsSectionTitle => nameof(SupportUiLogsSectionTitle);
     public static string SupportFetchedLogsFormat => nameof(SupportFetchedLogsFormat);
     public static string SupportCopyLogsToClipboardButton => nameof(SupportCopyLogsToClipboardButton);
@@ -48,6 +53,25 @@ public static class TranslationKeys
     public static string SupportNormalFleetConfigurationSetButton => nameof(SupportNormalFleetConfigurationSetButton);
     public static string SupportCarNotPartOfTeslaAccountSetTooltip => nameof(SupportCarNotPartOfTeslaAccountSetTooltip);
     public static string SupportForceFleetConfigurationSetButton => nameof(SupportForceFleetConfigurationSetButton);
+    public static string SupportWakeUpCarButton => nameof(SupportWakeUpCarButton);
+    public static string SupportGetVehicleOnlineStateButton => nameof(SupportGetVehicleOnlineStateButton);
+    public static string SupportGetBleBodyControllerStateButton => nameof(SupportGetBleBodyControllerStateButton);
+    public static string SupportGetBleChargeStateButton => nameof(SupportGetBleChargeStateButton);
+    public static string SupportGetBleBeaconScanButton => nameof(SupportGetBleBeaconScanButton);
+    public static string SupportBleBeaconHistoryButton => nameof(SupportBleBeaconHistoryButton);
+    public static string SupportBleBeaconHistoryTitle => nameof(SupportBleBeaconHistoryTitle);
+    public static string SupportBleBeaconHistoryEmpty => nameof(SupportBleBeaconHistoryEmpty);
+    public static string SupportBleBeaconHistorySummaryFormat => nameof(SupportBleBeaconHistorySummaryFormat);
+    public static string SupportBleBeaconHistoryHint => nameof(SupportBleBeaconHistoryHint);
+    public static string SupportBleBeaconHistoryColumnTime => nameof(SupportBleBeaconHistoryColumnTime);
+    public static string SupportBleBeaconHistoryColumnFound => nameof(SupportBleBeaconHistoryColumnFound);
+    public static string SupportBleBeaconHistoryColumnRssi => nameof(SupportBleBeaconHistoryColumnRssi);
+    public static string SupportBleBeaconHistoryColumnAge => nameof(SupportBleBeaconHistoryColumnAge);
+    public static string SupportBleBeaconHistoryColumnSource => nameof(SupportBleBeaconHistoryColumnSource);
+    public static string SupportBleBeaconHistoryColumnAdapter => nameof(SupportBleBeaconHistoryColumnAdapter);
+    public static string SupportChargingAmpsToSetLabel => nameof(SupportChargingAmpsToSetLabel);
+    public static string SupportChargingAmpsToSetHelperText => nameof(SupportChargingAmpsToSetHelperText);
+    public static string SupportSetChargingAmpsButton => nameof(SupportSetChargingAmpsButton);
     public static string SupportChargingStationDebugDetailsSectionTitle => nameof(SupportChargingStationDebugDetailsSectionTitle);
     public static string SupportChargingCurrentToSetLabel => nameof(SupportChargingCurrentToSetLabel);
     public static string SupportChargingCurrentToSetHelperText => nameof(SupportChargingCurrentToSetHelperText);
@@ -72,6 +96,7 @@ public static class TranslationKeys
     public static string SupportChargingPricesFrom => nameof(SupportChargingPricesFrom);
     public static string SupportChargingPricesTo => nameof(SupportChargingPricesTo);
     public static string SupportReloadPageButton => nameof(SupportReloadPageButton);
+    public static string SupportClearTeslaTokenEncryptionKeyButton => nameof(SupportClearTeslaTokenEncryptionKeyButton);
     public static string SupportVinUnknownError => nameof(SupportVinUnknownError);
     public static string SupportNoError => nameof(SupportNoError);
     public static string SupportNoData => nameof(SupportNoData);
@@ -89,7 +114,44 @@ public static class TranslationKeys
     public static string SupportNameFormat => nameof(SupportNameFormat);
     public static string SupportIsAvailableInTeslaAccountFormat => nameof(SupportIsAvailableInTeslaAccountFormat);
     public static string SupportShouldBeManagedFormat => nameof(SupportShouldBeManagedFormat);
+    public static string SupportIsOnlineFormat => nameof(SupportIsOnlineFormat);
     public static string SupportConnectorFormat => nameof(SupportConnectorFormat);
+    public static string SupportHomeBatterySectionTitle => nameof(SupportHomeBatterySectionTitle);
+    public static string SupportHomeBatteryNoControllersMessage => nameof(SupportHomeBatteryNoControllersMessage);
+    public static string SupportHomeBatteryCurrentModeFormat => nameof(SupportHomeBatteryCurrentModeFormat);
+    public static string SupportHomeBatteryOverrideFormat => nameof(SupportHomeBatteryOverrideFormat);
+    public static string SupportHomeBatteryNoOverrideMessage => nameof(SupportHomeBatteryNoOverrideMessage);
+    public static string SupportHomeBatterySocFormat => nameof(SupportHomeBatterySocFormat);
+    public static string SupportHomeBatteryPowerFormat => nameof(SupportHomeBatteryPowerFormat);
+    public static string SupportHomeBatteryMaxChargeSocFormat => nameof(SupportHomeBatteryMaxChargeSocFormat);
+    public static string SupportHomeBatteryModeToSetLabel => nameof(SupportHomeBatteryModeToSetLabel);
+    public static string SupportHomeBatteryDurationLabel => nameof(SupportHomeBatteryDurationLabel);
+    public static string SupportHomeBatterySetModeButton => nameof(SupportHomeBatterySetModeButton);
+    public static string SupportHomeBatteryClearOverrideButton => nameof(SupportHomeBatteryClearOverrideButton);
+    public static string SupportHomeBatteryRefreshButton => nameof(SupportHomeBatteryRefreshButton);
+    public static string SupportHomeBatteryModeSetNotification => nameof(SupportHomeBatteryModeSetNotification);
+    public static string SupportHomeBatteryOverrideClearedNotification => nameof(SupportHomeBatteryOverrideClearedNotification);
+    public static string SupportHomeBatteryPeriodicRewriteText => nameof(SupportHomeBatteryPeriodicRewriteText);
+    public static string SupportHomeBatteryLastWriteFormat => nameof(SupportHomeBatteryLastWriteFormat);
+    public static string SupportHomeBatteryLastErrorFormat => nameof(SupportHomeBatteryLastErrorFormat);
+    public static string SupportHomeBatteryValidationHint => nameof(SupportHomeBatteryValidationHint);
+    public static string SupportHomeBatteryChargeDemotedWarningFormat => nameof(SupportHomeBatteryChargeDemotedWarningFormat);
+    public static string SupportHomeBatteryAutomaticControlEnabledMessage => nameof(SupportHomeBatteryAutomaticControlEnabledMessage);
+    public static string SupportHomeBatteryPlannedWindowsTitle => nameof(SupportHomeBatteryPlannedWindowsTitle);
+    public static string SupportHomeBatteryNoPlannedWindowsMessage => nameof(SupportHomeBatteryNoPlannedWindowsMessage);
+    public static string SupportHomeBatteryWindowFromHeader => nameof(SupportHomeBatteryWindowFromHeader);
+    public static string SupportHomeBatteryWindowToHeader => nameof(SupportHomeBatteryWindowToHeader);
+    public static string SupportHomeBatteryWindowModeHeader => nameof(SupportHomeBatteryWindowModeHeader);
+    public static string SupportHomeBatteryWindowReasonHeader => nameof(SupportHomeBatteryWindowReasonHeader);
+    public static string SupportHomeBatteryWindowEnergyHeader => nameof(SupportHomeBatteryWindowEnergyHeader);
+    public static string SupportHomeBatteryWindowPriceHeader => nameof(SupportHomeBatteryWindowPriceHeader);
+    public static string HomeBatteryWindowReasonCarGridCharging => nameof(HomeBatteryWindowReasonCarGridCharging);
+    public static string HomeBatteryWindowReasonPreserveForDeficit => nameof(HomeBatteryWindowReasonPreserveForDeficit);
+    public static string HomeBatteryWindowReasonGridChargeForDeficit => nameof(HomeBatteryWindowReasonGridChargeForDeficit);
+    public static string HomeBatteryModeUnknown => nameof(HomeBatteryModeUnknown);
+    public static string HomeBatteryModeNormal => nameof(HomeBatteryModeNormal);
+    public static string HomeBatteryModeHold => nameof(HomeBatteryModeHold);
+    public static string HomeBatteryModeCharge => nameof(HomeBatteryModeCharge);
 
     public static string ChargeCostDetailAllChargeCostsButton => nameof(ChargeCostDetailAllChargeCostsButton);
     public static string ChargeCostDetailTitle => nameof(ChargeCostDetailTitle);
@@ -176,6 +238,16 @@ public static class TranslationKeys
     public static string ChargingStationsNoStationsFound => nameof(ChargingStationsNoStationsFound);
     public static string ChargingStationsConnectedViaOcpp => nameof(ChargingStationsConnectedViaOcpp);
     public static string ChargingStationsNotConnectedViaOcpp => nameof(ChargingStationsNotConnectedViaOcpp);
+    public static string ChargingStationsEditStationTitle => nameof(ChargingStationsEditStationTitle);
+    public static string ChargingStationsDeleteStationTitle => nameof(ChargingStationsDeleteStationTitle);
+    public static string ChargingStationDeleteProgressTitle => nameof(ChargingStationDeleteProgressTitle);
+    public static string ChargingStationDeletionStepChargingProcesses => nameof(ChargingStationDeletionStepChargingProcesses);
+    public static string ChargingStationDeletionStepTransactions => nameof(ChargingStationDeletionStepTransactions);
+    public static string ChargingStationDeletionStepConnectorValueLogs => nameof(ChargingStationDeletionStepConnectorValueLogs);
+    public static string ChargingStationDeletionStepMeterValues => nameof(ChargingStationDeletionStepMeterValues);
+    public static string ChargingStationDeletionStepConnectorAssignments => nameof(ChargingStationDeletionStepConnectorAssignments);
+    public static string ChargingStationDeletionStepConnectors => nameof(ChargingStationDeletionStepConnectors);
+    public static string ChargingStationDeletionStepChargingStation => nameof(ChargingStationDeletionStepChargingStation);
 
     public static string HomePageTitle => nameof(HomePageTitle);
     public static string HomePageNoCarsOrStationsHintStart => nameof(HomePageNoCarsOrStationsHintStart);
@@ -188,12 +260,10 @@ public static class TranslationKeys
     public static string SignalRReconnectionDelayHint => nameof(SignalRReconnectionDelayHint);
     public static string SignalRConnected => nameof(SignalRConnected);
 
-    public static string CarSettingsTitle => nameof(CarSettingsTitle);
+    public static string CarsTitle => nameof(CarsTitle);
     public static string CarSettingsCreateTokenTitle => nameof(CarSettingsCreateTokenTitle);
     public static string CarSettingsGoToPrefix => nameof(CarSettingsGoToPrefix);
     public static string CarSettingsGenerateTokenSuffix => nameof(CarSettingsGenerateTokenSuffix);
-    public static string CarSettingsRestartTscTitle => nameof(CarSettingsRestartTscTitle);
-    public static string CarSettingsRestartTscHint => nameof(CarSettingsRestartTscHint);
     public static string CarSettingsAddNonTeslaButton => nameof(CarSettingsAddNonTeslaButton);
     public static string CarSettingsCurrentBelow6AWarningTitle => nameof(CarSettingsCurrentBelow6AWarningTitle);
     public static string CarSettingsCurrentBelow6AWarningContent => nameof(CarSettingsCurrentBelow6AWarningContent);
@@ -207,6 +277,12 @@ public static class TranslationKeys
     public static string CarSettingsTeslaNavFavoriteDetectionTitle => nameof(CarSettingsTeslaNavFavoriteDetectionTitle);
     public static string CarSettingsTeslaNavFavoriteDetectionHint => nameof(CarSettingsTeslaNavFavoriteDetectionHint);
     public static string CarSettingsHomeDetectionViaLabel => nameof(CarSettingsHomeDetectionViaLabel);
+    public static string CarSettingsBleAdapterLabel => nameof(CarSettingsBleAdapterLabel);
+    public static string CarSettingsBleAdapterHelperText => nameof(CarSettingsBleAdapterHelperText);
+    public static string CarSettingsBleAdapterContainerDefault => nameof(CarSettingsBleAdapterContainerDefault);
+    public static string CarSettingsBleAdapterOnboard => nameof(CarSettingsBleAdapterOnboard);
+    public static string CarSettingsBleAdapterUsb => nameof(CarSettingsBleAdapterUsb);
+    public static string CarSettingsBleAdapterMissingFormat => nameof(CarSettingsBleAdapterMissingFormat);
     public static string CarSettingsBlePairingTitle => nameof(CarSettingsBlePairingTitle);
     public static string CarSettingsBlePairingHintStart => nameof(CarSettingsBlePairingHintStart);
     public static string CarSettingsBlePairingLinkText => nameof(CarSettingsBlePairingLinkText);
@@ -223,8 +299,24 @@ public static class TranslationKeys
     public static string CarSettingsDeserializationError => nameof(CarSettingsDeserializationError);
     public static string CarSettingsBleSuccessMessage => nameof(CarSettingsBleSuccessMessage);
     public static string CarSettingsWakeUpSuccessMessage => nameof(CarSettingsWakeUpSuccessMessage);
+    public static string CarSettingsSmartCarConnectTooltip => nameof(CarSettingsSmartCarConnectTooltip);
+    public static string CarSettingsSmartCarDisconnectTooltip => nameof(CarSettingsSmartCarDisconnectTooltip);
+    public static string CarSettingsSmartCarVinMissingError => nameof(CarSettingsSmartCarVinMissingError);
+    public static string CarSettingsSmartCarDisconnectError => nameof(CarSettingsSmartCarDisconnectError);
+    public static string CarSettingsSmartCarDisconnectSuccess => nameof(CarSettingsSmartCarDisconnectSuccess);
+    public static string CarSettingsSmartCarUrlMissingError => nameof(CarSettingsSmartCarUrlMissingError);
+    public static string CarSettingsAddTeslaFromAccountButton => nameof(CarSettingsAddTeslaFromAccountButton);
+    public static string CarSettingsAddTeslaFromAccountLoading => nameof(CarSettingsAddTeslaFromAccountLoading);
+    public static string CarSettingsAddTeslaFromAccountNoNewCars => nameof(CarSettingsAddTeslaFromAccountNoNewCars);
+    public static string CarSettingsAddTeslaFromAccountOneCarAdded => nameof(CarSettingsAddTeslaFromAccountOneCarAdded);
+    public static string CarSettingsAddTeslaFromAccountCarsAdded => nameof(CarSettingsAddTeslaFromAccountCarsAdded);
+    public static string CarSettingsAddTeslaFromAccountError => nameof(CarSettingsAddTeslaFromAccountError);
+    public static string CarSettingsSmartCarBillingConfirmTitle => nameof(CarSettingsSmartCarBillingConfirmTitle);
+    public static string CarSettingsSmartCarBillingConfirmText => nameof(CarSettingsSmartCarBillingConfirmText);
+    public static string CarSettingsSmartCarBillingConfirmButton => nameof(CarSettingsSmartCarBillingConfirmButton);
 
     public static string NavMenuTitle => nameof(NavMenuTitle);
+    public static string NavMenuFormerlyTitle => nameof(NavMenuFormerlyTitle);
     public static string NavMenuToggleLabel => nameof(NavMenuToggleLabel);
     public static string NavMenuOverview => nameof(NavMenuOverview);
     public static string NavMenuBackupAndRestore => nameof(NavMenuBackupAndRestore);
@@ -254,14 +346,54 @@ public static class TranslationKeys
     public static string ValueSourceConfigConfigurationDeleted => nameof(ValueSourceConfigConfigurationDeleted);
 
     public static string ValueSourceConfigNodePatternType => nameof(ValueSourceConfigNodePatternType);
+    public static string ValueSourceConfigNodePatternTypeDirect => nameof(ValueSourceConfigNodePatternTypeDirect);
+    public static string ValueSourceConfigNodePatternTypeJson => nameof(ValueSourceConfigNodePatternTypeJson);
+    public static string ValueSourceConfigNodePatternTypeXml => nameof(ValueSourceConfigNodePatternTypeXml);
     public static string ValueSourceConfigUsedFor => nameof(ValueSourceConfigUsedFor);
     public static string ValueSourceConfigOperator => nameof(ValueSourceConfigOperator);
-    public static string ValueSourceConfigSolar => nameof(ValueSourceConfigSolar);
     public static string ValueSourceConfigRegisterType => nameof(ValueSourceConfigRegisterType);
     public static string ValueSourceConfigValueType => nameof(ValueSourceConfigValueType);
     public static string ValueSourceConfigEndianess => nameof(ValueSourceConfigEndianess);
     public static string ValueSourceConfigHttpMethod => nameof(ValueSourceConfigHttpMethod);
     public static string ValueSourceConfigType => nameof(ValueSourceConfigType);
+
+    public static string ValueUsageInverterPower => nameof(ValueUsageInverterPower);
+    public static string ValueUsageGridPower => nameof(ValueUsageGridPower);
+    public static string ValueUsageHomeBatteryPower => nameof(ValueUsageHomeBatteryPower);
+    public static string ValueUsageHomeBatterySoc => nameof(ValueUsageHomeBatterySoc);
+
+    public static string ValueOperatorPlus => nameof(ValueOperatorPlus);
+    public static string ValueOperatorMinus => nameof(ValueOperatorMinus);
+
+    public static string ModbusRegisterTypeHolding => nameof(ModbusRegisterTypeHolding);
+    public static string ModbusRegisterTypeInput => nameof(ModbusRegisterTypeInput);
+
+    public static string ModbusEndianessBig => nameof(ModbusEndianessBig);
+    public static string ModbusEndianessLittle => nameof(ModbusEndianessLittle);
+
+    public static string ValueConfigInfoUsedFor => nameof(ValueConfigInfoUsedFor);
+    public static string ValueConfigInfoOperator => nameof(ValueConfigInfoOperator);
+    public static string ValueConfigInfoCorrectionFactor => nameof(ValueConfigInfoCorrectionFactor);
+    public static string ValueConfigInfoDataFormat => nameof(ValueConfigInfoDataFormat);
+    public static string ValueConfigInfoPathToValue => nameof(ValueConfigInfoPathToValue);
+    public static string ValueConfigInfoXmlAttributeHeaderName => nameof(ValueConfigInfoXmlAttributeHeaderName);
+    public static string ValueConfigInfoXmlAttributeHeaderValue => nameof(ValueConfigInfoXmlAttributeHeaderValue);
+    public static string ValueConfigInfoXmlAttributeValueName => nameof(ValueConfigInfoXmlAttributeValueName);
+    public static string ValueConfigInfoRestUrl => nameof(ValueConfigInfoRestUrl);
+    public static string ValueConfigInfoHttpMethod => nameof(ValueConfigInfoHttpMethod);
+    public static string ValueConfigInfoHeaders => nameof(ValueConfigInfoHeaders);
+    public static string ValueConfigInfoModbusHost => nameof(ValueConfigInfoModbusHost);
+    public static string ValueConfigInfoModbusPort => nameof(ValueConfigInfoModbusPort);
+    public static string ValueConfigInfoUnitIdentifier => nameof(ValueConfigInfoUnitIdentifier);
+    public static string ValueConfigInfoConnectDelay => nameof(ValueConfigInfoConnectDelay);
+    public static string ValueConfigInfoReadTimeout => nameof(ValueConfigInfoReadTimeout);
+    public static string ValueConfigInfoEndianess => nameof(ValueConfigInfoEndianess);
+    public static string ValueConfigInfoRegisterType => nameof(ValueConfigInfoRegisterType);
+    public static string ValueConfigInfoValueType => nameof(ValueConfigInfoValueType);
+    public static string ValueConfigInfoAddress => nameof(ValueConfigInfoAddress);
+    public static string ValueConfigInfoLength => nameof(ValueConfigInfoLength);
+    public static string ValueConfigInfoBitStartIndex => nameof(ValueConfigInfoBitStartIndex);
+    public static string ValueConfigInfoMqttTopic => nameof(ValueConfigInfoMqttTopic);
 
     public static string ValueSourceConfigFormNull => nameof(ValueSourceConfigFormNull);
     public static string ValueSourceConfigConfigNull => nameof(ValueSourceConfigConfigNull);
@@ -273,6 +405,9 @@ public static class TranslationKeys
     public static string ValueSourceConfigResultDeleted => nameof(ValueSourceConfigResultDeleted);
     public static string ValueSourceConfigCurrentRestStringFailed => nameof(ValueSourceConfigCurrentRestStringFailed);
     public static string ValueSourceConfigConfigurationValidationFailed => nameof(ValueSourceConfigConfigurationValidationFailed);
+    public static string ValueSourceConfigLoadFailed => nameof(ValueSourceConfigLoadFailed);
+    public static string ValueSourceConfigSaveFailed => nameof(ValueSourceConfigSaveFailed);
+    public static string ValueSourceConfigDeleteFailed => nameof(ValueSourceConfigDeleteFailed);
     public static string TeslaPowerwallEditFormError => nameof(TeslaPowerwallEditFormError);
     public static string TeslaPowerwallEditFormCloudConnectionLink => nameof(TeslaPowerwallEditFormCloudConnectionLink);
     public static string TeslaPowerwallEditFormErrorSuffix => nameof(TeslaPowerwallEditFormErrorSuffix);
@@ -318,6 +453,22 @@ public static class TranslationKeys
     public static string FleetApiTestNotConfigured => nameof(FleetApiTestNotConfigured);
     public static string FleetApiTestRegisteredButNotTested => nameof(FleetApiTestRegisteredButNotTested);
 
+    public static string BleTestTesting => nameof(BleTestTesting);
+    public static string BleTestSuccess => nameof(BleTestSuccess);
+    public static string BleTestCarNotFound => nameof(BleTestCarNotFound);
+    public static string BleTestCarAsleep => nameof(BleTestCarAsleep);
+    public static string BleTestKeyNotPaired => nameof(BleTestKeyNotPaired);
+    public static string BleTestContainerProblem => nameof(BleTestContainerProblem);
+    public static string BleTestUnknown => nameof(BleTestUnknown);
+    public static string BleTestAgainButton => nameof(BleTestAgainButton);
+    public static string BleTestDetails => nameof(BleTestDetails);
+    public static string BleTestPairKeyTitle => nameof(BleTestPairKeyTitle);
+    public static string BleTestPairKeyHint => nameof(BleTestPairKeyHint);
+    public static string BleTestPairKeyButton => nameof(BleTestPairKeyButton);
+    public static string BleTestPairing => nameof(BleTestPairing);
+    public static string BleTestPairKeySuccess => nameof(BleTestPairKeySuccess);
+    public static string BleTestPairKeyError => nameof(BleTestPairKeyError);
+
     public static string HiddenErrorsTitle => nameof(HiddenErrorsTitle);
     public static string HiddenErrorsDescription => nameof(HiddenErrorsDescription);
     public static string HiddenErrorsUpdateHint => nameof(HiddenErrorsUpdateHint);
@@ -344,6 +495,41 @@ public static class TranslationKeys
     public static string AddCarTokenInvalidTitle => nameof(AddCarTokenInvalidTitle);
     public static string AddCarTokenInvalidContent => nameof(AddCarTokenInvalidContent);
     public static string AddCarCloudConnectionLink => nameof(AddCarCloudConnectionLink);
+    public static string CarSettingsAddCarButton => nameof(CarSettingsAddCarButton);
+    public static string CarSettingsDeleteCarTitle => nameof(CarSettingsDeleteCarTitle);
+    public static string CarSettingsDeleteProgressTitle => nameof(CarSettingsDeleteProgressTitle);
+    public static string CarDeletionStepChargingProcesses => nameof(CarDeletionStepChargingProcesses);
+    public static string CarDeletionStepHandledCharges => nameof(CarDeletionStepHandledCharges);
+    public static string CarDeletionStepCarValueLogs => nameof(CarDeletionStepCarValueLogs);
+    public static string CarDeletionStepMeterValues => nameof(CarDeletionStepMeterValues);
+    public static string CarDeletionStepChargingTargets => nameof(CarDeletionStepChargingTargets);
+    public static string CarDeletionStepConnectorAssignments => nameof(CarDeletionStepConnectorAssignments);
+    public static string CarDeletionStepCar => nameof(CarDeletionStepCar);
+    public static string AddCarChooseTypeHint => nameof(AddCarChooseTypeHint);
+    public static string AddCarFreeBadge => nameof(AddCarFreeBadge);
+    public static string AddCarTeslaFreeBadge => nameof(AddCarTeslaFreeBadge);
+    public static string AddCarLicenseBadge => nameof(AddCarLicenseBadge);
+    public static string AddCarManualOptionTitle => nameof(AddCarManualOptionTitle);
+    public static string AddCarManualOptionDescription => nameof(AddCarManualOptionDescription);
+    public static string AddCarTeslaOptionTitle => nameof(AddCarTeslaOptionTitle);
+    public static string AddCarTeslaOptionDescription => nameof(AddCarTeslaOptionDescription);
+    public static string AddCarSmartCarOptionTitle => nameof(AddCarSmartCarOptionTitle);
+    public static string AddCarSmartCarOptionDescription => nameof(AddCarSmartCarOptionDescription);
+    public static string AddCarTeslaStepHint => nameof(AddCarTeslaStepHint);
+    public static string AddCarTeslaConnectHint => nameof(AddCarTeslaConnectHint);
+    public static string AddCarConnectTeslaButton => nameof(AddCarConnectTeslaButton);
+    public static string AddCarTeslaNeedsCloudContent => nameof(AddCarTeslaNeedsCloudContent);
+    public static string AddCarTeslaNeedsCloudNotification => nameof(AddCarTeslaNeedsCloudNotification);
+    public static string AddCarTeslaConnectUrlError => nameof(AddCarTeslaConnectUrlError);
+    public static string AddCarTeslaStateLoadError => nameof(AddCarTeslaStateLoadError);
+    public static string AddCarRetryButton => nameof(AddCarRetryButton);
+    public static string CarOverviewTeslaTokenExpired => nameof(CarOverviewTeslaTokenExpired);
+    public static string AddCarSmartCarSearchLabel => nameof(AddCarSmartCarSearchLabel);
+    public static string AddCarSmartCarSearchHint => nameof(AddCarSmartCarSearchHint);
+    public static string AddCarSmartCarNotListed => nameof(AddCarSmartCarNotListed);
+    public static string AddCarSmartCarConnectButton => nameof(AddCarSmartCarConnectButton);
+    public static string AddCarBackButton => nameof(AddCarBackButton);
+    public static string CarOverviewSmartCarConnecting => nameof(CarOverviewSmartCarConnecting);
 
     public static string CarDetailsConnectedToServer => nameof(CarDetailsConnectedToServer);
     public static string CarDetailsAtHome => nameof(CarDetailsAtHome);
@@ -352,8 +538,11 @@ public static class TranslationKeys
     public static string CarDetailsSocLabel => nameof(CarDetailsSocLabel);
     public static string CarDetailsCarLimitLabel => nameof(CarDetailsCarLimitLabel);
     public static string CarDetailsManualSocWarning => nameof(CarDetailsManualSocWarning);
+    public static string CarDetailsNoSocOnNotManualCarWarning => nameof(CarDetailsNoSocOnNotManualCarWarning);
+    public static string CarDetailsManualSocHelperText => nameof(CarDetailsManualSocHelperText);
     public static string CarDetailsStateOfChargeLabel => nameof(CarDetailsStateOfChargeLabel);
     public static string CarDetailsChargeModeLabel => nameof(CarDetailsChargeModeLabel);
+    public static string CarDetailsChargeModeExplanation => nameof(CarDetailsChargeModeExplanation);
     public static string CarDetailsManualModeTeslaHint => nameof(CarDetailsManualModeTeslaHint);
     public static string CarDetailsCurrentToSetLabel => nameof(CarDetailsCurrentToSetLabel);
     public static string CarDetailsSetCurrentButton => nameof(CarDetailsSetCurrentButton);
@@ -435,8 +624,6 @@ public static class TranslationKeys
     public static string FixedPriceToHour => nameof(FixedPriceToHour);
     public static string FixedPriceToMinute => nameof(FixedPriceToMinute);
 
-    public static string HomePaypalAltText => nameof(HomePaypalAltText);
-
     public static string ChargingTargetsTitle => nameof(ChargingTargetsTitle);
     public static string ChargingTargetsAddButton => nameof(ChargingTargetsAddButton);
     public static string ChargingTargetsNothingPlanned => nameof(ChargingTargetsNothingPlanned);
@@ -467,6 +654,7 @@ public static class TranslationKeys
     public static string HomeDetectionViaLocatedAtHome => nameof(HomeDetectionViaLocatedAtHome);
     public static string HomeDetectionViaLocatedAtWork => nameof(HomeDetectionViaLocatedAtWork);
     public static string HomeDetectionViaLocatedAtFavorite => nameof(HomeDetectionViaLocatedAtFavorite);
+    public static string HomeDetectionViaBlePresence => nameof(HomeDetectionViaBlePresence);
     public static string PowerBufferUpdated => nameof(PowerBufferUpdated);
     public static string PowerBufferUpdateFailed => nameof(PowerBufferUpdateFailed);
     public static string NotChargingReasonsSingular => nameof(NotChargingReasonsSingular);
@@ -487,6 +675,12 @@ public static class TranslationKeys
     public static string ChargingScheduleHeaderValidTo => nameof(ChargingScheduleHeaderValidTo);
     public static string ChargingScheduleHeaderEstimatedChargingPower => nameof(ChargingScheduleHeaderEstimatedChargingPower);
     public static string LegendItemUnitKwh => nameof(LegendItemUnitKwh);
+
+    public static string PowerFlowNodeSolar => nameof(PowerFlowNodeSolar);
+    public static string PowerFlowNodeGrid => nameof(PowerFlowNodeGrid);
+    public static string PowerFlowNodeHome => nameof(PowerFlowNodeHome);
+    public static string PowerFlowNodeBattery => nameof(PowerFlowNodeBattery);
+    public static string PowerFlowNodeCar => nameof(PowerFlowNodeCar);
     public static string ManualOcppErrorFormat => nameof(ManualOcppErrorFormat);
     public static string FleetApiTestKeyCheckHint => nameof(FleetApiTestKeyCheckHint);
     public static string FleetApiTestHereLink => nameof(FleetApiTestHereLink);
@@ -498,6 +692,26 @@ public static class TranslationKeys
     public static string CarDetailsFailedToUpdateMaxSoc => nameof(CarDetailsFailedToUpdateMaxSoc);
     public static string CarDetailsFailedToUpdateChargeMode => nameof(CarDetailsFailedToUpdateChargeMode);
     public static string CarDetailsErrorFormat => nameof(CarDetailsErrorFormat);
+    public static string CarDetailsSleepAsleep => nameof(CarDetailsSleepAsleep);
+    public static string CarDetailsSleepTryingToSleep => nameof(CarDetailsSleepTryingToSleep);
+    public static string CarDetailsSleepAwakeWaiting => nameof(CarDetailsSleepAwakeWaiting);
+    public static string CarDetailsSleepWaitingCountdown => nameof(CarDetailsSleepWaitingCountdown);
+    public static string CarDetailsSleepStartsShortly => nameof(CarDetailsSleepStartsShortly);
+    public static string CarDetailsSleepBlocked => nameof(CarDetailsSleepBlocked);
+    public static string CarDetailsSleepTooltip => nameof(CarDetailsSleepTooltip);
+    public static string CarDetailsCancelSleepButton => nameof(CarDetailsCancelSleepButton);
+    public static string CarDetailsStartSleepButton => nameof(CarDetailsStartSleepButton);
+    public static string CarDetailsStartSleepTooltip => nameof(CarDetailsStartSleepTooltip);
+    public static string CarDetailsStartSleepBlockedTooltip => nameof(CarDetailsStartSleepBlockedTooltip);
+    public static string CarDetailsStartSleepBlockedByCarStateTooltip => nameof(CarDetailsStartSleepBlockedByCarStateTooltip);
+    public static string CarDetailsSleepAttemptStarted => nameof(CarDetailsSleepAttemptStarted);
+    public static string CarDetailsFailedToStartSleep => nameof(CarDetailsFailedToStartSleep);
+    public static string CarDetailsSleepCancelled => nameof(CarDetailsSleepCancelled);
+    public static string CarDetailsFailedToCancelSleep => nameof(CarDetailsFailedToCancelSleep);
+
+    public static string GeneralErrorTitle => nameof(GeneralErrorTitle);
+    public static string GeneralSuccessTitle => nameof(GeneralSuccessTitle);
+    public static string OAuthNotificationSmartCarConnectionFailed => nameof(OAuthNotificationSmartCarConnectionFailed);
 
     public static string UnitWatts => nameof(UnitWatts);
     public static string UnitAmpere => nameof(UnitAmpere);
@@ -508,6 +722,8 @@ public static class TranslationKeys
 
     public static string GeneralSave => nameof(GeneralSave);
     public static string GeneralCancel => nameof(GeneralCancel);
+    public static string GeneralClose => nameof(GeneralClose);
+    public static string GeneralExplanation => nameof(GeneralExplanation);
     public static string GeneralProcessing => nameof(GeneralProcessing);
     public static string GeneralSaved => nameof(GeneralSaved);
     public static string GeneralLoading => nameof(GeneralLoading);
@@ -517,6 +733,10 @@ public static class TranslationKeys
     public static string GeneralPluggedIn => nameof(GeneralPluggedIn);
     public static string GeneralCharging => nameof(GeneralCharging);
     public static string GeneralBaseConfiguration => nameof(GeneralBaseConfiguration);
+    public static string EMail => nameof(EMail);
+    public static string Password => nameof(Password);
+    public static string GeneralNext => nameof(GeneralNext);
+    public static string GeneralPrev => nameof(GeneralPrev);
 
     public static string MainLayoutAbout => nameof(MainLayoutAbout);
     public static string MainLayoutUnhandledError => nameof(MainLayoutUnhandledError);
@@ -529,4 +749,140 @@ public static class TranslationKeys
     public static string RestPvValueModbusUrlCreationToolHint => nameof(RestPvValueModbusUrlCreationToolHint);
     public static string RestPvValueHeadersTitle => nameof(RestPvValueHeadersTitle);
     public static string RestPvValueAddNewHeaderButton => nameof(RestPvValueAddNewHeaderButton);
+
+    public static string NotChargingReasonOcppConnectionNotEstablished => nameof(NotChargingReasonOcppConnectionNotEstablished);
+    public static string NotChargingReasonCarNotAtHome => nameof(NotChargingReasonCarNotAtHome);
+    public static string NotChargingReasonCarNotPluggedIn => nameof(NotChargingReasonCarNotPluggedIn);
+    public static string NotChargingReasonConnectorNotPluggedIn => nameof(NotChargingReasonConnectorNotPluggedIn);
+    public static string NotChargingReasonCarNotAllowing => nameof(NotChargingReasonCarNotAllowing);
+    public static string NotChargingReasonWaitingPhaseSwitchCooldown => nameof(NotChargingReasonWaitingPhaseSwitchCooldown);
+    public static string NotChargingReasonWaitingPhaseIncrease => nameof(NotChargingReasonWaitingPhaseIncrease);
+    public static string NotChargingReasonWaitingPhaseReduction => nameof(NotChargingReasonWaitingPhaseReduction);
+    public static string NotChargingReasonWaitingChargeStop => nameof(NotChargingReasonWaitingChargeStop);
+    public static string NotChargingReasonMaxSocReached => nameof(NotChargingReasonMaxSocReached);
+    public static string NotChargingReasonCarSideSocLimitReached => nameof(NotChargingReasonCarSideSocLimitReached);
+    public static string NotChargingReasonStoppedByCar => nameof(NotChargingReasonStoppedByCar);
+    public static string NotChargingReasonWaitingChargeStart => nameof(NotChargingReasonWaitingChargeStart);
+    public static string NotChargingReasonNotEnoughCombinedCurrent => nameof(NotChargingReasonNotEnoughCombinedCurrent);
+    public static string NotChargingReasonChargeModeOffOrMaxSocReached => nameof(NotChargingReasonChargeModeOffOrMaxSocReached);
+    public static string NotChargingReasonUnknownPhases => nameof(NotChargingReasonUnknownPhases);
+    public static string NotChargingReasonUnknownEstimatedVoltage => nameof(NotChargingReasonUnknownEstimatedVoltage);
+    public static string NotChargingReasonReservedForHomeBattery => nameof(NotChargingReasonReservedForHomeBattery);
+    public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
+    public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
+    public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
+    public static string NotChargingReasonBlePresenceUncertain => nameof(NotChargingReasonBlePresenceUncertain);
+
+    public static string SetupAssistantTitle => nameof(SetupAssistantTitle);
+    public static string SetupStepWelcome => nameof(SetupStepWelcome);
+    public static string SetupStepLocation => nameof(SetupStepLocation);
+    public static string SetupStepSolarBattery => nameof(SetupStepSolarBattery);
+    public static string SetupStepCloudConnection => nameof(SetupStepCloudConnection);
+    public static string SetupStepPrices => nameof(SetupStepPrices);
+    public static string SetupStepCars => nameof(SetupStepCars);
+    public static string SetupStepChargingStations => nameof(SetupStepChargingStations);
+    public static string SetupStepCarsAndCharging => nameof(SetupStepCarsAndCharging);
+    public static string SetupStepFinish => nameof(SetupStepFinish);
+    public static string SetupWelcomeTitle => nameof(SetupWelcomeTitle);
+    public static string SetupWelcomeDescription => nameof(SetupWelcomeDescription);
+    public static string SetupChangeLaterInfo => nameof(SetupChangeLaterInfo);
+    public static string SetupHasPvSystemQuestion => nameof(SetupHasPvSystemQuestion);
+    public static string SetupLocationTitle => nameof(SetupLocationTitle);
+    public static string SetupLocationDescription => nameof(SetupLocationDescription);
+    public static string SetupSolarBatteryTitle => nameof(SetupSolarBatteryTitle);
+    public static string SetupSolarBatteryDescription => nameof(SetupSolarBatteryDescription);
+    public static string SetupPvNotAvailableAsTemplate => nameof(SetupPvNotAvailableAsTemplate);
+    public static string SetupHasHomeBatteryQuestion => nameof(SetupHasHomeBatteryQuestion);
+    public static string SetupHomeBatterySettingsTitle => nameof(SetupHomeBatterySettingsTitle);
+    public static string SetupCloudConnectionTitle => nameof(SetupCloudConnectionTitle);
+    public static string SetupCloudConnectionDescription => nameof(SetupCloudConnectionDescription);
+    public static string SetupCloudConnectionRequiredNotification => nameof(SetupCloudConnectionRequiredNotification);
+    public static string SetupBaseAppLicenseRequiredNotification => nameof(SetupBaseAppLicenseRequiredNotification);
+    public static string SetupBaseAppLicenseMissingInfo => nameof(SetupBaseAppLicenseMissingInfo);
+    public static string SetupBaseAppLicenseRecheckButton => nameof(SetupBaseAppLicenseRecheckButton);
+    public static string SetupPricesTitle => nameof(SetupPricesTitle);
+    public static string SetupPricesDescription => nameof(SetupPricesDescription);
+    public static string SetupCarsTitle => nameof(SetupCarsTitle);
+    public static string SetupChargingStationsTitle => nameof(SetupChargingStationsTitle);
+    public static string SetupChargingStationsDescription => nameof(SetupChargingStationsDescription);
+    public static string SetupNoStationsConnected => nameof(SetupNoStationsConnected);
+    public static string SetupFinishTitle => nameof(SetupFinishTitle);
+    public static string SetupFinishDescription => nameof(SetupFinishDescription);
+    public static string SetupSuccessInfo => nameof(SetupSuccessInfo);
+    public static string SetupFinishButton => nameof(SetupFinishButton);
+    public static string SetupSuccessNotification => nameof(SetupSuccessNotification);
+
+    public static string CarControlCapabilityTitle => nameof(CarControlCapabilityTitle);
+    public static string CarControlCapabilityIntro => nameof(CarControlCapabilityIntro);
+    public static string CarControlCapabilityColConnection => nameof(CarControlCapabilityColConnection);
+    public static string CarControlCapabilityColControl => nameof(CarControlCapabilityColControl);
+    public static string CarControlCapabilityColBattery => nameof(CarControlCapabilityColBattery);
+    public static string CarControlCapabilityColCost => nameof(CarControlCapabilityColCost);
+    public static string CarControlCapabilityColWorksWith => nameof(CarControlCapabilityColWorksWith);
+    public static string CarControlCapabilityRowChargingStation => nameof(CarControlCapabilityRowChargingStation);
+    public static string CarControlCapabilityRowTeslaBle => nameof(CarControlCapabilityRowTeslaBle);
+    public static string CarControlCapabilityRowTeslaFleetApi => nameof(CarControlCapabilityRowTeslaFleetApi);
+    public static string CarControlCapabilityCostFree => nameof(CarControlCapabilityCostFree);
+    public static string CarControlCapabilityCostFleetApi => nameof(CarControlCapabilityCostFleetApi);
+    public static string CarControlCapabilityWorksAnyCar => nameof(CarControlCapabilityWorksAnyCar);
+    public static string CarControlCapabilityWorksTeslas => nameof(CarControlCapabilityWorksTeslas);
+    public static string CarControlCapabilityFootnote => nameof(CarControlCapabilityFootnote);
+    public static string CarControlCapabilityYes => nameof(CarControlCapabilityYes);
+    public static string CarControlCapabilityNo => nameof(CarControlCapabilityNo);
+
+    public static string CarChargingSetupIntro => nameof(CarChargingSetupIntro);
+    public static string CarChargingSetupQuestionCarCount => nameof(CarChargingSetupQuestionCarCount);
+    public static string CarChargingSetupQuestionTeslaCount => nameof(CarChargingSetupQuestionTeslaCount);
+    public static string CarChargingSetupQuestionStation => nameof(CarChargingSetupQuestionStation);
+    public static string CarChargingSetupQuestionBle => nameof(CarChargingSetupQuestionBle);
+    public static string CarChargingSetupAnswerYes => nameof(CarChargingSetupAnswerYes);
+    public static string CarChargingSetupAnswerNo => nameof(CarChargingSetupAnswerNo);
+    public static string CarChargingSetupAnswerNotSure => nameof(CarChargingSetupAnswerNotSure);
+    public static string CarChargingSetupBleYes => nameof(CarChargingSetupBleYes);
+    public static string CarChargingSetupBleNo => nameof(CarChargingSetupBleNo);
+    public static string CarChargingSetupPlanHeading => nameof(CarChargingSetupPlanHeading);
+    public static string CarChargingSetupPlanNoCarsTitle => nameof(CarChargingSetupPlanNoCarsTitle);
+    public static string CarChargingSetupPlanNoCarsBody => nameof(CarChargingSetupPlanNoCarsBody);
+    public static string CarChargingSetupPlanTeslaBleTitle => nameof(CarChargingSetupPlanTeslaBleTitle);
+    public static string CarChargingSetupPlanTeslaBleBody => nameof(CarChargingSetupPlanTeslaBleBody);
+    public static string CarChargingSetupPlanTeslaApiTitle => nameof(CarChargingSetupPlanTeslaApiTitle);
+    public static string CarChargingSetupPlanTeslaApiBody => nameof(CarChargingSetupPlanTeslaApiBody);
+    public static string CarChargingSetupPlanTeslaPendingTitle => nameof(CarChargingSetupPlanTeslaPendingTitle);
+    public static string CarChargingSetupPlanTeslaPendingBody => nameof(CarChargingSetupPlanTeslaPendingBody);
+    public static string CarChargingSetupPlanOtherStationTitle => nameof(CarChargingSetupPlanOtherStationTitle);
+    public static string CarChargingSetupPlanOtherStationBody => nameof(CarChargingSetupPlanOtherStationBody);
+    public static string CarChargingSetupPlanOtherNoStationTitle => nameof(CarChargingSetupPlanOtherNoStationTitle);
+    public static string CarChargingSetupPlanOtherNoStationBody => nameof(CarChargingSetupPlanOtherNoStationBody);
+    public static string CarChargingSetupPlanOtherNotSureExtra => nameof(CarChargingSetupPlanOtherNotSureExtra);
+    public static string CarChargingSetupPlanOtherPendingTitle => nameof(CarChargingSetupPlanOtherPendingTitle);
+    public static string CarChargingSetupPlanOtherPendingBody => nameof(CarChargingSetupPlanOtherPendingBody);
+    public static string CarChargingSetupPlanStationAlsoTitle => nameof(CarChargingSetupPlanStationAlsoTitle);
+    public static string CarChargingSetupPlanStationAlsoBody => nameof(CarChargingSetupPlanStationAlsoBody);
+    public static string CarChargingSetupHowItWorks => nameof(CarChargingSetupHowItWorks);
+
+    public static string CarOverviewManaged => nameof(CarOverviewManaged);
+    public static string CarOverviewAmpere => nameof(CarOverviewAmpere);
+    public static string CarOverviewPriority => nameof(CarOverviewPriority);
+    public static string CarOverviewType => nameof(CarOverviewType);
+    public static string CarOverviewBluetooth => nameof(CarOverviewBluetooth);
+    public static string CarOverviewDetection => nameof(CarOverviewDetection);
+    public static string CarOverviewYes => nameof(CarOverviewYes);
+    public static string CarOverviewNo => nameof(CarOverviewNo);
+    public static string CarOverviewEnabled => nameof(CarOverviewEnabled);
+    public static string CarOverviewDisabled => nameof(CarOverviewDisabled);
+
+    public static string CarEditManagementSettings => nameof(CarEditManagementSettings);
+    public static string CarEditTeslaSpecific => nameof(CarEditTeslaSpecific);
+    public static string CarEditFleetApiTestTitle => nameof(CarEditFleetApiTestTitle);
+    public static string CarEditFleetApiTestHint => nameof(CarEditFleetApiTestHint);
+    public static string CarEditBleTestTitle => nameof(CarEditBleTestTitle);
+    public static string CarEditBleTestHint => nameof(CarEditBleTestHint);
+    public static string CarEditBleTestButton => nameof(CarEditBleTestButton);
+
+    public static string ChargingStationOverviewConnectors => nameof(ChargingStationOverviewConnectors);
+    public static string ChargingStationOverviewPhaseSwitching => nameof(ChargingStationOverviewPhaseSwitching);
+    public static string ChargingStationOverviewSupported => nameof(ChargingStationOverviewSupported);
+    public static string ChargingStationOverviewNotSupported => nameof(ChargingStationOverviewNotSupported);
+
+    public static string ChargingStationEditConnectors => nameof(ChargingStationEditConnectors);
 }

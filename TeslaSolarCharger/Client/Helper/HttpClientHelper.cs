@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Client.Dtos;
@@ -6,7 +6,7 @@ using TeslaSolarCharger.Client.Helper.Contracts;
 
 namespace TeslaSolarCharger.Client.Helper;
 
-public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper) : IHttpClientHelper
+public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper, NavigationManager navigationManager) : IHttpClientHelper
 {
     public async Task<T?> SendGetRequestWithSnackbarAsync<T>(string url, CancellationToken cancellationToken)
     {
@@ -125,8 +125,15 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
             }
             else
             {
-                logger.LogError("Unsupported HTPP method {method}", method);
+                logger.LogError("Unsupported HTTP method {method}", method);
                 return new Result<T>(default, $"Unsupported HTTP method: {method}", null);
+            }
+
+            if (response.Headers.Contains("X-TSC-Startup"))
+            {
+                logger.LogWarning("StartupCheckMiddleware intercepted API call to {url}. Reloading application...", url);
+                navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
+                return new Result<T>(default, null, null);
             }
 
             if (response.IsSuccessStatusCode)
@@ -157,9 +164,21 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
             {
                 var resultString = await response.Content.ReadAsStringAsync(cancellationToken);
                 var problemDetails = JsonConvert.DeserializeObject<ValidationProblemDetails>(resultString);
-                var message = problemDetails != null
-                    ? $"Error: {problemDetails.Detail}"
-                    : "An error occurred on the server.";
+                // Validation error responses usually have no Detail but per-field messages in Errors, so
+                // fall back to those instead of showing a message consisting of only "Error:".
+                string message;
+                if (!string.IsNullOrEmpty(problemDetails?.Detail))
+                {
+                    message = $"Error: {problemDetails.Detail}";
+                }
+                else if (problemDetails?.Errors.Any() == true)
+                {
+                    message = string.Join(" ", problemDetails.Errors.SelectMany(e => e.Value));
+                }
+                else
+                {
+                    message = "An error occurred on the server.";
+                }
                 return new Result<T>(default, message, problemDetails);
             }
         }

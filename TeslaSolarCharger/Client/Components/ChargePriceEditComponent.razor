@@ -1,0 +1,189 @@
+@using MudExtensions
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using Newtonsoft.Json
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+@inject ISnackbar Snackbar
+@inject IChargePriceService ChargePriceService
+@inject IConstants Constants
+
+@if (ChargePrice == null)
+{
+    <LoadingSpinnerComponent />
+}
+else
+{
+    <EditFormComponent T="DtoChargePrice"
+                       WrappedElement="ChargePrice"
+                       HideSubmitButton="@HideSubmitButton"
+                       OnValidSubmit="SaveChargePrice"
+                       SubmittingParameter="SubmitIsLoading">
+        @if (ShowValidSince)
+        {
+            <GenericInput For="() => ChargePrice.Item.ValidSince"></GenericInput>
+        }
+        <GenericInput For="() => ChargePrice.Item.SolarPrice"></GenericInput>
+        <GenericInput For="() => ChargePrice.Item.GridPrice"></GenericInput>
+        
+        <MudText Typo="Typo.h6" Class="mt-4">@T(TranslationKeys.ChargeCostDetailTimeBasedPricesLabel)</MudText>
+        @foreach (var fixedPrice in FixedPrices)
+        {
+            <MudPaper Class="pa-3 mt-3" Outlined="true">
+                <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
+                <div class="d-flex align-center">
+                    <div class="flex-grow-1">
+                        <GenericInput For="() => fixedPrice.Value"
+                                      LabelName="@T(TranslationKeys.ChargeCostDetailPriceLabel)"></GenericInput>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="_ => DeleteFixedPrice(fixedPrice)" />
+                </div>
+            </MudPaper>
+        }
+        <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                                     ButtonText="@T(TranslationKeys.ChargeCostDetailAddTimeBasedPriceButton)"
+                                     OnButtonClicked="AddFixedPrice"></RightAlignedButtonComponent>
+
+        <MudText Typo="Typo.h6" Class="mt-6">@T(TranslationKeys.ChargeCostDetailFixedPriceOrSpotPriceLabel)</MudText>
+        <GenericInput T="bool"
+                      For="() => ChargePrice.Item.AddSpotPriceToGridPrice"
+                      OnValueChanged="@StateHasChanged"></GenericInput>
+
+        @if (ChargePrice.Item.AddSpotPriceToGridPrice)
+        {
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelectExtended T="SpotPriceRegion?"
+                                       For="() => ChargePrice.Item.SpotPriceRegion"
+                                       @bind-Value="ChargePrice.Item.SpotPriceRegion"
+                                       Margin="Constants.InputMargin"
+                                       Label="@T(TranslationKeys.ChargeCostDetailSpotPriceRegionLabel)"
+                                       Variant="Variant.Outlined">
+                        <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@T(TranslationKeys.SpotPriceRegionDELU)" />
+                        <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@T(TranslationKeys.SpotPriceRegionAT)" />
+                        <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@T(TranslationKeys.SpotPriceRegionCH)" />
+                    </MudSelectExtended>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"></GenericInput>
+                </MudItem>
+            </MudGrid>
+        }
+        
+        @if(ChargePriceUpdateProgress != default && ChargePriceUpdateProgress.Value != null && ChargePriceUpdateProgress.MaxValue != null)
+        {
+            <div class="mb-3">
+                <MudProgressLinear Value="ChargePriceUpdateProgress.Value.Value"
+                                   Max="ChargePriceUpdateProgress.MaxValue.Value"
+                                   Size="Size.Large"
+                                   Striped="true"
+                                   Color="Color.Primary"/>
+            </div>
+        }
+        else if (!HideSubmitButton)
+        {
+            <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+                <MudAlert Severity="Severity.Info">
+                    @T(TranslationKeys.ChargeCostDetailUpdateWarning)
+                </MudAlert>
+            </MudPaper>
+        }
+    </EditFormComponent>
+}
+
+@code {
+    [Parameter] public EditableItem<DtoChargePrice>? ChargePrice { get; set; }
+    [Parameter] public List<FixedPrice> FixedPrices { get; set; } = new();
+    [Parameter] public bool HideSubmitButton { get; set; }
+    [Parameter] public bool ShowValidSince { get; set; } = true;
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private bool SubmitIsLoading { get; set; }
+    private DtoProgress? ChargePriceUpdateProgress { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<ChargeCostDetailPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshChargePriceProgress();
+    }
+
+    private async Task RefreshChargePriceProgress()
+    {
+        ChargePriceUpdateProgress = await ChargePriceService.GetChargePriceUpdateProgress();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task SaveChargePrice()
+    {
+        if (ChargePrice == null)
+        {
+            Snackbar.Add(T(TranslationKeys.ChargeCostDetailSaveError), Severity.Error);
+            return;
+        }
+        SubmitIsLoading = true;
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        _ = RefreshChargePriceUpdateProgressForever(cancellationToken);
+        try
+        {
+            ChargePrice.Item.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
+            await ChargePriceService.UpdateChargePrice(ChargePrice.Item);
+            if (OnSaved.HasDelegate)
+            {
+                await OnSaved.InvokeAsync();
+            }
+        }
+        finally
+        {
+            SubmitIsLoading = false;
+            await cancellationTokenSource.CancelAsync();
+        }
+    }
+
+    private async Task RefreshChargePriceUpdateProgressForever(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await RefreshChargePriceProgress();
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // expected on save completion
+        }
+        finally
+        {
+            ChargePriceUpdateProgress = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void AddFixedPrice()
+    {
+        FixedPrices.Add(new FixedPrice()
+        {
+            ValidOnDays = new List<DayOfWeek>(),
+        });
+    }
+
+    private void DeleteFixedPrice(FixedPrice fixedPrice)
+    {
+        FixedPrices.Remove(fixedPrice);
+    }
+}

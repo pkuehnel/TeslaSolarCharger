@@ -36,6 +36,11 @@ public class CarBasicConfiguration
     public bool ShouldBeManaged { get; set; } = true;
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
+
+    /// <summary>
+    /// Stable id (BD address) of the Bluetooth adapter to use, null for the container's default adapter.
+    /// </summary>
+    public string? BleAdapterAddress { get; set; }
     public bool UseFleetTelemetry { get; set; }
     public bool IncludeTrackingRelevantFields { get; set; }
     public HomeDetectionVia HomeDetectionVia { get; set; }

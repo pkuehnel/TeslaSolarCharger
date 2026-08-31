@@ -5,6 +5,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Localization;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -51,7 +52,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
                 {
                     var dummyPower = chargingLoadPoints.Sum(c => c.ChargingPower);
                     _logger.LogWarning("Use {dummyPower}W as power to control due to too old solar values {pvValuesAge}", dummyPower, pvValuesAge);
-                    _notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
+                    _notChargingWithExpectedPowerReasonHelper.AddGenericReason(new(TranslationKeys.NotChargingReasonSolarValuesTooOld));
                     return dummyPower;
                 }
             }
@@ -61,7 +62,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         if (buffer != 0)
         {
-            _notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Charging speed is {(buffer > 0 ? "decreased" : "increased")} due to power buffer being set to {buffer}W"));
+            _notChargingWithExpectedPowerReasonHelper.AddGenericReason(new NotChargingWithExpectedPowerReasonTemplate(buffer > 0 ? TranslationKeys.NotChargingReasonPowerBufferDecreased : TranslationKeys.NotChargingReasonPowerBufferIncreased, buffer));
         }
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
@@ -170,33 +171,26 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
     public int GetBatteryTargetChargingPower()
     {
         _logger.LogTrace("{method}()", nameof(GetBatteryTargetChargingPower));
-        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        if (homeBatteryMinSoc == default)
-        {
-            return 0;
-        }
-        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        if (homeBatteryMaxChargingPower == default)
-        {
-            return 0;
-        }
-        var actualHomeBatterySoc = _settings.HomeBatterySoc;
-        return actualHomeBatterySoc < homeBatteryMinSoc ? homeBatteryMaxChargingPower.Value : 0;
+        return GetBatteryTargetChargingPower(_configurationWrapper.HomeBatteryMinSoc(), null);
     }
 
+    /// <summary>
+    /// Shared core for the public no-reason overload and the internal call from
+    /// <see cref="AddHomeBatteryStateToPowerCalculation"/>: both just need "reserve the home battery charging power
+    /// while its SoC is below minSoc", the only difference being whether a not-charging reason should be recorded.
+    /// </summary>
     private int GetBatteryTargetChargingPower(int? minSoc,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
+        INotChargingWithExpectedPowerReasonHelper? notChargingWithExpectedPowerReasonHelper)
     {
         var actualHomeBatterySoc = _settings.HomeBatterySoc;
-        var homeBatteryMinSoc = minSoc;
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        if (actualHomeBatterySoc < homeBatteryMinSoc)
+        if (actualHomeBatterySoc < minSoc)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(
-                new NotChargingWithExpectedPowerReasonTemplate("Reserved {0}W for Home battery charging as its SOC ({1}%) is below minimum SOC ({2}%)",
+            notChargingWithExpectedPowerReasonHelper?.AddGenericReason(
+                new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonReservedForHomeBattery,
                     homeBatteryMaxChargingPower ?? 0,
                     actualHomeBatterySoc,
-                    homeBatteryMinSoc));
+                    minSoc));
             return homeBatteryMaxChargingPower ?? 0;
         }
 

@@ -11,6 +11,8 @@ WORKDIR /src
 COPY ["TeslaSolarCharger/Server/TeslaSolarCharger.Server.csproj", "TeslaSolarCharger/Server/"]
 COPY ["TeslaSolarCharger/Client/TeslaSolarCharger.Client.csproj", "TeslaSolarCharger/Client/"]
 COPY ["TeslaSolarCharger/Shared/TeslaSolarCharger.Shared.csproj", "TeslaSolarCharger/Shared/"]
+COPY ["PkSoftwareService.Custom.Backend/PkSoftwareService.Custom.Backend.csproj", "PkSoftwareService.Custom.Backend/"]
+COPY ["TeslaSolarCharger.Protobuf/TeslaSolarCharger.Protobuf.csproj", "TeslaSolarCharger.Protobuf/"]
 RUN dotnet restore "TeslaSolarCharger/Server/TeslaSolarCharger.Server.csproj"
 COPY . .
 WORKDIR "/src/TeslaSolarCharger/Server"

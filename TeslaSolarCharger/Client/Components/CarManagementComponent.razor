@@ -1,0 +1,304 @@
+@using Microsoft.AspNetCore.WebUtilities
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.Ble
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Client.Dialogs
+
+@inject ICarSettingsService CarSettingsService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject IConstants Constants
+@inject ITextLocalizationService TextLocalizer
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IOAuthNotificationService OAuthNotificationService
+@inject IDialogService DialogService
+
+@if (ShowControlCapabilityInfo)
+{
+    <div class="mb-3">
+        <CarControlCapabilityComponent Class="mt-3" />
+    </div>
+}
+
+
+<MudOverlay Visible="@(_deletionProgress != null)" DarkBackground="true" ZIndex="9999">
+    @if (_deletionProgress != null)
+    {
+        <MudPaper Class="pa-6" Style="min-width: 320px; max-width: 90vw;">
+            <MudText Typo="Typo.h6" Class="mb-3">@T(TranslationKeys.CarSettingsDeleteProgressTitle)</MudText>
+            <MudText Typo="Typo.body1" Class="mb-2">@GetDeletionStepText(_deletionProgress.CurrentStep)</MudText>
+            <MudProgressLinear Value="_deletionProgress.Value"
+                               Max="_deletionProgress.MaxValue"
+                               Size="Size.Large"
+                               Striped="true"
+                               Color="Color.Primary" />
+            <MudText Typo="Typo.caption" Class="mt-2">@_deletionProgress.Value / @_deletionProgress.MaxValue</MudText>
+        </MudPaper>
+    }
+</MudOverlay>
+
+@if (_carBasicConfigurations == null)
+{
+    <LoadingSpinnerComponent />
+}
+else
+{
+    <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddCarButton)'
+                                 StartIcon="@Icons.Material.Filled.Add"
+                                 OnButtonClicked="OpenAddCarWizard"></RightAlignedButtonComponent>
+
+    <MudGrid>
+        @foreach (var carBasicConfiguration in _carBasicConfigurations)
+        {
+            <MudItem xs="12" md="6" xl="4">
+                <CarOverviewComponent Car="carBasicConfiguration"
+                                      FleetApiTokenState="_fleetApiTokenState"
+                                      OnReconnectTeslaRequested="StartTeslaConnect"
+                                      OnEditRequested="() => EditCar(carBasicConfiguration)"
+                                      OnDeleteRequested="() => DeleteCar(carBasicConfiguration)" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    /// <summary>
+    /// Relative page (without leading slash) the SmartCar OAuth flow should return to, e.g. "CarSettings" or
+    /// "setup". Connecting a SmartCar navigates the browser away and back; this keeps the user on the page they
+    /// started from instead of always landing on the Car Settings page.
+    /// </summary>
+    [Parameter] public string ReturnPage { get; set; } = "CarSettings";
+
+    /// <summary>
+    /// Whether to render the car-control capability explainer at the top. Hidden in the setup assistant, where the
+    /// merged "Cars &amp; charging" step already offers it behind a "How does this work?" expander.
+    /// </summary>
+    [Parameter] public bool ShowControlCapabilityInfo { get; set; } = true;
+
+    private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
+    private TokenState? _fleetApiTokenState;
+    private DtoCarLicenseInfo _carLicenseInfo = new();
+    private DtoCarDeletionProgress? _deletionProgress;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(CloudConnectionPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        await RefreshFleetApiTokenState();
+        await RefreshFleetApiLicenseInfo();
+        // SmartCar and Tesla OAuth returns are tagged with an explicit marker by the add wizard, so trigger an
+        // immediate sync/import to pick up the freshly connected car(s) without waiting for the background poll.
+        var shouldSyncSmartCarCars = HasQueryParam(Constants.QueryParamSmartCarAdded);
+        var isTeslaConnectReturn = HasQueryParam(Constants.QueryParamTeslaConnected);
+        await OAuthNotificationService.HandleQueryParameters();
+        if (shouldSyncSmartCarCars)
+        {
+            await CarSettingsService.SyncSmartCarCars();
+            DropQueryParam(Constants.QueryParamSmartCarAdded);
+        }
+        if (isTeslaConnectReturn)
+        {
+            // The Tesla token has just been redeemed server-side; refresh the state and import the account's
+            // Teslas so the user does not have to reopen the dialog.
+            await RefreshFleetApiTokenState();
+            if (_fleetApiTokenState == TokenState.UpToDate)
+            {
+                var addedCars = await CarSettingsService.RefreshTeslaCarsFromAccount();
+                if (addedCars != null)
+                {
+                    Snackbar.Add(CarSettingsService.GetAddedTeslasMessage(addedCars.Value), Severity.Success);
+                }
+            }
+            DropQueryParam(Constants.QueryParamTeslaConnected);
+        }
+        var carBasicConfigurations = await CarSettingsService.GetCarBasicConfigurations();
+        if (carBasicConfigurations != null)
+        {
+            _carBasicConfigurations = carBasicConfigurations.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
+        }
+    }
+
+    private async Task RefreshFleetApiLicenseInfo()
+    {
+        var licenseInfo = await CarSettingsService.GetFleetApiLicenseInfo();
+        if (licenseInfo != null)
+        {
+            _carLicenseInfo = licenseInfo;
+        }
+    }
+
+    private async Task RefreshFleetApiTokenState()
+    {
+        _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+    }
+
+    private bool HasQueryParam(string key)
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        return query.ContainsKey(key);
+    }
+
+    private void DropQueryParam(string key)
+    {
+        var cleanUri = NavigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            [key] = null,
+        });
+        NavigationManager.NavigateTo(cleanUri, forceLoad: false, replace: true);
+    }
+
+    private async Task StartTeslaConnect()
+    {
+        // Tesla OAuth requires the cloud account to be connected first.
+        var backendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
+        if (backendTokenState != TokenState.UpToDate)
+        {
+            Snackbar.Add(T(TranslationKeys.AddCarTeslaNeedsCloudNotification), Severity.Error);
+            return;
+        }
+
+        // Return to this same page with a marker so the OAuth return imports the account's Teslas (see RefreshData).
+        var returnUrl = NavigationManager.BaseUri + ReturnPage + "?" + Constants.QueryParamTeslaConnected + "=true";
+        var url = await CloudConnectionCheckService.GetRedeemUrlIncludingCookieAuthCode(returnUrl);
+        if (string.IsNullOrEmpty(url))
+        {
+            Snackbar.Add(T(TranslationKeys.AddCarTeslaConnectUrlError), Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo(url);
+    }
+
+    private async Task OpenAddCarWizard()
+    {
+        var parameters = new DialogParameters<AddCarDialog>
+        {
+            { x => x.ReturnPage, ReturnPage },
+        };
+        var dialog = await DialogService.ShowAsync<AddCarDialog>(T(TranslationKeys.AddCarDialogTitle), parameters);
+        var result = await dialog.Result;
+        if (result == null || result.Canceled || result.Data is not AddCarResultAction action)
+        {
+            return;
+        }
+
+        switch (action)
+        {
+            case AddCarResultAction.EditNewManualCar:
+                var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
+                await EditCar(newCar);
+                break;
+            case AddCarResultAction.Refresh:
+                await RefreshData();
+                break;
+            case AddCarResultAction.ConnectTesla:
+                await StartTeslaConnect();
+                break;
+        }
+    }
+
+    private async Task EditCar(EditableItem<CarBasicConfiguration> car)
+    {
+        var parameters = new DialogParameters<CarEditDialog>
+        {
+            { x => x.Car, car },
+            { x => x.ReturnPage, ReturnPage },
+        };
+
+        var dialog = await DialogService.ShowAsync<CarEditDialog>(T(TranslationKeys.CarsTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await RefreshData();
+        }
+    }
+
+    private async Task DeleteCar(EditableItem<CarBasicConfiguration> car)
+    {
+        var carName = car.Item.Name;
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, carName },
+            // Require the user to retype the car name before deleting, but only when there is a name to type.
+            { x => x.ConfirmationName, string.IsNullOrEmpty(carName) ? null : carName },
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteDialog>(T(TranslationKeys.CarSettingsDeleteCarTitle), parameters);
+        var result = await dialog.Result;
+
+        if (result == null || result.Canceled)
+        {
+            return;
+        }
+
+        // Deleting a car can take far longer than the HTTP timeout (large value/meter log tables). The server
+        // runs the delete as a background task and returns immediately, so kick it off and then poll the
+        // progress until the server reports the deletion has finished.
+        _deletionProgress = new DtoCarDeletionProgress { Value = 0, MaxValue = 7, CurrentStep = CarDeletionStep.ChargingProcesses };
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await CarSettingsService.DeleteCar(car.Item.Id);
+            await PollDeletionUntilComplete(car.Item.Id);
+        }
+        finally
+        {
+            _deletionProgress = null;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        await RefreshData();
+    }
+
+    private async Task PollDeletionUntilComplete(int carId)
+    {
+        // The server sets the progress synchronously before it returns from the delete request, so by the time we
+        // poll here the progress is either still set (deletion running) or already cleared (deletion finished).
+        // A null therefore always means "finished" - there is no window where we could poll before the server has
+        // had a chance to set it, so we must not wait to "see" progress first (a fast/no-op delete would otherwise
+        // never clear the overlay). The deadline is only a safety cap so the overlay can never stay up forever if
+        // the server never clears the progress (e.g. the process crashed mid-delete).
+        var deadline = DateTime.UtcNow.AddHours(1);
+        while (DateTime.UtcNow < deadline)
+        {
+            var progress = await CarSettingsService.GetCarDeletionProgress(carId);
+            if (progress == null)
+            {
+                // Deletion finished (or there was nothing to delete): stop polling.
+                break;
+            }
+
+            _deletionProgress = progress;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+    }
+
+    private string GetDeletionStepText(CarDeletionStep step) => step switch
+    {
+        CarDeletionStep.ChargingProcesses => T(TranslationKeys.CarDeletionStepChargingProcesses),
+        CarDeletionStep.HandledCharges => T(TranslationKeys.CarDeletionStepHandledCharges),
+        CarDeletionStep.CarValueLogs => T(TranslationKeys.CarDeletionStepCarValueLogs),
+        CarDeletionStep.MeterValues => T(TranslationKeys.CarDeletionStepMeterValues),
+        CarDeletionStep.ChargingTargets => T(TranslationKeys.CarDeletionStepChargingTargets),
+        CarDeletionStep.ConnectorAssignments => T(TranslationKeys.CarDeletionStepConnectorAssignments),
+        CarDeletionStep.Car => T(TranslationKeys.CarDeletionStepCar),
+        _ => string.Empty,
+    };
+}

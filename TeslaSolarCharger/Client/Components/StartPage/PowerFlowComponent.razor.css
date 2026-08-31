@@ -1,0 +1,119 @@
+/* ============================================================================
+   PowerFlowComponent – Solar4Car brand styling
+   Colours come from the MudTheme via MudBlazor CSS variables
+   (var(--mud-palette-*)) so the whole component adapts to dark mode.
+   The SVG keeps a fixed viewBox; its rendered size is responsive in width
+   (max 720px) while the height never exceeds the height at that max width,
+   so the page below it never gets pushed further down.
+   ============================================================================ */
+
+/* ----- Card surface around the diagram ----- */
+.pf-card {
+    background-color: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 16px;
+    padding: 10px 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .06);
+    overflow: hidden;
+}
+
+/* ----- Responsive, height-capped SVG ----- */
+.pf-svg {
+    display: block;
+    width: 100%;
+    max-width: 720px;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* ----- Static connection lines (faint backdrop) ----- */
+.pf-link {
+    stroke: var(--mud-palette-text-primary);
+    stroke-opacity: .12;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+}
+
+/* ----- Animated power-flow lines: gradient-coloured dots travelling
+         from source toward target along the connection ----- */
+.pf-flow {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 0.1 18;
+    animation: pf-flow-move 1.1s linear infinite;
+}
+
+@keyframes pf-flow-move {
+    to {
+        stroke-dashoffset: -18;
+    }
+}
+
+/* ----- Nodes ----- */
+.pf-node-glow {
+    opacity: .5;
+}
+
+.pf-node-bg {
+    fill: var(--mud-palette-surface);
+}
+
+.pf-node-tint {
+    fill-opacity: .08;
+}
+
+.pf-node-ring {
+    stroke-opacity: .4;
+    transition: stroke-opacity .3s ease;
+}
+
+.pf-node--active .pf-node-ring {
+    stroke-opacity: 1;
+}
+
+.pf-node--active .pf-node-tint {
+    fill-opacity: .26;
+}
+
+/* ----- Node content (icon + value, centred inside the ring) ----- */
+.pf-node-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    line-height: 1.05;
+    color: var(--mud-palette-text-primary);
+    overflow: hidden;
+}
+
+.pf-node-value {
+    font-size: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* keep the MudBlazor icons inheriting the themed text colour and a tidy size */
+.pf-node-content ::deep .mud-icon-root {
+    font-size: 1.9rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    color: currentColor;
+}
+
+/* The icon↔value breathing room comes from the flex `gap` above, NOT a CSS
+   transform on the icon. A `transform: translateY()` on the icon <svg> is
+   resolved against the SVG view-box coordinate space inside a <foreignObject>
+   on WebKit/iOS, which threw the icons out of position there (Chrome/Blink was
+   fine). `gap` is plain flex layout, so it behaves the same on every browser. */
+
+@media (prefers-reduced-motion: reduce) {
+    .pf-flow {
+        animation: none;
+    }
+}

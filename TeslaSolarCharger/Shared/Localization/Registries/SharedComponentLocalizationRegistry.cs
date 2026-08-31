@@ -10,6 +10,22 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, "Base Configuration"),
             new TextLocalizationTranslation(LanguageCodes.German, "Basiskonfiguration"));
 
+        Register(TranslationKeys.EMail,
+            new TextLocalizationTranslation(LanguageCodes.English, "Email"),
+            new TextLocalizationTranslation(LanguageCodes.German, "E-Mail"));
+
+        Register(TranslationKeys.Password,
+            new TextLocalizationTranslation(LanguageCodes.English, "Password"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Passwort"));
+
+        Register(TranslationKeys.GeneralNext,
+            new TextLocalizationTranslation(LanguageCodes.English, "Next"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Weiter"));
+
+        Register(TranslationKeys.GeneralPrev,
+            new TextLocalizationTranslation(LanguageCodes.English, "Previous"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zurück"));
+
         Register(TranslationKeys.GeneralSave,
             new TextLocalizationTranslation(LanguageCodes.English, "Save"),
             new TextLocalizationTranslation(LanguageCodes.German, "Speichern"));
@@ -17,6 +33,14 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
         Register(TranslationKeys.GeneralCancel,
             new TextLocalizationTranslation(LanguageCodes.English, "Cancel"),
             new TextLocalizationTranslation(LanguageCodes.German, "Abbrechen"));
+
+        Register(TranslationKeys.GeneralClose,
+            new TextLocalizationTranslation(LanguageCodes.English, "Close"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Schließen"));
+
+        Register(TranslationKeys.GeneralExplanation,
+            new TextLocalizationTranslation(LanguageCodes.English, "Explanation"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erklärung"));
 
         Register(TranslationKeys.GeneralProcessing,
             new TextLocalizationTranslation(LanguageCodes.English, "Processing"),
@@ -80,11 +104,23 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
 
         Register(TranslationKeys.MainLayoutUnhandledError,
             new TextLocalizationTranslation(LanguageCodes.English, "An unhandled error has occurred."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Es ist ein Fehler aufgetreten."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Ein unbehandelter Fehler ist aufgetreten."));
 
         Register(TranslationKeys.MainLayoutReload,
             new TextLocalizationTranslation(LanguageCodes.English, "Reload"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neu laden"));
+
+        Register(TranslationKeys.GeneralErrorTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Error"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fehler"));
+
+        Register(TranslationKeys.GeneralSuccessTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Success"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erfolg"));
+
+        Register(TranslationKeys.OAuthNotificationSmartCarConnectionFailed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Failed to confirm SmartCar connection: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bestätigung der SmartCar-Verbindung fehlgeschlagen: {0}"));
 
         Register(TranslationKeys.GenericInputMultiSelectionText,
             new TextLocalizationTranslation(LanguageCodes.English, "{0}{1} item{2} been selected"),
@@ -107,11 +143,11 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.German, "Ergebnisse"));
 
         Register(TranslationKeys.RestPvValueUseModbusUrlCreationTool,
-            new TextLocalizationTranslation(LanguageCodes.English, "Use Modbus Url Creation Tool"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Use Modbus URL Creation Tool"),
             new TextLocalizationTranslation(LanguageCodes.German, "Modbus-URL-Erstellungstool verwenden"));
 
         Register(TranslationKeys.RestPvValueModbusUrlCreationToolHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Use this to configure URL for Modbus plugin."),
+            new TextLocalizationTranslation(LanguageCodes.English, "Use this to configure the URL for the Modbus plugin."),
             new TextLocalizationTranslation(LanguageCodes.German, "Verwenden Sie dies, um die URL für das Modbus-Plugin zu konfigurieren."));
 
         Register(TranslationKeys.RestPvValueHeadersTitle,
@@ -121,5 +157,25 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
         Register(TranslationKeys.RestPvValueAddNewHeaderButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add new header"),
             new TextLocalizationTranslation(LanguageCodes.German, "Neue Kopfzeile hinzufügen"));
+
+        Register(TranslationKeys.PowerFlowNodeSolar,
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar"));
+
+        Register(TranslationKeys.PowerFlowNodeGrid,
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Netz"));
+
+        Register(TranslationKeys.PowerFlowNodeHome,
+            new TextLocalizationTranslation(LanguageCodes.English, "Home"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Haus"));
+
+        Register(TranslationKeys.PowerFlowNodeBattery,
+            new TextLocalizationTranslation(LanguageCodes.English, "Battery"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Batterie"));
+
+        Register(TranslationKeys.PowerFlowNodeCar,
+            new TextLocalizationTranslation(LanguageCodes.English, "Car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Auto"));
     }
 }

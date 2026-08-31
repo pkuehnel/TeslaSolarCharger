@@ -1,0 +1,110 @@
+name: syncTeslaProtos
+
+# Tesla changes pkg/protocol/protobuf roughly every one to two months, almost always additively. TSC decodes what the
+# BLE container prints using C# generated from exactly those files, so they have to be kept current - and they have to
+# stay on the same upstream ref as the container's Go build, see the Dockerfile bump below.
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays, 04:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync Tesla protobuf definitions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      # A scheduled run would otherwise check out the default branch (master). Everything here has to happen against
+      # develop: that is where feature work integrates, and branching the sync off master would put master's whole
+      # state into the pull request as a diff against develop.
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Read the currently pinned ref
+        id: current
+        run: |
+          REF=$(grep -oP '(?<=^ARG VEHICLE_COMMAND_REF=).*' TeslaSolarCharger.BleApi/Dockerfile)
+          if [ -z "$REF" ]; then
+            echo "::error::Could not read VEHICLE_COMMAND_REF from TeslaSolarCharger.BleApi/Dockerfile"
+            exit 1
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the latest upstream ref
+        id: upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REF=$(gh api repos/teslamotors/vehicle-command/commits/main --jq .sha)
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Download the protos at that ref
+        env:
+          UPSTREAM_REF: ${{ steps.upstream.outputs.ref }}
+        run: |
+          set -euo pipefail
+          for f in car_server common errors keys managed_charging signatures universal_message vcsec vehicle; do
+            curl -fsSL -o "TeslaSolarCharger.Protobuf/protos/$f.proto" \
+              "https://raw.githubusercontent.com/teslamotors/vehicle-command/${UPSTREAM_REF}/pkg/protocol/protobuf/$f.proto"
+          done
+
+      - name: Check whether anything changed
+        id: diff
+        run: |
+          if git diff --quiet -- TeslaSolarCharger.Protobuf/protos; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Protos are unchanged, nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- TeslaSolarCharger.Protobuf/protos
+          fi
+
+      # Both must move together: if the vendored protos and the container's Go build ever end up on different refs,
+      # TSC and the container decode different versions of the same wire format and can silently disagree.
+      - name: Bump the pinned ref in the BLE API Dockerfile
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          UPSTREAM_REF: ${{ steps.upstream.outputs.ref }}
+        run: |
+          sed -i -E "s|^ARG VEHICLE_COMMAND_REF=.*|ARG VEHICLE_COMMAND_REF=${UPSTREAM_REF}|" \
+            TeslaSolarCharger.BleApi/Dockerfile
+          grep '^ARG VEHICLE_COMMAND_REF=' TeslaSolarCharger.BleApi/Dockerfile
+
+      - name: Setup .NET
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # The point of the whole workflow: an upstream change that breaks decoding fails here, in a pull request, instead
+      # of on someone's car. A renamed or renumbered field shows up as a build or test failure.
+      - name: Build and test
+        if: steps.diff.outputs.changed == 'true'
+        run: dotnet run --project TeslaSolarCharger.Tests/TeslaSolarCharger.Tests.csproj --configuration Release
+
+      - name: Create pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          # Fixed branch name so repeated runs update one pull request instead of piling new ones up.
+          branch: chore/tesla-protos-sync
+          base: develop
+          delete-branch: true
+          commit-message: 'chore(protos): sync Tesla vehicle-command protos'
+          title: 'chore(protos): sync Tesla vehicle-command protos'
+          labels: dependencies
+          body: |
+            Tesla's protobuf definitions changed upstream.
+
+            **Compare:** https://github.com/teslamotors/vehicle-command/compare/${{ steps.current.outputs.ref }}...${{ steps.upstream.outputs.ref }}
+
+            `VEHICLE_COMMAND_REF` in `TeslaSolarCharger.BleApi/Dockerfile` was bumped to the same ref, so the
+            container's Go build and TSC's generated C# stay on one version of the wire format.
+
+            The build and the full test suite passed against the new definitions. Review the compare link for
+            renamed or renumbered fields before merging - additions are safe, changes to existing fields are not.

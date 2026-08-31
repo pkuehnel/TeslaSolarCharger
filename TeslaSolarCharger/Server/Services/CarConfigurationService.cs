@@ -14,7 +14,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
     IConfigurationWrapper configurationWrapper,
     ITeslaMateDbContextWrapper teslaMateDbContextWrapper) : ICarConfigurationService
 {
-    public async Task AddAllMissingCarsFromTeslaAccount()
+    public async Task<int> AddAllMissingCarsFromTeslaAccount()
     {
         logger.LogTrace("{method}()", nameof(AddAllMissingCarsFromTeslaAccount));
         var teslaMateCars = new List<Model.Entities.TeslaMate.Car>();
@@ -57,6 +57,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 .FirstOrDefault(c => string.Equals(c.Vin, teslaSolarChargerCar.Vin, StringComparison.CurrentCultureIgnoreCase))?.Id;
         }
         await teslaSolarChargerContext.SaveChangesAsync();
+        var addedCarsCount = 0;
         foreach (var teslaAccountCar in teslaAccountCars)
         {
             var teslaSolarChargerCar = teslaSolarChargerCars.FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase));
@@ -89,6 +90,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             };
             teslaSolarChargerContext.Cars.Add(teslaSolarChargerCar);
             await teslaSolarChargerContext.SaveChangesAsync();
+            addedCarsCount++;
         }
 
         foreach (var teslaSolarChargerCar in teslaSolarChargerCars)
@@ -98,8 +100,15 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 logger.LogInformation("Car with VIN {vin} is not available in Tesla account anymore.", teslaSolarChargerCar.Vin);
                 teslaSolarChargerCar.IsAvailableInTeslaAccount = false;
                 teslaSolarChargerCar.ShouldBeManaged = false;
+                //An unmanaged car must not stay in any charging connector's allowed cars as it can not be unselected in the UI anymore.
+                var staleAllowedCars = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                    .Where(ac => ac.CarId == teslaSolarChargerCar.Id)
+                    .ToListAsync();
+                teslaSolarChargerContext.ChargingStationConnectorAllowedCars.RemoveRange(staleAllowedCars);
                 await teslaSolarChargerContext.SaveChangesAsync();
             }
         }
+
+        return addedCarsCount;
     }
 }

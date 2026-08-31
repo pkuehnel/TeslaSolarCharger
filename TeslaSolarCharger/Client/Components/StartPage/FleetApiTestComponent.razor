@@ -89,6 +89,13 @@ else if (_initialLoaded)
     [Parameter]
     public int? CarId { get; set; }
 
+    /// <summary>
+    /// Starts the connection test as soon as the state is loaded (unless the API access is known to work already).
+    /// Used where the test is part of a guided flow, e.g. when a car is set to be managed in the car dialog.
+    /// </summary>
+    [Parameter]
+    public bool AutoTest { get; set; }
+
     private TeslaCarFleetApiState? _fleetApiState;
 
     private string? _fleetApiStateErrorMessage;
@@ -98,6 +105,8 @@ else if (_initialLoaded)
     private bool _isTesting;
 
     private bool _initialLoaded;
+
+    private bool _autoTestTriggered;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -114,6 +123,12 @@ else if (_initialLoaded)
         _fleetApiStateErrorMessage = fleetApiState.ErrorMessage;
 
         _initialLoaded = true;
+        //Only test once per component instance, further tests are triggered by the user via the test again button.
+        if (AutoTest && !_autoTestTriggered && _fleetApiState != TeslaCarFleetApiState.Ok)
+        {
+            _autoTestTriggered = true;
+            await TestFleetApiAccess();
+        }
     }
 
     private async Task TestFleetApiAccess()
@@ -123,6 +138,8 @@ else if (_initialLoaded)
             return;
         }
         _isTesting = true;
+        //The test takes up to a minute, so make sure the spinner is rendered before waiting for the result.
+        StateHasChanged();
         var response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={CarId}").ConfigureAwait(false);
         //Try again if non success because first try may result in no success because of Fleet API proxy required is only set after first error. So maybe the error is due to fleet Api proxy being required but not used.
         if (response!.Value == false)

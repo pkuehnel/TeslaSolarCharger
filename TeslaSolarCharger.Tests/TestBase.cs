@@ -26,7 +26,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Tests.Data;
-using Xunit.Abstractions;
+using Xunit;
 using Constants = TeslaSolarCharger.Shared.Resources.Constants;
 
 namespace TeslaSolarCharger.Tests;
@@ -67,14 +67,16 @@ public class TestBase : IDisposable
                 .Build()
             ;
 
-        _fake = new AutoFake();
-        _fake.Provide<IIssueKeys, IssueKeys>();
-        _fake.Provide<IPossibleIssues, PossibleIssues>();
-        _fake.Provide<IResultValueCalculationService, ResultValueCalculationService>();
-        _fake.Provide<IConstants, Constants>();
-        _fake.Provide<IValidFromToSplitter, ValidFromToSplitter>();
-        _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime));
-        _fake.Provide<IConfiguration>(configuration);
+        _fake = new AutoFake(configureAction: builder =>
+        {
+            builder.RegisterType<IssueKeys>().As<IIssueKeys>();
+            builder.RegisterType<PossibleIssues>().As<IPossibleIssues>();
+            builder.RegisterType<ResultValueCalculationService>().As<IResultValueCalculationService>();
+            builder.RegisterType<Constants>().As<IConstants>();
+            builder.RegisterType<ValidFromToSplitter>().As<IValidFromToSplitter>();
+            builder.RegisterInstance(new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime)).As<IDateTimeProvider>();
+            builder.RegisterInstance(configuration).As<IConfiguration>();
+        });
 
         Mock = AutoMock.GetLoose(
             b =>
@@ -123,7 +125,7 @@ public class TestBase : IDisposable
         //var autoMock = AutoMock.GetLoose(cfg => cfg.RegisterInstance(new TeslaSolarChargerContext(options)).As<ITeslaSolarChargerContext>());
         //_ctx = (TeslaSolarChargerContext) autoMock.Create<ITeslaSolarChargerContext>();
 
-        _ctx = _fake.Provide(new TeslaSolarChargerContext(options));
+        _ctx = new TeslaSolarChargerContext(options);
         _ctx.Database.EnsureCreated();
         _ctx.InitRestValueConfigurations();
         _ctx.InitLoggedErrors();
@@ -160,8 +162,7 @@ public class TestBase : IDisposable
         {
             var serilog = new LoggerConfiguration()
                 .MinimumLevel.ControlledBy(loggingLevelSwitch)
-                .WriteTo.TestOutput(testOutputHelper,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
             builder.SetMinimumLevel(LogLevel.Trace)
