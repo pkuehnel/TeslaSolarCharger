@@ -317,7 +317,6 @@ public class BleVehicleDataService(
                 UpdateOnlineState(car, false, timestamp);
                 ResetChargingValuesForAwayCar(car, timestamp);
                 await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
                 break;
             case BlePresenceDecision.AlreadyAway:
                 //The car is already marked as away: nothing changed, so do not write the same values again.
@@ -333,6 +332,11 @@ public class BleVehicleDataService(
                 logger.LogDebug("Car {vin} not heard, keeping last known state until the away state is confirmed", vin);
                 break;
         }
+        //Getting here means the container answered and the car was not read at all, so nothing can currently be wrong
+        //with its data collection. Resolving only on the away transition left an error raised while the car was
+        //already gone - a presence request that timed out because the container dropped off the network, say - open
+        //until the car came back and was read successfully, which can be days.
+        await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
     }
 
     /// <summary>
