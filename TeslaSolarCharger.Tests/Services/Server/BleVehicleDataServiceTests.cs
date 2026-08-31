@@ -299,6 +299,30 @@ public class BleVehicleDataServiceTests : TestBase
         Assert.Empty(Context.CarValueLogs.ToList());
     }
 
+    /// <summary>
+    /// A presence request that failed while the car was already gone used to leave an error open until the car came
+    /// back and was read successfully, which can be days: only the one shot away transition resolved it.
+    /// </summary>
+    [Theory]
+    [InlineData(BlePresenceDecision.JustConfirmedAway)]
+    [InlineData(BlePresenceDecision.AlreadyAway)]
+    [InlineData(BlePresenceDecision.Uncertain)]
+    [InlineData(BlePresenceDecision.Unknown)]
+    public async Task ACarThatIsNotReadHasNoOpenDataCollectionError(BlePresenceDecision decision)
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupPresence(present: false);
+        Mock.Mock<IBlePresenceStateService>().Setup(p => p.RegisterPresenceAge(dtoCar.Id, It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
+            .Returns(decision);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //The container answered and the car was not talked to at all, so nothing can currently be failing.
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleErrorResolved(
+            Mock.Create<IIssueKeys>().BleDataCollectionError, TestVin), Times.Once);
+    }
+
     [Fact]
     public async Task ScanThatCouldNotRunDoesNotChangePresence()
     {
