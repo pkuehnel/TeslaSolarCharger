@@ -355,7 +355,13 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to get BLE presence.");
-            return new DtoBlePresenceResult { ErrorMessage = ex.Message };
+            //A timed out HttpClient call says "A task was canceled.", which tells nobody what to look at. No external
+            //token is passed in, so a cancellation here can only be the timeout above.
+            var errorMessage = cancellationTokenSource.IsCancellationRequested
+                ? $"The BLE container at {bleBaseUrl} did not answer within {CommandTimeout.TotalSeconds:0} seconds. " +
+                  "Check that the container is running and that its host is reachable over the network."
+                : ex.Message;
+            return new DtoBlePresenceResult { ErrorMessage = errorMessage };
         }
     }
 
