@@ -812,6 +812,58 @@ public static class TranslationKeys
     public static string SetupFinishButton => nameof(SetupFinishButton);
     public static string SetupSuccessNotification => nameof(SetupSuccessNotification);
 
+    // Explanations produced by the setup decision service. They describe what is still missing or why something was
+    // decided automatically, in ordinary language and never by naming an internal configuration property.
+    public static string SetupIssuePvQuestionUnanswered => nameof(SetupIssuePvQuestionUnanswered);
+    public static string SetupIssueHomeBatteryQuestionUnanswered => nameof(SetupIssueHomeBatteryQuestionUnanswered);
+    public static string SetupIssueGridPowerSourceMissing => nameof(SetupIssueGridPowerSourceMissing);
+    public static string SetupIssueHomeBatterySourceMissing => nameof(SetupIssueHomeBatterySourceMissing);
+    public static string SetupIssueHomeBatteryCapacityUnknown => nameof(SetupIssueHomeBatteryCapacityUnknown);
+    public static string SetupIssueHomeBatteryChargingPowerUnknown => nameof(SetupIssueHomeBatteryChargingPowerUnknown);
+    public static string SetupIssueHomeLocationNotConfirmed => nameof(SetupIssueHomeLocationNotConfirmed);
+    public static string SetupIssueGridPriceMissing => nameof(SetupIssueGridPriceMissing);
+    public static string SetupIssueCloudConnectionMissing => nameof(SetupIssueCloudConnectionMissing);
+    public static string SetupIssueBaseAppLicenseMissing => nameof(SetupIssueBaseAppLicenseMissing);
+    public static string SetupIssueNoEquipmentConfigured => nameof(SetupIssueNoEquipmentConfigured);
+    public static string SetupIssueCarConnectionRouteUndecided => nameof(SetupIssueCarConnectionRouteUndecided);
+    public static string SetupIssueCarNameMissing => nameof(SetupIssueCarNameMissing);
+    public static string SetupIssueCarVinMissing => nameof(SetupIssueCarVinMissing);
+    public static string SetupIssueCarUsableEnergyUnknown => nameof(SetupIssueCarUsableEnergyUnknown);
+    public static string SetupIssueCarMaximumPhasesUnknown => nameof(SetupIssueCarMaximumPhasesUnknown);
+    public static string SetupIssueCarCurrentLimitsInvalid => nameof(SetupIssueCarCurrentLimitsInvalid);
+    public static string SetupIssueCarBleApiUrlMissing => nameof(SetupIssueCarBleApiUrlMissing);
+    public static string SetupIssueTeslaAccountNotConnected => nameof(SetupIssueTeslaAccountNotConnected);
+    public static string SetupIssueTeslaMateConflictsWithFleetTelemetry => nameof(SetupIssueTeslaMateConflictsWithFleetTelemetry);
+    public static string SetupIssueChargingStationNotConnected => nameof(SetupIssueChargingStationNotConnected);
+
+    public static string SetupReasonDynamicHomeBatteryMinSoc => nameof(SetupReasonDynamicHomeBatteryMinSoc);
+    public static string SetupReasonPredictSolarPowerGeneration => nameof(SetupReasonPredictSolarPowerGeneration);
+    public static string SetupReasonUsePredictedSolarForSchedules => nameof(SetupReasonUsePredictedSolarForSchedules);
+    public static string SetupReasonShowEnergyDataOnHome => nameof(SetupReasonShowEnergyDataOnHome);
+    public static string SetupReasonGetVehicleDataViaBle => nameof(SetupReasonGetVehicleDataViaBle);
+    public static string SetupReasonCarHomeDetectionViaBlePresence => nameof(SetupReasonCarHomeDetectionViaBlePresence);
+    public static string SetupReasonCarChargingPriority => nameof(SetupReasonCarChargingPriority);
+
+    public static string SetupNextActionConnectCloud => nameof(SetupNextActionConnectCloud);
+    public static string SetupNextActionDescribeSolarAndBattery => nameof(SetupNextActionDescribeSolarAndBattery);
+    public static string SetupNextActionConfirmLocation => nameof(SetupNextActionConfirmLocation);
+    public static string SetupNextActionEnterPrices => nameof(SetupNextActionEnterPrices);
+    public static string SetupNextActionAddEquipment => nameof(SetupNextActionAddEquipment);
+    public static string SetupNextActionCompleteCar => nameof(SetupNextActionCompleteCar);
+    public static string SetupNextActionFinish => nameof(SetupNextActionFinish);
+
+    public static string SetupProposalsHeading => nameof(SetupProposalsHeading);
+    public static string SetupProposalPendingPrefix => nameof(SetupProposalPendingPrefix);
+    public static string SetupMissingInformationHeading => nameof(SetupMissingInformationHeading);
+    public static string SetupIncompatibilitiesHeading => nameof(SetupIncompatibilitiesHeading);
+    public static string SetupNextActionHeading => nameof(SetupNextActionHeading);
+    public static string SetupSaveWithoutEnablingButton => nameof(SetupSaveWithoutEnablingButton);
+    public static string SetupSaveWithoutEnablingHint => nameof(SetupSaveWithoutEnablingHint);
+    public static string SetupEnableExplanation => nameof(SetupEnableExplanation);
+    public static string SetupSavedWithoutEnablingNotification => nameof(SetupSavedWithoutEnablingNotification);
+    public static string SetupPartialSaveFailure => nameof(SetupPartialSaveFailure);
+    public static string SetupConfigurationIncompleteInfo => nameof(SetupConfigurationIncompleteInfo);
+
     public static string CarControlCapabilityTitle => nameof(CarControlCapabilityTitle);
     public static string CarControlCapabilityIntro => nameof(CarControlCapabilityIntro);
     public static string CarControlCapabilityColConnection => nameof(CarControlCapabilityColConnection);

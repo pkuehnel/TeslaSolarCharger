@@ -51,6 +51,9 @@ public class Constants : IConstants
     public string IsBaseAppLicensedKey => "IsBaseAppLicensed";
     public string IsFleetApiLicensedKey => "IsFleetApiLicensed_";
     public string SetupCacheKey => "SetupCache";
+    //Deliberately a separate key from the setup state: a postponed charging test must survive setup being finished
+    //and its state cleared.
+    public string DeferredSetupChecksKey => "DeferredSetupChecks";
     public string HomeDetectionViaConvertedKey => "HomeDetectionViaConverted";
     //Also on Cloud Server in Solar4Car.Backend.Helper.Constants
     public int FleetTelemetryReconfigurationBufferHours => 3;

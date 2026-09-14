@@ -140,8 +140,10 @@ else
         try
         {
             ChargePrice.Item.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
-            await ChargePriceService.UpdateChargePrice(ChargePrice.Item);
-            if (OnSaved.HasDelegate)
+            var saveResult = await ChargePriceService.UpdateChargePrice(ChargePrice.Item);
+            //Only tell the host that the price was saved when it actually was; the service already reported the
+            //failure to the user.
+            if (!saveResult.HasError && OnSaved.HasDelegate)
             {
                 await OnSaved.InvokeAsync();
             }

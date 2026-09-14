@@ -6,18 +6,59 @@ namespace TeslaSolarCharger.Client.Services;
 
 public class SetupService(IHttpClientHelper httpClientHelper) : ISetupService
 {
-    public async Task<DtoSetupCache?> GetSetupCache()
+    public async Task<DtoSetupState?> GetSetupState()
     {
-        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoSetupCache>("api/SetupCache/GetSetupCache");
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoSetupState>("api/Setup/GetSetupState");
     }
 
-    public async Task UpdateSetupCache(DtoSetupCache setupCache)
+    public async Task<DtoSetupState?> GetOrCreateSetupState()
     {
-        await httpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/SetupCache/UpdateSetupCache", setupCache);
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoSetupState>("api/Setup/GetOrCreateSetupState");
     }
 
-    public async Task DeleteSetupCache()
+    public async Task UpdateSetupState(DtoSetupState setupState)
     {
-        await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>("api/SetupCache/DeleteSetupCache");
+        await httpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/Setup/UpdateSetupState", setupState);
+    }
+
+    public async Task DeleteSetupState()
+    {
+        await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>("api/Setup/DeleteSetupState");
+    }
+
+    public async Task<DtoSetupDecision?> EvaluateSetupState(DtoSetupState setupState)
+    {
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupDecision>("api/Setup/EvaluateSetupState", setupState);
+    }
+
+    public async Task<DtoSetupState?> AcceptProposals(DtoSetupState setupState, List<DtoSetupProposedValue> proposals)
+    {
+        var request = new DtoSetupAcceptProposalsRequest { SetupState = setupState, Proposals = proposals, };
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupState>("api/Setup/AcceptProposals", request);
+    }
+
+    public async Task<DtoSetupApplicationResult?> ApplyConfiguration(DtoSetupState setupState)
+    {
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupApplicationResult>("api/Setup/ApplyConfiguration", setupState);
+    }
+
+    public async Task<DtoSetupApplicationResult?> ActivateAndCompleteSetup(DtoSetupState setupState)
+    {
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupApplicationResult>("api/Setup/ActivateAndCompleteSetup", setupState);
+    }
+
+    public async Task<List<DtoDeferredSetupCheck>?> GetDeferredChecks()
+    {
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoDeferredSetupCheck>>("api/Setup/GetDeferredChecks");
+    }
+
+    public async Task<DtoDeferredSetupCheck?> AddOrUpdateDeferredCheck(DtoDeferredSetupCheck check)
+    {
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoDeferredSetupCheck>("api/Setup/AddOrUpdateDeferredCheck", check);
+    }
+
+    public async Task DeleteDeferredCheck(Guid checkId)
+    {
+        await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>($"api/Setup/DeleteDeferredCheck?checkId={checkId}");
     }
 }

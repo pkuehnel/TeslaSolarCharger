@@ -27,7 +27,6 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject ITemplateValueConfigurationService TemplateService
-@inject IChargePriceService ChargePriceService
 @inject IChargingStationsService ChargingStationsService
 @inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject IDateTimeProvider DateTimeProvider
@@ -40,7 +39,7 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">@T(TranslationKeys.SetupAssistantTitle)</MudText>
 
-    @if (_dtoBaseConfiguration == null)
+    @if (_setupState == null || _dtoBaseConfiguration == null)
     {
         <LoadingSpinnerComponent />
     }
@@ -85,7 +84,7 @@
                     <MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
 
                     <div class="mt-4">
-                        <MudSwitch T="bool" @bind-Value="_hasPvSystem" Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
+                        <MudSwitch T="bool" Value="_hasPvSystem" ValueChanged="OnHasPvSystemChanged" Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
                     </div>
 
                     @if (_hasPvSystem)
@@ -101,33 +100,35 @@
                         </MudExpansionPanels>
 
                         <div class="mt-4">
-                            <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"
+                                          OnValueChanged="@((bool _) => MarkAsUserEntered(nameof(BaseConfigurationBase.PredictSolarPowerGeneration)))"></GenericInput>
                         </div>
+                    }
 
-                        <div class="mt-8">
-                            <MudSwitch T="bool" @bind-Value="_hasHomeBattery" Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
-                        </div>
+                    @* Asked independently of the solar question: a home battery is worth managing even without panels. *@
+                    <div class="mt-8">
+                        <MudSwitch T="bool" Value="_hasHomeBattery" ValueChanged="OnHasHomeBatteryChanged" Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
+                    </div>
 
-                        @if (_hasHomeBattery)
-                        {
-                            <div class="mt-4 p-4 rounded border">
-                                <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <GenericInput T="bool?"
-                                                      For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
-                                                      OnValueChanged="StateHasChanged"/>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
-                                                      IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
-                                    </div>
+                    @if (_hasHomeBattery)
+                    {
+                        <div class="mt-4 p-4 rounded border">
+                            <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <GenericInput T="bool?"
+                                                  For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
+                                                  OnValueChanged="OnDynamicHomeBatteryMinSocChanged"/>
                                 </div>
-                                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
-                                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
-                                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+                                <div class="col-md-6">
+                                    <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
+                                                  IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
+                                </div>
                             </div>
-                        }
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
+                            <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+                        </div>
                     }
                 </MudStep>
 
@@ -138,8 +139,8 @@
                         <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
                                       Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
                                       Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
-                                      LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
-                                      LongitudeChanged="@(newLongitude => _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude)"></MapComponent>
+                                      LatitudeChanged="OnHomeLatitudeChanged"
+                                      LongitudeChanged="OnHomeLongitudeChanged"></MapComponent>
                     </div>
 
                     <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
@@ -155,7 +156,7 @@
                 </MudStep>
 
                 <MudStep Title="@T(TranslationKeys.SetupStepCarsAndCharging)">
-                    <CarChargingSetupComponent Answers="_setupAnswers" OnAnswersChanged="PersistSetupAnswers" />
+                    <CarChargingSetupComponent Answers="_setupState.CarsChargingSetup" OnAnswersChanged="PersistSetupState" />
 
                     <MudDivider Class="my-6" />
                     <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupStepChargingStations)</MudText>
@@ -200,9 +201,87 @@
                 <MudStep Title="@T(TranslationKeys.SetupStepFinish)">
                     <MudText>@T(TranslationKeys.SetupFinishDescription)</MudText>
 
+                    @if (_isEvaluating)
+                    {
+                        <LoadingSpinnerComponent />
+                    }
+                    else if (_decision != null)
+                    {
+                        @if (_decision.NextAction != null && !_decision.IsConfigurationComplete)
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mt-4" ContentAlignment="HorizontalAlignment.Left">
+                                <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupNextActionHeading)</MudText>
+                                <MudText Typo="Typo.body2">@T(_decision.NextAction.DescriptionKey)</MudText>
+                            </MudAlert>
+                        }
+
+                        @if (_decision.Incompatibilities.Count > 0)
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mt-4" ContentAlignment="HorizontalAlignment.Left">
+                                <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupIncompatibilitiesHeading)</MudText>
+                                <ul class="mb-0">
+                                    @foreach (var issue in _decision.Incompatibilities)
+                                    {
+                                        <li>@T(issue.MessageKey)</li>
+                                    }
+                                </ul>
+                            </MudAlert>
+                        }
+
+                        @if (_decision.MissingInformation.Count > 0)
+                        {
+                            <MudAlert Severity="Severity.Warning" Class="mt-4" ContentAlignment="HorizontalAlignment.Left">
+                                <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupMissingInformationHeading)</MudText>
+                                <ul class="mb-0">
+                                    @foreach (var issue in _decision.MissingInformation)
+                                    {
+                                        <li>@T(issue.MessageKey)</li>
+                                    }
+                                </ul>
+                                <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupConfigurationIncompleteInfo)</MudText>
+                            </MudAlert>
+                        }
+
+                        @if (_decision.ProposedValues.Count > 0)
+                        {
+                            <div class="mt-4 p-4 rounded border">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: bold" GutterBottom="true">@T(TranslationKeys.SetupProposalsHeading)</MudText>
+                                @foreach (var proposal in _decision.ProposedValues)
+                                {
+                                    <div class="d-flex align-start" style="gap: 8px;">
+                                        <MudCheckBox T="bool"
+                                                     Value="@(!_declinedProposals.Contains(ProposalId(proposal)))"
+                                                     ValueChanged="@(accepted => ToggleProposal(proposal, accepted))"
+                                                     Color="Color.Primary"
+                                                     Dense="true" />
+                                        <div>
+                                            <MudText Typo="Typo.body2">@T(proposal.ReasonKey)</MudText>
+                                            @if (proposal.IsPending)
+                                            {
+                                                <MudText Typo="Typo.caption">
+                                                    @T(TranslationKeys.SetupProposalPendingPrefix)
+                                                    @string.Join(" ", proposal.PendingReasons.Select(r => T(r.MessageKey)))
+                                                </MudText>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+
                     <MudAlert Severity="Severity.Success" Class="mt-8">
-                        @T(TranslationKeys.SetupSuccessInfo)
+                        @T(TranslationKeys.SetupEnableExplanation)
                     </MudAlert>
+
+                    <div class="mt-4">
+                        <MudButton Variant="Variant.Outlined"
+                                   OnClick="SaveWithoutEnabling"
+                                   Disabled="_isSaving">
+                            @T(TranslationKeys.SetupSaveWithoutEnablingButton)
+                        </MudButton>
+                        <MudText Typo="Typo.caption" Class="mt-1">@T(TranslationKeys.SetupSaveWithoutEnablingHint)</MudText>
+                    </div>
                 </MudStep>
             </ChildContent>
             <ActionContent>
@@ -217,6 +296,7 @@
                         <MudButton Color="Color.Primary"
                                    Variant="Variant.Filled"
                                    EndIcon="@Icons.Material.Filled.Check"
+                                   Disabled="_isSaving"
                                    OnClick="FinishSetup">
                             @T(TranslationKeys.SetupFinishButton)
                         </MudButton>
@@ -226,7 +306,7 @@
                         <MudButton Color="Color.Primary"
                                    Variant="Variant.Filled"
                                    EndIcon="@Icons.Material.Filled.ArrowForward"
-                                   Disabled="@(_activeStepIndex == CloudConnectionStepIndex && !CloudStepFulfilled)"
+                                   Disabled="@(CurrentStepKey == SetupStepKey.CloudConnection && !CloudStepFulfilled)"
                                    OnClick="@(() => context.NextStepAsync())">
                             @T(TranslationKeys.GeneralNext)
                         </MudButton>
@@ -238,12 +318,31 @@
 </MudContainer>
 
 @code {
+    /// <summary>
+    /// The stepper's steps in the order they are declared above. The persisted state stores the stable key, so a
+    /// step can be inserted or reordered here without sending a returning user to the wrong screen.
+    /// </summary>
+    private static readonly SetupStepKey[] StepOrder =
+    [
+        SetupStepKey.Welcome,
+        SetupStepKey.CloudConnection,
+        SetupStepKey.SolarAndBattery,
+        SetupStepKey.Location,
+        SetupStepKey.Prices,
+        SetupStepKey.CarsAndCharging,
+        SetupStepKey.Finish,
+    ];
+
+    private DtoSetupState? _setupState;
+    private DtoSetupDecision? _decision;
+
+    // Wraps the very object held by the setup state, so every edit made through the inputs below is already part of
+    // what gets persisted; no copying back and forth.
     private EditableItem<DtoBaseConfiguration>? _dtoBaseConfiguration;
     private EditableItem<DtoChargePrice>? _chargePrice;
     private List<FixedPrice> _fixedPrices = new();
     private List<DtoChargingStation>? _chargingStations;
     private Dictionary<int, int> _connectorCounts = new();
-    private DtoCarsChargingSetupAnswers _setupAnswers = new();
 
     private MudStepper? _stepper;
     private ChargingStationDeletionOverlay? _stationDeletionOverlay;
@@ -254,7 +353,12 @@
     private bool _cloudConnected;
     private bool _baseAppLicensed;
     private bool _isRecheckingLicense;
-    // Bound to the stepper's ActiveIndex, so a value restored from the setup cache is applied as soon as the
+    private bool _isEvaluating;
+    private bool _isSaving;
+    // Proposals the user unticked. Everything the decision service proposes is accepted unless it appears here, so
+    // a newly proposed setting is opt-out rather than something to hunt for.
+    private readonly HashSet<string> _declinedProposals = new();
+    // Bound to the stepper's ActiveIndex, so a step restored from the persisted state is applied as soon as the
     // stepper initializes. The stepper clamps it to the actual step count itself.
     private int _activeStepIndex;
     // Steps completed before a reload. Applied to the stepper once after it is rendered (see OnAfterRenderAsync).
@@ -262,55 +366,26 @@
     private bool _completedStepsApplied;
     private CancellationTokenSource? _stationRefreshCts;
 
-    // Index of the cloud connection step in the stepper. Used to gate the Next button on that step.
-    private const int CloudConnectionStepIndex = 1;
-    // Index of the merged "Cars & charging" step. The station list is only polled while this step is active so we
-    // do not hammer the server (one request per station every few seconds) for the whole setup session.
-    private const int CarsAndChargingStepIndex = 5;
+    private SetupStepKey CurrentStepKey => StepKeyForIndex(_activeStepIndex);
 
     protected override async Task OnInitializedAsync()
     {
-        var cachedData = await SetupService.GetSetupCache();
+        // The server seeds a fresh state from what is already configured, so an existing installation starts from
+        // its real settings instead of from defaults.
+        _setupState = await SetupService.GetOrCreateSetupState() ?? new DtoSetupState();
+        _dtoBaseConfiguration = new(_setupState.Configuration);
 
-        if (cachedData != null)
+        _activeStepIndex = IndexForStepKey(_setupState.CurrentStep);
+        _completedStepIndexes = _setupState.CompletedSteps.Select(IndexForStepKey).Where(i => i >= 0).ToList();
+
+        await InitializeEquipmentAnswers();
+
+        if (_setupState.ChargePrice != null)
         {
-            _dtoBaseConfiguration = new(cachedData.Configuration);
-            _hasPvSystem = cachedData.HasPvSystem;
-            _hasHomeBattery = cachedData.HasHomeBattery;
-            _activeStepIndex = cachedData.CurrentStep;
-            _completedStepIndexes = cachedData.CompletedSteps;
-            _setupAnswers = cachedData.CarsChargingSetup;
-
-            // Restore the in-progress charge price from the cache so edits survive a reload. The price is only
-            // persisted to the server on Finish, so without this the prices step would reset to defaults.
-            if (cachedData.ChargePrice != null)
-            {
-                _chargePrice = new(cachedData.ChargePrice);
-                _fixedPrices = cachedData.FixedPrices;
-            }
+            _chargePrice = new(_setupState.ChargePrice);
+            _fixedPrices = _setupState.FixedPrices;
         }
         else
-        {
-            var response = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
-            if (response != default)
-            {
-                _dtoBaseConfiguration = new(response);
-
-                var templates = await TemplateService.GetOverviews();
-                _hasPvSystem = response.PredictSolarPowerGeneration ||
-                               !string.IsNullOrEmpty(response.CurrentPowerToGridUrl) ||
-                               !string.IsNullOrEmpty(response.CurrentPowerToGridMqttTopic) ||
-                               response.IsModbusGridUrl ||
-                               (templates != null && templates.Any());
-
-                _hasHomeBattery = response.HomeBatteryUsableEnergy > 0 ||
-                                 !string.IsNullOrEmpty(response.HomeBatteryPowerUrl) ||
-                                 !string.IsNullOrEmpty(response.HomeBatteryPowerMqttTopic);
-            }
-        }
-
-        // Only load the price from the server when it was not already restored from the cache above.
-        if (_chargePrice == null)
         {
             await LoadChargePrice();
         }
@@ -320,15 +395,61 @@
         _cloudConnected = await CloudConnectionCheckService.GetBackendTokenState(true) == TokenState.UpToDate;
         _baseAppLicensed = _cloudConnected && await CloudConnectionCheckService.IsBaseAppLicensed(true);
 
+        // Someone who left on the review step comes back to it, so the review has to be there without them
+        // navigating away and back first.
+        if (CurrentStepKey == SetupStepKey.Finish)
+        {
+            await EvaluateSetup();
+        }
+
         _stationRefreshCts = new CancellationTokenSource();
         _ = RefreshStationsLoop(_stationRefreshCts.Token);
+    }
+
+    /// <summary>
+    /// Fills the solar and battery switches. An answer already stored wins; otherwise it is derived from what the
+    /// installation has configured, which is a better starting point than a blank form.
+    /// </summary>
+    private async Task InitializeEquipmentAnswers()
+    {
+        if (_setupState == null)
+        {
+            return;
+        }
+
+        if (_setupState.HasPvSystem != null)
+        {
+            _hasPvSystem = _setupState.HasPvSystem.Value;
+        }
+        else
+        {
+            var configuration = _setupState.Configuration;
+            var templates = await TemplateService.GetOverviews();
+            _hasPvSystem = configuration.PredictSolarPowerGeneration
+                           || !string.IsNullOrEmpty(configuration.CurrentPowerToGridUrl)
+                           || !string.IsNullOrEmpty(configuration.CurrentPowerToGridMqttTopic)
+                           || configuration.IsModbusGridUrl
+                           || (templates != null && templates.Any());
+        }
+
+        if (_setupState.HasHomeBattery != null)
+        {
+            _hasHomeBattery = _setupState.HasHomeBattery.Value;
+        }
+        else
+        {
+            var configuration = _setupState.Configuration;
+            _hasHomeBattery = configuration.HomeBatteryUsableEnergy > 0
+                              || !string.IsNullOrEmpty(configuration.HomeBatteryPowerUrl)
+                              || !string.IsNullOrEmpty(configuration.HomeBatteryPowerMqttTopic);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Not gated on firstRender: OnInitializedAsync is async, so the first render shows the loading spinner
         // and the stepper (with its @ref) only exists on a later render. Apply the completed ticks restored from
-        // the cache as soon as the stepper is available; _completedStepsApplied ensures this happens exactly once.
+        // the state as soon as the stepper is available; _completedStepsApplied ensures this happens exactly once.
         if (_completedStepsApplied || _stepper == null)
         {
             return;
@@ -364,7 +485,7 @@
         // until the instance is connected and has a base license. Completing or skipping a step moves to the
         // step after it, while activating (header click) moves to the step itself.
         var targetStepIndex = args.Action == StepAction.Activate ? args.StepIndex : args.StepIndex + 1;
-        if (!CloudStepFulfilled && targetStepIndex > CloudConnectionStepIndex)
+        if (!CloudStepFulfilled && targetStepIndex > IndexForStepKey(SetupStepKey.CloudConnection))
         {
             args.Cancel = true;
             var notificationKey = _cloudConnected
@@ -374,6 +495,49 @@
         }
 
         return Task.CompletedTask;
+    }
+
+    private async Task OnHasPvSystemChanged(bool value)
+    {
+        _hasPvSystem = value;
+        await PersistSetupState();
+    }
+
+    private async Task OnHasHomeBatteryChanged(bool value)
+    {
+        _hasHomeBattery = value;
+        await PersistSetupState();
+    }
+
+    private async Task OnDynamicHomeBatteryMinSocChanged(bool? value)
+    {
+        // Deciding this by hand is an explicit choice and must survive the automatic proposal.
+        MarkAsUserEntered(nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc));
+        StateHasChanged();
+        await PersistSetupState();
+    }
+
+    private async Task OnHomeLatitudeChanged(double latitude)
+    {
+        if (_dtoBaseConfiguration == null) return;
+        _dtoBaseConfiguration.Item.HomeGeofenceLatitude = latitude;
+        // Picking a spot on the map is what turns the preset coordinates into a confirmed address.
+        MarkAsUserEntered(nameof(BaseConfigurationBase.HomeGeofenceLatitude));
+        await PersistSetupState();
+    }
+
+    private async Task OnHomeLongitudeChanged(double longitude)
+    {
+        if (_dtoBaseConfiguration == null) return;
+        _dtoBaseConfiguration.Item.HomeGeofenceLongitude = longitude;
+        MarkAsUserEntered(nameof(BaseConfigurationBase.HomeGeofenceLongitude));
+        await PersistSetupState();
+    }
+
+    private void MarkAsUserEntered(string propertyName)
+    {
+        if (_setupState == null) return;
+        _setupState.ValueSources[propertyName] = SetupValueSource.UserEntered;
     }
 
     private async Task EditStation(DtoChargingStation station)
@@ -443,7 +607,7 @@
             {
                 // Only poll while the user is on the cars & charging step; on every other step the station
                 // list is not shown, so refreshing it just wastes requests and re-renders.
-                if (_activeStepIndex == CarsAndChargingStepIndex)
+                if (CurrentStepKey == SetupStepKey.CarsAndCharging)
                 {
                     await RefreshStationData();
                     await InvokeAsync(StateHasChanged);
@@ -477,73 +641,175 @@
 
         // Load the station list right away when entering the cars & charging step instead of waiting for the
         // next poll tick.
-        if (stepIndex == CarsAndChargingStepIndex)
+        if (CurrentStepKey == SetupStepKey.CarsAndCharging)
         {
             await RefreshStationData();
         }
 
-        if (_dtoBaseConfiguration == null) return;
-
-        // Reflect the new step in the action bar immediately, without waiting for the cache update.
+        // Reflect the new step in the action bar immediately, without waiting for the save.
         StateHasChanged();
 
-        await SetupService.UpdateSetupCache(BuildSetupCache(stepIndex));
+        await PersistSetupState();
+
+        if (CurrentStepKey == SetupStepKey.Finish)
+        {
+            await EvaluateSetup();
+        }
     }
 
-    // Persists the latest cars & charging answers as the user changes them, so the tailored plan survives a
-    // reload like the other setup fields. Keeps the current step unchanged.
-    private async Task PersistSetupAnswers()
+    /// <summary>
+    /// Asks the server what applies, what is missing and what it would configure on its own. Only done on the
+    /// review step, where the answer is actually shown.
+    /// </summary>
+    private async Task EvaluateSetup()
     {
-        if (_dtoBaseConfiguration == null) return;
-        await SetupService.UpdateSetupCache(BuildSetupCache(_activeStepIndex));
+        if (_setupState == null) return;
+        _isEvaluating = true;
+        StateHasChanged();
+        _decision = await SetupService.EvaluateSetupState(_setupState);
+        _isEvaluating = false;
     }
 
-    private DtoSetupCache BuildSetupCache(int stepIndex) => new()
+    private void ToggleProposal(DtoSetupProposedValue proposal, bool isAccepted)
     {
-        CurrentStep = stepIndex,
-        CompletedSteps = GetCompletedStepIndexes(),
-        HasPvSystem = _hasPvSystem,
-        HasHomeBattery = _hasHomeBattery,
-        Configuration = _dtoBaseConfiguration!.Item,
-        // Snapshot the in-progress price too, so navigating between steps and reloading keeps the edits.
-        ChargePrice = _chargePrice?.Item,
-        FixedPrices = _fixedPrices,
-        CarsChargingSetup = _setupAnswers,
-    };
+        if (isAccepted)
+        {
+            _declinedProposals.Remove(ProposalId(proposal));
+            return;
+        }
 
-    private List<int> GetCompletedStepIndexes()
+        _declinedProposals.Add(ProposalId(proposal));
+    }
+
+    private static string ProposalId(DtoSetupProposedValue proposal) => $"{proposal.DraftId}|{proposal.PropertyName}";
+
+    /// <summary>
+    /// Writes the current answers to the server. Called on every meaningful change, so an interruption - a reload,
+    /// an account authorization that navigates away - never costs the user their answers.
+    /// </summary>
+    private async Task PersistSetupState()
     {
-        if (_stepper == null) return new();
+        if (_setupState == null) return;
+
+        _setupState.CurrentStep = CurrentStepKey;
+        _setupState.CompletedSteps = GetCompletedStepKeys();
+        // Only recorded once the user has actually seen the question, so an unanswered question stays unanswered
+        // rather than being silently answered with whatever the switch happened to show.
+        if (_setupState.CurrentStep == SetupStepKey.SolarAndBattery || _setupState.IsStepCompleted(SetupStepKey.SolarAndBattery))
+        {
+            _setupState.HasPvSystem = _hasPvSystem;
+            _setupState.HasHomeBattery = _hasHomeBattery;
+        }
+        _setupState.ChargePrice = _chargePrice?.Item;
+        _setupState.FixedPrices = _fixedPrices;
+
+        await SetupService.UpdateSetupState(_setupState);
+    }
+
+    private List<SetupStepKey> GetCompletedStepKeys()
+    {
+        if (_stepper == null) return _setupState?.CompletedSteps ?? new List<SetupStepKey>();
 
         return _stepper.Steps
             .Select((step, index) => (step.Completed, index))
             .Where(x => x.Completed)
-            .Select(x => x.index)
+            .Select(x => StepKeyForIndex(x.index))
+            .Where(k => k != SetupStepKey.Unknown)
             .ToList();
+    }
+
+    private static SetupStepKey StepKeyForIndex(int index) =>
+        index >= 0 && index < StepOrder.Length ? StepOrder[index] : SetupStepKey.Unknown;
+
+    private static int IndexForStepKey(SetupStepKey key)
+    {
+        var index = Array.IndexOf(StepOrder, key);
+        // A key this build does not know must not leave the user on a step that is not there.
+        return index < 0 ? 0 : index;
+    }
+
+    /// <summary>
+    /// Saves everything without switching anything on. The state is deliberately kept, so the user can come back
+    /// and enable charging when they are ready.
+    /// </summary>
+    private async Task SaveWithoutEnabling()
+    {
+        if (_setupState == null) return;
+        _isSaving = true;
+        try
+        {
+            await AcceptSelectedProposals();
+            var result = await SetupService.ApplyConfiguration(_setupState);
+            if (result == null || !result.IsSuccess)
+            {
+                ReportFailedOperations(result);
+                return;
+            }
+
+            Snackbar.Add(T(TranslationKeys.SetupSavedWithoutEnablingNotification), Severity.Success);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
     private async Task FinishSetup()
     {
-        if (_dtoBaseConfiguration == null || _chargePrice == null) return;
-
-        _dtoBaseConfiguration.Item.IsFirstRun = false;
-
-        var baseConfigResult = await HttpClientHelper.SendPostRequestAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration.Item);
-        if (baseConfigResult.HasError)
+        if (_setupState == null) return;
+        _isSaving = true;
+        try
         {
-            Snackbar.Add(baseConfigResult.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
+            await AcceptSelectedProposals();
+            var result = await SetupService.ActivateAndCompleteSetup(_setupState);
+            if (result is not { IsSetupCompleted: true })
+            {
+                // Setup is only over when the server says every required save succeeded. Until then the answers
+                // stay and the user can try again.
+                ReportFailedOperations(result);
+                return;
+            }
+
+            _stationRefreshCts?.Cancel();
+            Snackbar.Add(T(TranslationKeys.SetupSuccessNotification), Severity.Success);
+            NavigationManager.NavigateTo("/", true);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task AcceptSelectedProposals()
+    {
+        if (_setupState == null || _decision == null)
+        {
             return;
         }
 
-        // Save the charge price directly via the service. The ChargePriceEditComponent only
-        // exists while the prices step is the active step, so we must not depend on its @ref here.
-        _chargePrice.Item.EnergyProviderConfiguration = JsonConvert.SerializeObject(_fixedPrices);
-        await ChargePriceService.UpdateChargePrice(_chargePrice.Item);
+        var accepted = _decision.ProposedValues
+            .Where(p => !_declinedProposals.Contains(ProposalId(p)))
+            .ToList();
+        if (accepted.Count == 0)
+        {
+            return;
+        }
 
-        await SetupService.DeleteSetupCache();
-        _stationRefreshCts?.Cancel();
-        Snackbar.Add(T(TranslationKeys.SetupSuccessNotification), Severity.Success);
-        NavigationManager.NavigateTo("/", true);
+        var updatedState = await SetupService.AcceptProposals(_setupState, accepted);
+        if (updatedState != null)
+        {
+            _setupState = updatedState;
+            _dtoBaseConfiguration = new(_setupState.Configuration);
+        }
+    }
+
+    private void ReportFailedOperations(DtoSetupApplicationResult? result)
+    {
+        Snackbar.Add(T(TranslationKeys.SetupPartialSaveFailure), Severity.Error);
+        foreach (var failedOperation in result?.FailedOperations ?? Enumerable.Empty<DtoSetupOperationResult>())
+        {
+            Snackbar.Add($"{failedOperation.OperationKey}: {failedOperation.ErrorMessage}", Severity.Error);
+        }
     }
 
     private string T(string key) =>

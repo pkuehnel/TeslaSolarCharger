@@ -157,5 +157,198 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
         Register(TranslationKeys.SetupSuccessNotification,
             new TextLocalizationTranslation(LanguageCodes.English, "Setup completed successfully!"),
             new TextLocalizationTranslation(LanguageCodes.German, "Einrichtung erfolgreich abgeschlossen!"));
+
+        RegisterDecisionTexts();
+    }
+
+    /// <summary>
+    /// Texts the setup decision service refers to by key. They say what is still missing or why something was
+    /// decided automatically, without naming internal settings.
+    /// </summary>
+    private void RegisterDecisionTexts()
+    {
+        Register(TranslationKeys.SetupIssuePvQuestionUnanswered,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tell us whether you have solar panels."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sagen Sie uns, ob Sie eine Photovoltaikanlage haben."));
+
+        Register(TranslationKeys.SetupIssueHomeBatteryQuestionUnanswered,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tell us whether you have a home battery."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sagen Sie uns, ob Sie einen Hausspeicher haben."));
+
+        Register(TranslationKeys.SetupIssueGridPowerSourceMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "We cannot read yet how much electricity you send to or take from the grid. Connect your inverter or meter."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir können noch nicht ablesen, wie viel Strom Sie ins Netz einspeisen oder daraus beziehen. Verbinden Sie Ihren Wechselrichter oder Zähler."));
+
+        Register(TranslationKeys.SetupIssueHomeBatterySourceMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "We cannot read your home battery's charge level and power yet. Connect the battery as a data source."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir können den Ladestand und die Leistung Ihres Hausspeichers noch nicht ablesen. Verbinden Sie den Speicher als Datenquelle."));
+
+        Register(TranslationKeys.SetupIssueHomeBatteryCapacityUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "We need your home battery's usable capacity in kWh. You will find it in the battery's data sheet or app."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir benötigen die nutzbare Kapazität Ihres Hausspeichers in kWh. Sie finden sie im Datenblatt oder in der App des Speichers."));
+
+        Register(TranslationKeys.SetupIssueHomeBatteryChargingPowerUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "We need the power in watts your home battery can charge with. You will find it in the battery's data sheet or app."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir benötigen die Leistung in Watt, mit der Ihr Hausspeicher laden kann. Sie finden sie im Datenblatt oder in der App des Speichers."));
+
+        Register(TranslationKeys.SetupIssueHomeLocationNotConfirmed,
+            new TextLocalizationTranslation(LanguageCodes.English, "Confirm where your cars charge. The preset location on the map is only an example, not your address."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bestätigen Sie, wo Ihre Autos laden. Der voreingestellte Ort auf der Karte ist nur ein Beispiel, nicht Ihre Adresse."));
+
+        Register(TranslationKeys.SetupIssueGridPriceMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Enter what you pay for a kilowatt hour of electricity."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie an, was Sie für eine Kilowattstunde Strom bezahlen."));
+
+        Register(TranslationKeys.SetupIssueCloudConnectionMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Sign in with your Solar4Car account."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Melden Sie sich mit Ihrem Solar4Car-Konto an."));
+
+        Register(TranslationKeys.SetupIssueBaseAppLicenseMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Your Solar4Car account still needs the base licence."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihrem Solar4Car-Konto fehlt noch die Basis-Lizenz."));
+
+        Register(TranslationKeys.SetupIssueNoEquipmentConfigured,
+            new TextLocalizationTranslation(LanguageCodes.English, "Add a car or a charging station, or choose to add your equipment later."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fügen Sie ein Auto oder eine Ladestation hinzu, oder ergänzen Sie Ihre Geräte später."));
+
+        Register(TranslationKeys.SetupIssueCarConnectionRouteUndecided,
+            new TextLocalizationTranslation(LanguageCodes.English, "Choose how this car should be controlled."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wählen Sie, wie dieses Auto gesteuert werden soll."));
+
+        Register(TranslationKeys.SetupIssueCarNameMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Give this car a name so you can tell it apart from your other cars."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie diesem Auto einen Namen, damit Sie es von Ihren anderen Autos unterscheiden können."));
+
+        Register(TranslationKeys.SetupIssueCarVinMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "We need this car's vehicle identification number. You will find it in the car's app or on the windscreen."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir benötigen die Fahrgestellnummer dieses Autos. Sie finden sie in der App des Autos oder an der Windschutzscheibe."));
+
+        Register(TranslationKeys.SetupIssueCarUsableEnergyUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "We need this car's usable battery capacity in kWh to plan charging. You will find it in the car's data sheet."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir benötigen die nutzbare Akkukapazität dieses Autos in kWh, um das Laden zu planen. Sie finden sie im Datenblatt des Autos."));
+
+        Register(TranslationKeys.SetupIssueCarMaximumPhasesUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tell us whether this car charges on one or on three phases."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sagen Sie uns, ob dieses Auto einphasig oder dreiphasig lädt."));
+
+        Register(TranslationKeys.SetupIssueCarCurrentLimitsInvalid,
+            new TextLocalizationTranslation(LanguageCodes.English, "This car's highest charging current must not be below its lowest charging current."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der höchste Ladestrom dieses Autos darf nicht unter seinem niedrigsten Ladestrom liegen."));
+
+        Register(TranslationKeys.SetupIssueCarBleApiUrlMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tell us how to reach the Bluetooth device that sits near this car."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sagen Sie uns, wie das Bluetooth-Gerät in der Nähe dieses Autos erreichbar ist."));
+
+        Register(TranslationKeys.SetupIssueTeslaAccountNotConnected,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect your Tesla account so we can control this car over the internet."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie Ihr Tesla-Konto, damit wir dieses Auto über das Internet steuern können."));
+
+        Register(TranslationKeys.SetupIssueTeslaMateConflictsWithFleetTelemetry,
+            new TextLocalizationTranslation(LanguageCodes.English, "TeslaMate is selected as the source of your car data, so this car cannot stream its data to us as well. Pick one of the two."),
+            new TextLocalizationTranslation(LanguageCodes.German, "TeslaMate ist als Quelle Ihrer Fahrzeugdaten ausgewählt, daher kann dieses Auto seine Daten nicht zusätzlich an uns senden. Entscheiden Sie sich für eine der beiden Quellen."));
+
+        Register(TranslationKeys.SetupIssueChargingStationNotConnected,
+            new TextLocalizationTranslation(LanguageCodes.English, "Your charging station has not reported in yet. Enter the connection address in its settings and wait for it to appear here."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihre Ladestation hat sich noch nicht gemeldet. Tragen Sie die Verbindungsadresse in ihren Einstellungen ein und warten Sie, bis sie hier erscheint."));
+
+        Register(TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
+            new TextLocalizationTranslation(LanguageCodes.English, "We keep just enough charge in your home battery for the evening and let your car use the rest."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir halten genau so viel Ladung im Hausspeicher zurück, wie Sie abends brauchen, und überlassen den Rest Ihrem Auto."));
+
+        Register(TranslationKeys.SetupReasonPredictSolarPowerGeneration,
+            new TextLocalizationTranslation(LanguageCodes.English, "We forecast tomorrow's solar power for your location so charging can be planned ahead."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir sagen den Solarertrag an Ihrem Standort voraus, damit das Laden vorausschauend geplant werden kann."));
+
+        Register(TranslationKeys.SetupReasonUsePredictedSolarForSchedules,
+            new TextLocalizationTranslation(LanguageCodes.English, "We use that forecast when planning when your car charges."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir nutzen diese Vorhersage bei der Planung, wann Ihr Auto lädt."));
+
+        Register(TranslationKeys.SetupReasonShowEnergyDataOnHome,
+            new TextLocalizationTranslation(LanguageCodes.English, "We show your energy figures on the start page because we can measure them."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir zeigen Ihre Energiewerte auf der Startseite an, weil wir sie messen können."));
+
+        Register(TranslationKeys.SetupReasonGetVehicleDataViaBle,
+            new TextLocalizationTranslation(LanguageCodes.English, "At least one car is set up over Bluetooth, so we read battery levels over Bluetooth too."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mindestens ein Auto ist über Bluetooth eingerichtet, daher lesen wir auch den Ladestand über Bluetooth."));
+
+        Register(TranslationKeys.SetupReasonCarHomeDetectionViaBlePresence,
+            new TextLocalizationTranslation(LanguageCodes.English, "We notice this car is home when the Bluetooth device near your parking space can hear it."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir erkennen, dass dieses Auto zu Hause ist, wenn das Bluetooth-Gerät an Ihrem Stellplatz es hört."));
+
+        Register(TranslationKeys.SetupReasonCarChargingPriority,
+            new TextLocalizationTranslation(LanguageCodes.English, "With a single car there is nothing to prioritise, so we set the order for you."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bei einem einzigen Auto gibt es nichts zu priorisieren, daher legen wir die Reihenfolge für Sie fest."));
+
+        Register(TranslationKeys.SetupNextActionConnectCloud,
+            new TextLocalizationTranslation(LanguageCodes.English, "Sign in with your Solar4Car account"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit Solar4Car-Konto anmelden"));
+
+        Register(TranslationKeys.SetupNextActionDescribeSolarAndBattery,
+            new TextLocalizationTranslation(LanguageCodes.English, "Tell us about your solar panels and home battery"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Erzählen Sie uns von Ihrer Photovoltaikanlage und Ihrem Hausspeicher"));
+
+        Register(TranslationKeys.SetupNextActionConfirmLocation,
+            new TextLocalizationTranslation(LanguageCodes.English, "Confirm where your cars charge"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bestätigen Sie, wo Ihre Autos laden"));
+
+        Register(TranslationKeys.SetupNextActionEnterPrices,
+            new TextLocalizationTranslation(LanguageCodes.English, "Enter your electricity price"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Geben Sie Ihren Strompreis ein"));
+
+        Register(TranslationKeys.SetupNextActionAddEquipment,
+            new TextLocalizationTranslation(LanguageCodes.English, "Add your cars and charging stations"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fügen Sie Ihre Autos und Ladestationen hinzu"));
+
+        Register(TranslationKeys.SetupNextActionCompleteCar,
+            new TextLocalizationTranslation(LanguageCodes.English, "Finish setting up this car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Schließen Sie die Einrichtung dieses Autos ab"));
+
+        Register(TranslationKeys.SetupNextActionFinish,
+            new TextLocalizationTranslation(LanguageCodes.English, "Review your setup and finish"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Prüfen Sie Ihre Einrichtung und schließen Sie ab"));
+
+        Register(TranslationKeys.SetupProposalsHeading,
+            new TextLocalizationTranslation(LanguageCodes.English, "We will manage these settings automatically"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Diese Einstellungen übernehmen wir automatisch"));
+
+        Register(TranslationKeys.SetupProposalPendingPrefix,
+            new TextLocalizationTranslation(LanguageCodes.English, "Waiting for:"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wartet auf:"));
+
+        Register(TranslationKeys.SetupMissingInformationHeading,
+            new TextLocalizationTranslation(LanguageCodes.English, "Still missing"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Noch offen"));
+
+        Register(TranslationKeys.SetupIncompatibilitiesHeading,
+            new TextLocalizationTranslation(LanguageCodes.English, "These choices contradict each other"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Diese Angaben widersprechen sich"));
+
+        Register(TranslationKeys.SetupNextActionHeading,
+            new TextLocalizationTranslation(LanguageCodes.English, "Next step"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nächster Schritt"));
+
+        Register(TranslationKeys.SetupSaveWithoutEnablingButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Save and enable later"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Speichern und später aktivieren"));
+
+        Register(TranslationKeys.SetupSaveWithoutEnablingHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Keeps everything you entered and changes nothing about how your cars charge today."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Behält alle Ihre Eingaben und ändert nichts daran, wie Ihre Autos heute laden."));
+
+        Register(TranslationKeys.SetupEnableExplanation,
+            new TextLocalizationTranslation(LanguageCodes.English, "Finishing lets TeslaSolarCharger control charging as soon as the conditions you set are met."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit dem Abschließen darf TeslaSolarCharger das Laden steuern, sobald die von Ihnen gesetzten Bedingungen erfüllt sind."));
+
+        Register(TranslationKeys.SetupSavedWithoutEnablingNotification,
+            new TextLocalizationTranslation(LanguageCodes.English, "Saved. Nothing has been switched on yet - come back here when you are ready."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gespeichert. Es wurde noch nichts aktiviert – kommen Sie zurück, wenn Sie so weit sind."));
+
+        Register(TranslationKeys.SetupPartialSaveFailure,
+            new TextLocalizationTranslation(LanguageCodes.English, "Not everything could be saved. Your answers were kept, so you can try again."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Es konnte nicht alles gespeichert werden. Ihre Angaben bleiben erhalten, Sie können es erneut versuchen."));
+
+        Register(TranslationKeys.SetupConfigurationIncompleteInfo,
+            new TextLocalizationTranslation(LanguageCodes.English, "You can finish anyway. Anything still missing is listed above and can be completed later."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie können trotzdem abschließen. Was noch fehlt, steht oben und lässt sich später ergänzen."));
     }
 }

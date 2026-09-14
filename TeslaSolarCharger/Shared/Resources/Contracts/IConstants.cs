@@ -46,6 +46,7 @@ public interface IConstants
     string IsBaseAppLicensedKey { get; }
     string IsFleetApiLicensedKey { get; }
     string SetupCacheKey { get; }
+    string DeferredSetupChecksKey { get; }
     int FleetTelemetryReconfigurationBufferHours { get; }
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervallHours { get; }
