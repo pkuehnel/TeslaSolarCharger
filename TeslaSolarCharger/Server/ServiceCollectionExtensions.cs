@@ -255,9 +255,18 @@ public static class ServiceCollectionExtensions
         });
         //Per call timeouts are set via CancellationTokenSource, this is only a backstop.
         services.AddHttpClient(StaticConstants.HttpClientNameBle, client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(120);
-        });
+            {
+                client.Timeout = TimeSpan.FromSeconds(120);
+            })
+            //A BLE container that dropped off the network - a Raspberry Pi whose WiFi de-associated is the usual case -
+            //answers no SYN at all, and .NET waits for a connection without a limit by default. Every call to that
+            //container would then burn its full per call budget in the connection pool instead of failing while the
+            //next scheduled poll can still succeed. A handshake on a LAN takes milliseconds, so five seconds is
+            //generous even for a busy Raspberry Pi Zero.
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                ConnectTimeout = TimeSpan.FromSeconds(5),
+            });
         services.AddHttpClient();
         return services;
     }
