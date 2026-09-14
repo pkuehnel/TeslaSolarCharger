@@ -22,7 +22,7 @@
 	  <PackageReference Include="MQTTnet" Version="5.2.0.1603" />
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 	  <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
-	  <PackageReference Include="xunit.v3" Version="4.0.0" />
+	  <PackageReference Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>
