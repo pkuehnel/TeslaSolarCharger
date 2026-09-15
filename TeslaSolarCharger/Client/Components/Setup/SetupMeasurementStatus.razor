@@ -1,0 +1,118 @@
+@using System.Globalization
+@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.SharedModel.Enums
+
+@inject ITextLocalizationService TextLocalizer
+@inject IDateTimeProvider DateTimeProvider
+
+@* What we can actually read, in the units the user recognises and with the time it last arrived. A number with no
+   timestamp cannot be told apart from a number that stopped updating three days ago. *@
+<div class="p-3 rounded border @Class">
+    <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupMeasurementsTitle)</MudText>
+
+    @foreach (var usage in ExpectedUsages)
+    {
+        var reading = FindReading(usage);
+        <div class="d-flex align-center flex-wrap py-1" style="gap: 8px;">
+            <MudIcon Icon="@IconFor(reading)" Color="@ColorFor(reading)" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Style="font-weight: bold; min-width: 190px;">@T(NameKeyOf(usage))</MudText>
+            @if (reading == null)
+            {
+                <MudText Typo="Typo.body2">@T(TranslationKeys.SetupMeasurementNotConfigured)</MudText>
+            }
+            else if (reading.CalculatedValue == null)
+            {
+                <MudText Typo="Typo.body2">@T(TranslationKeys.SetupMeasurementWaitingForData)</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2">@DescribeValue(usage, reading.CalculatedValue.Value)</MudText>
+                <MudText Typo="Typo.caption">@DescribeAge(reading.LastRefreshed)</MudText>
+            }
+        </div>
+    }
+
+    @if (ExpectedUsages.Any(u => FindReading(u) == null))
+    {
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupMeasurementMissingHint)</MudText>
+    }
+</div>
+
+@code {
+    /// <summary>Every configured source, as the value configuration screens report them.</summary>
+    [Parameter, EditorRequired] public List<DtoValueConfigurationOverview> Configurations { get; set; } = new();
+
+    /// <summary>Which measurements this installation should have, given what the user said they own.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<ValueUsage> ExpectedUsages { get; set; } = Array.Empty<ValueUsage>();
+
+    [Parameter] public string? Class { get; set; }
+
+    private DtoOverviewValueResult? FindReading(ValueUsage usage) => Configurations
+        .SelectMany(c => c.Results)
+        .Where(r => r.UsedFor == usage)
+        //Several sources can supply the same measurement; the freshest one is the one being used.
+        .OrderByDescending(r => r.LastRefreshed)
+        .FirstOrDefault();
+
+    /// <summary>
+    /// Says what the number means rather than only showing it, because the sign carries the direction and a bare
+    /// "-1200 W" does not tell anyone whether that is electricity bought or sold.
+    /// </summary>
+    private string DescribeValue(ValueUsage usage, decimal value)
+    {
+        var rounded = Math.Round(value, 0);
+        var magnitude = Math.Abs(rounded).ToString("N0", CultureInfo.CurrentCulture);
+        return usage switch
+        {
+            ValueUsage.GridPower => rounded >= 0
+                ? Format(TranslationKeys.SetupMeasurementGridExportFormat, magnitude)
+                : Format(TranslationKeys.SetupMeasurementGridImportFormat, magnitude),
+            ValueUsage.HomeBatteryPower => rounded >= 0
+                ? Format(TranslationKeys.SetupMeasurementBatteryChargingFormat, magnitude)
+                : Format(TranslationKeys.SetupMeasurementBatteryDischargingFormat, magnitude),
+            ValueUsage.HomeBatterySoc => Format(TranslationKeys.SetupMeasurementBatterySocFormat, magnitude),
+            _ => Format(TranslationKeys.SetupMeasurementSolarFormat, magnitude),
+        };
+    }
+
+    private string DescribeAge(DateTimeOffset lastRefreshed)
+    {
+        var age = DateTimeProvider.DateTimeOffSetUtcNow() - lastRefreshed;
+        if (age < TimeSpan.FromMinutes(2))
+        {
+            return T(TranslationKeys.SetupMeasurementJustNow);
+        }
+
+        return age < TimeSpan.FromHours(1)
+            ? Format(TranslationKeys.SetupMeasurementMinutesAgoFormat, (int)age.TotalMinutes)
+            : Format(TranslationKeys.SetupMeasurementHoursAgoFormat, (int)age.TotalHours);
+    }
+
+    private string IconFor(DtoOverviewValueResult? reading) => reading?.CalculatedValue != null
+        ? Icons.Material.Filled.CheckCircle
+        : Icons.Material.Filled.HourglassEmpty;
+
+    private Color ColorFor(DtoOverviewValueResult? reading) => reading?.CalculatedValue != null
+        ? Color.Success
+        : Color.Warning;
+
+    private static string NameKeyOf(ValueUsage usage) => usage switch
+    {
+        ValueUsage.GridPower => TranslationKeys.SetupMeasurementGridName,
+        ValueUsage.InverterPower => TranslationKeys.SetupMeasurementSolarName,
+        ValueUsage.HomeBatterySoc => TranslationKeys.SetupMeasurementBatterySocName,
+        _ => TranslationKeys.SetupMeasurementBatteryPowerName,
+    };
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+}

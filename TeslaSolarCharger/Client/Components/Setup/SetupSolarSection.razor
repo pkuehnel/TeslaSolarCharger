@@ -1,16 +1,22 @@
-@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Rest
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Modbus
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Mqtt
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Dtos.Setup
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.SharedModel.Enums
+@using System.Net.Http.Json
 
 @inject ITextLocalizationService TextLocalizer
+@inject ITemplateValueConfigurationService TemplateValueConfigurationService
+@inject HttpClient HttpClient
+@inject ILogger<SetupSolarSection> Logger
 
 <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryTitle)</MudText>
 <MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
@@ -20,35 +26,60 @@
                Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
 </div>
 
-@if (HasPvSystem)
-{
-    <TemplateValueConfigurationComponent ShowHeading="false" />
+@* Asked on its own: a home battery is worth managing whether or not there are solar panels, so it must not
+   disappear from setup just because the answer above was no. *@
+<div class="mt-2">
+    <MudSwitch T="bool" Value="HasHomeBattery" ValueChanged="OnHasHomeBatteryChanged"
+               Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
+</div>
 
-    <MudExpansionPanels Class="mt-4">
-        <MudExpansionPanel Text="@T(TranslationKeys.SetupPvNotAvailableAsTemplate)">
+@if (HasPvSystem || HasHomeBattery)
+{
+    <MudDivider Class="my-4" />
+
+    <SetupEquipmentSourcePicker Configurations="_templateConfigurations"
+                                OnConfigurationsChanged="RefreshConfigurations" />
+
+    @* Reads from every kind of source, not only the ones picked by name: telling someone a measurement is missing
+       when they configured it by hand would send them to fix something that already works. *@
+    <SetupMeasurementStatus Configurations="_allConfigurations"
+                            ExpectedUsages="ExpectedUsages"
+                            Class="mt-4" />
+
+    @* The detailed editors stay where they were. This is the door to them, described by what the user is trying to
+       measure rather than by which protocol they will end up speaking. *@
+    <MudExpansionPanels Class="mt-4" Elevation="0">
+        <MudExpansionPanel Text="@T(TranslationKeys.SetupSourceAdvancedTitle)">
+            <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupSourceAdvancedIntro)</MudText>
             <RestValueConfigurationComponent />
             <ModbusValueConfigurationComponent />
             <MqttValueConfigurationComponent />
         </MudExpansionPanel>
     </MudExpansionPanels>
+}
 
+@if (HasPvSystem)
+{
     <div class="mt-4">
         <GenericInput For="() => Configuration.Item.PredictSolarPowerGeneration"
                       OnValueChanged="@((bool _) => OnExplicitChoice.InvokeAsync(nameof(BaseConfigurationBase.PredictSolarPowerGeneration)))"></GenericInput>
     </div>
 }
 
-@* Asked on its own: a home battery is worth managing whether or not there are solar panels, so it must not
-   disappear from setup just because the answer above was no. *@
-<div class="mt-8">
-    <MudSwitch T="bool" Value="HasHomeBattery" ValueChanged="OnHasHomeBatteryChanged"
-               Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
-</div>
-
 @if (HasHomeBattery)
 {
     <div class="mt-4 p-4 rounded border">
         <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupHomeBatteryFactsIntro)</MudText>
+
+        <GenericInput For="() => Configuration.Item.HomeBatteryUsableEnergy" />
+        <GenericInput For="() => Configuration.Item.HomeBatteryChargingPower" />
+        <GenericInput For="() => Configuration.Item.HomeBatteryDischargingPower" />
+
+        <MudDivider Class="my-3" />
+
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupHomeBatteryReserveTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupHomeBatteryReserveExplanation)</MudText>
         <div class="row">
             <div class="col-md-6">
                 <GenericInput T="bool?"
@@ -60,13 +91,35 @@
                               IsDisabledParameter="@(Configuration.Item.DynamicHomeBatteryMinSoc)" />
             </div>
         </div>
-        <GenericInput For="() => Configuration.Item.HomeBatteryUsableEnergy" />
-        <GenericInput For="() => Configuration.Item.HomeBatteryChargingPower" />
-        <GenericInput For="() => Configuration.Item.HomeBatteryDischargingPower" />
+
+        @if (Configuration.Item.DynamicHomeBatteryMinSoc == true && PendingReserveReasons.Count > 0)
+        {
+            @* The choice stays as the user left it and is reported as waiting, rather than being quietly turned
+               back into a fixed number behind their back. *@
+            <MudAlert Severity="Severity.Info" Class="mt-2" ContentAlignment="HorizontalAlignment.Left">
+                <MudText Typo="Typo.body2">@T(TranslationKeys.SetupHomeBatteryReservePending)</MudText>
+                <ul class="mb-0">
+                    @foreach (var reason in PendingReserveReasons)
+                    {
+                        <li>@T(reason.MessageKey)</li>
+                    }
+                </ul>
+            </MudAlert>
+        }
+
+        <MudDivider Class="my-3" />
+
+        @* Working out how much to keep back is not the same as telling the battery when to charge and when to
+           hold. The second one is a separate feature with its own settings, so it is named here rather than
+           silently folded into the reserve. *@
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupHomeBatteryControlTitle)</MudText>
+        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupHomeBatteryControlExplanation)</MudText>
+        <MudLink Href="/BaseConfiguration">@T(TranslationKeys.SetupHomeBatteryControlLink)</MudLink>
     </div>
 }
 
 @code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
     [Parameter, EditorRequired] public EditableItem<DtoBaseConfiguration> Configuration { get; set; } = default!;
     [Parameter] public bool HasPvSystem { get; set; }
     [Parameter] public bool HasHomeBattery { get; set; }
@@ -75,6 +128,95 @@
 
     /// <summary>Reports a setting the user decided by hand, so no proposal later replaces it.</summary>
     [Parameter] public EventCallback<string> OnExplicitChoice { get; set; }
+
+    /// <summary>The devices picked by name, which are the ones this screen offers to add and change.</summary>
+    private List<DtoValueConfigurationOverview> _templateConfigurations = new();
+
+    /// <summary>
+    /// Every configured source, including ones set up by hand through the advanced editors or on the detailed
+    /// configuration page. Used for the readings, because what can be read does not depend on how it was set up.
+    /// </summary>
+    private List<DtoValueConfigurationOverview> _allConfigurations = new();
+
+    /// <summary>
+    /// Only the measurements this installation should actually have. Asking about a battery reading in a house
+    /// without a battery would be a gap that can never be closed.
+    /// </summary>
+    private IReadOnlyList<ValueUsage> ExpectedUsages
+    {
+        get
+        {
+            var usages = new List<ValueUsage>();
+            if (HasPvSystem)
+            {
+                usages.Add(ValueUsage.GridPower);
+                usages.Add(ValueUsage.InverterPower);
+            }
+            else if (HasHomeBattery)
+            {
+                //Even without panels the grid reading is what tells us whether the house is importing.
+                usages.Add(ValueUsage.GridPower);
+            }
+
+            if (HasHomeBattery)
+            {
+                usages.Add(ValueUsage.HomeBatterySoc);
+                usages.Add(ValueUsage.HomeBatteryPower);
+            }
+
+            return usages;
+        }
+    }
+
+    /// <summary>What the automatic reserve is still waiting for, as the server reported it.</summary>
+    private List<DtoSetupIssue> PendingReserveReasons => Context.Decision?.ProposedValues
+        .FirstOrDefault(p => p.PropertyName == nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc))
+        ?.PendingReasons ?? new List<DtoSetupIssue>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshConfigurations();
+    }
+
+    private async Task RefreshConfigurations()
+    {
+        _templateConfigurations = await TemplateValueConfigurationService.GetOverviews() ?? new List<DtoValueConfigurationOverview>();
+
+        var everything = new List<DtoValueConfigurationOverview>(_templateConfigurations);
+        foreach (var address in OtherSourceOverviewAddresses)
+        {
+            everything.AddRange(await LoadOverviews(address));
+        }
+
+        _allConfigurations = everything;
+
+        //A newly connected device changes what is still missing, so ask the server again rather than leaving a
+        //stale warning on screen.
+        await Context.RefreshDecision();
+    }
+
+    /// <summary>The sources that are configured by hand rather than picked by name.</summary>
+    private static readonly string[] OtherSourceOverviewAddresses =
+    [
+        "api/RestValueConfiguration/GetRestValueConfigurations",
+        "api/ModbusValueConfiguration/GetModbusValueOverviews",
+        "api/MqttConfiguration/GetMqttValueOverviews",
+    ];
+
+    private async Task<List<DtoValueConfigurationOverview>> LoadOverviews(string address)
+    {
+        try
+        {
+            return await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>(address)
+                   ?? new List<DtoValueConfigurationOverview>();
+        }
+        catch (Exception exception)
+        {
+            //One source that cannot be listed must not blank out the readings from the others.
+            Logger.LogWarning(exception, "Could not list the value sources from {address}.", address);
+            return new List<DtoValueConfigurationOverview>();
+        }
+    }
 
     private async Task OnHasPvSystemChanged(bool value)
     {

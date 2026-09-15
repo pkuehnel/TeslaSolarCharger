@@ -160,6 +160,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
 
         RegisterDecisionTexts();
         RegisterGuidedFlowTexts();
+        RegisterSolarAndBatteryTexts();
+        RegisterPriceTexts();
     }
 
     /// <summary>

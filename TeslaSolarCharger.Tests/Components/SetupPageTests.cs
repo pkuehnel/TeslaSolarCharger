@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Bunit;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using MudBlazor;
 using MudBlazor.Services;
+using MudExtensions.Services;
 using TeslaSolarCharger.Client.Components.Setup;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
@@ -51,6 +53,7 @@ public class SetupPageTests : Bunit.TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
+        Services.AddMudExtensions();
         Services.AddSharedDependencies();
         Services.AddSingleton<IDateTimeProvider>(new FakeDateTimeProvider(new DateTime(2026, 9, 15, 8, 0, 0, DateTimeKind.Utc)));
 
@@ -89,6 +92,19 @@ public class SetupPageTests : Bunit.TestContext
         Services.AddSingleton(Mock.Of<IChargePriceService>());
         Services.AddSingleton(Mock.Of<IOAuthNotificationService>());
         Services.AddSingleton(Mock.Of<IJavaScriptWrapper>());
+        //The advanced value-source editors reach for a raw HttpClient while rendering. They are not what these
+        //tests are about, so they get an empty answer rather than a failure.
+        Services.AddSingleton(new HttpClient(new EmptyJsonHandler()) { BaseAddress = new Uri("http://localhost/"), });
+    }
+
+    /// <summary>Answers every request with an empty JSON list, so a component that lists things renders nothing.</summary>
+    private sealed class EmptyJsonHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("[]", System.Text.Encoding.UTF8, "application/json"),
+            });
     }
 
     private IRenderedComponent<Setup> RenderAt(string? section = null, Guid? draftId = null, string? stage = null) =>
@@ -300,6 +316,165 @@ public class SetupPageTests : Bunit.TestContext
         _setupService.Verify(s => s.ApplyConfiguration(It.IsAny<DtoSetupState>()), Times.Once);
         _setupService.Verify(s => s.ActivateAndCompleteSetup(It.IsAny<DtoSetupState>()), Times.Never);
         Assert.Empty(Services.GetRequiredService<BunitNavigationManager>().History);
+    }
+
+    [Fact]
+    public void TheSolarScreenAsksForTheEquipmentByName()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //Asked by the name on the box. The protocols still exist, but behind a door labelled by the problem the
+        //user has ("my device is not in the list") rather than by the protocol names themselves.
+        Assert.Contains("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("My device is not in the list", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AMeasurementNobodySuppliesIsNamedRatherThanLeftBlank()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("Electricity to and from the grid", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("No device supplies this yet", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AHouseWithoutABatteryIsNotAskedForBatteryReadings()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //A gap that can never be closed is not a gap worth showing.
+        Assert.DoesNotContain("Home battery level", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ABatteryWithoutSolarPanelsIsStillSetUp()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("Home battery level", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("How much to keep back", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WorkingOutTheReserveIsKeptApartFromCommandingTheBattery()
+    {
+        _storedState = new DtoSetupState { HasHomeBattery = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //Setup does not switch battery control on, and says so rather than leaving the user to assume either way.
+        Assert.Contains("Telling the battery when to charge", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("leaves that switched off", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheAutomaticReserveSaysWhatItIsWaitingFor()
+    {
+        _storedState = new DtoSetupState { HasHomeBattery = true, };
+        _storedState.Configuration.DynamicHomeBatteryMinSoc = true;
+        _decision = new DtoSetupDecision
+        {
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    IsPending = true,
+                    PendingReasons =
+                    {
+                        new DtoSetupIssue { MessageKey = TranslationKeys.SetupIssueHomeBatteryCapacityUnknown, },
+                    },
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //The choice stays as the user left it and is reported as waiting, not quietly turned back into a number.
+        Assert.Contains("as soon as we know", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("usable capacity", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ThePriceScreenAsksOneQuestionBeforeShowingAnyForm()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("stay the same, change at set times, or follow market prices", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //Nothing is filled in until the question is answered, so no market or time-of-use form is on screen.
+        Assert.DoesNotContain("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("When the price is different", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AMarketContractShowsOnlyTheMarketForm()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Market, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("When the price is different", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //The starting markup is an example, and saying so is what stops it being taken for the user's contract.
+        Assert.Contains("only an example", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ATimeOfUseContractShowsOnlyTheTimeForm()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("When the price is different", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WithoutSolarPanelsThereIsNoExportPriceToAskFor()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, HasPvSystem = false, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.DoesNotContain("What your own solar electricity is worth", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WithSolarPanelsTheExportPriceIsExplainedRatherThanJustAsked()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, HasPvSystem = true, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("What your own solar electricity is worth", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("electricity you do not sell", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AnInstallationConfiguredBeforeThisQuestionExistedIsNotAskedAgain()
+    {
+        //No stored answer, but the price already says it follows the market. Read back rather than asked again.
+        _storedState = new DtoSetupState
+        {
+            ChargePrice = new DtoChargePrice { GridPrice = 0.31m, AddSpotPriceToGridPrice = true, },
+        };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

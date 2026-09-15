@@ -1106,6 +1106,82 @@ public static class TranslationKeys
     public static string SetupIssueCarSmartCarNotConnected => nameof(SetupIssueCarSmartCarNotConnected);
     public static string SetupIssueCarNeedsChargingStation => nameof(SetupIssueCarNeedsChargingStation);
 
+    // Equipment-first solar and battery setup: picking the device by its name, and saying what can be read.
+    public static string SetupSourcePickerTitle => nameof(SetupSourcePickerTitle);
+    public static string SetupSourcePickerIntro => nameof(SetupSourcePickerIntro);
+    public static string SetupSourcePickerSearchLabel => nameof(SetupSourcePickerSearchLabel);
+    public static string SetupSourcePickerSearchHelper => nameof(SetupSourcePickerSearchHelper);
+    public static string SetupSourcePickerConnectedTitle => nameof(SetupSourcePickerConnectedTitle);
+    public static string SetupSourcePickerEditButton => nameof(SetupSourcePickerEditButton);
+    public static string SetupSourcePickerEditTitle => nameof(SetupSourcePickerEditTitle);
+    public static string SetupSourcePickerRemoveButton => nameof(SetupSourcePickerRemoveButton);
+    public static string SetupSourcePickerRemoveError => nameof(SetupSourcePickerRemoveError);
+    public static string SetupSourcePickerSaved => nameof(SetupSourcePickerSaved);
+    public static string SetupSourcePickerNotListedHint => nameof(SetupSourcePickerNotListedHint);
+    public static string SetupSourceAdvancedTitle => nameof(SetupSourceAdvancedTitle);
+    public static string SetupSourceAdvancedIntro => nameof(SetupSourceAdvancedIntro);
+
+    public static string SetupMeasurementsTitle => nameof(SetupMeasurementsTitle);
+    public static string SetupMeasurementGridName => nameof(SetupMeasurementGridName);
+    public static string SetupMeasurementSolarName => nameof(SetupMeasurementSolarName);
+    public static string SetupMeasurementBatterySocName => nameof(SetupMeasurementBatterySocName);
+    public static string SetupMeasurementBatteryPowerName => nameof(SetupMeasurementBatteryPowerName);
+    public static string SetupMeasurementNotConfigured => nameof(SetupMeasurementNotConfigured);
+    public static string SetupMeasurementWaitingForData => nameof(SetupMeasurementWaitingForData);
+    public static string SetupMeasurementMissingHint => nameof(SetupMeasurementMissingHint);
+    public static string SetupMeasurementGridExportFormat => nameof(SetupMeasurementGridExportFormat);
+    public static string SetupMeasurementGridImportFormat => nameof(SetupMeasurementGridImportFormat);
+    public static string SetupMeasurementSolarFormat => nameof(SetupMeasurementSolarFormat);
+    public static string SetupMeasurementBatterySocFormat => nameof(SetupMeasurementBatterySocFormat);
+    public static string SetupMeasurementBatteryChargingFormat => nameof(SetupMeasurementBatteryChargingFormat);
+    public static string SetupMeasurementBatteryDischargingFormat => nameof(SetupMeasurementBatteryDischargingFormat);
+    public static string SetupMeasurementJustNow => nameof(SetupMeasurementJustNow);
+    public static string SetupMeasurementMinutesAgoFormat => nameof(SetupMeasurementMinutesAgoFormat);
+    public static string SetupMeasurementHoursAgoFormat => nameof(SetupMeasurementHoursAgoFormat);
+
+    public static string SetupHomeBatteryFactsIntro => nameof(SetupHomeBatteryFactsIntro);
+    public static string SetupHomeBatteryReserveTitle => nameof(SetupHomeBatteryReserveTitle);
+    public static string SetupHomeBatteryReserveExplanation => nameof(SetupHomeBatteryReserveExplanation);
+    public static string SetupHomeBatteryReservePending => nameof(SetupHomeBatteryReservePending);
+    public static string SetupHomeBatteryControlTitle => nameof(SetupHomeBatteryControlTitle);
+    public static string SetupHomeBatteryControlExplanation => nameof(SetupHomeBatteryControlExplanation);
+    public static string SetupHomeBatteryControlLink => nameof(SetupHomeBatteryControlLink);
+
+    // Guided electricity prices: one question decides which form is worth showing.
+    public static string SetupPricesIntro => nameof(SetupPricesIntro);
+    public static string SetupPricesKindQuestion => nameof(SetupPricesKindQuestion);
+    public static string SetupPricesKindFixed => nameof(SetupPricesKindFixed);
+    public static string SetupPricesKindFixedHint => nameof(SetupPricesKindFixedHint);
+    public static string SetupPricesKindTimeOfUse => nameof(SetupPricesKindTimeOfUse);
+    public static string SetupPricesKindTimeOfUseHint => nameof(SetupPricesKindTimeOfUseHint);
+    public static string SetupPricesKindMarket => nameof(SetupPricesKindMarket);
+    public static string SetupPricesKindMarketHint => nameof(SetupPricesKindMarketHint);
+    public static string SetupPricesGridTitle => nameof(SetupPricesGridTitle);
+    public static string SetupPricesGridExplanationFixed => nameof(SetupPricesGridExplanationFixed);
+    public static string SetupPricesGridExplanationTimeOfUse => nameof(SetupPricesGridExplanationTimeOfUse);
+    public static string SetupPricesGridExplanationMarket => nameof(SetupPricesGridExplanationMarket);
+    public static string SetupPricesWhereToFind => nameof(SetupPricesWhereToFind);
+    public static string SetupPricesTimesTitle => nameof(SetupPricesTimesTitle);
+    public static string SetupPricesTimesExplanation => nameof(SetupPricesTimesExplanation);
+    public static string SetupPricesTimeSlotPriceLabel => nameof(SetupPricesTimeSlotPriceLabel);
+    public static string SetupPricesAddTimeSlotButton => nameof(SetupPricesAddTimeSlotButton);
+    public static string SetupPricesNoTimeSlotsYet => nameof(SetupPricesNoTimeSlotsYet);
+    public static string SetupPricesMarketTitle => nameof(SetupPricesMarketTitle);
+    public static string SetupPricesMarketExplanation => nameof(SetupPricesMarketExplanation);
+    public static string SetupPricesMarketRegionLabel => nameof(SetupPricesMarketRegionLabel);
+    public static string SetupPricesMarketRegionMissing => nameof(SetupPricesMarketRegionMissing);
+    public static string SetupPricesMarketSurchargeNote => nameof(SetupPricesMarketSurchargeNote);
+    public static string SetupPricesSolarTitle => nameof(SetupPricesSolarTitle);
+    public static string SetupPricesSolarExplanation => nameof(SetupPricesSolarExplanation);
+
+    // The postponed charging test, shown on the start page until the equipment has actually charged.
+    public static string PendingChecksTitle => nameof(PendingChecksTitle);
+    public static string PendingChecksExplanation => nameof(PendingChecksExplanation);
+    public static string PendingChecksItemFormat => nameof(PendingChecksItemFormat);
+    public static string PendingChecksUnnamedDevice => nameof(PendingChecksUnnamedDevice);
+    public static string PendingChecksLastAttemptFailed => nameof(PendingChecksLastAttemptFailed);
+    public static string PendingChecksDismissButton => nameof(PendingChecksDismissButton);
+
     public static string CarControlCapabilityTitle => nameof(CarControlCapabilityTitle);
     public static string CarControlCapabilityIntro => nameof(CarControlCapabilityIntro);
     public static string CarControlCapabilityColConnection => nameof(CarControlCapabilityColConnection);

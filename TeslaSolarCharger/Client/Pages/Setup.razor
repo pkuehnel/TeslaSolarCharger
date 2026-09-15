@@ -78,7 +78,8 @@
                     case SetupSections.Prices:
                         <SetupPricesSection ChargePrice="_chargePrice"
                                             FixedPrices="_fixedPrices"
-                                            HasPvSystem="_hasPvSystem" />
+                                            HasPvSystem="_hasPvSystem"
+                                            OnChanged="OnPriceAnswersChanged" />
                         break;
                     case SetupSections.Equipment:
                         <SetupEquipmentSection />
@@ -460,6 +461,12 @@
     private async Task OnHasHomeBatteryChanged(bool value)
     {
         _hasHomeBattery = value;
+        await PersistSetupState();
+        await RefreshDecision();
+    }
+
+    private async Task OnPriceAnswersChanged()
+    {
         await PersistSetupState();
         await RefreshDecision();
     }

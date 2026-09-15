@@ -1,0 +1,155 @@
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Helper
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+@inject IStringHelper StringHelper
+@inject IDialogService DialogService
+@inject ITemplateValueConfigurationService TemplateValueConfigurationService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupSourcePickerTitle)</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupSourcePickerIntro)</MudText>
+
+@* Asked by the name on the box, not by the protocol it happens to speak. Which of Modbus, REST or MQTT is
+   involved is the app's problem once the device is known. *@
+<MudAutocomplete T="TemplateValueGatherType?"
+                 Value="_selected"
+                 ValueChanged="OnDeviceChosen"
+                 Label="@T(TranslationKeys.SetupSourcePickerSearchLabel)"
+                 HelperText="@T(TranslationKeys.SetupSourcePickerSearchHelper)"
+                 SearchFunc="Search"
+                 ToStringFunc="Describe"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 Variant="Variant.Outlined"
+                 Margin="Margin.Dense"
+                 Class="mb-2" />
+
+@if (Configurations.Count > 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-3" Style="font-weight: bold">@T(TranslationKeys.SetupSourcePickerConnectedTitle)</MudText>
+    @foreach (var configuration in Configurations)
+    {
+        <div class="d-flex align-center flex-wrap py-1" style="gap: 8px;">
+            <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Class="flex-grow-1">@configuration.Heading</MudText>
+            <MudButton Size="Size.Small" Variant="Variant.Text"
+                       OnClick="@(() => OpenConfiguration(configuration.Id))">
+                @T(TranslationKeys.SetupSourcePickerEditButton)
+            </MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                       OnClick="@(() => DeleteConfiguration(configuration.Id))">
+                @T(TranslationKeys.SetupSourcePickerRemoveButton)
+            </MudButton>
+        </div>
+    }
+}
+
+<MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupSourcePickerNotListedHint)</MudText>
+
+@code {
+    [Parameter, EditorRequired] public List<DtoValueConfigurationOverview> Configurations { get; set; } = new();
+
+    /// <summary>Raised after anything was added, changed or removed, so the readings can be re-read.</summary>
+    [Parameter] public EventCallback OnConfigurationsChanged { get; set; }
+
+    private TemplateValueGatherType? _selected;
+
+    /// <summary>
+    /// Matches on the manufacturer as well as the model, because people look for "Fronius" or for "Gen24" and both
+    /// should find the same entry.
+    /// </summary>
+    private Task<IEnumerable<TemplateValueGatherType?>> Search(string? value, CancellationToken token)
+    {
+        var all = Enum.GetValues<TemplateValueGatherType>()
+            .OrderBy(TemplateValueGatherTypeVendors.GetVendor)
+            .ThenBy(t => t.ToString())
+            .Select(t => (TemplateValueGatherType?)t);
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            all = all.Where(t => Describe(t).Contains(value, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return Task.FromResult(all);
+    }
+
+    private string Describe(TemplateValueGatherType? type)
+    {
+        if (type == null)
+        {
+            return string.Empty;
+        }
+
+        var vendor = TemplateValueGatherTypeVendors.GetVendor(type.Value);
+        var model = StringHelper.GenerateFriendlyStringFromPascalString(type.Value.ToString());
+        //The vendor is usually the start of the model name too, so it is not repeated.
+        return model.StartsWith(vendor, StringComparison.OrdinalIgnoreCase) ? model : $"{vendor} {model}";
+    }
+
+    private async Task OnDeviceChosen(TemplateValueGatherType? type)
+    {
+        _selected = type;
+        if (type == null)
+        {
+            return;
+        }
+
+        await OpenConfiguration(null, type);
+        //Cleared so the field reads as an invitation to add the next device rather than as a current selection.
+        _selected = null;
+    }
+
+    /// <summary>
+    /// Opens the same editor the detailed configuration page uses. Reused rather than rebuilt: these forms carry
+    /// each device's own quirks, and a second set would drift away from them.
+    /// </summary>
+    private async Task OpenConfiguration(int? id, TemplateValueGatherType? preselectedType = null)
+    {
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            BackdropClick = true,
+        };
+        var parameters = new DialogParameters<TemplateValueConfigurationDialog>
+        {
+            { x => x.ValueConfigurationId, id },
+        };
+        var title = preselectedType == null
+            ? T(TranslationKeys.SetupSourcePickerEditTitle)
+            : Describe(preselectedType);
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(title, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add(T(TranslationKeys.SetupSourcePickerSaved), Severity.Success);
+        }
+
+        await OnConfigurationsChanged.InvokeAsync();
+    }
+
+    private async Task DeleteConfiguration(int id)
+    {
+        var result = await TemplateValueConfigurationService.DeleteAsync(id);
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SetupSourcePickerRemoveError), Severity.Error);
+            return;
+        }
+
+        await OnConfigurationsChanged.InvokeAsync();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

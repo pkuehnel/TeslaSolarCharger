@@ -1,0 +1,71 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ISetupService SetupService
+@inject ITextLocalizationService TextLocalizer
+
+@* A quiet entry rather than a notification: setup is allowed to finish without a real charging test, and being
+   reminded of that on every screen would be nagging about something that is not wrong. *@
+@if (_outstandingChecks.Count > 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-3" ContentAlignment="HorizontalAlignment.Left">
+        <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.PendingChecksTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.PendingChecksExplanation)</MudText>
+        @foreach (var check in _outstandingChecks)
+        {
+            <div class="d-flex align-center flex-wrap py-1" style="gap: 8px;">
+                <MudText Typo="Typo.body2" Class="flex-grow-1">
+                    @Format(TranslationKeys.PendingChecksItemFormat, check.DisplayName ?? T(TranslationKeys.PendingChecksUnnamedDevice))
+                </MudText>
+                @if (check.State == SetupCheckResultState.Failed)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                        @T(TranslationKeys.PendingChecksLastAttemptFailed)
+                    </MudChip>
+                }
+                <MudButton Size="Size.Small" Variant="Variant.Text"
+                           OnClick="@(() => Dismiss(check))">
+                    @T(TranslationKeys.PendingChecksDismissButton)
+                </MudButton>
+            </div>
+        }
+    </MudAlert>
+}
+
+@code {
+    private List<DtoDeferredSetupCheck> _outstandingChecks = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        var checks = await SetupService.GetDeferredChecks() ?? new List<DtoDeferredSetupCheck>();
+        //A check that has been settled has nothing left to say, so it simply stops being shown.
+        _outstandingChecks = checks.Where(c => c.State != SetupCheckResultState.Succeeded).ToList();
+    }
+
+    /// <summary>
+    /// Lets the user put the entry away without pretending the test was run. Nothing else changes: the equipment
+    /// keeps charging exactly as configured.
+    /// </summary>
+    private async Task Dismiss(DtoDeferredSetupCheck check)
+    {
+        await SetupService.DeleteDeferredCheck(check.Id);
+        await Refresh();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
+}

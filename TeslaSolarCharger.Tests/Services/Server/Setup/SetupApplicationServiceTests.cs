@@ -27,6 +27,7 @@ public class SetupApplicationServiceTests : TestBase
     private readonly Mock<IConfigurationWrapper> _configurationWrapper = new();
     private readonly Mock<IChargingCostService> _chargingCostService = new();
     private readonly Mock<IConfigJsonService> _configJsonService = new();
+    private readonly Mock<IDeferredSetupCheckService> _deferredSetupCheckService = new();
 
     /// <summary>The configuration as it is on the installation right now, before the assistant writes anything.</summary>
     private DtoBaseConfiguration _liveConfiguration = new();
@@ -71,7 +72,8 @@ public class SetupApplicationServiceTests : TestBase
         _chargingCostService.Object,
         _configJsonService.Object,
         Context,
-        new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime));
+        new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime),
+        _deferredSetupCheckService.Object);
 
     private static DtoSetupState StateWithOneCar(bool shouldBeActivated = true) => new()
     {
@@ -336,6 +338,70 @@ public class SetupApplicationServiceTests : TestBase
         var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == 7);
         Assert.True(connector.ShouldBeManaged);
         Assert.True(connector.AllowGuestCars);
+    }
+
+    [Fact]
+    public async Task FinishingNotesThatTheCarHasNotBeenSeenChargingYet()
+    {
+        var state = StateWithOneCar();
+
+        await NewService().ActivateAndCompleteSetup(state);
+
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.Is<DtoDeferredSetupCheck>(
+            c => c.Kind == DeferredSetupCheckKind.RealChargingTest
+                 && c.DeviceKind == SetupDeviceKind.Car
+                 && c.DeviceId == 5)), Times.Once);
+    }
+
+    [Fact]
+    public async Task EquipmentTheUserLeftSwitchedOffIsNotWaitingForAChargingTest()
+    {
+        await NewService().ActivateAndCompleteSetup(StateWithOneCar(shouldBeActivated: false));
+
+        //Nothing was switched on, so there is nothing whose charging could be observed.
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.IsAny<DtoDeferredSetupCheck>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TheNoteRemembersHowTheCarIsControlled()
+    {
+        var state = StateWithOneCar();
+        state.CarDrafts[0].ConnectionRoute = SetupCarConnectionRoute.TeslaBluetooth;
+        state.CarDrafts[0].Configuration.UseBle = true;
+        state.CarDrafts[0].Configuration.BleApiBaseUrl = "http://ble";
+
+        await NewService().ActivateAndCompleteSetup(state);
+
+        //Recorded so that changing how the car is reached makes an earlier result stop counting.
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.Is<DtoDeferredSetupCheck>(
+            c => c.ConfigurationFingerprint != null
+                 && c.ConfigurationFingerprint.Contains(nameof(SetupCarConnectionRoute.TeslaBluetooth))
+                 && c.ConfigurationFingerprint.Contains("http://ble"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task ANoteThatCannotBeWrittenDoesNotFailAnOtherwiseGoodSetup()
+    {
+        _deferredSetupCheckService
+            .Setup(s => s.AddOrUpdateDeferredCheck(It.IsAny<DtoDeferredSetupCheck>()))
+            .ThrowsAsync(new InvalidOperationException("storage is gone"));
+
+        var result = await NewService().ActivateAndCompleteSetup(StateWithOneCar());
+
+        Assert.True(result.IsSetupCompleted);
+    }
+
+    [Fact]
+    public async Task AFailedFinishNotesNothing()
+    {
+        _configJsonService
+            .Setup(s => s.UpdateCarBasicConfiguration(It.IsAny<int>(), It.IsAny<CarBasicConfiguration>()))
+            .ThrowsAsync(new InvalidOperationException("car rejected"));
+
+        await NewService().ActivateAndCompleteSetup(StateWithOneCar());
+
+        //Setup did not finish, so nothing was switched on and there is nothing outstanding to watch for.
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.IsAny<DtoDeferredSetupCheck>()), Times.Never);
     }
 
     [Fact]

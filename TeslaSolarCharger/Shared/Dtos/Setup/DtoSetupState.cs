@@ -39,6 +39,13 @@ public class DtoSetupState
     public DtoChargePrice? ChargePrice { get; set; }
     public List<FixedPrice> FixedPrices { get; set; } = new();
 
+    /// <summary>
+    /// The shape of the electricity contract the user described. Null means the question has not been answered, so
+    /// it can be told apart from a deliberate "one price all day". A state written before this existed simply has
+    /// no value, and the answer is then read back from the price itself.
+    /// </summary>
+    public SetupElectricityPriceKind? ElectricityPriceKind { get; set; }
+
     /// <summary>Intake answers of the legacy questionnaire. Kept so a migrated state does not lose them.</summary>
     public DtoCarsChargingSetupAnswers CarsChargingSetup { get; set; } = new();
 
