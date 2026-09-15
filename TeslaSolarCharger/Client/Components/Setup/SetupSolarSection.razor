@@ -72,9 +72,15 @@
         <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupHomeBatteryFactsIntro)</MudText>
 
-        <GenericInput For="() => Configuration.Item.HomeBatteryUsableEnergy" />
-        <GenericInput For="() => Configuration.Item.HomeBatteryChargingPower" />
-        <GenericInput For="() => Configuration.Item.HomeBatteryDischargingPower" />
+        @* Every one of these is stored as it is typed. A battery fact entered and then lost to a reload - or to
+           following the link into Base Configuration - is exactly the kind of silent loss the durable setup state
+           exists to prevent. *@
+        <GenericInput For="() => Configuration.Item.HomeBatteryUsableEnergy"
+                      OnValueChanged="@((double? _) => Save())" />
+        <GenericInput For="() => Configuration.Item.HomeBatteryChargingPower"
+                      OnValueChanged="@((int? _) => Save())" />
+        <GenericInput For="() => Configuration.Item.HomeBatteryDischargingPower"
+                      OnValueChanged="@((int? _) => Save())" />
 
         <MudDivider Class="my-3" />
 
@@ -88,7 +94,8 @@
             </div>
             <div class="col-md-6">
                 <GenericInput For="() => Configuration.Item.HomeBatteryMinSoc"
-                              IsDisabledParameter="@(Configuration.Item.DynamicHomeBatteryMinSoc)" />
+                              IsDisabledParameter="@(Configuration.Item.DynamicHomeBatteryMinSoc)"
+                              OnValueChanged="@((int? _) => Save())" />
             </div>
         </div>
 
@@ -168,10 +175,43 @@
         }
     }
 
-    /// <summary>What the automatic reserve is still waiting for, as the server reported it.</summary>
-    private List<DtoSetupIssue> PendingReserveReasons => Context.Decision?.ProposedValues
-        .FirstOrDefault(p => p.PropertyName == nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc))
-        ?.PendingReasons ?? new List<DtoSetupIssue>();
+    /// <summary>
+    /// What the automatic reserve is still waiting for, as the server reported it. Once the user switches the
+    /// reserve on themselves there is no proposal left to carry those reasons, so they are read from this step's
+    /// own issues instead - the prerequisites do not stop being missing just because nobody is recommending it.
+    /// </summary>
+    private List<DtoSetupIssue> PendingReserveReasons
+    {
+        get
+        {
+            var proposal = Context.Decision?.ProposedValues
+                .FirstOrDefault(p => p.PropertyName == nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc));
+            if (proposal != null)
+            {
+                return proposal.PendingReasons;
+            }
+
+            return Context.Decision?.Steps
+                .FirstOrDefault(s => s.StepKey == SetupStepKey.SolarAndBattery)
+                ?.Issues.Where(i => ReserveProperties.Contains(i.PropertyName)).ToList()
+                ?? new List<DtoSetupIssue>();
+        }
+    }
+
+    /// <summary>The facts the automatic reserve cannot be worked out without.</summary>
+    private static readonly string[] ReserveProperties =
+    [
+        nameof(BaseConfigurationBase.HomeBatteryUsableEnergy),
+        nameof(BaseConfigurationBase.HomeBatteryChargingPower),
+        nameof(BaseConfigurationBase.PredictSolarPowerGeneration),
+    ];
+
+    /// <summary>Stores the answers as they are given, so none of them depends on pressing Next.</summary>
+    private async Task Save()
+    {
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
 
     protected override async Task OnInitializedAsync()
     {

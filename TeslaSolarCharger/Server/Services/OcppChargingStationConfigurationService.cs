@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -12,8 +13,16 @@ namespace TeslaSolarCharger.Server.Services;
 public class OcppChargingStationConfigurationService(ILogger<OcppChargingStationConfigurationService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    IConfigurationWrapper configurationWrapper,
     ISettings settings) : IOcppChargingStationConfigurationService
 {
+    /// <summary>
+    /// Whether a connector that has just reported in may start being managed straight away. On a configured
+    /// installation that is what the user expects: they plugged a charger in and it works. While the setup
+    /// assistant is still running it is not - the assistant promises that nothing is switched on until the user
+    /// finishes, and a charger that connects halfway through would break that promise.
+    /// </summary>
+    private bool MayManageOnConnect() => !configurationWrapper.IsFirstRun();
     public async Task<List<DtoChargingStation>> GetChargingStations()
     {
         logger.LogTrace("{method}()", nameof(GetChargingStations));
@@ -80,7 +89,8 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             .Include(c => c.AllowedCars)
             .FirstAsync(c => c.Id == dtoChargingStation.Id);
         existingChargingStation.Name = dtoChargingStation.Name;
-        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged || settings.OcppConnectorStates.ContainsKey(dtoChargingStation.Id);
+        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged
+                                                 || (MayManageOnConnect() && settings.OcppConnectorStates.ContainsKey(dtoChargingStation.Id));
         existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
         existingChargingStation.SwitchOffAtCurrent = dtoChargingStation.SwitchOffAtCurrent;
         existingChargingStation.SwitchOnAtCurrent = dtoChargingStation.SwitchOnAtCurrent;
@@ -368,9 +378,12 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 });
             }
         }
-        foreach (var ocppChargingStationConnector in existingChargingStation.Connectors)
+        if (MayManageOnConnect())
         {
-            ocppChargingStationConnector.ShouldBeManaged = true;
+            foreach (var ocppChargingStationConnector in existingChargingStation.Connectors)
+            {
+                ocppChargingStationConnector.ShouldBeManaged = true;
+            }
         }
         var canSwitchPhases = await ocppChargePointConfigurationService.CanSwitchBetween1And3Phases(chargepointId, cancellationToken);
         if (canSwitchPhases.HasError)

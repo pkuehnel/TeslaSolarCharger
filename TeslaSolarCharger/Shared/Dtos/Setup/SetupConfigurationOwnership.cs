@@ -43,4 +43,26 @@ public static class SetupConfigurationOwnership
             property.SetValue(onto, property.GetValue(from));
         }
     }
+
+    /// <summary>
+    /// The values of the owned properties, keyed by name. Only these reach the live configuration, so only these
+    /// decide whether a repeated save would actually write anything different.
+    /// </summary>
+    public static SortedDictionary<string, object?> OwnedValues(DtoBaseConfiguration configuration)
+    {
+        var properties = typeof(DtoBaseConfiguration).GetProperties();
+        var values = new SortedDictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var propertyName in OwnedProperties)
+        {
+            var property = properties.FirstOrDefault(p => p.Name == propertyName);
+            if (property is not { CanRead: true })
+            {
+                continue;
+            }
+
+            values[propertyName] = property.GetValue(configuration);
+        }
+
+        return values;
+    }
 }

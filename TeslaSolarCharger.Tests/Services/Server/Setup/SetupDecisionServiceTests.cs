@@ -608,4 +608,137 @@ public class SetupDecisionServiceTests
         Assert.Equal(SetupCheckResultState.NotRun,
             decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.Car).ConnectionCheckState);
     }
+
+    [Fact]
+    public async Task ACloudTeslaIsGivenAHomeDetectionItsOwnValidatorAccepts()
+    {
+        //Fleet Telemetry without tracking relevant fields does not report a position, so comparing one to the home
+        //location cannot work - and the car validator refuses exactly that combination.
+        var state = CompleteState();
+        state.CarDrafts[0].ConnectionRoute = SetupCarConnectionRoute.TeslaCloud;
+        state.CarDrafts[0].Configuration.UseFleetTelemetry = true;
+        state.CarDrafts[0].Configuration.IncludeTrackingRelevantFields = false;
+        state.CarDrafts[0].Configuration.HomeDetectionVia = HomeDetectionVia.GpsLocation;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        var proposal = Assert.Single(decision.ProposedValues,
+            p => p.PropertyName == nameof(CarBasicConfiguration.HomeDetectionVia));
+        Assert.Equal(HomeDetectionVia.LocatedAtHome, proposal.Value);
+        Assert.Equal(state.CarDrafts[0].DraftId, proposal.DraftId);
+    }
+
+    [Fact]
+    public async Task ACarThatReportsItsPositionKeepsTheOrdinaryHomeDetection()
+    {
+        var state = CompleteState();
+        state.CarDrafts[0].ConnectionRoute = SetupCarConnectionRoute.TeslaCloud;
+        state.CarDrafts[0].Configuration.UseFleetTelemetry = true;
+        state.CarDrafts[0].Configuration.IncludeTrackingRelevantFields = true;
+        state.CarDrafts[0].Configuration.HomeDetectionVia = HomeDetectionVia.GpsLocation;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.DoesNotContain(decision.ProposedValues, p => p.PropertyName == nameof(CarBasicConfiguration.HomeDetectionVia));
+    }
+
+    [Fact]
+    public async Task ASettingThisInstallationAlreadyDecidedIsNotProposedAgain()
+    {
+        //A forecast switched off on purpose reads exactly like one never switched on. Offering it back as a ticked
+        //recommendation would undo a deliberate choice on the next finish.
+        var state = CompleteState();
+        state.Configuration.PredictSolarPowerGeneration = false;
+        state.ValueSources[nameof(BaseConfigurationBase.PredictSolarPowerGeneration)] = SetupValueSource.ExistingConfiguration;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.DoesNotContain(decision.ProposedValues,
+            p => p.PropertyName == nameof(BaseConfigurationBase.PredictSolarPowerGeneration));
+    }
+
+    [Fact]
+    public async Task DecliningTheForecastDoesNotLeaveSchedulingOnIt()
+    {
+        var state = CompleteState();
+        state.ValueSources[nameof(BaseConfigurationBase.UsePredictedSolarPowerGenerationForChargingSchedules)] =
+            SetupValueSource.UserEntered;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        //Scheduling on the forecast is its own decision, not something bundled with the forecast itself.
+        Assert.Contains(decision.ProposedValues, p => p.PropertyName == nameof(BaseConfigurationBase.PredictSolarPowerGeneration));
+        Assert.DoesNotContain(decision.ProposedValues,
+            p => p.PropertyName == nameof(BaseConfigurationBase.UsePredictedSolarPowerGenerationForChargingSchedules));
+    }
+
+    [Fact]
+    public async Task ABatteryWithoutPanelsStillGetsTheForecastItsReserveNeeds()
+    {
+        //The base configuration validator refuses an automatic reserve without the solar forecast, so proposing one
+        //without the other would produce a combination the app will not store.
+        var state = CompleteState();
+        state.HasPvSystem = false;
+        state.HasHomeBattery = true;
+        state.Configuration.HomeBatteryUsableEnergy = 10;
+        state.Configuration.HomeBatteryChargingPower = 3000;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.Contains(decision.ProposedValues, p => p.PropertyName == nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc));
+        Assert.Contains(decision.ProposedValues, p => p.PropertyName == nameof(BaseConfigurationBase.PredictSolarPowerGeneration));
+    }
+
+    [Fact]
+    public async Task AReserveSwitchedOnByHandStillSaysWhatItIsMissing()
+    {
+        //Once the user sets it themselves there is no proposal left to carry the pending reasons, but the forecast
+        //it depends on has not become any less necessary.
+        var state = CompleteState();
+        state.HasHomeBattery = true;
+        state.Configuration.HomeBatteryUsableEnergy = 10;
+        state.Configuration.HomeBatteryChargingPower = 3000;
+        state.Configuration.DynamicHomeBatteryMinSoc = true;
+        state.Configuration.PredictSolarPowerGeneration = false;
+        state.ValueSources[nameof(BaseConfigurationBase.PredictSolarPowerGeneration)] = SetupValueSource.UserEntered;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.DoesNotContain(decision.ProposedValues, p => p.PropertyName == nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc));
+        Assert.Contains(decision.MissingInformation, i => i.MessageKey == TranslationKeys.SetupIssueSolarPredictionRequired);
+        Assert.False(decision.IsConfigurationComplete);
+    }
+
+    [Fact]
+    public async Task AMultiConnectorChargerIsBlockedUntilAConnectorIsChosen()
+    {
+        //It used to be skipped silently at activation while setup still reported itself finished, leaving the user
+        //with a charger they believe is switched on.
+        var state = CompleteState();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft
+        {
+            ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = null, ShouldBeActivated = true,
+        });
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.False(decision.IsConfigurationComplete);
+        var status = decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.ChargingStationConnector);
+        Assert.Equal(SetupActivationStatus.Blocked, status.ActivationStatus);
+        Assert.Contains(status.ActivationBlockers, b => b.MessageKey == TranslationKeys.SetupIssueChargingStationConnectorNotChosen);
+    }
+
+    [Fact]
+    public async Task ATariffNobodyHasEnteredIsStillMissing()
+    {
+        //The assistant no longer fills the field with an example, so an unanswered tariff arrives as null rather
+        //than as a plausible looking number.
+        var state = CompleteState();
+        state.ChargePrice = new DtoChargePrice { GridPrice = null, };
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.False(decision.IsConfigurationComplete);
+        Assert.Contains(decision.MissingInformation, i => i.MessageKey == TranslationKeys.SetupIssueGridPriceMissing);
+    }
 }

@@ -149,6 +149,12 @@ public interface IConfigurationWrapper
     TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
     int? HomeBatteryUsableEnergy();
     bool DynamicHomeBatteryMinSoc();
+
+    /// <summary>
+    /// True while the setup assistant has not been finished. Equipment that reports in during setup must not start
+    /// being managed on its own: the assistant promises nothing is switched on until the user finishes.
+    /// </summary>
+    bool IsFirstRun();
     bool UsePredictedSolarPowerGenerationForChargingSchedules();
     TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan();
     string LogFilesDirectory();

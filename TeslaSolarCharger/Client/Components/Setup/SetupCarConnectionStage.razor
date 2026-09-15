@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.Setup
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
@@ -86,6 +87,7 @@
 
     private async Task SelectRoute(SetupCarConnectionRoute route)
     {
+        var previousRoute = Draft.ConnectionRoute;
         Draft.ConnectionRoute = route;
         //Only the parts of the configuration this choice actually decides are touched; the user's own numbers stay.
         switch (route)
@@ -104,6 +106,15 @@
                 Draft.Configuration.UseBle = false;
                 Draft.Configuration.UseFleetTelemetry = false;
                 break;
+        }
+
+        if (previousRoute != route)
+        {
+            // How the app can tell the car is home follows from how it reaches the car, so a setting that went with
+            // the route just abandoned has to go with it. It is cleared rather than guessed at here: the server
+            // proposes the one that fits the new route, with a reason the user can read.
+            Draft.Configuration.HomeDetectionVia = default;
+            Draft.ValueSources.Remove(nameof(CarBasicConfiguration.HomeDetectionVia));
         }
 
         await Context.Save();

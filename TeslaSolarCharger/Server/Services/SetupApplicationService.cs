@@ -1,11 +1,17 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Setup;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -20,7 +26,9 @@ public class SetupApplicationService(
     IConfigJsonService configJsonService,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IDateTimeProvider dateTimeProvider,
-    IDeferredSetupCheckService deferredSetupCheckService)
+    IDeferredSetupCheckService deferredSetupCheckService,
+    IValidator<CarBasicConfiguration> carConfigurationValidator,
+    IValidator<DtoBaseConfiguration> baseConfigurationValidator)
     : ISetupApplicationService
 {
     public async Task<DtoSetupApplicationResult> ApplyConfiguration(DtoSetupState setupState)
@@ -46,13 +54,14 @@ public class SetupApplicationService(
         foreach (var draft in setupState.CarDrafts.Where(d => d.ShouldBeActivated))
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateCar, draft.DraftId,
-                () => ActivateCar(draft)).ConfigureAwait(false);
+                () => ActivateCar(draft), CarContent(draft)).ConfigureAwait(false);
         }
 
         foreach (var draft in setupState.ChargerDrafts.Where(d => d.ShouldBeActivated && d.ConnectorId != null))
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateChargingStationConnector, draft.DraftId,
-                () => ActivateChargingStationConnector(draft)).ConfigureAwait(false);
+                () => ActivateChargingStationConnector(draft),
+                new { draft.ConnectorId, draft.AllowGuestCars, }).ConfigureAwait(false);
         }
 
         if (!result.IsSuccess)
@@ -93,11 +102,12 @@ public class SetupApplicationService(
             return result;
         }
 
-        //An explicit save means the user changed something, so a record of an earlier save must not make this one a
-        //no-op. Idempotency protects a retried finish, not an edit.
+        //An explicit save means the user pressed something, so a record of an earlier save must not make this one a
+        //no-op even when the values happen to be unchanged. Idempotency protects a retried finish, not a save the
+        //user asked for.
         setupState.CompletedOperations.RemoveAll(o => o.OperationKey == SetupOperationKey.SaveCarDraft && o.DraftId == draftId);
         await RunOperation(setupState, result, SetupOperationKey.SaveCarDraft, draftId,
-            () => SaveCarDraft(draft)).ConfigureAwait(false);
+            () => SaveCarDraft(draft), CarContent(draft)).ConfigureAwait(false);
         return result;
     }
 
@@ -191,7 +201,8 @@ public class SetupApplicationService(
         //validation reads - reading battery levels over Bluetooth above all - so saving a car before them would
         //fail on a setting the user already answered inside the assistant.
         await RunOperation(setupState, result, SetupOperationKey.SaveBaseConfiguration, null,
-            () => SaveBaseConfiguration(setupState)).ConfigureAwait(false);
+            () => SaveBaseConfiguration(setupState),
+            SetupConfigurationOwnership.OwnedValues(setupState.Configuration)).ConfigureAwait(false);
 
         if (!result.IsSuccess)
         {
@@ -199,26 +210,55 @@ public class SetupApplicationService(
         }
 
         await RunOperation(setupState, result, SetupOperationKey.SaveChargePrice, null,
-            () => SaveChargePrice(setupState)).ConfigureAwait(false);
+            () => SaveChargePrice(setupState),
+            new { setupState.ChargePrice, setupState.FixedPrices, setupState.ElectricityPriceKind, }).ConfigureAwait(false);
 
         foreach (var draft in setupState.CarDrafts)
         {
             await RunOperation(setupState, result, SetupOperationKey.SaveCarDraft, draft.DraftId,
-                () => SaveCarDraft(draft)).ConfigureAwait(false);
+                () => SaveCarDraft(draft), CarContent(draft)).ConfigureAwait(false);
         }
     }
 
     /// <summary>
-    /// Runs one application step unless a previous attempt already completed it, records the outcome on the state
-    /// and reports it. Recording as we go is what makes a retry after a partial failure safe.
+    /// What a car write actually depends on. Used to tell a retry of the same answers apart from a repeat of an
+    /// operation whose answers have changed since.
+    /// </summary>
+    private static object CarContent(DtoSetupCarDraft draft) => new
+    {
+        draft.CarId,
+        draft.Configuration,
+        Assignments = draft.AssignedChargingConnectorIds.OrderBy(id => id).ToList(),
+    };
+
+    /// <summary>
+    /// A stable fingerprint of what an operation is about to write. Null content means the operation has no inputs
+    /// of its own - finishing setup, for one - and is then identified by the operation key alone.
+    /// </summary>
+    private static string ComputeContentHash(object? content)
+    {
+        var json = JsonConvert.SerializeObject(content ?? string.Empty);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
+    }
+
+    /// <summary>
+    /// Runs one application step unless a previous attempt already wrote exactly this, records the outcome on the
+    /// state and reports it. Recording as we go is what makes a retry after a partial failure safe; comparing what
+    /// was written is what keeps a retry from swallowing an edit the user made in between.
     /// </summary>
     private async Task RunOperation(DtoSetupState setupState,
         DtoSetupApplicationResult result,
         SetupOperationKey operationKey,
         Guid? draftId,
-        Func<Task> operation)
+        Func<Task> operation,
+        object? content = null)
     {
-        if (setupState.CompletedOperations.Any(o => o.OperationKey == operationKey && o.DraftId == draftId))
+        var contentHash = ComputeContentHash(content);
+        var previousRecord = setupState.CompletedOperations
+            .FirstOrDefault(o => o.OperationKey == operationKey && o.DraftId == draftId);
+        //A record without a hash was written before the values were tracked, so it says nothing about whether the
+        //answers still match. Running the step again is the safe reading: these writes are all idempotent.
+        if (previousRecord != null && previousRecord.ContentHash != null && previousRecord.ContentHash == contentHash)
         {
             result.Operations.Add(new DtoSetupOperationResult
             {
@@ -249,10 +289,12 @@ public class SetupApplicationService(
             return;
         }
 
+        setupState.CompletedOperations.RemoveAll(o => o.OperationKey == operationKey && o.DraftId == draftId);
         setupState.CompletedOperations.Add(new DtoSetupOperationRecord
         {
             OperationKey = operationKey,
             DraftId = draftId,
+            ContentHash = contentHash,
             CompletedAt = dateTimeProvider.DateTimeOffSetUtcNow(),
         });
         await setupStateService.UpdateSetupState(setupState).ConfigureAwait(false);
@@ -273,26 +315,57 @@ public class SetupApplicationService(
         //IsFirstRun is deliberately not one of the owned properties: finishing is its own explicit step, and
         //clearing the flag here would make an installation look set up while its cars are still being saved.
         SetupConfigurationOwnership.CopyOwnedProperties(setupState.Configuration, liveConfiguration);
+        //The detailed settings pages are validated by the controller filter before they reach this service. The
+        //assistant posts a whole setup state instead, so nothing validated this on the way in and it has to happen
+        //here - otherwise setup is the one route that can store a combination the app itself rejects.
+        await Validate(baseConfigurationValidator, liveConfiguration).ConfigureAwait(false);
         await baseConfigurationService.UpdateBaseConfigurationAsync(liveConfiguration).ConfigureAwait(false);
     }
 
     private async Task SaveChargePrice(DtoSetupState setupState)
     {
-        if (setupState.ChargePrice == null)
+        //Nothing to store until the user has said what they pay. Saving a half answered tariff would be worse than
+        //waiting for it: every charging decision is made against this number.
+        if (setupState.ChargePrice?.GridPrice is not > 0)
         {
             return;
         }
 
-        await chargingCostService.UpdateChargePrice(setupState.ChargePrice).ConfigureAwait(false);
+        //Derived onto a copy rather than onto the answers themselves. Writing the stored form back into the state
+        //would change the state every time it is applied, and a retry could then never tell "already done" from
+        //"the user has edited this since".
+        var priceToSave = new DtoChargePrice
+        {
+            Id = setupState.ChargePrice.Id,
+            ValidSince = setupState.ChargePrice.ValidSince,
+            GridPrice = setupState.ChargePrice.GridPrice,
+            //A household without panels exports nothing, so there is no value to put on it. The stored price cannot
+            //hold "none", so the absence is written as zero rather than left to fail on the way in.
+            SolarPrice = setupState.ChargePrice.SolarPrice ?? 0,
+            AddSpotPriceToGridPrice = setupState.ChargePrice.AddSpotPriceToGridPrice,
+            SpotPriceRegion = setupState.ChargePrice.SpotPriceRegion,
+            SpotPriceSurcharge = setupState.ChargePrice.SpotPriceSurcharge,
+            //The periods of a time of use tariff are edited as a list but stored as the serialized configuration of
+            //the price. Writing the price without them would keep the tariff the user just replaced; clearing it
+            //for the kinds that have no periods is what stops yesterday's periods staying in force after a change.
+            EnergyProviderConfiguration =
+                setupState.ElectricityPriceKind == SetupElectricityPriceKind.TimeOfUse && setupState.FixedPrices.Count > 0
+                    ? JsonConvert.SerializeObject(setupState.FixedPrices)
+                    : null,
+        };
+        await chargingCostService.UpdateChargePrice(priceToSave).ConfigureAwait(false);
     }
 
     private async Task SaveCarDraft(DtoSetupCarDraft draft)
     {
         var configuration = CloneForDraftSave(draft.Configuration);
-        //Saving during setup must never make a car available to the charging scheduler. Activation is its own,
-        //explicit step at the end of the assistant.
-        configuration.ShouldBeManaged = false;
-        await configJsonService.UpdateCarBasicConfiguration(draft.CarId ?? default, configuration).ConfigureAwait(false);
+        //Saving during setup must never hand new equipment to the charging scheduler; activation is its own
+        //explicit step. A car that was already charging before the assistant opened is a different matter: it is
+        //part of a working installation, and switching it off to save an unrelated answer would stop it charging
+        //and drop its charging connector assignments. Unticking it is still respected - that is the user asking
+        //for exactly that.
+        configuration.ShouldBeManaged = draft.IsAlreadyManaged && draft.ShouldBeActivated;
+        await SaveCarConfiguration(draft, configuration).ConfigureAwait(false);
 
         if (draft.CarId == null)
         {
@@ -303,6 +376,9 @@ public class SetupApplicationService(
                 .OrderByDescending(c => c.Id)
                 .FirstOrDefaultAsync().ConfigureAwait(false);
             draft.CarId = createdCar?.Id;
+            //The id belongs on the configuration too, not only on the draft. The next save passes the configuration
+            //straight through to the in memory car, and a zero there would renumber a car that is already running.
+            draft.Configuration.Id = createdCar?.Id ?? draft.Configuration.Id;
         }
     }
 
@@ -316,17 +392,46 @@ public class SetupApplicationService(
         var configuration = CloneForDraftSave(draft.Configuration);
         configuration.Id = draft.CarId.Value;
         configuration.ShouldBeManaged = true;
-        await configJsonService.UpdateCarBasicConfiguration(draft.CarId.Value, configuration).ConfigureAwait(false);
+        await SaveCarConfiguration(draft, configuration).ConfigureAwait(false);
         await ApplyConnectorAssignments(draft).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Writes the connector assignments the user made while the car was still a draft. They are applied after the
+    /// Validates and writes one car. Every rule the car validator has is written for a managed car, so a draft
+    /// saved switched off passes trivially and only the activating save is really checked - which is exactly the
+    /// moment the car starts being charged by these values.
+    /// </summary>
+    private async Task SaveCarConfiguration(DtoSetupCarDraft draft, CarBasicConfiguration configuration)
+    {
+        await Validate(carConfigurationValidator, configuration).ConfigureAwait(false);
+        await configJsonService.UpdateCarBasicConfiguration(draft.CarId ?? default, configuration).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs one of the app's own validators and reports a failure the way the rest of the assistant expects: a
+    /// <see cref="ValidationException"/> is what marks an operation as something to change rather than retry.
+    /// </summary>
+    private static async Task Validate<T>(IValidator<T> validator, T instance)
+    {
+        var validationResult = await validator.ValidateAsync(instance).ConfigureAwait(false);
+        if (validationResult.IsValid)
+        {
+            return;
+        }
+
+        throw new ValidationException(string.Join(Environment.NewLine,
+            validationResult.Errors.Select(e => e.ErrorMessage).Distinct()), validationResult.Errors);
+    }
+
+    /// <summary>
+    /// Makes the stored assignments match the ones the user made while the car was still a draft. Applied after the
     /// car is managed, because an unmanaged car is deliberately removed from every connector's allowed cars.
+    /// Unticking a connector has to remove it as well: leaving it in would keep the car charging somewhere the user
+    /// just said it does not belong.
     /// </summary>
     private async Task ApplyConnectorAssignments(DtoSetupCarDraft draft)
     {
-        if (draft.CarId == null || draft.AssignedChargingConnectorIds.Count == 0)
+        if (draft.CarId == null)
         {
             return;
         }
@@ -334,6 +439,11 @@ public class SetupApplicationService(
         var existingAssignments = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
             .Where(a => a.CarId == draft.CarId.Value)
             .ToListAsync().ConfigureAwait(false);
+
+        var staleAssignments = existingAssignments
+            .Where(a => !draft.AssignedChargingConnectorIds.Contains(a.OcppChargingStationConnectorId))
+            .ToList();
+        teslaSolarChargerContext.ChargingStationConnectorAllowedCars.RemoveRange(staleAssignments);
 
         foreach (var connectorId in draft.AssignedChargingConnectorIds)
         {

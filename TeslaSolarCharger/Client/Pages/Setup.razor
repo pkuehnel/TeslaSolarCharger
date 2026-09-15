@@ -91,7 +91,7 @@
                         <SetupChargerSection DraftId="@(CurrentDraftId ?? Guid.Empty)" Stage="@ChargerStage" />
                         break;
                     case SetupSections.Finish:
-                        <SetupFinishSection DeclinedProposals="_declinedProposals"
+                        <SetupFinishSection DeclinedProposals="@_context.State.DeclinedProposalIds"
                                             OnProposalToggled="OnProposalToggled" />
                         break;
                 }
@@ -115,9 +115,11 @@
                         <MudButton Variant="Variant.Outlined" OnClick="SaveWithoutEnabling" Disabled="_isSaving">
                             @T(TranslationKeys.SetupSaveWithoutEnablingButton)
                         </MudButton>
+                        @* Finishing switches equipment on. Offering it while something required is still missing
+                           would either fail at the server or, worse, start charging on values nobody supplied. *@
                         <MudButton Color="Color.Primary" Variant="Variant.Filled"
                                    EndIcon="@Icons.Material.Filled.Check"
-                                   OnClick="FinishSetup" Disabled="_isSaving">
+                                   OnClick="FinishSetup" Disabled="@(_isSaving || !CanFinish)">
                             @T(TranslationKeys.SetupFinishButton)
                         </MudButton>
                     </div>
@@ -134,6 +136,10 @@
             </div>
             @if (CurrentSection == SetupSections.Finish)
             {
+                @if (!CanFinish)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupFinishBlockedHint)</MudText>
+                }
                 <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupSaveWithoutEnablingHint)</MudText>
             }
         }
@@ -159,9 +165,12 @@
     private bool _isSaving;
     private bool _isInitialized;
 
-    // Proposals the user unticked. Everything proposed is accepted unless it appears here, so a newly proposed
-    // setting is opt-out rather than something to hunt for.
-    private readonly HashSet<string> _declinedProposals = new();
+    /// <summary>
+    /// Whether finishing would switch on equipment that is actually ready. The server decides what "complete"
+    /// means and reports it; the button only reflects that answer, so the two can never disagree.
+    /// </summary>
+    private bool CanFinish => _context?.Decision?.IsConfigurationComplete == true;
+
 
     /// <summary>
     /// Which screen the address names. Read from the address rather than from the route parameters, because moving
@@ -311,13 +320,20 @@
 
         if (isTeslaReturn || isSmartCarReturn)
         {
-            // Either import writes cars straight to the database, so pull them into this setup as drafts.
+            // Either import writes cars straight to the database, so pull them into this setup as drafts. The
+            // server also refreshes the drafts that are already open, because authorizing changes what a car is
+            // connected to and an open draft would otherwise keep - and later save - the old answer.
             var synced = await SetupService.SyncCarDrafts(_context!.State);
             if (synced != null)
             {
                 _context.State.CarDrafts.Clear();
                 _context.State.CarDrafts.AddRange(synced.CarDrafts);
             }
+
+            // The user is back, so nothing is outstanding any more.
+            _context.State.PendingOperation = null;
+            await PersistSetupState();
+            await RefreshDecision();
         }
     }
 
@@ -369,12 +385,10 @@
         }
         else
         {
-            _chargePrice = new(new DtoChargePrice
-            {
-                ValidSince = DateTimeProvider.Now(),
-                GridPrice = new decimal(0.285),
-                SolarPrice = new decimal(0.12),
-            });
+            // Deliberately without example numbers. A tariff is the one thing nobody can guess for the user, and a
+            // plausible looking price that was never their price makes every charging decision quietly wrong - so
+            // the field starts empty and setup asks for it rather than answering on their behalf.
+            _chargePrice = new(new DtoChargePrice { ValidSince = DateTimeProvider.Now(), });
         }
     }
 
@@ -480,7 +494,12 @@
         await RefreshDecision();
     }
 
-    private void MarkAsUserEntered(string propertyName)
+    /// <summary>
+    /// Records that a value was decided by the user rather than recommended, and stores it. Recording it only in
+    /// memory would lose the distinction on the next reload, and with it the promise that an explicit choice is
+    /// never replaced by a recommendation.
+    /// </summary>
+    private async Task MarkAsUserEntered(string propertyName)
     {
         if (_context == null)
         {
@@ -488,17 +507,29 @@
         }
 
         _context.State.ValueSources[propertyName] = SetupValueSource.UserEntered;
+        await PersistSetupState();
+        await RefreshDecision();
     }
 
-    private void OnProposalToggled((string ProposalId, bool IsAccepted) change)
+    private async Task OnProposalToggled((string ProposalId, bool IsAccepted) change)
     {
-        if (change.IsAccepted)
+        if (_context == null)
         {
-            _declinedProposals.Remove(change.ProposalId);
             return;
         }
 
-        _declinedProposals.Add(change.ProposalId);
+        if (change.IsAccepted)
+        {
+            _context.State.DeclinedProposalIds.Remove(change.ProposalId);
+        }
+        else if (!_context.State.DeclinedProposalIds.Contains(change.ProposalId))
+        {
+            _context.State.DeclinedProposalIds.Add(change.ProposalId);
+        }
+
+        // Unticking an automation is an answer like any other. Keeping it only in the browser would quietly accept
+        // it again after a reload, which is the opposite of what the user just said.
+        await PersistSetupState();
     }
 
     /// <summary>
@@ -635,7 +666,7 @@
         }
 
         var accepted = _context.Decision.ProposedValues
-            .Where(p => !_declinedProposals.Contains(SetupFinishSection.ProposalId(p)))
+            .Where(p => !_context.State.DeclinedProposalIds.Contains(SetupFinishSection.ProposalId(p)))
             .ToList();
         if (accepted.Count == 0)
         {

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -18,7 +19,7 @@ using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server.Setup;
 
-public class SetupStateServiceTests
+public class SetupStateServiceTests : TestBase
 {
     private readonly Mock<ITscConfigurationService> _tscConfigurationService = new();
     private readonly Mock<IConfigurationWrapper> _configurationWrapper = new();
@@ -28,10 +29,13 @@ public class SetupStateServiceTests
     /// <summary>What the configuration table currently holds for the setup key.</summary>
     private string? _storedJson;
 
-    private DtoBaseConfiguration _liveConfiguration = new();
+    //An installation that has been through setup before. The distinction matters: only there do the stored values
+    //count as decisions the assistant must not overrule.
+    private DtoBaseConfiguration _liveConfiguration = new() { IsFirstRun = false, };
     private List<CarBasicConfiguration> _existingCars = new();
 
-    public SetupStateServiceTests()
+    public SetupStateServiceTests(ITestOutputHelper outputHelper)
+        : base(outputHelper)
     {
         _tscConfigurationService
             .Setup(s => s.GetConfigurationValueByKey(_constants.SetupCacheKey))
@@ -45,11 +49,12 @@ public class SetupStateServiceTests
     }
 
     private SetupStateService NewService() => new(
-        Mock.Of<ILogger<SetupStateService>>(),
+        Moq.Mock.Of<ILogger<SetupStateService>>(),
         _tscConfigurationService.Object,
-        new SetupStateMigrator(Mock.Of<ILogger<SetupStateMigrator>>()),
+        new SetupStateMigrator(Moq.Mock.Of<ILogger<SetupStateMigrator>>()),
         _configurationWrapper.Object,
         _configJsonService.Object,
+        Context,
         new FakeDateTimeProvider(new DateTime(2026, 9, 15, 8, 0, 0, DateTimeKind.Utc)),
         _constants);
 
@@ -106,14 +111,33 @@ public class SetupStateServiceTests
     [Fact]
     public async Task AnExistingInstallationsChoicesAreNotUpForGrabs()
     {
+        //A setting this installation actually holds a value for is its decision, and a proposal must not quietly
+        //replace it - including a switch left deliberately off.
+        _liveConfiguration = new DtoBaseConfiguration
+        {
+            IsFirstRun = false,
+            PredictSolarPowerGeneration = false,
+            ShowEnergyDataOnHome = false,
+        };
+
         var state = await NewService().GetOrCreateSetupState();
 
-        //Everything the assistant could propose is marked as already decided by this installation, so a proposal
-        //never quietly replaces a setting the user made in Base Configuration.
-        foreach (var propertyName in SetupConfigurationOwnership.OwnedProperties)
-        {
-            Assert.Equal(SetupValueSource.ExistingConfiguration, state.ValueSources[propertyName]);
-        }
+        Assert.Equal(SetupValueSource.ExistingConfiguration,
+            state.ValueSources[nameof(BaseConfigurationBase.PredictSolarPowerGeneration)]);
+        Assert.Equal(SetupValueSource.ExistingConfiguration,
+            state.ValueSources[nameof(BaseConfigurationBase.ShowEnergyDataOnHome)]);
+    }
+
+    [Fact]
+    public async Task ASettingThatWasNeverAnsweredStaysOpenToARecommendation()
+    {
+        //A feature that did not exist when this installation was set up has no stored answer at all. Reading that
+        //as a decision would hide its recommendation forever.
+        _liveConfiguration = new DtoBaseConfiguration { IsFirstRun = false, DynamicHomeBatteryMinSoc = null, };
+
+        var state = await NewService().GetOrCreateSetupState();
+
+        Assert.DoesNotContain(nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc), state.ValueSources.Keys);
     }
 
     [Fact]
@@ -297,5 +321,95 @@ public class SetupStateServiceTests
         Assert.Equal(SetupStepKey.CarsAndCharging, state.CurrentStep);
         Assert.True(state.HasHomeBattery);
         Assert.Empty(state.CarDrafts);
+    }
+
+    [Fact]
+    public async Task AFirstRunsDefaultsAreNotMistakenForDecisions()
+    {
+        //Nothing has been configured yet, so nothing has been decided. Treating the untouched defaults as choices
+        //would leave a beginner with no recommendations at all - the opposite of what the assistant is for.
+        _liveConfiguration = new DtoBaseConfiguration { IsFirstRun = true, };
+
+        var state = await NewService().GetOrCreateSetupState();
+
+        Assert.Empty(state.ValueSources);
+    }
+
+    [Fact]
+    public async Task AnExistingCarsChargingConnectorsComeAlongWithItsDraft()
+    {
+        //Without them the draft describes the car as assigned to nothing, and finishing setup would take away
+        //assignments the user made long before the assistant was opened.
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 1") { Id = 7, OcppChargingStationId = 1, });
+        Context.ChargingStationConnectorAllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = 4, OcppChargingStationConnectorId = 7, });
+        await Context.SaveChangesAsync();
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(4, "Running car") { Vin = "VIN4", CarType = CarType.Manual, ShouldBeManaged = true, },
+        };
+
+        var state = await NewService().GetOrCreateSetupState();
+
+        Assert.Equal(new[] { 7, }, Assert.Single(state.CarDrafts).AssignedChargingConnectorIds);
+    }
+
+    [Fact]
+    public async Task AuthorizingSmartCarUpdatesTheDraftTheUserIsOn()
+    {
+        //The authorization happens outside the assistant and changes the car in the database. A draft that keeps
+        //saying "manual" would keep offering to connect what is connected, and write the old type back on save.
+        var state = new DtoSetupState
+        {
+            CarDrafts =
+            {
+                new DtoSetupCarDraft
+                {
+                    CarId = 8,
+                    ConnectionRoute = SetupCarConnectionRoute.SmartCarWithChargingStation,
+                    Configuration = new CarBasicConfiguration(8, "My car") { Vin = "VIN8", CarType = CarType.Manual, },
+                },
+            },
+        };
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(8, "My car") { Vin = "VIN8", CarType = CarType.SmartCar, },
+        };
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        Assert.Equal(CarType.SmartCar, Assert.Single(synced.CarDrafts).Configuration.CarType);
+    }
+
+    [Fact]
+    public async Task SyncingDoesNotOverwriteAnswersTheUserTyped()
+    {
+        var state = new DtoSetupState
+        {
+            CarDrafts =
+            {
+                new DtoSetupCarDraft
+                {
+                    CarId = 8,
+                    Make = "Kia",
+                    Configuration = new CarBasicConfiguration(8, "My car")
+                    {
+                        Vin = "VIN8", CarType = CarType.Manual, UsableEnergy = 64, MaximumPhases = 3,
+                    },
+                },
+            },
+        };
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(8, "Renamed by import") { Vin = "VIN8", CarType = CarType.SmartCar, UsableEnergy = 0, },
+        };
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        var draft = Assert.Single(synced.CarDrafts);
+        //Only what something else owns is refreshed; the numbers and names the user entered are theirs.
+        Assert.Equal(CarType.SmartCar, draft.Configuration.CarType);
+        Assert.Equal(64, draft.Configuration.UsableEnergy);
+        Assert.Equal("My car", draft.Configuration.Name);
+        Assert.Equal("Kia", draft.Make);
     }
 }

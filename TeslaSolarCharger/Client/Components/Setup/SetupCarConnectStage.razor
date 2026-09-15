@@ -10,6 +10,7 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject ITextLocalizationService TextLocalizer
@@ -19,6 +20,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
+@inject IDateTimeProvider DateTimeProvider
 @inject IConstants Constants
 
 <SetupRouteSummary Route="Draft.ConnectionRoute"
@@ -131,7 +133,8 @@
                     @if (_hasSavedForTest)
                     {
                         @* The test runs against what is stored, so the car is saved first. It stays switched off. *@
-                        <BleConnectionTestComponent Vin="@Draft.Configuration.Vin" AutoTest="true" />
+                        <BleConnectionTestComponent Vin="@Draft.Configuration.Vin" AutoTest="true"
+                                                    OnTested="RecordConnectionCheck" />
                     }
                 }
             }
@@ -165,7 +168,7 @@
             }
             else
             {
-                <FleetApiTestComponent CarId="Draft.CarId" AutoTest="true" />
+                <FleetApiTestComponent CarId="Draft.CarId" AutoTest="true" OnTested="RecordConnectionCheck" />
                 <MudText Typo="Typo.caption" Class="d-block mt-3">@T(TranslationKeys.SetupCarTeslaCloudAsleepNote)</MudText>
             }
         </div>;
@@ -241,6 +244,19 @@
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Remembers what the connection test said, so the review screen describes what actually happened instead of
+    /// reporting a check that plainly did run as never run.
+    /// </summary>
+    private async Task RecordConnectionCheck((bool IsSuccess, string? Message) result)
+    {
+        Draft.ConnectionCheckState = result.IsSuccess ? SetupCheckResultState.Succeeded : SetupCheckResultState.Failed;
+        Draft.ConnectionCheckMessage = result.Message;
+        Draft.ConnectionCheckedAt = DateTimeProvider.DateTimeOffSetNow();
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
+
     private async Task SaveBeforeTest()
     {
         _isSavingCar = true;
@@ -268,6 +284,17 @@
 
         // Save first: the browser leaves for SmartCar, and the answers have to survive that.
         await Context.SaveCarDraft(Draft);
+
+        // Note what the user left for, so the assistant can say what is outstanding if they come back another way -
+        // by reopening setup rather than by following the return address.
+        Context.State.PendingOperation = new DtoSetupPendingOperation
+        {
+            StepKey = SetupStepKey.CarsAndCharging,
+            DraftId = Draft.DraftId,
+            OperationName = "SmartCarOAuth",
+            StartedAt = DateTimeProvider.DateTimeOffSetNow(),
+        };
+        await Context.Save();
 
         // Come back to this exact car and stage rather than to the start of the assistant.
         var returnUrl = $"{NavigationManager.BaseUri}setup/{SetupSections.Car}/{Draft.DraftId}/{SetupCarStage.Connect}"

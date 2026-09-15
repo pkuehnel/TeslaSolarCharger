@@ -61,6 +61,12 @@ public class DtoSetupState
     /// <summary>The task the user left setup for, e.g. an OAuth redirect. Null while nothing is pending.</summary>
     public DtoSetupPendingOperation? PendingOperation { get; set; }
 
+    /// <summary>
+    /// Automations the user unticked. Kept with the rest of the answers rather than only in the browser, because a
+    /// reload would otherwise quietly re-accept something that was deliberately declined.
+    /// </summary>
+    public List<string> DeclinedProposalIds { get; set; } = new();
+
     /// <summary>Application steps that already succeeded, so a retry does not repeat them.</summary>
     public List<DtoSetupOperationRecord> CompletedOperations { get; set; } = new();
 

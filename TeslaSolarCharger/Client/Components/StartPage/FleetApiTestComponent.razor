@@ -96,6 +96,13 @@ else if (_initialLoaded)
     [Parameter]
     public bool AutoTest { get; set; }
 
+    /// <summary>
+    /// Reports how the test went, so a guided flow can remember it. Without this the assistant's review keeps
+    /// saying the check was never run, however plainly the test said otherwise a screen earlier.
+    /// </summary>
+    [Parameter]
+    public EventCallback<(bool IsSuccess, string? Message)> OnTested { get; set; }
+
     private TeslaCarFleetApiState? _fleetApiState;
 
     private string? _fleetApiStateErrorMessage;
@@ -153,6 +160,8 @@ else if (_initialLoaded)
         }
 
         _isTesting = false;
+        await OnTested.InvokeAsync((_testSucceeded == true,
+            _testSucceeded == true ? null : T(TranslationKeys.FleetApiTestFailed)));
     }
 
     private async Task OpenRegisterPublicKeyPage()

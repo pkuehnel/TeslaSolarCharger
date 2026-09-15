@@ -161,6 +161,40 @@ public class SetupDecisionService(
         {
             status.Issues.Add(issue);
         }
+
+        //Reported as a step issue and not only as a reason the proposal is pending, because once the user has
+        //switched the automatic reserve on themselves there is no proposal left to carry it - and the combination
+        //is one the base configuration validator refuses to store.
+        if (state.Configuration.DynamicHomeBatteryMinSoc == true && !state.Configuration.PredictSolarPowerGeneration)
+        {
+            status.Issues.Add(Issue(TranslationKeys.SetupIssueSolarPredictionRequired, SetupStepKey.SolarAndBattery,
+                propertyName: nameof(BaseConfigurationBase.PredictSolarPowerGeneration)));
+        }
+    }
+
+    /// <summary>
+    /// Everything the automatic reserve needs before it can work out a number: the battery's own facts, where the
+    /// installation is, and a solar forecast to plan against. A forecast that is itself being proposed does not
+    /// count as missing - accepting the recommendations turns it on in the same step.
+    /// </summary>
+    private static List<DtoSetupIssue> GetAutomaticReserveBlockers(DtoSetupState state,
+        DtoBaseConfiguration configuration,
+        List<DtoSetupProposedValue> proposals)
+    {
+        var blockers = GetHomeBatterySpecificationIssues(state);
+        if (!IsHomeLocationConfirmed(state))
+        {
+            blockers.Add(Issue(TranslationKeys.SetupIssueHomeLocationNotConfirmed, SetupStepKey.Location));
+        }
+
+        if (!configuration.PredictSolarPowerGeneration
+            && !proposals.Any(p => p.PropertyName == nameof(BaseConfigurationBase.PredictSolarPowerGeneration)))
+        {
+            blockers.Add(Issue(TranslationKeys.SetupIssueSolarPredictionRequired, SetupStepKey.SolarAndBattery,
+                propertyName: nameof(BaseConfigurationBase.PredictSolarPowerGeneration)));
+        }
+
+        return blockers;
     }
 
     /// <summary>
@@ -215,7 +249,9 @@ public class SetupDecisionService(
 
     private static void AddPriceIssues(DtoSetupStepStatus status, DtoSetupState state)
     {
-        if (state.ChargePrice == null || state.ChargePrice.GridPrice <= 0)
+        //Null and zero mean the same thing here: nobody has said what electricity costs yet. The assistant starts
+        //this field empty on purpose, so that an example number never passes for the user's own contract.
+        if (state.ChargePrice?.GridPrice is not > 0)
         {
             status.Issues.Add(Issue(TranslationKeys.SetupIssueGridPriceMissing, SetupStepKey.Prices));
         }
@@ -357,7 +393,11 @@ public class SetupDecisionService(
                 blockers.Add(new DtoSetupIssue
                 {
                     Severity = SetupIssueSeverity.MissingInformation,
-                    MessageKey = TranslationKeys.SetupIssueChargingStationNotConnected,
+                    //A station that has reported in but whose connector is still unchosen is a different problem
+                    //from one that never connected, and it is the one a multi connector charger always hits.
+                    MessageKey = draft.ChargingStationId != null
+                        ? TranslationKeys.SetupIssueChargingStationConnectorNotChosen
+                        : TranslationKeys.SetupIssueChargingStationNotConnected,
                     StepKey = SetupStepKey.CarsAndCharging,
                     DraftId = draft.DraftId,
                 });
@@ -386,16 +426,36 @@ public class SetupDecisionService(
         var proposals = new List<DtoSetupProposedValue>();
         var configuration = state.Configuration;
 
+        //The automatic reserve is worked out from a solar forecast, which the base configuration validator insists
+        //on. Proposing the reserve without it would produce a combination the app refuses to store, so the forecast
+        //is proposed first and alongside - including for a battery in a household with no panels of its own.
+        var isAutomaticReserveWanted = configuration.DynamicHomeBatteryMinSoc == true
+                                       || (state.HasHomeBattery == true
+                                           && IsUndecided(state, nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc), configuration.DynamicHomeBatteryMinSoc == null));
+
+        if ((state.HasPvSystem == true || isAutomaticReserveWanted)
+            && IsUndecided(state, nameof(BaseConfigurationBase.PredictSolarPowerGeneration), !configuration.PredictSolarPowerGeneration))
+        {
+            proposals.Add(new DtoSetupProposedValue
+            {
+                PropertyName = nameof(BaseConfigurationBase.PredictSolarPowerGeneration),
+                Value = true,
+                ReasonKey = state.HasPvSystem == true
+                    ? TranslationKeys.SetupReasonPredictSolarPowerGeneration
+                    : TranslationKeys.SetupReasonPredictSolarPowerGenerationForBattery,
+                IsPending = !IsHomeLocationConfirmed(state),
+                PendingReasons = IsHomeLocationConfirmed(state)
+                    ? new List<DtoSetupIssue>()
+                    : [Issue(TranslationKeys.SetupIssueHomeLocationNotConfirmed, SetupStepKey.Location)],
+            });
+        }
+
         //Enabled by default for a new installation with a battery: the reserve is what keeps the household supplied
         //in the evening, and working it out automatically is strictly better than asking a beginner for a number.
-        if (state.HasHomeBattery == true && IsUndecided(state, nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc), configuration.DynamicHomeBatteryMinSoc == null))
+        if (state.HasHomeBattery == true
+            && IsUndecided(state, nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc), configuration.DynamicHomeBatteryMinSoc == null))
         {
-            var pendingReasons = GetHomeBatterySpecificationIssues(state);
-            if (!IsHomeLocationConfirmed(state))
-            {
-                pendingReasons.Add(Issue(TranslationKeys.SetupIssueHomeLocationNotConfirmed, SetupStepKey.Location));
-            }
-
+            var pendingReasons = GetAutomaticReserveBlockers(state, configuration, proposals);
             proposals.Add(new DtoSetupProposedValue
             {
                 PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
@@ -406,19 +466,22 @@ public class SetupDecisionService(
             });
         }
 
-        if (state.HasPvSystem == true && IsUndecided(state, nameof(BaseConfigurationBase.PredictSolarPowerGeneration), !configuration.PredictSolarPowerGeneration))
+        //Scheduling on the forecast is its own decision. Bundling it with the forecast itself would re-enable
+        //something an installation had turned off, just because it still wants the forecast.
+        if (state.HasPvSystem == true
+            && IsUndecided(state, nameof(BaseConfigurationBase.UsePredictedSolarPowerGenerationForChargingSchedules),
+                !configuration.UsePredictedSolarPowerGenerationForChargingSchedules))
         {
+            //Charging schedules may only use a forecast that is actually produced; the validator says so too.
             var pendingReasons = IsHomeLocationConfirmed(state)
                 ? new List<DtoSetupIssue>()
                 : [Issue(TranslationKeys.SetupIssueHomeLocationNotConfirmed, SetupStepKey.Location)];
-            proposals.Add(new DtoSetupProposedValue
+            if (!configuration.PredictSolarPowerGeneration
+                && !proposals.Any(p => p.PropertyName == nameof(BaseConfigurationBase.PredictSolarPowerGeneration)))
             {
-                PropertyName = nameof(BaseConfigurationBase.PredictSolarPowerGeneration),
-                Value = true,
-                ReasonKey = TranslationKeys.SetupReasonPredictSolarPowerGeneration,
-                IsPending = pendingReasons.Count > 0,
-                PendingReasons = pendingReasons,
-            });
+                pendingReasons.Add(Issue(TranslationKeys.SetupIssueSolarPredictionRequired, SetupStepKey.SolarAndBattery,
+                    propertyName: nameof(BaseConfigurationBase.PredictSolarPowerGeneration)));
+            }
 
             proposals.Add(new DtoSetupProposedValue
             {
@@ -477,28 +540,53 @@ public class SetupDecisionService(
                 };
             }
 
-            if (draft.ConnectionRoute != SetupCarConnectionRoute.TeslaBluetooth
-                || draft.Configuration.IncludeTrackingRelevantFields
-                || draft.Configuration.HomeDetectionVia == HomeDetectionVia.BlePresence)
+            //How the app can tell this car is at home follows from how it reaches the car. Asking the user to line
+            //the two up themselves is exactly the knowledge they do not have, and getting it wrong is a
+            //combination the car validator refuses - which used to surface only as a failure at the very end.
+            var proposedHomeDetection = ProposeHomeDetection(draft);
+            if (proposedHomeDetection == null || draft.Configuration.HomeDetectionVia == proposedHomeDetection)
             {
                 continue;
             }
 
-            //Bluetooth range is what tells us the car is at home on this route; asking the user to line up the
-            //data source and the home detection setting themselves is exactly the knowledge they do not have.
             yield return new DtoSetupProposedValue
             {
                 PropertyName = nameof(CarBasicConfiguration.HomeDetectionVia),
-                Value = HomeDetectionVia.BlePresence,
-                ReasonKey = TranslationKeys.SetupReasonCarHomeDetectionViaBlePresence,
+                Value = proposedHomeDetection,
+                ReasonKey = proposedHomeDetection == HomeDetectionVia.BlePresence
+                    ? TranslationKeys.SetupReasonCarHomeDetectionViaBlePresence
+                    : TranslationKeys.SetupReasonCarHomeDetectionViaLocatedAtHome,
                 DraftId = draft.DraftId,
             };
         }
     }
 
     /// <summary>
-    /// Whether the app may decide a property. An explicit user choice is never replaced, and a value that already
-    /// has the proposed effect is not proposed again.
+    /// The home detection that goes with a car's connection route, or null where the default already fits. Tracking
+    /// relevant fields change the answer for both Tesla routes: with them the car reports its position, without
+    /// them home has to be decided from Bluetooth range or from what Tesla itself says about the car being home.
+    /// </summary>
+    private static HomeDetectionVia? ProposeHomeDetection(DtoSetupCarDraft draft)
+    {
+        if (draft.Configuration.IncludeTrackingRelevantFields)
+        {
+            //Position is being streamed, so the ordinary GPS comparison is the right one.
+            return HomeDetectionVia.GpsLocation;
+        }
+
+        return draft.ConnectionRoute switch
+        {
+            SetupCarConnectionRoute.TeslaBluetooth => HomeDetectionVia.BlePresence,
+            SetupCarConnectionRoute.TeslaCloud => HomeDetectionVia.LocatedAtHome,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Whether the app may decide a property. A value that already has the proposed effect is not proposed again,
+    /// and neither is one somebody has already decided - by hand in the assistant, or by configuring this
+    /// installation before the assistant existed. An installation that deliberately switched something off must not
+    /// be offered a ticked box that switches it back on.
     /// </summary>
     private static bool IsUndecided(DtoSetupState state, string propertyName, bool differsFromProposal)
     {
@@ -507,7 +595,8 @@ public class SetupDecisionService(
             return false;
         }
 
-        return !state.ValueSources.TryGetValue(propertyName, out var source) || source != SetupValueSource.UserEntered;
+        return !state.ValueSources.TryGetValue(propertyName, out var source)
+               || source is not (SetupValueSource.UserEntered or SetupValueSource.ExistingConfiguration);
     }
 
     private static DtoSetupNextAction? BuildNextAction(DtoSetupDecision decision)

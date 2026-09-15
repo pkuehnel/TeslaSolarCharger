@@ -262,9 +262,21 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.English, "Your charging station has not reported in yet. Enter the connection address in its settings and wait for it to appear here."),
             new TextLocalizationTranslation(LanguageCodes.German, "Ihre Ladestation hat sich noch nicht gemeldet. Tragen Sie die Verbindungsadresse in ihren Einstellungen ein und warten Sie, bis sie hier erscheint."));
 
+        Register(TranslationKeys.SetupIssueChargingStationConnectorNotChosen,
+            new TextLocalizationTranslation(LanguageCodes.English, "This charging station has several connectors. Choose the one your car is plugged into."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Diese Ladestation hat mehrere Anschlüsse. Wählen Sie den aus, an dem Ihr Auto angeschlossen ist."));
+
+        Register(TranslationKeys.SetupIssueSolarPredictionRequired,
+            new TextLocalizationTranslation(LanguageCodes.English, "Working out the reserve automatically needs the solar forecast, so please switch it on as well."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Für die automatische Reserve wird die Solarvorhersage benötigt, schalten Sie sie daher bitte ebenfalls ein."));
+
         Register(TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
             new TextLocalizationTranslation(LanguageCodes.English, "We keep just enough charge in your home battery for the evening and let your car use the rest."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wir halten genau so viel Ladung im Hausspeicher zurück, wie Sie abends brauchen, und überlassen den Rest Ihrem Auto."));
+
+        Register(TranslationKeys.SetupReasonPredictSolarPowerGenerationForBattery,
+            new TextLocalizationTranslation(LanguageCodes.English, "We forecast the solar power at your location because working out your home battery's reserve depends on it."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir sagen den Solarertrag an Ihrem Standort voraus, weil die Berechnung der Reserve Ihres Hausspeichers darauf angewiesen ist."));
 
         Register(TranslationKeys.SetupReasonPredictSolarPowerGeneration,
             new TextLocalizationTranslation(LanguageCodes.English, "We forecast tomorrow's solar power for your location so charging can be planned ahead."),
@@ -285,6 +297,10 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
         Register(TranslationKeys.SetupReasonCarHomeDetectionViaBlePresence,
             new TextLocalizationTranslation(LanguageCodes.English, "We notice this car is home when the Bluetooth device near your parking space can hear it."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wir erkennen, dass dieses Auto zu Hause ist, wenn das Bluetooth-Gerät an Ihrem Stellplatz es hört."));
+
+        Register(TranslationKeys.SetupReasonCarHomeDetectionViaLocatedAtHome,
+            new TextLocalizationTranslation(LanguageCodes.English, "We let Tesla tell us this car is home, because you chose not to share its exact position with us."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir lassen uns von Tesla sagen, dass dieses Auto zu Hause ist, da Sie uns seine genaue Position nicht mitteilen möchten."));
 
         Register(TranslationKeys.SetupReasonCarChargingPriority,
             new TextLocalizationTranslation(LanguageCodes.English, "With a single car there is nothing to prioritise, so we set the order for you."),
@@ -345,6 +361,10 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
         Register(TranslationKeys.SetupSaveWithoutEnablingHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Keeps everything you entered and changes nothing about how your cars charge today."),
             new TextLocalizationTranslation(LanguageCodes.German, "Behält alle Ihre Eingaben und ändert nichts daran, wie Ihre Autos heute laden."));
+
+        Register(TranslationKeys.SetupFinishBlockedHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Something is still missing, so finishing is not possible yet. The list above says what, and saving without enabling keeps your answers in the meantime."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Es fehlt noch etwas, daher ist das Abschließen noch nicht möglich. Die Liste oben nennt was, und Speichern ohne Aktivieren bewahrt Ihre Eingaben so lange auf."));
 
         Register(TranslationKeys.SetupEnableExplanation,
             new TextLocalizationTranslation(LanguageCodes.English, "Finishing lets TeslaSolarCharger control charging as soon as the conditions you set are met."),

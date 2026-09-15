@@ -648,6 +648,11 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().DynamicHomeBatteryMinSoc == true;
     }
 
+    public bool IsFirstRun()
+    {
+        return GetBaseConfiguration().IsFirstRun;
+    }
+
     public int? HomeBatteryMinSoc()
     {
         return GetBaseConfiguration().HomeBatteryMinSoc;

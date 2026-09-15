@@ -47,7 +47,10 @@ public class SetupPageTests : Bunit.TestContext
     private readonly Mock<IHttpClientHelper> _httpClientHelper = new();
 
     private DtoSetupState _storedState = new();
-    private DtoSetupDecision _decision = new();
+
+    //An installation the server considers fully described. Finishing switches equipment on, so the button is only
+    //offered once the server says everything required is there - tests that need it blocked say so explicitly.
+    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, };
 
     public SetupPageTests()
     {
@@ -556,5 +559,72 @@ public class SetupPageTests : Bunit.TestContext
             .ToList();
         Assert.NotEmpty(buttons);
         return buttons.Last();
+    }
+
+    [Fact]
+    public void FinishingIsNotOfferedWhileSomethingIsStillMissing()
+    {
+        //The button used to be live whenever the page was not busy, so a car with no capacity or phases could be
+        //switched on and setup marked finished around it.
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = false,
+            MissingInformation =
+            {
+                new DtoSetupIssue
+                {
+                    Severity = SetupIssueSeverity.MissingInformation,
+                    MessageKey = TranslationKeys.SetupIssueCarUsableEnergyUnknown,
+                    StepKey = SetupStepKey.CarsAndCharging,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.True(ButtonWithText(page, "Finish Setup").HasAttribute("disabled"));
+        //Saving without enabling changes nothing about how cars charge, so it stays available.
+        Assert.False(ButtonWithText(page, "Save and enable later").HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public void AnUnansweredTariffStartsEmptyRatherThanAtAnExampleNumber()
+    {
+        //A plausible looking price that was never the user's own quietly makes every charging decision wrong, and
+        //nothing would prompt them to look at it again.
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.DoesNotContain("0.285", page.Markup);
+        Assert.DoesNotContain("0,285", page.Markup);
+    }
+
+    [Fact]
+    public void DecliningAnAutomationSurvivesAReload()
+    {
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = true,
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    ReasonKey = TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
+                },
+            },
+        };
+        var page = RenderAt(SetupSections.Finish);
+
+        //Untick the recommendation.
+        page.FindAll("input[type=checkbox]").Last().Change(false);
+
+        //Kept with the rest of the answers, not only in the browser: a reload used to accept it again silently.
+        Assert.Contains($"|{nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc)}",
+            Assert.Single(LastSavedState().DeclinedProposalIds));
     }
 }

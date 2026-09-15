@@ -13,6 +13,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 using TeslaSolarCharger.Shared.Dtos.Setup;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.TimeProviding;
@@ -38,6 +39,12 @@ public class SetupApplicationServiceTests : TestBase
     /// <summary>The order the application steps ran in, so a test can prove the base configuration went first.</summary>
     private readonly List<string> _operationOrder = new();
 
+    /// <summary>
+    /// The tariffs handed to the charging cost service, in order. Captured at call time rather than verified
+    /// afterwards, so a later edit cannot make an earlier call look like it carried the newer value.
+    /// </summary>
+    private readonly List<DtoChargePrice> _savedChargePrices = new();
+
     public SetupApplicationServiceTests(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
@@ -52,7 +59,11 @@ public class SetupApplicationServiceTests : TestBase
             .Returns(Task.CompletedTask);
         _chargingCostService
             .Setup(s => s.UpdateChargePrice(It.IsAny<DtoChargePrice>()))
-            .Callback(() => _operationOrder.Add("chargePrice"))
+            .Callback<DtoChargePrice>(price =>
+            {
+                _operationOrder.Add("chargePrice");
+                _savedChargePrices.Add(price);
+            })
             .Returns(Task.CompletedTask);
         _configJsonService
             .Setup(s => s.UpdateCarBasicConfiguration(It.IsAny<int>(), It.IsAny<CarBasicConfiguration>()))
@@ -64,6 +75,8 @@ public class SetupApplicationServiceTests : TestBase
             .Returns(Task.CompletedTask);
     }
 
+    //The real validators, not mocks: what these tests have to prove is that a car cannot be switched on with
+    //values the app itself rejects, and a mocked validator would agree to anything.
     private SetupApplicationService NewService() => new(
         Moq.Mock.Of<ILogger<SetupApplicationService>>(),
         _setupStateService.Object,
@@ -73,12 +86,18 @@ public class SetupApplicationServiceTests : TestBase
         _configJsonService.Object,
         Context,
         new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime),
-        _deferredSetupCheckService.Object);
+        _deferredSetupCheckService.Object,
+        new CarBasicConfigurationValidator(),
+        new BaseConfigurationValidator());
 
-    private static DtoSetupState StateWithOneCar(bool shouldBeActivated = true) => new()
+    /// <summary>
+    /// A car that has a row but is not running yet - the normal state of a car being set up. Whether it was already
+    /// managed decides whether saving may leave it switched off, so the two cases are kept apart deliberately.
+    /// </summary>
+    private static DtoSetupState StateWithOneCar(bool shouldBeActivated = true, bool isAlreadyManaged = false) => new()
     {
         Configuration = new DtoBaseConfiguration { HomeGeofenceLatitude = 48.13, HomeGeofenceRadius = 120, },
-        ChargePrice = new DtoChargePrice { GridPrice = 0.31m, },
+        ChargePrice = new DtoChargePrice { GridPrice = 0.31m, SolarPrice = 0.1m, },
         CarDrafts =
         {
             new DtoSetupCarDraft
@@ -89,7 +108,8 @@ public class SetupApplicationServiceTests : TestBase
                 Configuration = new CarBasicConfiguration
                 {
                     Id = 5, Name = "Car", Vin = "VIN1", UsableEnergy = 75, MaximumPhases = 3,
-                    MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 1, ShouldBeManaged = true,
+                    MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 1,
+                    ShouldBeManaged = isAlreadyManaged,
                 },
             },
         },
@@ -106,13 +126,30 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
-    public async Task SavingDuringSetupNeverHandsACarToTheChargingScheduler()
+    public async Task SavingDuringSetupNeverHandsANewCarToTheChargingScheduler()
     {
-        var state = StateWithOneCar();
-        //Even a draft that already says "managed" is saved unmanaged: activation is its own explicit step.
-        state.CarDrafts[0].Configuration.ShouldBeManaged = true;
+        //Activation is its own explicit step, so a car that is not running yet stays switched off however complete
+        //its configuration looks.
+        await NewService().ApplyConfiguration(StateWithOneCar());
 
-        await NewService().ApplyConfiguration(state);
+        Assert.False(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task SavingDuringSetupDoesNotSwitchOffACarThatIsAlreadyCharging()
+    {
+        //Reopening the assistant to add a second car must not stop the first one. Saving it unmanaged would, and
+        //would also make the real ConfigJsonService drop every charging connector it is allowed on.
+        await NewService().ApplyConfiguration(StateWithOneCar(isAlreadyManaged: true));
+
+        Assert.True(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task ARunningCarTheUserSwitchesOffInSetupIsActuallySwitchedOff()
+    {
+        //Unticking "charge automatically" for a car that is running is the one case where setup may stop it.
+        await NewService().ApplyConfiguration(StateWithOneCar(shouldBeActivated: false, isAlreadyManaged: true));
 
         Assert.False(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
     }
@@ -120,10 +157,13 @@ public class SetupApplicationServiceTests : TestBase
     [Fact]
     public async Task ApplyingDoesNotEditTheDraftTheUserIsStillWorkingOn()
     {
-        var state = StateWithOneCar();
+        var state = StateWithOneCar(isAlreadyManaged: true);
+        state.CarDrafts[0].ShouldBeActivated = false;
 
         await NewService().ApplyConfiguration(state);
 
+        //The car was written switched off, but the draft on screen is untouched.
+        Assert.False(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
         Assert.True(state.CarDrafts[0].Configuration.ShouldBeManaged);
     }
 
@@ -223,7 +263,7 @@ public class SetupApplicationServiceTests : TestBase
         Assert.True(result.IsSuccess);
         Assert.True(result.IsSetupCompleted);
         Assert.False(_liveConfiguration.IsFirstRun);
-        //Saved once unmanaged while applying, then again managed while activating.
+        //Saved once switched off while applying, then again switched on while activating.
         Assert.Equal(2, _savedCarConfigurations.Count);
         Assert.False(_savedCarConfigurations[0].ShouldBeManaged);
         Assert.True(_savedCarConfigurations[1].ShouldBeManaged);
@@ -254,7 +294,11 @@ public class SetupApplicationServiceTests : TestBase
         //The price service recovers; the base configuration must not be written a second time.
         _chargingCostService
             .Setup(s => s.UpdateChargePrice(It.IsAny<DtoChargePrice>()))
-            .Callback(() => _operationOrder.Add("chargePrice"))
+            .Callback<DtoChargePrice>(price =>
+            {
+                _operationOrder.Add("chargePrice");
+                _savedChargePrices.Add(price);
+            })
             .Returns(Task.CompletedTask);
 
         var secondAttempt = await service.ApplyConfiguration(state);
@@ -515,5 +559,185 @@ public class SetupApplicationServiceTests : TestBase
         var updated = NewService().AcceptProposals(state, proposals);
 
         Assert.Equal(1, updated.CarDrafts[0].Configuration.ChargingPriority);
+    }
+
+    [Theory]
+    [InlineData(nameof(CarBasicConfiguration.UsableEnergy))]
+    [InlineData(nameof(CarBasicConfiguration.MaximumPhases))]
+    [InlineData(nameof(CarBasicConfiguration.ChargingPriority))]
+    public async Task ACarWithMissingSpecificationsCannotBeSwitchedOn(string missingProperty)
+    {
+        //The detailed settings pages are validated by the controller before they reach the service. Setup posts a
+        //whole state instead, so without validating here it is the one route that can start charging a car on
+        //values the app itself refuses.
+        var state = StateWithOneCar();
+        typeof(CarBasicConfiguration).GetProperty(missingProperty)!.SetValue(state.CarDrafts[0].Configuration, 0);
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.False(result.IsSetupCompleted);
+        var failure = Assert.Single(result.FailedOperations);
+        Assert.Equal(SetupOperationKey.ActivateCar, failure.OperationKey);
+        //Something to change, not something to try again unchanged.
+        Assert.False(failure.IsRetryable);
+    }
+
+    [Fact]
+    public async Task AnIncompleteCarCanStillBeSavedAsADraft()
+    {
+        //Saving early is what gives a connection test something real to work with. It stays switched off, so the
+        //values that only matter for charging do not have to be answered yet.
+        var state = StateWithOneCar();
+        state.CarDrafts[0].Configuration.UsableEnergy = 0;
+
+        var result = await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ABaseConfigurationTheAppWouldRefuseIsNotWritten()
+    {
+        //Working out the battery reserve automatically needs the solar forecast; storing one without the other
+        //leaves the installation in a state its own validator rejects.
+        var state = StateWithOneCar();
+        state.Configuration.DynamicHomeBatteryMinSoc = true;
+        state.Configuration.PredictSolarPowerGeneration = false;
+        state.Configuration.HomeBatteryUsableEnergy = 10;
+        state.Configuration.HomeBatteryChargingPower = 3000;
+
+        var result = await NewService().ApplyConfiguration(state);
+
+        Assert.False(result.IsSuccess);
+        var failure = Assert.Single(result.FailedOperations);
+        Assert.Equal(SetupOperationKey.SaveBaseConfiguration, failure.OperationKey);
+        Assert.Empty(_savedCarConfigurations);
+    }
+
+    [Fact]
+    public async Task ANewCarsIdIsCarriedOnItsConfigurationAndNotOnlyOnTheDraft()
+    {
+        //The configuration is handed straight to the in memory car on the next save. A zero there renumbers a car
+        //that is already running, and every later lookup by its real id then fails.
+        Context.Cars.Add(new Car { Id = 11, Vin = "NEWVIN", });
+        await Context.SaveChangesAsync();
+        var state = StateWithOneCar();
+        state.CarDrafts[0].CarId = null;
+        state.CarDrafts[0].Configuration.Id = 0;
+        state.CarDrafts[0].Configuration.Vin = "NEWVIN";
+
+        await NewService().ApplyConfiguration(state);
+
+        Assert.Equal(11, state.CarDrafts[0].CarId);
+        Assert.Equal(11, state.CarDrafts[0].Configuration.Id);
+    }
+
+    [Fact]
+    public async Task TimeOfUsePeriodsReachTheStoredTariff()
+    {
+        var state = StateWithOneCar();
+        state.ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse;
+        state.FixedPrices.Add(new FixedPrice { FromHour = 22, ToHour = 6, Value = 0.19m, });
+
+        await NewService().ApplyConfiguration(state);
+
+        //The periods are edited as a list but stored as the price's serialized configuration; without this the
+        //tariff the user described is simply lost.
+        var saved = Assert.Single(_savedChargePrices);
+        Assert.NotNull(saved.EnergyProviderConfiguration);
+        Assert.Contains("0.19", saved.EnergyProviderConfiguration);
+    }
+
+    [Fact]
+    public async Task ChangingAwayFromATimeOfUseTariffClearsTheOldPeriods()
+    {
+        var state = StateWithOneCar();
+        state.ElectricityPriceKind = SetupElectricityPriceKind.Fixed;
+        state.ChargePrice!.EnergyProviderConfiguration = "[{\"FromHour\":22,\"Value\":0.19}]";
+
+        await NewService().ApplyConfiguration(state);
+
+        //Otherwise yesterday's periods stay in force behind a tariff that no longer has any.
+        Assert.Null(Assert.Single(_savedChargePrices).EnergyProviderConfiguration);
+    }
+
+    [Fact]
+    public async Task ATariffNobodyHasAnsweredIsNotStored()
+    {
+        var state = StateWithOneCar();
+        state.ChargePrice!.GridPrice = null;
+
+        var result = await NewService().ApplyConfiguration(state);
+
+        Assert.True(result.IsSuccess);
+        _chargingCostService.Verify(s => s.UpdateChargePrice(It.IsAny<DtoChargePrice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AHouseholdWithoutPanelsGetsAnExportValueRatherThanAFailedSave()
+    {
+        var state = StateWithOneCar();
+        state.ChargePrice!.SolarPrice = null;
+
+        var result = await NewService().ApplyConfiguration(state);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0, Assert.Single(_savedChargePrices).SolarPrice);
+    }
+
+    [Fact]
+    public async Task EditingAValueAfterSavingWritesItInsteadOfSkippingTheStep()
+    {
+        //Save without enabling, come back, change the price, finish. The earlier record must not make the new
+        //answer a no-op, or the value the user replaced stays in force.
+        var state = StateWithOneCar();
+        var service = NewService();
+        await service.ApplyConfiguration(state);
+        Assert.Equal(1, _operationOrder.Count(o => o == "chargePrice"));
+
+        state.ChargePrice!.GridPrice = 0.42m;
+        await service.ApplyConfiguration(state);
+
+        Assert.Equal(2, _operationOrder.Count(o => o == "chargePrice"));
+        Assert.Equal(0.42m, _savedChargePrices.Last().GridPrice);
+    }
+
+    [Theory]
+    [InlineData(SetupElectricityPriceKind.Fixed)]
+    [InlineData(SetupElectricityPriceKind.TimeOfUse)]
+    public async Task ApplyingTheSameAnswersTwiceStillDoesNotRepeatTheWork(SetupElectricityPriceKind kind)
+    {
+        //Including a time of use tariff, whose periods are stored in a shape the answers themselves never take on.
+        //Deriving that onto the state instead of onto a copy would make every apply look like a fresh edit.
+        var state = StateWithOneCar();
+        state.ElectricityPriceKind = kind;
+        state.FixedPrices.Add(new FixedPrice { FromHour = 22, ToHour = 6, Value = 0.19m, });
+        var service = NewService();
+        await service.ApplyConfiguration(state);
+
+        var secondAttempt = await service.ApplyConfiguration(state);
+
+        Assert.True(secondAttempt.Operations.Single(o => o.OperationKey == SetupOperationKey.SaveChargePrice).WasAlreadyCompleted);
+        Assert.Equal(1, _operationOrder.Count(o => o == "chargePrice"));
+    }
+
+    [Fact]
+    public async Task UntickingAChargingConnectorActuallyRemovesTheCarFromIt()
+    {
+        //Only adding would leave the car charging somewhere the user has just said it does not belong.
+        Context.Cars.Add(new Car { Id = 5, Vin = "VIN1", });
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 1") { Id = 3, OcppChargingStationId = 1, });
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 2") { Id = 4, OcppChargingStationId = 1, });
+        Context.ChargingStationConnectorAllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = 5, OcppChargingStationConnectorId = 3, });
+        Context.ChargingStationConnectorAllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = 5, OcppChargingStationConnectorId = 4, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.CarDrafts[0].AssignedChargingConnectorIds.Add(4);
+
+        await NewService().ActivateAndCompleteSetup(state);
+
+        var assignment = Assert.Single(await Context.ChargingStationConnectorAllowedCars.ToListAsync());
+        Assert.Equal(4, assignment.OcppChargingStationConnectorId);
     }
 }

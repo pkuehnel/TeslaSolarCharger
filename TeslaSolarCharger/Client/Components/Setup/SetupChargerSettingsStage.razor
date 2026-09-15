@@ -22,6 +22,28 @@ else if (_connectors.Count == 0)
 }
 else
 {
+    @if (_connectors.Count > 1)
+    {
+        @* A station with several sockets charges one car per socket. Without saying which one, nothing later can
+           be switched on for this charger, so it is asked here rather than assumed. *@
+        <div class="p-3 rounded border mb-3">
+            <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupChargerConnectorChoiceTitle)</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupChargerConnectorChoiceExplanation)</MudText>
+            <MudSelect T="int?" Value="Draft.ConnectorId" ValueChanged="OnConnectorChosen"
+                       Label="@T(TranslationKeys.SetupChargerConnectorChoiceLabel)"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 420px;">
+                @foreach (var connector in _connectors)
+                {
+                    <MudSelectItem T="int?" Value="@(connector.Id)">@ConnectorDisplayName(connector)</MudSelectItem>
+                }
+            </MudSelect>
+            @if (Draft.ConnectorId == null)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupIssueChargingStationConnectorNotChosen)</MudText>
+            }
+        </div>
+    }
+
     @foreach (var connector in _connectors)
     {
         <div class="p-3 rounded border mb-3">
@@ -84,7 +106,38 @@ else
 
         _connectors = await ChargingStationsService.GetChargingStationConnectors(Draft.ChargingStationId.Value)
                       ?? new List<DtoChargingStationConnector>();
+
+        //A single connector needs no question, and a draft that still points at a connector this station no longer
+        //reports would keep the charger unfinishable for a reason nothing on screen explains.
+        var resolvedConnectorId = _connectors.Count == 1
+            ? _connectors[0].Id
+            : _connectors.Any(c => c.Id == Draft.ConnectorId) ? Draft.ConnectorId : null;
+        if (resolvedConnectorId != Draft.ConnectorId)
+        {
+            Draft.ConnectorId = resolvedConnectorId;
+            await Context.Save();
+            await Context.RefreshDecision();
+        }
     }
+
+    private async Task OnConnectorChosen(int? connectorId)
+    {
+        Draft.ConnectorId = connectorId;
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
+
+    /// <summary>
+    /// What to call a socket on screen. The name the charger reports is the one the user can match to the label on
+    /// the hardware; its position is the fallback when the charger reports nothing useful.
+    /// </summary>
+    private string ConnectorDisplayName(DtoChargingStationConnector connector) =>
+        string.IsNullOrWhiteSpace(connector.Name)
+            ? Format(TranslationKeys.SetupChargerConnectorFallbackNameFormat, _connectors!.IndexOf(connector) + 1)
+            : connector.Name;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
 
     private async Task OnNameChanged(DtoChargingStationConnector connector, string? value)
     {

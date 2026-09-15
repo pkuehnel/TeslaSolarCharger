@@ -545,6 +545,22 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "These limits come from your wiring and the charging station itself, not from the car."),
             new TextLocalizationTranslation(LanguageCodes.German, "Diese Grenzwerte ergeben sich aus Ihrer Installation und der Ladestation selbst, nicht aus dem Auto."));
 
+        Register(TranslationKeys.SetupChargerConnectorChoiceTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Which charging point do you use?"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Welchen Ladepunkt nutzen Sie?"));
+
+        Register(TranslationKeys.SetupChargerConnectorChoiceExplanation,
+            new TextLocalizationTranslation(LanguageCodes.English, "This charging station reported several charging points. Choose the one you plug your car into; we only take charge of that one."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Diese Ladestation hat mehrere Ladepunkte gemeldet. Wählen Sie den, an dem Sie Ihr Auto anschließen; nur um diesen kümmern wir uns."));
+
+        Register(TranslationKeys.SetupChargerConnectorChoiceLabel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging point"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkt"));
+
+        Register(TranslationKeys.SetupChargerConnectorFallbackNameFormat,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging point {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkt {0}"));
+
         Register(TranslationKeys.SetupChargerConnectorNameLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Name of this charging point"),
             new TextLocalizationTranslation(LanguageCodes.German, "Name dieses Ladepunkts"));

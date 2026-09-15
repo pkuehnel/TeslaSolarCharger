@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -14,6 +16,7 @@ public class SetupStateService(
     ISetupStateMigrator setupStateMigrator,
     IConfigurationWrapper configurationWrapper,
     IConfigJsonService configJsonService,
+    ITeslaSolarChargerContext teslaSolarChargerContext,
     IDateTimeProvider dateTimeProvider,
     IConstants constants)
     : ISetupStateService
@@ -52,11 +55,23 @@ public class SetupStateService(
             Configuration = await configurationWrapper.GetBaseConfigurationAsync().ConfigureAwait(false),
         };
 
-        //Everything already configured is an explicit choice of this installation, not something the assistant may
-        //replace with a newly proposed default.
-        foreach (var propertyName in SetupConfigurationOwnership.OwnedProperties)
+        //On an installation that has been set up before, what is stored is what that installation decided - a
+        //forecast switched off on purpose reads exactly like one never switched on, so the assistant must not offer
+        //to turn it back on as a recommendation. On a first run the same values are only untouched defaults, and
+        //treating those as decisions would leave a beginner with nothing proposed at all.
+        if (!state.Configuration.IsFirstRun)
         {
-            state.ValueSources[propertyName] = SetupValueSource.ExistingConfiguration;
+            foreach (var owned in SetupConfigurationOwnership.OwnedValues(state.Configuration))
+            {
+                //A setting that can be null and is says so plainly: nobody has answered it, not even by leaving it
+                //alone. Those stay open to a recommendation however long the installation has been running.
+                if (owned.Value == null)
+                {
+                    continue;
+                }
+
+                state.ValueSources[owned.Key] = SetupValueSource.ExistingConfiguration;
+            }
         }
 
         await SeedDraftsFromExistingCars(state).ConfigureAwait(false);
@@ -83,13 +98,51 @@ public class SetupStateService(
         //A draft whose car was deleted elsewhere would otherwise keep asking to be finished.
         setupState.CarDrafts.RemoveAll(d => d.CarId != null && !existingCarIds.Contains(d.CarId.Value));
 
+        //A draft that is already open has to pick up what happened outside the assistant. Authorizing SmartCar, for
+        //one, changes the car's type in the database; a draft still saying "manual" would keep offering to connect
+        //what is already connected and would write the old type back on the next save.
+        foreach (var draft in setupState.CarDrafts.Where(d => d.CarId != null))
+        {
+            var car = existingCars.FirstOrDefault(c => c.Id == draft.CarId);
+            if (car != null)
+            {
+                RefreshConnectionState(draft, car);
+            }
+        }
+
         foreach (var car in existingCars.Where(c => setupState.CarDrafts.All(d => d.CarId != c.Id)))
         {
-            setupState.CarDrafts.Add(CreateDraft(car));
+            setupState.CarDrafts.Add(await CreateDraftWithAssignments(car).ConfigureAwait(false));
         }
 
         await PersistState(setupState).ConfigureAwait(false);
         return setupState;
+    }
+
+    /// <summary>
+    /// Copies the parts of a car that something other than the assistant owns onto an open draft, and leaves every
+    /// answer the user typed alone. Which service a car is connected to is decided by an authorization the user
+    /// completes outside setup, so it is read back rather than remembered.
+    /// </summary>
+    private static void RefreshConnectionState(DtoSetupCarDraft draft, Shared.Dtos.CarBasicConfiguration car)
+    {
+        if (draft.Configuration.CarType == car.CarType
+            && draft.Configuration.ShouldBeManaged == car.ShouldBeManaged)
+        {
+            return;
+        }
+
+        draft.Configuration.CarType = car.CarType;
+        //Whether the car is actually running is the installation's state, not an answer in the assistant. Keeping a
+        //stale value here would make a running car look like a draft waiting to be switched on.
+        draft.Configuration.ShouldBeManaged = car.ShouldBeManaged;
+        //A route derived from the old type no longer describes the car. Only fill in a route that follows from what
+        //the car now is, so a user who deliberately picked one of several Tesla routes keeps their choice.
+        var route = DeriveConnectionRoute(car);
+        if (route != SetupCarConnectionRoute.Undecided)
+        {
+            draft.ConnectionRoute = route;
+        }
     }
 
     public async Task UpdateSetupState(DtoSetupState setupState)
@@ -136,8 +189,33 @@ public class SetupStateService(
 
         foreach (var car in existingCars)
         {
-            state.CarDrafts.Add(CreateDraft(car));
+            state.CarDrafts.Add(await CreateDraftWithAssignments(car).ConfigureAwait(false));
         }
+    }
+
+    /// <summary>
+    /// Creates a draft and fills in the charging connectors this car is already allowed on. Without them the draft
+    /// would describe the car as assigned to nothing, and applying it would take away assignments the user made
+    /// long before the assistant was opened.
+    /// </summary>
+    private async Task<DtoSetupCarDraft> CreateDraftWithAssignments(Shared.Dtos.CarBasicConfiguration car)
+    {
+        var draft = CreateDraft(car);
+        try
+        {
+            draft.AssignedChargingConnectorIds = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                .Where(a => a.CarId == car.Id)
+                .Select(a => a.OcppChargingStationConnectorId)
+                .ToListAsync().ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            //Opening the assistant matters more than this list, which the user can still set on the car's review
+            //screen. It is only read here so they do not have to.
+            logger.LogWarning(exception, "Could not read the charging connectors car {carId} is allowed on.", car.Id);
+        }
+
+        return draft;
     }
 
     private static DtoSetupCarDraft CreateDraft(Shared.Dtos.CarBasicConfiguration car)

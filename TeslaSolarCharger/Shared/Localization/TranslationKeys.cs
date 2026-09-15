@@ -835,13 +835,17 @@ public static class TranslationKeys
     public static string SetupIssueTeslaAccountNotConnected => nameof(SetupIssueTeslaAccountNotConnected);
     public static string SetupIssueTeslaMateConflictsWithFleetTelemetry => nameof(SetupIssueTeslaMateConflictsWithFleetTelemetry);
     public static string SetupIssueChargingStationNotConnected => nameof(SetupIssueChargingStationNotConnected);
+    public static string SetupIssueChargingStationConnectorNotChosen => nameof(SetupIssueChargingStationConnectorNotChosen);
+    public static string SetupIssueSolarPredictionRequired => nameof(SetupIssueSolarPredictionRequired);
 
     public static string SetupReasonDynamicHomeBatteryMinSoc => nameof(SetupReasonDynamicHomeBatteryMinSoc);
     public static string SetupReasonPredictSolarPowerGeneration => nameof(SetupReasonPredictSolarPowerGeneration);
+    public static string SetupReasonPredictSolarPowerGenerationForBattery => nameof(SetupReasonPredictSolarPowerGenerationForBattery);
     public static string SetupReasonUsePredictedSolarForSchedules => nameof(SetupReasonUsePredictedSolarForSchedules);
     public static string SetupReasonShowEnergyDataOnHome => nameof(SetupReasonShowEnergyDataOnHome);
     public static string SetupReasonGetVehicleDataViaBle => nameof(SetupReasonGetVehicleDataViaBle);
     public static string SetupReasonCarHomeDetectionViaBlePresence => nameof(SetupReasonCarHomeDetectionViaBlePresence);
+    public static string SetupReasonCarHomeDetectionViaLocatedAtHome => nameof(SetupReasonCarHomeDetectionViaLocatedAtHome);
     public static string SetupReasonCarChargingPriority => nameof(SetupReasonCarChargingPriority);
 
     public static string SetupNextActionConnectCloud => nameof(SetupNextActionConnectCloud);
@@ -859,6 +863,7 @@ public static class TranslationKeys
     public static string SetupNextActionHeading => nameof(SetupNextActionHeading);
     public static string SetupSaveWithoutEnablingButton => nameof(SetupSaveWithoutEnablingButton);
     public static string SetupSaveWithoutEnablingHint => nameof(SetupSaveWithoutEnablingHint);
+    public static string SetupFinishBlockedHint => nameof(SetupFinishBlockedHint);
     public static string SetupEnableExplanation => nameof(SetupEnableExplanation);
     public static string SetupSavedWithoutEnablingNotification => nameof(SetupSavedWithoutEnablingNotification);
     public static string SetupPartialSaveFailure => nameof(SetupPartialSaveFailure);
@@ -1066,6 +1071,10 @@ public static class TranslationKeys
     public static string SetupChargerWaitingForConnection => nameof(SetupChargerWaitingForConnection);
     public static string SetupChargerWaitingHint => nameof(SetupChargerWaitingHint);
     public static string SetupChargerSettingsIntro => nameof(SetupChargerSettingsIntro);
+    public static string SetupChargerConnectorChoiceTitle => nameof(SetupChargerConnectorChoiceTitle);
+    public static string SetupChargerConnectorChoiceExplanation => nameof(SetupChargerConnectorChoiceExplanation);
+    public static string SetupChargerConnectorChoiceLabel => nameof(SetupChargerConnectorChoiceLabel);
+    public static string SetupChargerConnectorFallbackNameFormat => nameof(SetupChargerConnectorFallbackNameFormat);
     public static string SetupChargerConnectorNameLabel => nameof(SetupChargerConnectorNameLabel);
     public static string SetupChargerConnectorNameHelper => nameof(SetupChargerConnectorNameHelper);
     public static string SetupChargerMaxCurrentLabel => nameof(SetupChargerMaxCurrentLabel);

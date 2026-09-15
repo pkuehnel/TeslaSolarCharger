@@ -97,7 +97,7 @@ else
 
 @code {
     [CascadingParameter] public SetupContext Context { get; set; } = default!;
-    [Parameter] public HashSet<string> DeclinedProposals { get; set; } = new();
+    [Parameter] public List<string> DeclinedProposals { get; set; } = new();
     [Parameter] public EventCallback<(string ProposalId, bool IsAccepted)> OnProposalToggled { get; set; }
 
     private DtoSetupDecision? Decision => Context.Decision;
