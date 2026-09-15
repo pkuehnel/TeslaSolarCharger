@@ -19,6 +19,12 @@ public class DtoSetupChargerDraft
     /// <summary>Chargepoint id the user was told to enter in the charger's OCPP settings.</summary>
     public string? ChargepointId { get; set; }
 
+    /// <summary>Which of this charger's screens the user is on.</summary>
+    public SetupChargerStage Stage { get; set; } = SetupChargerStage.Connect;
+
+    /// <summary>What the user calls this charger. Only for telling several chargers apart on screen.</summary>
+    public string? DisplayName { get; set; }
+
     public bool ShouldBeActivated { get; set; } = true;
 
     /// <summary>Draft ids of the cars allowed on this connector, including cars without a database row yet.</summary>

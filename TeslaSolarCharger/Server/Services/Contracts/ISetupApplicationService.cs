@@ -18,6 +18,13 @@ public interface ISetupApplicationService
     Task<DtoSetupApplicationResult> ActivateAndCompleteSetup(DtoSetupState setupState);
 
     /// <summary>
+    /// Saves one car draft on its own, still unmanaged, and fills in the id of the row it was written to. Used as
+    /// soon as a car's identity is complete, so everything that follows - a connection test, a charging deadline -
+    /// has a real car to work with while the car itself stays switched off.
+    /// </summary>
+    Task<DtoSetupApplicationResult> SaveCarDraft(DtoSetupState setupState, Guid draftId);
+
+    /// <summary>
     /// Writes the values the user accepted into the setup state and records that they were decided by the app, not
     /// entered by hand. Nothing is proposed straight into the live configuration: a proposal is shown first and only
     /// reaches the installation through the normal apply step.

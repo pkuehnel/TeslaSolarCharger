@@ -19,7 +19,13 @@ public class CarBasicConfiguration
     }
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string Vin { get; set; }
+
+    /// <summary>
+    /// Empty rather than null while it is unknown. A car being described in the setup assistant is posted to the
+    /// server before it has one, and a null here would be rejected as a missing field by model binding long before
+    /// the validator gets to say what is actually wrong.
+    /// </summary>
+    public string Vin { get; set; } = string.Empty;
 
     [Postfix("A")]
     public int MinimumAmpere { get; set; } = 6;

@@ -178,6 +178,90 @@ public class SetupStateServiceTests
     }
 
     [Fact]
+    public async Task ACarThatArrivedFromAnImportJoinsTheSetup()
+    {
+        var state = new DtoSetupState();
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(9, "Imported") { Vin = "VIN9", CarType = CarType.Tesla, UseFleetTelemetry = true, },
+        };
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        var draft = Assert.Single(synced.CarDrafts);
+        Assert.Equal(9, draft.CarId);
+        Assert.Equal(SetupCarConnectionRoute.TeslaCloud, draft.ConnectionRoute);
+    }
+
+    [Fact]
+    public async Task SyncingDoesNotDisturbACarTheUserIsAlreadyWorkingOn()
+    {
+        var existingDraft = new DtoSetupCarDraft
+        {
+            CarId = 9,
+            Stage = SetupCarStage.ChargingSettings,
+            Configuration = new CarBasicConfiguration(9, "Imported") { Vin = "VIN9", },
+        };
+        var state = new DtoSetupState { CarDrafts = { existingDraft, }, };
+        _existingCars = new List<CarBasicConfiguration> { new(9, "Imported") { Vin = "VIN9", }, };
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        var draft = Assert.Single(synced.CarDrafts);
+        Assert.Equal(SetupCarStage.ChargingSettings, draft.Stage);
+    }
+
+    [Fact]
+    public async Task ADraftWhoseCarWasDeletedStopsAskingToBeFinished()
+    {
+        var state = new DtoSetupState
+        {
+            CarDrafts = { new DtoSetupCarDraft { CarId = 9, Configuration = new CarBasicConfiguration(9, "Gone"), }, },
+        };
+        _existingCars = new List<CarBasicConfiguration>();
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        Assert.Empty(synced.CarDrafts);
+    }
+
+    [Fact]
+    public async Task ACarBeingBuiltInSetupSurvivesASync()
+    {
+        //A draft with no car id has not been saved yet; it exists only in this setup and must not be swept away.
+        var state = new DtoSetupState { CarDrafts = { new DtoSetupCarDraft(), }, };
+        _existingCars = new List<CarBasicConfiguration>();
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        Assert.Single(synced.CarDrafts);
+    }
+
+    [Fact]
+    public async Task AnImportedCarStartsWhereThereIsSomethingToDo()
+    {
+        //It already has a name and an identification number, so asking who it is again would waste a screen.
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(3, "Known") { Vin = "VIN3", CarType = CarType.Tesla, },
+        };
+
+        var state = await NewService().GetOrCreateSetupState();
+
+        Assert.Equal(SetupCarStage.Connection, Assert.Single(state.CarDrafts).Stage);
+    }
+
+    [Fact]
+    public async Task ACarWithoutANameStartsByBeingIdentified()
+    {
+        _existingCars = new List<CarBasicConfiguration> { new(3, null) { Vin = "VIN3", }, };
+
+        var state = await NewService().GetOrCreateSetupState();
+
+        Assert.Equal(SetupCarStage.Identify, Assert.Single(state.CarDrafts).Stage);
+    }
+
+    [Fact]
     public async Task SavingStampsTheSchemaVersionAndTheTime()
     {
         var state = new DtoSetupState { SchemaVersion = 1, };

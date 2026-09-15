@@ -2,7 +2,7 @@ using TeslaSolarCharger.Shared.Localization;
 
 namespace TeslaSolarCharger.Shared.Localization.Registries.Pages;
 
-public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageLocalizationRegistry>
+public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageLocalizationRegistry>
 {
     protected override void Configure()
     {
@@ -159,6 +159,7 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
             new TextLocalizationTranslation(LanguageCodes.German, "Einrichtung erfolgreich abgeschlossen!"));
 
         RegisterDecisionTexts();
+        RegisterGuidedFlowTexts();
     }
 
     /// <summary>
@@ -246,6 +247,14 @@ public class SetupPageLocalizationRegistry : TextLocalizationRegistry<SetupPageL
         Register(TranslationKeys.SetupIssueTeslaMateConflictsWithFleetTelemetry,
             new TextLocalizationTranslation(LanguageCodes.English, "TeslaMate is selected as the source of your car data, so this car cannot stream its data to us as well. Pick one of the two."),
             new TextLocalizationTranslation(LanguageCodes.German, "TeslaMate ist als Quelle Ihrer Fahrzeugdaten ausgewählt, daher kann dieses Auto seine Daten nicht zusätzlich an uns senden. Entscheiden Sie sich für eine der beiden Quellen."));
+
+        Register(TranslationKeys.SetupIssueCarSmartCarNotConnected,
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect this car's account so we can read how full its battery is."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie das Konto dieses Autos, damit wir seinen Ladestand auslesen können."));
+
+        Register(TranslationKeys.SetupIssueCarNeedsChargingStation,
+            new TextLocalizationTranslation(LanguageCodes.English, "This car is charged by a charging station, so you need to add one before it can charge automatically."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Dieses Auto wird über eine Ladestation geladen. Fügen Sie eine hinzu, damit es automatisch laden kann."));
 
         Register(TranslationKeys.SetupIssueChargingStationNotConnected,
             new TextLocalizationTranslation(LanguageCodes.English, "Your charging station has not reported in yet. Enter the connection address in its settings and wait for it to appear here."),

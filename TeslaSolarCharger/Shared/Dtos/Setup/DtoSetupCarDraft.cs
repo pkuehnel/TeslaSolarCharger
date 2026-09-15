@@ -21,6 +21,32 @@ public class DtoSetupCarDraft
     /// </summary>
     public int? CarId { get; set; }
 
+    /// <summary>
+    /// Which of this car's screens the user is on. Part of the screen's address, so an interruption returns to the
+    /// task rather than to the beginning.
+    /// </summary>
+    public SetupCarStage Stage { get; set; } = SetupCarStage.Identify;
+
+    /// <summary>
+    /// What the car is, in the words the owner would use. Collected because it routes the setup and because it is
+    /// the question a beginner can actually answer, unlike "is this a Tesla, a SmartCar or a manual car".
+    /// </summary>
+    public string? Make { get; set; }
+
+    public string? Model { get; set; }
+
+    /// <summary>
+    /// Whether a Bluetooth device can sit within a few metres of where this car parks. Asked per car, because one
+    /// household can have a car in the garage and another on the street.
+    /// </summary>
+    public bool? CanPlaceBluetoothDeviceNearCar { get; set; }
+
+    /// <summary>
+    /// True when the user chose to type the battery level in themselves rather than connect a data service. Kept
+    /// apart from "no connection configured yet": it is a decision, not a gap.
+    /// </summary>
+    public bool EntersBatteryLevelManually { get; set; }
+
     public SetupCarConnectionRoute ConnectionRoute { get; set; } = SetupCarConnectionRoute.Undecided;
 
     /// <summary>

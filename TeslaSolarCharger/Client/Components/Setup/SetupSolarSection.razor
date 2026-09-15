@@ -1,0 +1,100 @@
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Rest
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Modbus
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Mqtt
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryTitle)</MudText>
+<MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
+
+<div class="mt-4">
+    <MudSwitch T="bool" Value="HasPvSystem" ValueChanged="OnHasPvSystemChanged"
+               Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
+</div>
+
+@if (HasPvSystem)
+{
+    <TemplateValueConfigurationComponent ShowHeading="false" />
+
+    <MudExpansionPanels Class="mt-4">
+        <MudExpansionPanel Text="@T(TranslationKeys.SetupPvNotAvailableAsTemplate)">
+            <RestValueConfigurationComponent />
+            <ModbusValueConfigurationComponent />
+            <MqttValueConfigurationComponent />
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <div class="mt-4">
+        <GenericInput For="() => Configuration.Item.PredictSolarPowerGeneration"
+                      OnValueChanged="@((bool _) => OnExplicitChoice.InvokeAsync(nameof(BaseConfigurationBase.PredictSolarPowerGeneration)))"></GenericInput>
+    </div>
+}
+
+@* Asked on its own: a home battery is worth managing whether or not there are solar panels, so it must not
+   disappear from setup just because the answer above was no. *@
+<div class="mt-8">
+    <MudSwitch T="bool" Value="HasHomeBattery" ValueChanged="OnHasHomeBatteryChanged"
+               Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
+</div>
+
+@if (HasHomeBattery)
+{
+    <div class="mt-4 p-4 rounded border">
+        <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
+        <div class="row">
+            <div class="col-md-6">
+                <GenericInput T="bool?"
+                              For="() => Configuration.Item.DynamicHomeBatteryMinSoc"
+                              OnValueChanged="OnDynamicMinSocChanged" />
+            </div>
+            <div class="col-md-6">
+                <GenericInput For="() => Configuration.Item.HomeBatteryMinSoc"
+                              IsDisabledParameter="@(Configuration.Item.DynamicHomeBatteryMinSoc)" />
+            </div>
+        </div>
+        <GenericInput For="() => Configuration.Item.HomeBatteryUsableEnergy" />
+        <GenericInput For="() => Configuration.Item.HomeBatteryChargingPower" />
+        <GenericInput For="() => Configuration.Item.HomeBatteryDischargingPower" />
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public EditableItem<DtoBaseConfiguration> Configuration { get; set; } = default!;
+    [Parameter] public bool HasPvSystem { get; set; }
+    [Parameter] public bool HasHomeBattery { get; set; }
+    [Parameter] public EventCallback<bool> HasPvSystemChanged { get; set; }
+    [Parameter] public EventCallback<bool> HasHomeBatteryChanged { get; set; }
+
+    /// <summary>Reports a setting the user decided by hand, so no proposal later replaces it.</summary>
+    [Parameter] public EventCallback<string> OnExplicitChoice { get; set; }
+
+    private async Task OnHasPvSystemChanged(bool value)
+    {
+        HasPvSystem = value;
+        await HasPvSystemChanged.InvokeAsync(value);
+    }
+
+    private async Task OnHasHomeBatteryChanged(bool value)
+    {
+        HasHomeBattery = value;
+        await HasHomeBatteryChanged.InvokeAsync(value);
+    }
+
+    private async Task OnDynamicMinSocChanged(bool? value)
+    {
+        await OnExplicitChoice.InvokeAsync(nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc));
+        StateHasChanged();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

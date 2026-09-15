@@ -1,0 +1,107 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+@* Shows the route this user actually takes, not a fixed list of everything the app can do: a section that does
+   not apply to this installation is left out entirely. *@
+<MudPaper Elevation="0" Class="pa-2 mb-4" Style="overflow-x: auto;">
+    <div class="d-flex align-center" style="gap: 4px; min-width: max-content;">
+        @foreach (var section in SetupSections.Order)
+        {
+            var stepKey = SetupSections.ToStepKey(section);
+            var status = StatusOf(stepKey);
+            if (status is { IsApplicable: false })
+            {
+                continue;
+            }
+
+            var isCurrent = string.Equals(section, CurrentSection, StringComparison.OrdinalIgnoreCase)
+                            || (SetupSections.IsDeviceSection(CurrentSection) && section == SetupSections.Equipment);
+            <MudButton Size="Size.Small"
+                       Variant="@(isCurrent ? Variant.Filled : Variant.Text)"
+                       Color="@ColorOf(status, isCurrent)"
+                       StartIcon="@IconOf(status, isCurrent)"
+                       Disabled="@(!CanNavigateTo(section))"
+                       OnClick="@(() => OnSectionSelected.InvokeAsync(section))"
+                       aria-current="@(isCurrent ? "step" : null)"
+                       aria-label="@AriaLabelOf(stepKey, status)"
+                       Title="@AriaLabelOf(stepKey, status)">
+                @T(TitleKeyOf(stepKey))
+            </MudButton>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string CurrentSection { get; set; } = SetupSections.Welcome;
+    [Parameter] public DtoSetupDecision? Decision { get; set; }
+    [Parameter] public EventCallback<string> OnSectionSelected { get; set; }
+
+    /// <summary>
+    /// Whether the user may leave the account section yet. Everything past it needs the account, so the rail says
+    /// so by not offering the jump rather than by failing afterwards.
+    /// </summary>
+    [Parameter] public bool IsAccountReady { get; set; }
+
+    private DtoSetupStepStatus? StatusOf(SetupStepKey stepKey) =>
+        Decision?.Steps.FirstOrDefault(s => s.StepKey == stepKey);
+
+    private bool CanNavigateTo(string section)
+    {
+        if (IsAccountReady)
+        {
+            return true;
+        }
+
+        return section is SetupSections.Welcome or SetupSections.Account;
+    }
+
+    /// <summary>
+    /// The step's name with its state spelled out, for anyone who cannot see that the tick is green. Carried on the
+    /// button rather than in hidden text, because this app has no class that reliably hides text from sight only.
+    /// </summary>
+    private string AriaLabelOf(SetupStepKey stepKey, DtoSetupStepStatus? status)
+    {
+        var title = T(TitleKeyOf(stepKey));
+        return status?.Status == SetupCompletionStatus.Complete
+            ? $"{title} - {T(TranslationKeys.SetupRailStepDone)}"
+            : title;
+    }
+
+    private static Color ColorOf(DtoSetupStepStatus? status, bool isCurrent)
+    {
+        if (isCurrent)
+        {
+            return Color.Primary;
+        }
+
+        return status?.Status == SetupCompletionStatus.Complete ? Color.Success : Color.Default;
+    }
+
+    private static string IconOf(DtoSetupStepStatus? status, bool isCurrent) => status?.Status switch
+    {
+        SetupCompletionStatus.Complete => Icons.Material.Filled.CheckCircle,
+        SetupCompletionStatus.InProgress => Icons.Material.Filled.Edit,
+        _ => isCurrent ? Icons.Material.Filled.RadioButtonChecked : Icons.Material.Filled.RadioButtonUnchecked,
+    };
+
+    private static string TitleKeyOf(SetupStepKey stepKey) => stepKey switch
+    {
+        SetupStepKey.Welcome => TranslationKeys.SetupStepWelcome,
+        SetupStepKey.CloudConnection => TranslationKeys.SetupStepCloudConnection,
+        SetupStepKey.SolarAndBattery => TranslationKeys.SetupStepSolarBattery,
+        SetupStepKey.Location => TranslationKeys.SetupStepLocation,
+        SetupStepKey.Prices => TranslationKeys.SetupStepPrices,
+        SetupStepKey.CarsAndCharging => TranslationKeys.SetupStepCarsAndCharging,
+        _ => TranslationKeys.SetupStepFinish,
+    };
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

@@ -19,7 +19,7 @@ using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server.Setup;
 
-public class SetupCapabilityProbeTests
+public class SetupCapabilityProbeTests : TestBase
 {
     private readonly Mock<ITokenHelper> _tokenHelper = new();
     private readonly Mock<IBackendApiService> _backendApiService = new();
@@ -27,7 +27,8 @@ public class SetupCapabilityProbeTests
     private readonly Mock<IOcppChargingStationConfigurationService> _chargingStationConfigurationService = new();
     private readonly Mock<IConfigurationWrapper> _configurationWrapper = new();
 
-    public SetupCapabilityProbeTests()
+    public SetupCapabilityProbeTests(ITestOutputHelper outputHelper)
+        : base(outputHelper)
     {
         _tokenHelper.Setup(h => h.GetBackendTokenState(It.IsAny<bool>())).ReturnsAsync(TokenState.UpToDate);
         _tokenHelper.Setup(h => h.GetFleetApiTokenState(It.IsAny<bool>())).ReturnsAsync(TokenState.UpToDate);
@@ -39,12 +40,13 @@ public class SetupCapabilityProbeTests
     }
 
     private SetupCapabilityProbe NewProbe() => new(
-        Mock.Of<ILogger<SetupCapabilityProbe>>(),
+        Moq.Mock.Of<ILogger<SetupCapabilityProbe>>(),
         _tokenHelper.Object,
         _backendApiService.Object,
         _genericValueService.Object,
         _chargingStationConfigurationService.Object,
-        _configurationWrapper.Object);
+        _configurationWrapper.Object,
+        Context);
 
     /// <summary>A gathered value that reports the given measurements, which is how a configured source shows up.</summary>
     private static IGenericValue<decimal> ValueProviding(params ValueUsage[] usages)
@@ -134,6 +136,48 @@ public class SetupCapabilityProbeTests
 
         Assert.Empty(capabilities.KnownChargingStationConnectorIds);
         Assert.Equal(TokenState.UpToDate, capabilities.BackendTokenState);
+    }
+
+    [Fact]
+    public async Task ACarThatHasNotBeenSavedYetHasNothingToReport()
+    {
+        //A draft without a row is the normal state mid setup, not an error to show the user.
+        Assert.Null(await NewProbe().GetCarCapabilities(404));
+    }
+
+    [Fact]
+    public async Task WhatACarCanDoIsDetectedRatherThanAsked()
+    {
+        Context.Cars.Add(new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car
+        {
+            Id = 7,
+            Vin = "VIN7",
+            IsFleetTelemetryHardwareIncompatible = true,
+            UseFleetTelemetry = false,
+            TeslaFleetApiState = TeslaCarFleetApiState.Ok,
+        });
+        await Context.SaveChangesAsync();
+        _backendApiService.Setup(s => s.IsFleetApiLicensed("VIN7", It.IsAny<bool>())).ReturnsAsync(true);
+
+        var capabilities = await NewProbe().GetCarCapabilities(7);
+
+        Assert.NotNull(capabilities);
+        Assert.True(capabilities!.IsFleetTelemetryHardwareIncompatible);
+        Assert.False(capabilities.UsesFleetTelemetry);
+        Assert.Equal(TeslaCarFleetApiState.Ok, capabilities.FleetApiState);
+        Assert.True(capabilities.IsFleetApiLicensed);
+    }
+
+    [Fact]
+    public async Task APerCarLicenceLookupThatFailsIsReportedAsUnknown()
+    {
+        Context.Cars.Add(new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car { Id = 7, Vin = "VIN7", });
+        await Context.SaveChangesAsync();
+        _backendApiService.Setup(s => s.IsFleetApiLicensed("VIN7", It.IsAny<bool>())).ThrowsAsync(new InvalidOperationException("backend down"));
+
+        var capabilities = await NewProbe().GetCarCapabilities(7);
+
+        Assert.Null(capabilities!.IsFleetApiLicensed);
     }
 
     [Theory]

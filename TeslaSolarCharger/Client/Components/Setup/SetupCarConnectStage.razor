@@ -1,0 +1,300 @@
+@using PkSoftwareService.Custom.Backend.Ble
+@using TeslaSolarCharger.Client.Components.StartPage
+@using TeslaSolarCharger.Client.Dialogs
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject ITextLocalizationService TextLocalizer
+@inject IHttpClientHelper HttpClientHelper
+@inject ICarSettingsService CarSettingsService
+@inject ISetupService SetupService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IConstants Constants
+
+<SetupRouteSummary Route="Draft.ConnectionRoute"
+                   EntersBatteryLevelManually="Draft.EntersBatteryLevelManually"
+                   Class="mb-4" />
+
+@switch (Draft.ConnectionRoute)
+{
+    case SetupCarConnectionRoute.TeslaBluetooth:
+        @RenderBluetooth();
+        break;
+    case SetupCarConnectionRoute.TeslaCloud:
+        @RenderTeslaCloud();
+        break;
+    case SetupCarConnectionRoute.SmartCarWithChargingStation:
+        @RenderSmartCar();
+        break;
+    case SetupCarConnectionRoute.ChargingStationOnly:
+        @RenderChargingStationOnly();
+        break;
+    default:
+        <MudAlert Severity="Severity.Warning">@T(TranslationKeys.SetupIssueCarConnectionRouteUndecided)</MudAlert>
+        break;
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
+    [Parameter] public EventCallback OnCompleted { get; set; }
+
+    private List<DtoBleAdapter> _bleAdapters = new();
+    private bool _isLoadingBleAdapters;
+    private bool _isSavingCar;
+    private DtoSetupCarCapabilities? _capabilities;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Draft.ConnectionRoute == SetupCarConnectionRoute.TeslaBluetooth)
+        {
+            await LoadBleAdapters();
+        }
+
+        if (Draft.CarId != null)
+        {
+            _capabilities = await SetupService.GetCarCapabilities(Draft.CarId.Value);
+        }
+    }
+
+    private RenderFragment RenderBluetooth() =>
+        @<div>
+            <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothIntro)</MudText>
+
+            @* One thing at a time and in order: first reach the device, then pick its radio, then let the car
+               accept our key. Doing it the other way round just produces errors that mean nothing yet. *@
+            <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBluetoothStepReachTitle)</MudText>
+            <MudTextField T="string" Value="@Draft.Configuration.BleApiBaseUrl" ValueChanged="OnBleUrlChanged"
+                          Label="@T(TranslationKeys.SetupCarBluetoothUrlLabel)"
+                          HelperText="@T(TranslationKeys.SetupCarBluetoothUrlHelper)"
+                          Placeholder="http://192.168.1.50:7210"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+            @if (!string.IsNullOrWhiteSpace(Draft.Configuration.BleApiBaseUrl))
+            {
+                <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBluetoothStepAdapterTitle)</MudText>
+                @if (_isLoadingBleAdapters)
+                {
+                    <LoadingSpinnerComponent />
+                }
+                else if (_bleAdapters.Count == 0)
+                {
+                    @* No list means the device could not be reached, which the next step reports properly. Do not
+                       make the user choose a radio that may not exist. *@
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothNoAdaptersHint)</MudText>
+                }
+                else if (_bleAdapters.Count == 1)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothSingleAdapterHint)</MudText>
+                }
+                else
+                {
+                    <MudSelect T="string"
+                               Value="@(Draft.Configuration.BleAdapterAddress ?? string.Empty)"
+                               ValueChanged="OnAdapterChanged"
+                               Variant="Variant.Outlined"
+                               Label="@T(TranslationKeys.SetupCarBluetoothAdapterLabel)"
+                               HelperText="@T(TranslationKeys.SetupCarBluetoothAdapterHelper)"
+                               Margin="Margin.Dense"
+                               Class="mb-3">
+                        <MudSelectItem T="string" Value="@string.Empty">@T(TranslationKeys.SetupCarBluetoothAdapterDefault)</MudSelectItem>
+                        @foreach (var adapter in _bleAdapters)
+                        {
+                            <MudSelectItem T="string" Value="@adapter.StableId">@AdapterDisplayName(adapter)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBluetoothStepPairTitle)</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothPairInstructions)</MudText>
+                @if (Draft.CarId == null || string.IsNullOrWhiteSpace(Draft.Configuration.Vin))
+                {
+                    <MudAlert Severity="Severity.Info">@T(TranslationKeys.SetupCarNeedsIdentityBeforeTest)</MudAlert>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Bluetooth"
+                               OnClick="SaveBeforeTest" Disabled="_isSavingCar" Class="mb-3">
+                        @T(TranslationKeys.SetupCarBluetoothTestButton)
+                    </MudButton>
+                    @if (_hasSavedForTest)
+                    {
+                        @* The test runs against what is stored, so the car is saved first. It stays switched off. *@
+                        <BleConnectionTestComponent Vin="@Draft.Configuration.Vin" AutoTest="true" />
+                    }
+                }
+            }
+        </div>;
+
+    private RenderFragment RenderTeslaCloud() =>
+        @<div>
+            <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarTeslaCloudIntro)</MudText>
+            <MudAlert Severity="Severity.Normal" Class="mb-3" ContentAlignment="HorizontalAlignment.Left">
+                <MudText Typo="Typo.body2">@T(TranslationKeys.SetupCarTeslaCloudRequirements)</MudText>
+            </MudAlert>
+
+            @if (_capabilities?.IsFleetApiLicensed == false)
+            {
+                @* Said before the key is registered, so the user is not walked through a setup they cannot use. *@
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <div>@T(TranslationKeys.SetupCarTeslaCloudLicenceMissing)</div>
+                    <MudLink Href="https://solar4car.com/subscriptions" Target="_blank">https://solar4car.com/subscriptions</MudLink>
+                </MudAlert>
+            }
+
+            @if (_capabilities?.IsFleetTelemetryHardwareIncompatible == true)
+            {
+                @* Detected, not asked: nobody should have to answer a telemetry question about their own car. *@
+                <MudAlert Severity="Severity.Info" Class="mb-3">@T(TranslationKeys.SetupCarTelemetryIncompatibleFallback)</MudAlert>
+            }
+
+            @if (Draft.CarId == null)
+            {
+                <MudAlert Severity="Severity.Info">@T(TranslationKeys.SetupCarNeedsIdentityBeforeTest)</MudAlert>
+            }
+            else
+            {
+                <FleetApiTestComponent CarId="Draft.CarId" AutoTest="true" />
+                <MudText Typo="Typo.caption" Class="d-block mt-3">@T(TranslationKeys.SetupCarTeslaCloudAsleepNote)</MudText>
+            }
+        </div>;
+
+    private RenderFragment RenderSmartCar() =>
+        @<div>
+            <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarSmartCarIntro)</MudText>
+
+            @* SmartCar supplies the battery level. It does not control charging, so the charging station is still
+               required - saying otherwise would leave the user with a car nothing can start or stop. *@
+            <MudAlert Severity="Severity.Normal" Class="mb-3">@T(TranslationKeys.SetupCarSmartCarStillNeedsCharger)</MudAlert>
+
+            @if (Draft.Configuration.CarType == CarType.SmartCar)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-3">@T(TranslationKeys.SetupCarSmartCarConnected)</MudAlert>
+            }
+            else if (string.IsNullOrWhiteSpace(Draft.Configuration.Vin))
+            {
+                <MudAlert Severity="Severity.Info">@T(TranslationKeys.SetupCarNeedsIdentityBeforeTest)</MudAlert>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
+                           OnClick="ConnectSmartCar">
+                    @T(TranslationKeys.SetupCarSmartCarConnectButton)
+                </MudButton>
+            }
+        </div>;
+
+    private RenderFragment RenderChargingStationOnly() =>
+        @<div>
+            <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarChargingStationOnlyIntro)</MudText>
+            <MudAlert Severity="Severity.Normal" Class="mb-3">@T(TranslationKeys.SetupCarChargingStationOnlyNothingToConnect)</MudAlert>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.EvStation"
+                       OnClick="@(() => Context.Navigate(SetupSections.Equipment, null, null))">
+                @T(TranslationKeys.SetupCarGoToChargersButton)
+            </MudButton>
+        </div>;
+
+    private bool _hasSavedForTest;
+
+    private async Task OnBleUrlChanged(string? value)
+    {
+        Draft.Configuration.BleApiBaseUrl = value;
+        _hasSavedForTest = false;
+        await Context.Save();
+        await LoadBleAdapters();
+        await Context.RefreshDecision();
+    }
+
+    private async Task OnAdapterChanged(string value)
+    {
+        Draft.Configuration.BleAdapterAddress = string.IsNullOrEmpty(value) ? null : value;
+        _hasSavedForTest = false;
+        await Context.Save();
+    }
+
+    private async Task LoadBleAdapters()
+    {
+        if (string.IsNullOrWhiteSpace(Draft.Configuration.BleApiBaseUrl))
+        {
+            _bleAdapters = new List<DtoBleAdapter>();
+            return;
+        }
+
+        _isLoadingBleAdapters = true;
+        StateHasChanged();
+        var result = await HttpClientHelper.SendGetRequestAsync<List<DtoBleAdapter>>(
+            $"api/Ble/GetAdapters?bleApiBaseUrl={Uri.EscapeDataString(Draft.Configuration.BleApiBaseUrl)}");
+        // An unreachable or outdated device just means no list to choose from; the stored selection is kept.
+        _bleAdapters = result.HasError ? new List<DtoBleAdapter>() : (result.Data ?? new List<DtoBleAdapter>());
+        _isLoadingBleAdapters = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveBeforeTest()
+    {
+        _isSavingCar = true;
+        StateHasChanged();
+        _hasSavedForTest = await Context.SaveCarDraft(Draft);
+        _isSavingCar = false;
+    }
+
+    private async Task ConnectSmartCar()
+    {
+        // Connecting opens SmartCar's own panel, where picking a car can book a subscription. Ask first.
+        var confirmParameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, T(TranslationKeys.SetupCarSmartCarBillingConfirmText) },
+            { x => x.ConfirmButtonText, T(TranslationKeys.SetupCarSmartCarBillingConfirmButton) },
+            { x => x.CancelButtonText, T(TranslationKeys.GeneralCancel) },
+        };
+        var confirmDialog = await DialogService.ShowAsync<ConfirmDialog>(
+            T(TranslationKeys.SetupCarSmartCarBillingConfirmTitle), confirmParameters);
+        var confirmResult = await confirmDialog.Result;
+        if (confirmResult == null || confirmResult.Canceled)
+        {
+            return;
+        }
+
+        // Save first: the browser leaves for SmartCar, and the answers have to survive that.
+        await Context.SaveCarDraft(Draft);
+
+        // Come back to this exact car and stage rather than to the start of the assistant.
+        var returnUrl = $"{NavigationManager.BaseUri}setup/{SetupSections.Car}/{Draft.DraftId}/{SetupCarStage.Connect}"
+                        + $"?{Constants.QueryParamVin}={Uri.EscapeDataString(Draft.Configuration.Vin)}";
+        var url = await CarSettingsService.GetSmartCarOAuthRedeemUrl(returnUrl, Draft.Configuration.Vin);
+        if (string.IsNullOrEmpty(url))
+        {
+            Snackbar.Add(T(TranslationKeys.SetupCarSmartCarUrlMissingError), Severity.Error);
+            return;
+        }
+
+        NavigationManager.NavigateTo(url);
+    }
+
+    private string AdapterDisplayName(DtoBleAdapter adapter)
+    {
+        var busName = adapter.Bus switch
+        {
+            "usb" => T(TranslationKeys.SetupCarBluetoothAdapterUsb),
+            "uart" => T(TranslationKeys.SetupCarBluetoothAdapterOnboard),
+            _ => adapter.Bus,
+        };
+        var product = string.IsNullOrWhiteSpace(adapter.UsbProduct) ? string.Empty : $" {adapter.UsbProduct}";
+        return $"{busName}{product} ({adapter.Name})";
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

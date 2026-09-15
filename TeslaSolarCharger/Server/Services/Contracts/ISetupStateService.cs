@@ -16,6 +16,13 @@ public interface ISetupStateService
     /// </summary>
     Task<DtoSetupState> GetOrCreateSetupState();
 
+    /// <summary>
+    /// Adds a draft for every car that exists but is not part of this setup yet, and drops drafts whose car has
+    /// been deleted. Called after an import, so cars that just arrived from a Tesla or SmartCar account appear in
+    /// the setup list without the user having to start over.
+    /// </summary>
+    Task<DtoSetupState> SyncCarDrafts(DtoSetupState setupState);
+
     Task UpdateSetupState(DtoSetupState setupState);
 
     Task DeleteSetupState();

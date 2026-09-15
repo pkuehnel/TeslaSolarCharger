@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -13,7 +15,8 @@ public class SetupCapabilityProbe(
     IBackendApiService backendApiService,
     IGenericValueService genericValueService,
     IOcppChargingStationConfigurationService chargingStationConfigurationService,
-    IConfigurationWrapper configurationWrapper)
+    IConfigurationWrapper configurationWrapper,
+    ITeslaSolarChargerContext teslaSolarChargerContext)
     : ISetupCapabilityProbe
 {
     public async Task<DtoSetupCapabilities> GetCapabilities()
@@ -39,6 +42,46 @@ public class SetupCapabilityProbe(
 
         capabilities.KnownChargingStationConnectorIds = await GetKnownConnectorIds().ConfigureAwait(false);
         return capabilities;
+    }
+
+    public async Task<DtoSetupCarCapabilities?> GetCarCapabilities(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetCarCapabilities), carId);
+        var stored = await teslaSolarChargerContext.Cars
+            .Where(c => c.Id == carId)
+            .Select(c => new
+            {
+                c.Id,
+                c.Vin,
+                c.IsFleetTelemetryHardwareIncompatible,
+                c.UseFleetTelemetry,
+                c.TeslaFleetApiState,
+            })
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (stored == null)
+        {
+            return null;
+        }
+
+        var car = new DtoSetupCarCapabilities
+        {
+            CarId = stored.Id,
+            IsFleetTelemetryHardwareIncompatible = stored.IsFleetTelemetryHardwareIncompatible,
+            UsesFleetTelemetry = stored.UseFleetTelemetry,
+            FleetApiState = stored.TeslaFleetApiState,
+        };
+
+        var vin = stored.Vin;
+        if (!string.IsNullOrEmpty(vin))
+        {
+            //A licence lookup that fails stays null: setup must not tell the user to buy something they may own.
+            car.IsFleetApiLicensed = await SafeGet<bool?>(
+                async () => await backendApiService.IsFleetApiLicensed(vin, true).ConfigureAwait(false),
+                null,
+                nameof(DtoSetupCarCapabilities.IsFleetApiLicensed)).ConfigureAwait(false);
+        }
+
+        return car;
     }
 
     private HashSet<ValueUsage> GetMeasuredValueUsages()

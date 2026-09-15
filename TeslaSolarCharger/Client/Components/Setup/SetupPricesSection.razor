@@ -1,0 +1,33 @@
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupPricesTitle)</MudText>
+<MudText GutterBottom="true">@T(TranslationKeys.SetupPricesDescription)</MudText>
+
+@if (!HasPvSystem)
+{
+    @* Without solar panels there is no exported electricity to put a value on, so the question is not asked. *@
+    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupPricesNoSolarNote)</MudText>
+}
+
+<ChargePriceEditComponent ChargePrice="ChargePrice"
+                          FixedPrices="FixedPrices"
+                          HideSubmitButton="true"
+                          ShowValidSince="false" />
+
+@code {
+    [Parameter, EditorRequired] public EditableItem<DtoChargePrice> ChargePrice { get; set; } = default!;
+    [Parameter, EditorRequired] public List<FixedPrice> FixedPrices { get; set; } = new();
+    [Parameter] public bool HasPvSystem { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

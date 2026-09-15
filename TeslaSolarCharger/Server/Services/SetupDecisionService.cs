@@ -321,6 +321,18 @@ public class SetupDecisionService(
             case SetupCarConnectionRoute.TeslaCloud when capabilities.FleetApiTokenState != TokenState.UpToDate:
                 blockers.Add(CarIssue(TranslationKeys.SetupIssueTeslaAccountNotConnected, draft));
                 break;
+            case SetupCarConnectionRoute.SmartCarWithChargingStation when configuration.CarType != CarType.SmartCar:
+                blockers.Add(CarIssue(TranslationKeys.SetupIssueCarSmartCarNotConnected, draft));
+                break;
+        }
+
+        //A car that is not a Tesla is controlled by the charging station it is plugged into. Without one there is
+        //nothing that could start or stop its charging, however complete the rest of its configuration looks.
+        if (draft.ConnectionRoute is SetupCarConnectionRoute.SmartCarWithChargingStation or SetupCarConnectionRoute.ChargingStationOnly
+            && draft.AssignedChargingConnectorIds.Count == 0
+            && capabilities.KnownChargingStationConnectorIds.Count == 0)
+        {
+            blockers.Add(CarIssue(TranslationKeys.SetupIssueCarNeedsChargingStation, draft));
         }
 
         //TeslaMate and Fleet Telemetry are alternatives, not a combination. Saying so here keeps the user from

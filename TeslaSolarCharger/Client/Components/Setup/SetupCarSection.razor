@@ -1,0 +1,157 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+@if (Draft == null)
+{
+    @* The draft was removed in another tab, or the address was typed by hand. Say so instead of rendering an
+       empty form the user could fill in for nothing. *@
+    <MudAlert Severity="Severity.Warning">@T(TranslationKeys.SetupCarNotFound)</MudAlert>
+    <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary"
+               OnClick="@(() => Context.Navigate(SetupSections.Equipment, null, null))">
+        @T(TranslationKeys.SetupBackToEquipmentButton)
+    </MudButton>
+}
+else
+{
+    <div class="d-flex align-center justify-space-between flex-wrap mb-1" style="gap: 8px;">
+        <MudText Typo="Typo.h5">@DisplayName</MudText>
+        <MudText Typo="Typo.caption">@Format(TranslationKeys.SetupCarStageProgressFormat, StageNumber, TotalStages)</MudText>
+    </div>
+    <MudText Typo="Typo.subtitle1" Class="mb-3">@T(StageTitleKey)</MudText>
+
+    @switch (Stage)
+    {
+        case SetupCarStage.Identify:
+            <SetupCarIdentifyStage Draft="Draft" OnCompleted="GoToNextStage" />
+            break;
+        case SetupCarStage.Connection:
+            <SetupCarConnectionStage Draft="Draft" OnCompleted="GoToNextStage" />
+            break;
+        case SetupCarStage.Connect:
+            <SetupCarConnectStage Draft="Draft" OnCompleted="GoToNextStage" />
+            break;
+        case SetupCarStage.ChargingSettings:
+            <SetupCarChargingStage Draft="Draft" OnCompleted="GoToNextStage" />
+            break;
+        case SetupCarStage.Review:
+            <SetupCarReviewStage Draft="Draft" />
+            break;
+    }
+
+    <MudDivider Class="my-4" />
+
+    <div class="d-flex justify-space-between align-center flex-wrap" style="gap: 8px;">
+        <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack">
+            @T(Stage == SetupCarStage.Identify ? TranslationKeys.SetupBackToEquipmentButton : TranslationKeys.GeneralPrev)
+        </MudButton>
+        @if (Stage == SetupCarStage.Review)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Check"
+                       OnClick="@(() => Context.Navigate(SetupSections.Equipment, null, null))">
+                @T(TranslationKeys.SetupCarDoneButton)
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.ArrowForward"
+                       OnClick="GoToNextStage">
+                @T(TranslationKeys.GeneralNext)
+            </MudButton>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public Guid DraftId { get; set; }
+    [Parameter, EditorRequired] public SetupCarStage Stage { get; set; }
+
+    private static readonly SetupCarStage[] StageOrder =
+    [
+        SetupCarStage.Identify, SetupCarStage.Connection, SetupCarStage.Connect,
+        SetupCarStage.ChargingSettings, SetupCarStage.Review,
+    ];
+
+    private DtoSetupCarDraft? Draft => Context.State.FindCarDraft(DraftId);
+
+    private int TotalStages => StageOrder.Length;
+
+    private int StageNumber => Array.IndexOf(StageOrder, Stage) + 1;
+
+    private string DisplayName
+    {
+        get
+        {
+            if (Draft == null)
+            {
+                return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Draft.Configuration.Name))
+            {
+                return Draft.Configuration.Name;
+            }
+
+            var makeAndModel = $"{Draft.Make} {Draft.Model}".Trim();
+            return string.IsNullOrWhiteSpace(makeAndModel) ? T(TranslationKeys.SetupEquipmentUnnamedCar) : makeAndModel;
+        }
+    }
+
+    private string StageTitleKey => Stage switch
+    {
+        SetupCarStage.Identify => TranslationKeys.SetupCarStageIdentifyTitle,
+        SetupCarStage.Connection => TranslationKeys.SetupCarStageConnectionTitle,
+        SetupCarStage.Connect => TranslationKeys.SetupCarStageConnectTitle,
+        SetupCarStage.ChargingSettings => TranslationKeys.SetupCarStageChargingTitle,
+        _ => TranslationKeys.SetupCarStageReviewTitle,
+    };
+
+    private async Task GoToNextStage()
+    {
+        var index = Array.IndexOf(StageOrder, Stage);
+        if (index < 0 || index >= StageOrder.Length - 1)
+        {
+            await Context.Navigate(SetupSections.Equipment, null, null);
+            return;
+        }
+
+        await MoveTo(StageOrder[index + 1]);
+    }
+
+    private async Task GoBack()
+    {
+        var index = Array.IndexOf(StageOrder, Stage);
+        if (index <= 0)
+        {
+            await Context.Navigate(SetupSections.Equipment, null, null);
+            return;
+        }
+
+        await MoveTo(StageOrder[index - 1]);
+    }
+
+    private async Task MoveTo(SetupCarStage stage)
+    {
+        if (Draft != null)
+        {
+            // Remembered on the draft, so the equipment list and a reload both come back to this very stage.
+            Draft.Stage = stage;
+            await Context.Save();
+        }
+
+        await Context.Navigate(SetupSections.Car, DraftId, stage.ToString());
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
+}

@@ -74,6 +74,31 @@ public class SetupApplicationService(
         return result;
     }
 
+    public async Task<DtoSetupApplicationResult> SaveCarDraft(DtoSetupState setupState, Guid draftId)
+    {
+        logger.LogTrace("{method}(..., {draftId})", nameof(SaveCarDraft), draftId);
+        var result = new DtoSetupApplicationResult();
+        var draft = setupState.FindCarDraft(draftId);
+        if (draft == null)
+        {
+            result.Operations.Add(new DtoSetupOperationResult
+            {
+                OperationKey = SetupOperationKey.SaveCarDraft,
+                DraftId = draftId,
+                IsSuccess = false,
+                ErrorMessage = "The car is no longer part of this setup.",
+            });
+            return result;
+        }
+
+        //An explicit save means the user changed something, so a record of an earlier save must not make this one a
+        //no-op. Idempotency protects a retried finish, not an edit.
+        setupState.CompletedOperations.RemoveAll(o => o.OperationKey == SetupOperationKey.SaveCarDraft && o.DraftId == draftId);
+        await RunOperation(setupState, result, SetupOperationKey.SaveCarDraft, draftId,
+            () => SaveCarDraft(draft)).ConfigureAwait(false);
+        return result;
+    }
+
     public DtoSetupState AcceptProposals(DtoSetupState setupState, IReadOnlyCollection<DtoSetupProposedValue> proposals)
     {
         logger.LogTrace("{method}(..., {count} proposals)", nameof(AcceptProposals), proposals.Count);

@@ -333,6 +333,75 @@ public class SetupDecisionServiceTests
     }
 
     [Fact]
+    public async Task ANonTeslaWithNowhereToPlugInCannotCharge()
+    {
+        var state = CompleteState();
+        state.CarDrafts[0] = new DtoSetupCarDraft
+        {
+            CarId = 8,
+            ConnectionRoute = SetupCarConnectionRoute.ChargingStationOnly,
+            Configuration = new CarBasicConfiguration
+            {
+                Id = 8, Name = "Hyundai", Vin = "VIN8", UsableEnergy = 64, MaximumPhases = 3,
+                MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 1, CarType = CarType.Manual,
+            },
+        };
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        //However complete the rest looks, nothing could start or stop this car's charging.
+        Assert.Contains(decision.MissingInformation, i => i.MessageKey == TranslationKeys.SetupIssueCarNeedsChargingStation);
+    }
+
+    [Fact]
+    public async Task ANonTeslaWithAChargingStationIsFine()
+    {
+        var state = CompleteState();
+        state.CarDrafts[0] = new DtoSetupCarDraft
+        {
+            CarId = 8,
+            ConnectionRoute = SetupCarConnectionRoute.ChargingStationOnly,
+            AssignedChargingConnectorIds = { 3, },
+            Configuration = new CarBasicConfiguration
+            {
+                Id = 8, Name = "Hyundai", Vin = "VIN8", UsableEnergy = 64, MaximumPhases = 3,
+                MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 1, CarType = CarType.Manual,
+            },
+        };
+        var capabilities = FullyCapable();
+        capabilities.KnownChargingStationConnectorIds = new List<int> { 3, };
+
+        var decision = await NewService(capabilities).Evaluate(state);
+
+        Assert.True(decision.IsConfigurationComplete);
+    }
+
+    [Fact]
+    public async Task ASmartCarRouteWithoutAConnectedAccountIsReported()
+    {
+        var state = CompleteState();
+        state.CarDrafts[0] = new DtoSetupCarDraft
+        {
+            CarId = 8,
+            ConnectionRoute = SetupCarConnectionRoute.SmartCarWithChargingStation,
+            AssignedChargingConnectorIds = { 3, },
+            Configuration = new CarBasicConfiguration
+            {
+                Id = 8, Name = "Hyundai", Vin = "VIN8", UsableEnergy = 64, MaximumPhases = 3,
+                MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 1,
+                //Still a manual car: the account was never connected.
+                CarType = CarType.Manual,
+            },
+        };
+        var capabilities = FullyCapable();
+        capabilities.KnownChargingStationConnectorIds = new List<int> { 3, };
+
+        var decision = await NewService(capabilities).Evaluate(state);
+
+        Assert.Contains(decision.MissingInformation, i => i.MessageKey == TranslationKeys.SetupIssueCarSmartCarNotConnected);
+    }
+
+    [Fact]
     public async Task AlreadyManagedCar_IsReportedActiveRatherThanWaitingToBeSwitchedOn()
     {
         var state = CompleteState();

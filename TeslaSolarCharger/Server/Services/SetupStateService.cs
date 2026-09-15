@@ -63,6 +63,35 @@ public class SetupStateService(
         return state;
     }
 
+    public async Task<DtoSetupState> SyncCarDrafts(DtoSetupState setupState)
+    {
+        logger.LogTrace("{method}(...)", nameof(SyncCarDrafts));
+        List<Shared.Dtos.CarBasicConfiguration> existingCars;
+        try
+        {
+            existingCars = await configJsonService.GetCarBasicConfigurations().ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            //Leave the state exactly as it was: showing fewer cars is better than dropping the drafts the user has
+            //already worked on because one lookup failed.
+            logger.LogWarning(exception, "Could not load existing cars while syncing the setup drafts.");
+            return setupState;
+        }
+
+        var existingCarIds = existingCars.Select(c => c.Id).ToHashSet();
+        //A draft whose car was deleted elsewhere would otherwise keep asking to be finished.
+        setupState.CarDrafts.RemoveAll(d => d.CarId != null && !existingCarIds.Contains(d.CarId.Value));
+
+        foreach (var car in existingCars.Where(c => setupState.CarDrafts.All(d => d.CarId != c.Id)))
+        {
+            setupState.CarDrafts.Add(CreateDraft(car));
+        }
+
+        await PersistState(setupState).ConfigureAwait(false);
+        return setupState;
+    }
+
     public async Task UpdateSetupState(DtoSetupState setupState)
     {
         logger.LogTrace("{method}(...)", nameof(UpdateSetupState));
@@ -107,16 +136,29 @@ public class SetupStateService(
 
         foreach (var car in existingCars)
         {
-            state.CarDrafts.Add(new DtoSetupCarDraft
-            {
-                CarId = car.Id,
-                Configuration = car,
-                //A car that is already managed is part of a working installation. Setup must be able to describe
-                //it without implying it is about to be switched on for the first time.
-                ShouldBeActivated = car.ShouldBeManaged,
-                ConnectionRoute = DeriveConnectionRoute(car),
-            });
+            state.CarDrafts.Add(CreateDraft(car));
         }
+    }
+
+    private static DtoSetupCarDraft CreateDraft(Shared.Dtos.CarBasicConfiguration car)
+    {
+        var route = DeriveConnectionRoute(car);
+        return new DtoSetupCarDraft
+        {
+            CarId = car.Id,
+            Configuration = car,
+            //A car that is already managed is part of a working installation. Setup must be able to describe it
+            //without implying it is about to be switched on for the first time.
+            ShouldBeActivated = car.ShouldBeManaged,
+            ConnectionRoute = route,
+            //A car that arrived with a known name and identification number has nothing left to identify, so start
+            //it where there is actually something to do.
+            Stage = string.IsNullOrWhiteSpace(car.Vin) || string.IsNullOrWhiteSpace(car.Name)
+                ? SetupCarStage.Identify
+                : route == SetupCarConnectionRoute.Undecided
+                    ? SetupCarStage.Connection
+                    : SetupCarStage.Connect,
+        };
     }
 
     /// <summary>

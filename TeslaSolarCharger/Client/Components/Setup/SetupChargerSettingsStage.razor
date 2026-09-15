@@ -1,0 +1,140 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+@inject IChargingStationsService ChargingStationsService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupChargerSettingsIntro)</MudText>
+
+@if (_connectors == null)
+{
+    <PlaceholderComponent Count="3" />
+}
+else if (_connectors.Count == 0)
+{
+    <MudAlert Severity="Severity.Warning">@T(TranslationKeys.SetupIssueChargingStationNotConnected)</MudAlert>
+}
+else
+{
+    @foreach (var connector in _connectors)
+    {
+        <div class="p-3 rounded border mb-3">
+            <MudTextField T="string" Value="@connector.Name" ValueChanged="@(value => OnNameChanged(connector, value))"
+                          Label="@T(TranslationKeys.SetupChargerConnectorNameLabel)"
+                          HelperText="@T(TranslationKeys.SetupChargerConnectorNameHelper)"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+            <MudNumericField T="int?" Value="connector.MaxCurrent" ValueChanged="@(value => OnMaxCurrentChanged(connector, value))"
+                             Min="1" Max="64"
+                             Label="@T(TranslationKeys.SetupChargerMaxCurrentLabel)"
+                             HelperText="@T(TranslationKeys.SetupChargerMaxCurrentHelper)"
+                             Adornment="Adornment.End" AdornmentText="A"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 280px;" />
+
+            <MudNumericField T="int?" Value="connector.MinCurrent" ValueChanged="@(value => OnMinCurrentChanged(connector, value))"
+                             Min="0" Max="64"
+                             Label="@T(TranslationKeys.SetupChargerMinCurrentLabel)"
+                             HelperText="@T(TranslationKeys.SetupChargerMinCurrentHelper)"
+                             Adornment="Adornment.End" AdornmentText="A"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 280px;" />
+
+            @if (connector.MinCurrent < 6)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">@T(TranslationKeys.SetupChargerLowCurrentWarning)</MudAlert>
+            }
+
+            <MudSelect T="int" Value="connector.ConnectedPhasesCount" ValueChanged="@(value => OnPhasesChanged(connector, value))"
+                       Label="@T(TranslationKeys.SetupChargerPhasesLabel)"
+                       HelperText="@T(TranslationKeys.SetupChargerPhasesHelper)"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 320px;">
+                <MudSelectItem T="int" Value="1">@T(TranslationKeys.SetupChargerPhasesSingle)</MudSelectItem>
+                <MudSelectItem T="int" Value="3">@T(TranslationKeys.SetupChargerPhasesThree)</MudSelectItem>
+            </MudSelect>
+
+            @* A shared charger sees cars the app knows nothing about. Saying so here is what keeps a guest's car
+               from looking like a misbehaving one later. *@
+            <MudSwitch T="bool" Value="connector.AllowGuestCars"
+                       ValueChanged="@(value => OnAllowGuestCarsChanged(connector, value))"
+                       Color="Color.Primary"
+                       Label="@T(TranslationKeys.SetupChargerAllowGuestsLabel)" />
+            <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupChargerAllowGuestsHint)</MudText>
+        </div>
+    }
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupChargerDraft Draft { get; set; } = default!;
+
+    private List<DtoChargingStationConnector>? _connectors;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Draft.ChargingStationId == null)
+        {
+            _connectors = new List<DtoChargingStationConnector>();
+            return;
+        }
+
+        _connectors = await ChargingStationsService.GetChargingStationConnectors(Draft.ChargingStationId.Value)
+                      ?? new List<DtoChargingStationConnector>();
+    }
+
+    private async Task OnNameChanged(DtoChargingStationConnector connector, string? value)
+    {
+        connector.Name = value ?? string.Empty;
+        await Save(connector);
+    }
+
+    private async Task OnMaxCurrentChanged(DtoChargingStationConnector connector, int? value)
+    {
+        connector.MaxCurrent = value;
+        await Save(connector);
+    }
+
+    private async Task OnMinCurrentChanged(DtoChargingStationConnector connector, int? value)
+    {
+        connector.MinCurrent = value;
+        await Save(connector);
+    }
+
+    private async Task OnPhasesChanged(DtoChargingStationConnector connector, int value)
+    {
+        connector.ConnectedPhasesCount = value;
+        await Save(connector);
+    }
+
+    private async Task OnAllowGuestCarsChanged(DtoChargingStationConnector connector, bool value)
+    {
+        connector.AllowGuestCars = value;
+        Draft.AllowGuestCars = value;
+        await Context.Save();
+        await Save(connector);
+    }
+
+    /// <summary>
+    /// Saves the connector as it stands. A connector always has a row already - the charger created it by
+    /// connecting - so unlike a car there is no draft stage to hold these values in.
+    /// </summary>
+    private async Task Save(DtoChargingStationConnector connector)
+    {
+        var result = await ChargingStationsService.UpdateChargingStationConnector(connector);
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SetupChargerSaveError), Severity.Error);
+            return;
+        }
+
+        await Context.RefreshDecision();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

@@ -10,6 +10,18 @@ public interface ISetupService
     /// <summary>The stored setup state, or a fresh one seeded from what the installation already has configured.</summary>
     Task<DtoSetupState?> GetOrCreateSetupState();
 
+    /// <summary>Pulls cars that exist but are not part of this setup yet into it, e.g. after an account import.</summary>
+    Task<DtoSetupState?> SyncCarDrafts(DtoSetupState setupState);
+
+    /// <summary>
+    /// Saves one car on its own, still switched off, so it has a row that settings, deadlines and connection tests
+    /// can be attached to.
+    /// </summary>
+    Task<DtoSetupApplicationResult?> SaveCarDraft(DtoSetupState setupState, Guid draftId);
+
+    /// <summary>What one car turned out to be able to do. Null while the car has not been saved yet.</summary>
+    Task<DtoSetupCarCapabilities?> GetCarCapabilities(int carId);
+
     Task UpdateSetupState(DtoSetupState setupState);
 
     Task DeleteSetupState();

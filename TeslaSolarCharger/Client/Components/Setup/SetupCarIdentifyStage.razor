@@ -1,0 +1,103 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarIdentifyIntro)</MudText>
+
+@* Make and model, not "Manual, Tesla or SmartCar". Which integration that implies is the app's job to work out. *@
+<MudTextField T="string" Value="@Draft.Make" ValueChanged="OnMakeChanged"
+              Label="@T(TranslationKeys.SetupCarMakeLabel)"
+              HelperText="@T(TranslationKeys.SetupCarMakeHelper)"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+              Immediate="false" />
+
+<MudTextField T="string" Value="@Draft.Model" ValueChanged="OnModelChanged"
+              Label="@T(TranslationKeys.SetupCarModelLabel)"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+              Immediate="false" />
+
+<MudTextField T="string" Value="@Draft.Configuration.Name" ValueChanged="OnNameChanged"
+              Label="@T(TranslationKeys.SetupCarNameLabel)"
+              HelperText="@T(TranslationKeys.SetupCarNameHelper)"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+              Error="@_nameMissing" ErrorText="@T(TranslationKeys.SetupIssueCarNameMissing)"
+              Immediate="false" />
+
+<MudTextField T="string" Value="@Draft.Configuration.Vin" ValueChanged="OnVinChanged"
+              Label="@T(TranslationKeys.SetupCarVinLabel)"
+              Disabled="@(Draft.Configuration.CarType == CarType.Tesla)"
+              Variant="Variant.Outlined" Margin="Margin.Dense"
+              Error="@_vinMissing" ErrorText="@T(TranslationKeys.SetupIssueCarVinMissing)"
+              Immediate="false" />
+
+@* Every field a beginner might not know says where to find it, rather than assuming they will look it up. *@
+<MudExpansionPanels Class="mt-2" Elevation="0">
+    <MudExpansionPanel Text="@T(TranslationKeys.SetupCarVinHelpTitle)">
+        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupCarVinHelpBody)</MudText>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@if (Draft.Configuration.CarType == CarType.Tesla)
+{
+    <MudText Typo="Typo.body2" Class="mt-3">@T(TranslationKeys.SetupCarVinFromTeslaAccount)</MudText>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
+    [Parameter] public EventCallback OnCompleted { get; set; }
+
+    private bool _nameMissing;
+    private bool _vinMissing;
+
+    private async Task OnMakeChanged(string? value)
+    {
+        Draft.Make = value;
+        await SaveDraft();
+    }
+
+    private async Task OnModelChanged(string? value)
+    {
+        Draft.Model = value;
+        await SaveDraft();
+    }
+
+    private async Task OnNameChanged(string? value)
+    {
+        Draft.Configuration.Name = value;
+        _nameMissing = string.IsNullOrWhiteSpace(value);
+        await SaveDraft();
+    }
+
+    private async Task OnVinChanged(string? value)
+    {
+        //A vehicle identification number is written in upper case everywhere it appears, and the app matches on it.
+        Draft.Configuration.Vin = value?.Trim().ToUpperInvariant() ?? string.Empty;
+        _vinMissing = string.IsNullOrWhiteSpace(Draft.Configuration.Vin);
+        await SaveDraft();
+    }
+
+    private async Task SaveDraft()
+    {
+        await Context.Save();
+
+        //As soon as the car can be told apart from any other, give it a row of its own. Everything that follows -
+        //a connection test, a charging deadline - needs something real to attach to, and the row is created
+        //switched off so this never starts anything charging.
+        if (Draft.CarId == null
+            && !string.IsNullOrWhiteSpace(Draft.Configuration.Name)
+            && !string.IsNullOrWhiteSpace(Draft.Configuration.Vin))
+        {
+            await Context.SaveCarDraft(Draft);
+        }
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

@@ -10,6 +10,7 @@ public class SetupController(
     ISetupStateService setupStateService,
     ISetupDecisionService setupDecisionService,
     ISetupApplicationService setupApplicationService,
+    ISetupCapabilityProbe setupCapabilityProbe,
     IDeferredSetupCheckService deferredSetupCheckService)
     : ApiBaseController
 {
@@ -32,6 +33,12 @@ public class SetupController(
     public async Task<ActionResult<DtoSetupState>> GetOrCreateSetupState()
     {
         return await setupStateService.GetOrCreateSetupState();
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<DtoSetupState>> SyncCarDrafts([FromBody] DtoSetupState setupState)
+    {
+        return await setupStateService.SyncCarDrafts(setupState);
     }
 
     [HttpPost]
@@ -58,6 +65,25 @@ public class SetupController(
     public ActionResult<DtoSetupState> AcceptProposals([FromBody] DtoSetupAcceptProposalsRequest request)
     {
         return setupApplicationService.AcceptProposals(request.SetupState, request.Proposals);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<DtoSetupApplicationResult>> SaveCarDraft(Guid draftId, [FromBody] DtoSetupState setupState)
+    {
+        return await setupApplicationService.SaveCarDraft(setupState, draftId);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<DtoSetupCarCapabilities?>> GetCarCapabilities(int carId)
+    {
+        var capabilities = await setupCapabilityProbe.GetCarCapabilities(carId);
+        if (capabilities == null)
+        {
+            // A car that does not exist yet is the normal state of a draft, not an error the user should see.
+            return NoContent();
+        }
+
+        return capabilities;
     }
 
     [HttpPost]

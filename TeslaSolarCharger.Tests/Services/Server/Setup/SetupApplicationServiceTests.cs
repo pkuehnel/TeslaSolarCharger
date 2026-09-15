@@ -339,6 +339,55 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
+    public async Task SavingOneCarOnItsOwnLeavesItSwitchedOff()
+    {
+        var state = StateWithOneCar();
+
+        var result = await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.True(result.IsSuccess);
+        //It now has a row to hang settings and tests off, but the scheduler must still not see it.
+        Assert.False(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task SavingOneCarAgainActuallySavesItAgain()
+    {
+        var state = StateWithOneCar();
+        var service = NewService();
+        await service.SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        state.CarDrafts[0].Configuration.UsableEnergy = 90;
+        await service.SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        //An explicit save follows an edit, so a record of the previous one must not turn it into a no-op.
+        Assert.Equal(2, _savedCarConfigurations.Count);
+        Assert.Equal(90, _savedCarConfigurations[1].UsableEnergy);
+    }
+
+    [Fact]
+    public async Task SavingOneCarFillsInTheRowItWasWrittenTo()
+    {
+        Context.Cars.Add(new Car { Id = 11, Vin = "VIN1", });
+        await Context.SaveChangesAsync();
+        var state = StateWithOneCar();
+        state.CarDrafts[0].CarId = null;
+
+        await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.Equal(11, state.CarDrafts[0].CarId);
+    }
+
+    [Fact]
+    public async Task SavingACarThatIsNoLongerPartOfSetupIsReportedRatherThanIgnored()
+    {
+        var result = await NewService().SaveCarDraft(StateWithOneCar(), Guid.NewGuid());
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SetupOperationKey.SaveCarDraft, Assert.Single(result.FailedOperations).OperationKey);
+    }
+
+    [Fact]
     public void AcceptedProposalsAreWrittenToTheStateAndMarkedAsDecidedByTheApp()
     {
         var state = StateWithOneCar();

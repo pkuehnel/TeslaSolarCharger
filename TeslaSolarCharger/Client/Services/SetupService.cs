@@ -16,6 +16,23 @@ public class SetupService(IHttpClientHelper httpClientHelper) : ISetupService
         return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoSetupState>("api/Setup/GetOrCreateSetupState");
     }
 
+    public async Task<DtoSetupState?> SyncCarDrafts(DtoSetupState setupState)
+    {
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupState>("api/Setup/SyncCarDrafts", setupState);
+    }
+
+    public async Task<DtoSetupApplicationResult?> SaveCarDraft(DtoSetupState setupState, Guid draftId)
+    {
+        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupApplicationResult>(
+            $"api/Setup/SaveCarDraft?draftId={draftId}", setupState);
+    }
+
+    public async Task<DtoSetupCarCapabilities?> GetCarCapabilities(int carId)
+    {
+        return await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoSetupCarCapabilities>(
+            $"api/Setup/GetCarCapabilities?carId={carId}");
+    }
+
     public async Task UpdateSetupState(DtoSetupState setupState)
     {
         await httpClientHelper.SendPostRequestWithSnackbarAsync<object>("api/Setup/UpdateSetupState", setupState);
