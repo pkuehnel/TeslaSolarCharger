@@ -1,6 +1,7 @@
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Setup;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Localization;
@@ -255,6 +256,15 @@ public class SetupDecisionService(
         {
             status.Issues.Add(Issue(TranslationKeys.SetupIssueGridPriceMissing, SetupStepKey.Prices));
         }
+
+        //A market tariff without a region cannot have prices fetched for it, and the app's own tariff validator
+        //refuses to store one. Said here so the user answers it, rather than meeting it as a failed save at the end.
+        if (state.ResolvedElectricityPriceKind == SetupElectricityPriceKind.Market
+            && state.ChargePrice?.SpotPriceRegion == null)
+        {
+            status.Issues.Add(Issue(TranslationKeys.SetupIssueMarketRegionMissing, SetupStepKey.Prices,
+                propertyName: nameof(DtoChargePrice.SpotPriceRegion)));
+        }
     }
 
     private static void AddEquipmentIssues(DtoSetupStepStatus status,
@@ -295,9 +305,11 @@ public class SetupDecisionService(
 
     private static SetupActivationStatus GetActivationStatus(DtoSetupCarDraft draft, List<DtoSetupIssue> blockers)
     {
-        //A car that is already managed keeps charging while the rest of the installation is being set up. Reporting
-        //it as a draft would invite the user to "activate" equipment that is already running.
-        if (draft.CarId != null && draft.Configuration.ShouldBeManaged)
+        //A car that was already managed keeps charging while the rest of the installation is being set up. Reporting
+        //it as a draft would invite the user to "activate" equipment that is already running. Read from the flag
+        //recorded when the draft was created: a new car's configuration says "should be managed" from the moment it
+        //is constructed, so asking it would call every car the user adds an already running one.
+        if (draft.WasManagedBeforeSetup && draft.ShouldBeActivated)
         {
             return SetupActivationStatus.Active;
         }

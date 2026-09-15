@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Dtos.Setup;
 using TeslaSolarCharger.SharedModel.Enums;
 using Xunit;
 
@@ -24,13 +26,18 @@ namespace TeslaSolarCharger.Tests.Services.Server.Setup;
 public class ChargingStationActivationBoundaryTests : TestBase
 {
     private readonly Mock<IConfigurationWrapper> _configurationWrapper = new();
+    private readonly Mock<ISetupStateService> _setupStateService = new();
     private readonly Mock<ISettings> _settings = new();
     private readonly ConcurrentDictionary<int, DtoOcppConnectorState> _connectorStates = new();
+
+    /// <summary>The assistant's stored answers, non-null exactly while a setup session is open.</summary>
+    private DtoSetupState? _openSetupState;
 
     public ChargingStationActivationBoundaryTests(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
         _settings.Setup(s => s.OcppConnectorStates).Returns(_connectorStates);
+        _setupStateService.Setup(s => s.GetSetupState()).ReturnsAsync(() => _openSetupState);
     }
 
     private OcppChargingStationConfigurationService NewService() => new(
@@ -38,6 +45,7 @@ public class ChargingStationActivationBoundaryTests : TestBase
         Context,
         Moq.Mock.Of<IOcppChargePointConfigurationService>(),
         _configurationWrapper.Object,
+        _setupStateService.Object,
         _settings.Object);
 
     private async Task<int> AddConnectedConnector()
@@ -69,6 +77,7 @@ public class ChargingStationActivationBoundaryTests : TestBase
     {
         var connectorId = await AddConnectedConnector();
         _configurationWrapper.Setup(w => w.IsFirstRun()).Returns(true);
+        _openSetupState = new DtoSetupState();
 
         await NewService().UpdateChargingStationConnector(ConnectorDto(connectorId));
 
@@ -83,12 +92,42 @@ public class ChargingStationActivationBoundaryTests : TestBase
     {
         var connectorId = await AddConnectedConnector();
         _configurationWrapper.Setup(w => w.IsFirstRun()).Returns(false);
+        _openSetupState = null;
 
         await NewService().UpdateChargingStationConnector(ConnectorDto(connectorId));
 
         var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == connectorId);
-        //Setup is over: plugging a charger in and having it work is exactly what the user expects.
+        //Nobody is in the assistant: plugging a charger in and having it work is exactly what the user expects.
         Assert.True(connector.ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task AChargerThatConnectsWhileSetupIsReopenedStaysSwitchedOff()
+    {
+        //Reopening the assistant on a working installation to add a second charger makes exactly the same promise
+        //as a first run does. Guarding only on the first run kept it for new users and broke it for everyone else.
+        var connectorId = await AddConnectedConnector();
+        _configurationWrapper.Setup(w => w.IsFirstRun()).Returns(false);
+        _openSetupState = new DtoSetupState();
+
+        await NewService().UpdateChargingStationConnector(ConnectorDto(connectorId));
+
+        var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == connectorId);
+        Assert.False(connector.ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task AnUnreadableSetupStateLeavesTheChargerSwitchedOff()
+    {
+        var connectorId = await AddConnectedConnector();
+        _configurationWrapper.Setup(w => w.IsFirstRun()).Returns(false);
+        _setupStateService.Setup(s => s.GetSetupState()).ThrowsAsync(new InvalidOperationException("storage is gone"));
+
+        await NewService().UpdateChargingStationConnector(ConnectorDto(connectorId));
+
+        var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == connectorId);
+        //Not knowing whether setup is open is not a reason to switch something on behind the user's back.
+        Assert.False(connector.ShouldBeManaged);
     }
 
     [Fact]
@@ -96,6 +135,7 @@ public class ChargingStationActivationBoundaryTests : TestBase
     {
         var connectorId = await AddConnectedConnector();
         _configurationWrapper.Setup(w => w.IsFirstRun()).Returns(true);
+        _openSetupState = new DtoSetupState();
         var dto = ConnectorDto(connectorId);
         dto.ShouldBeManaged = true;
 

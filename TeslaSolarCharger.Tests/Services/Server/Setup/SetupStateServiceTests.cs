@@ -335,6 +335,23 @@ public class SetupStateServiceTests : TestBase
         Assert.Empty(state.ValueSources);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task WhetherACarWasAlreadyRunningIsReadFromTheDatabase(bool isManaged)
+    {
+        //Not derived from the draft's configuration: a car the user adds in the assistant starts out saying it
+        //should be managed, so deriving it would call every new car an already running one.
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(1, "Car") { Vin = "VIN1", CarType = CarType.Manual, ShouldBeManaged = isManaged, },
+        };
+
+        var state = await NewService().GetOrCreateSetupState();
+
+        Assert.Equal(isManaged, Assert.Single(state.CarDrafts).WasManagedBeforeSetup);
+    }
+
     [Fact]
     public async Task AnExistingCarsChargingConnectorsComeAlongWithItsDraft()
     {

@@ -587,12 +587,15 @@
             return false;
         }
 
-        // The server fills in the id of the row it wrote to; keep the local draft in step with it.
+        // The server fills in the id of the row it wrote to; keep the local draft in step with it. The
+        // configuration carries the id as well, and it is that copy which is handed to the runtime car on the next
+        // save - a zero left there renumbers a car that is already running.
         var saved = await SetupService.GetSetupState();
         var savedDraft = saved?.FindCarDraft(draft.DraftId);
         if (savedDraft?.CarId != null)
         {
             draft.CarId = savedDraft.CarId;
+            draft.Configuration.Id = savedDraft.CarId.Value;
         }
 
         await RefreshDecision();
@@ -615,6 +618,7 @@
         {
             await AcceptSelectedProposals();
             var result = await SetupService.ApplyConfiguration(_context.State);
+            await AdoptRecordedProgress();
             if (result == null || !result.IsSuccess)
             {
                 ReportFailedOperations(result);
@@ -644,7 +648,8 @@
             if (result is not { IsSetupCompleted: true })
             {
                 // Setup is only over when the server says every required save succeeded. Until then the answers
-                // stay and the user can try again.
+                // stay, the record of what did work is taken over, and the user can try again.
+                await AdoptRecordedProgress();
                 ReportFailedOperations(result);
                 return;
             }
@@ -689,6 +694,28 @@
             SaveCarDraft = SaveCarDraft,
         };
         _dtoBaseConfiguration = new(updatedState.Configuration);
+    }
+
+    /// <summary>
+    /// Takes over the record of what the server actually wrote. The server keeps that on its own copy of the state,
+    /// so without this the browser keeps posting a state that claims nothing has been done yet - and a retry after
+    /// a partial failure repeats the steps that already worked.
+    /// </summary>
+    private async Task AdoptRecordedProgress()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        var saved = await SetupService.GetSetupState();
+        if (saved == null)
+        {
+            return;
+        }
+
+        _context.State.CompletedOperations.Clear();
+        _context.State.CompletedOperations.AddRange(saved.CompletedOperations);
     }
 
     private void ReportFailedOperations(DtoSetupApplicationResult? result)

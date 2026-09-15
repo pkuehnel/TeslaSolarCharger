@@ -837,6 +837,7 @@ public static class TranslationKeys
     public static string SetupIssueChargingStationNotConnected => nameof(SetupIssueChargingStationNotConnected);
     public static string SetupIssueChargingStationConnectorNotChosen => nameof(SetupIssueChargingStationConnectorNotChosen);
     public static string SetupIssueSolarPredictionRequired => nameof(SetupIssueSolarPredictionRequired);
+    public static string SetupIssueMarketRegionMissing => nameof(SetupIssueMarketRegionMissing);
 
     public static string SetupReasonDynamicHomeBatteryMinSoc => nameof(SetupReasonDynamicHomeBatteryMinSoc);
     public static string SetupReasonPredictSolarPowerGeneration => nameof(SetupReasonPredictSolarPowerGeneration);

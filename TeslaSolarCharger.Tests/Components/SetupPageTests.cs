@@ -11,6 +11,7 @@ using Moq;
 using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using TeslaSolarCharger.Client.Components;
 using TeslaSolarCharger.Client.Components.Setup;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
@@ -599,6 +600,129 @@ public class SetupPageTests : Bunit.TestContext
 
         Assert.DoesNotContain("0.285", page.Markup);
         Assert.DoesNotContain("0,285", page.Markup);
+    }
+
+    [Fact]
+    public void TheBrowserKeepsBothIdsAfterTheServerCreatesTheCar()
+    {
+        //The configuration's own id is what reaches the runtime car on the next save. Copying only the draft id
+        //left a zero there, which renumbered a car that was already running.
+        var draft = new DtoSetupCarDraft
+        {
+            CarId = null,
+            Stage = SetupCarStage.Identify,
+            ConnectionRoute = SetupCarConnectionRoute.ChargingStationOnly,
+            Configuration = new CarBasicConfiguration { Id = 0, Name = "New car", Vin = "NEWVIN", },
+        };
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+        // A separate object, the way the server's answer really arrives: the page must copy both ids out of it
+        // rather than happening to share one in-memory draft with the server.
+        _setupService.Setup(s => s.GetSetupState()).ReturnsAsync(() => new DtoSetupState
+        {
+            CarDrafts =
+            {
+                new DtoSetupCarDraft
+                {
+                    DraftId = draft.DraftId,
+                    CarId = 11,
+                    Configuration = new CarBasicConfiguration { Id = 11, Name = "New car", Vin = "NEWVIN", },
+                },
+            },
+        });
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, SetupCarStage.Identify.ToString());
+        // Naming the car is what gives it a row; the stage saves as soon as it can tell the car apart.
+        page.FindAll("input")[2].Change("Renamed car");
+
+        Assert.Equal(11, draft.CarId);
+        Assert.Equal(11, draft.Configuration.Id);
+    }
+
+    [Fact]
+    public void ChangingOnlyATariffPeriodsDaysIsStoredStraightAway()
+    {
+        //The price callbacks were wired up, but the day and time fields of a period were not, so an edit that only
+        //moved a period was lost on the next reload.
+        _storedState = new DtoSetupState
+        {
+            ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse,
+            CurrentStep = SetupStepKey.Prices,
+        };
+        _httpClientHelper
+            .Setup(h => h.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DtoChargePrice>
+            {
+                new()
+                {
+                    Id = 1, GridPrice = 0.3m, SolarPrice = 0.1m, ValidSince = new DateTime(2026, 1, 1),
+                    EnergyProviderConfiguration = "[{\"FromHour\":22,\"ToHour\":6,\"Value\":0.19}]",
+                },
+            });
+
+        var page = RenderAt(SetupSections.Prices);
+        var savesBefore = _setupService.Invocations.Count(i => i.Method.Name == nameof(ISetupService.UpdateSetupState));
+        var mondayBox = page.FindComponents<MudCheckBox<bool>>().First();
+        page.InvokeAsync(() => mondayBox.Instance.ValueChanged.InvokeAsync(false)).GetAwaiter().GetResult();
+
+        Assert.True(_setupService.Invocations.Count(i => i.Method.Name == nameof(ISetupService.UpdateSetupState)) > savesBefore);
+        //And the change itself is real: the period now names the days it covers, minus the one just unticked.
+        var period = page.FindComponent<FixedPriceComponent>().Instance;
+        Assert.NotNull(period.FixedPrice!.ValidOnDays);
+        Assert.DoesNotContain(DayOfWeek.Sunday, period.FixedPrice.ValidOnDays!);
+    }
+
+    [Fact]
+    public void ANewTariffPeriodShowsTheDaysItActuallyCovers()
+    {
+        //A period with no day list applies every day, which is how the price is worked out. The editor showed it
+        //as covering no days, and ticking one did nothing at all.
+        _storedState = new DtoSetupState
+        {
+            ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse,
+            CurrentStep = SetupStepKey.Prices,
+        };
+        _httpClientHelper
+            .Setup(h => h.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DtoChargePrice>
+            {
+                new()
+                {
+                    Id = 1, GridPrice = 0.3m, SolarPrice = 0.1m, ValidSince = new DateTime(2026, 1, 1),
+                    EnergyProviderConfiguration = "[{\"FromHour\":22,\"ToHour\":6,\"Value\":0.19}]",
+                },
+            });
+
+        var page = RenderAt(SetupSections.Prices);
+        var dayBoxes = page.FindAll("input[type=checkbox]").Take(7).ToList();
+
+        Assert.Equal(7, dayBoxes.Count);
+        Assert.All(dayBoxes, box => Assert.True(box.HasAttribute("checked")));
+    }
+
+    [Fact]
+    public void TheReviewDescribesTheBatteryReserveThatWillActuallyApply()
+    {
+        //The recommendation is applied on the way to finishing. Describing the stored value instead told the user
+        //their battery stays manual while a ticked box on the same screen said it was about to become automatic.
+        _storedState = new DtoSetupState { HasHomeBattery = true, };
+        _storedState.Configuration.DynamicHomeBatteryMinSoc = null;
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = true,
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    ReasonKey = TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.DoesNotContain("reserve you set by hand", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

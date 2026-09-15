@@ -1,4 +1,3 @@
-using Newtonsoft.Json;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.Setup;
@@ -60,10 +59,13 @@ public class DtoSetupCarDraft
     /// True when this car was already charging before the assistant was opened. Such a car is part of a working
     /// installation, so saving a draft of it has to leave it managed: otherwise reopening setup to add a second car
     /// would switch the first one off and strip its charging connector assignments.
+    /// <para>
+    /// Recorded when the draft is created rather than read back from <see cref="Configuration"/>. A brand new
+    /// <see cref="CarBasicConfiguration"/> starts out saying it should be managed, so deriving this would make
+    /// every car the user adds look like one that was already running as soon as it had a row.
+    /// </para>
     /// </summary>
-    [JsonIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    public bool IsAlreadyManaged => CarId != null && Configuration.ShouldBeManaged;
+    public bool WasManagedBeforeSetup { get; set; }
 
     /// <summary>
     /// Whether the user asked for this car to charge automatically once setup finishes. Kept separate from

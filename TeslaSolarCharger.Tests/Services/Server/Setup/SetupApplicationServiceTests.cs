@@ -29,6 +29,13 @@ public class SetupApplicationServiceTests : TestBase
     private readonly Mock<IChargingCostService> _chargingCostService = new();
     private readonly Mock<IConfigJsonService> _configJsonService = new();
     private readonly Mock<IDeferredSetupCheckService> _deferredSetupCheckService = new();
+    private readonly Mock<ISetupDecisionService> _setupDecisionService = new();
+
+    /// <summary>
+    /// What the readiness checks make of the state. Finishing is held to this, so a test that wants it refused
+    /// says so by making the configuration incomplete.
+    /// </summary>
+    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, };
 
     /// <summary>The configuration as it is on the installation right now, before the assistant writes anything.</summary>
     private DtoBaseConfiguration _liveConfiguration = new();
@@ -49,6 +56,7 @@ public class SetupApplicationServiceTests : TestBase
         : base(outputHelper)
     {
         _configurationWrapper.Setup(w => w.GetBaseConfigurationAsync()).ReturnsAsync(() => _liveConfiguration);
+        _setupDecisionService.Setup(s => s.Evaluate(It.IsAny<DtoSetupState>())).ReturnsAsync(() => _decision);
         _baseConfigurationService
             .Setup(s => s.UpdateBaseConfigurationAsync(It.IsAny<DtoBaseConfiguration>()))
             .Callback<DtoBaseConfiguration>(c =>
@@ -87,8 +95,10 @@ public class SetupApplicationServiceTests : TestBase
         Context,
         new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime),
         _deferredSetupCheckService.Object,
+        _setupDecisionService.Object,
         new CarBasicConfigurationValidator(),
-        new BaseConfigurationValidator());
+        new BaseConfigurationValidator(),
+        new DtoChargePriceValidator());
 
     /// <summary>
     /// A car that has a row but is not running yet - the normal state of a car being set up. Whether it was already
@@ -104,6 +114,7 @@ public class SetupApplicationServiceTests : TestBase
             {
                 CarId = 5,
                 ShouldBeActivated = shouldBeActivated,
+                WasManagedBeforeSetup = isAlreadyManaged,
                 ConnectionRoute = SetupCarConnectionRoute.TeslaCloud,
                 Configuration = new CarBasicConfiguration
                 {
@@ -719,6 +730,115 @@ public class SetupApplicationServiceTests : TestBase
 
         Assert.True(secondAttempt.Operations.Single(o => o.OperationKey == SetupOperationKey.SaveChargePrice).WasAlreadyCompleted);
         Assert.Equal(1, _operationOrder.Count(o => o == "chargePrice"));
+    }
+
+    [Fact]
+    public async Task SavingANewCarTwiceStillLeavesItSwitchedOff()
+    {
+        //A fresh CarBasicConfiguration says it should be managed from the moment it is constructed, so deriving
+        //"was already running" from it made the second save of a car the user had just added switch it on.
+        var state = StateWithOneCar();
+        state.CarDrafts[0].WasManagedBeforeSetup = false;
+        state.CarDrafts[0].Configuration.ShouldBeManaged = true;
+        var service = NewService();
+
+        await service.SaveCarDraft(state, state.CarDrafts[0].DraftId);
+        await service.SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.Equal(2, _savedCarConfigurations.Count);
+        Assert.All(_savedCarConfigurations, c => Assert.False(c.ShouldBeManaged));
+    }
+
+    [Fact]
+    public async Task TurningOffARunningCarAfterAnEarlierSaveIsNotSkipped()
+    {
+        //Only the activation choice changed, which is exactly what the draft save writes. Leaving it out of the
+        //record of what was written let "stop charging this car" be treated as already done.
+        var state = StateWithOneCar(isAlreadyManaged: true);
+        var service = NewService();
+        await service.ApplyConfiguration(state);
+        Assert.True(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+
+        state.CarDrafts[0].ShouldBeActivated = false;
+        await service.ApplyConfiguration(state);
+
+        Assert.Equal(2, _savedCarConfigurations.Count);
+        Assert.False(_savedCarConfigurations.Last().ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task AnImportedTimeOfUseTariffKeepsItsPeriodsWhenTheKindWasNeverReAnswered()
+    {
+        //Loading an existing tariff restores its periods but leaves the tariff kind unanswered - the screen reads
+        //it back from the periods. The server has to read it the same way, or saving strips what it is showing.
+        var state = StateWithOneCar();
+        state.ElectricityPriceKind = null;
+        state.FixedPrices.Add(new FixedPrice { FromHour = 22, ToHour = 6, Value = 0.19m, });
+
+        await NewService().ApplyConfiguration(state);
+
+        var saved = Assert.Single(_savedChargePrices);
+        Assert.NotNull(saved.EnergyProviderConfiguration);
+        Assert.Contains("0.19", saved.EnergyProviderConfiguration);
+    }
+
+    [Fact]
+    public async Task AMarketTariffWithNoRegionIsNotStored()
+    {
+        //Market prices are published per region, so there is nothing to fetch without one - which is why the app's
+        //own tariff validator refuses it. Setup used to be the one route that could store it anyway.
+        var state = StateWithOneCar();
+        state.ElectricityPriceKind = SetupElectricityPriceKind.Market;
+        state.ChargePrice!.AddSpotPriceToGridPrice = true;
+        state.ChargePrice.SpotPriceRegion = null;
+
+        var result = await NewService().ApplyConfiguration(state);
+
+        Assert.False(result.IsSuccess);
+        var failure = Assert.Single(result.FailedOperations);
+        Assert.Equal(SetupOperationKey.SaveChargePrice, failure.OperationKey);
+        Assert.False(failure.IsRetryable);
+        Assert.Empty(_savedChargePrices);
+    }
+
+    [Fact]
+    public async Task SetupCannotBeFinishedWhileTheReadinessChecksSayItIsNotReady()
+    {
+        //Gating the button in the browser is not the same as a rule: a stale tab or anything else posting this
+        //state would otherwise still switch equipment on that the app itself reports as not ready.
+        _liveConfiguration = new DtoBaseConfiguration { IsFirstRun = true, };
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = false,
+            MissingInformation = { new DtoSetupIssue { MessageKey = "SetupIssueGridPriceMissing", }, },
+        };
+
+        var result = await NewService().ActivateAndCompleteSetup(StateWithOneCar());
+
+        Assert.False(result.IsSetupCompleted);
+        Assert.False(Assert.Single(result.FailedOperations).IsRetryable);
+        //Nothing was written at all, so the user loses nothing by being sent back.
+        Assert.Empty(_savedCarConfigurations);
+        Assert.True(_liveConfiguration.IsFirstRun);
+        _setupStateService.Verify(s => s.DeleteSetupState(), Times.Never);
+    }
+
+    [Fact]
+    public async Task AChargerWithNoConnectorChosenFailsInsteadOfBeingSkipped()
+    {
+        //It used to be filtered out of activation while setup still completed, leaving the user with a charger
+        //they believe is switched on.
+        var state = StateWithOneCar();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft
+        {
+            ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = null, ShouldBeActivated = true,
+        });
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.False(result.IsSetupCompleted);
+        Assert.Contains(result.FailedOperations, o => o.OperationKey == SetupOperationKey.ActivateChargingStationConnector);
+        _setupStateService.Verify(s => s.DeleteSetupState(), Times.Never);
     }
 
     [Fact]

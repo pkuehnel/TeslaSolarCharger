@@ -241,8 +241,12 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Welcher Marktpreis gilt für Sie?"));
 
         Register(TranslationKeys.SetupPricesMarketRegionMissing,
-            new TextLocalizationTranslation(LanguageCodes.English, "Without a region we cannot fetch market prices, so charging would fall back to your fixed price."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ohne Region können wir keine Marktpreise abrufen, das Laden würde dann auf Ihren Festpreis zurückfallen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Please choose your region. Market prices are published per region, so without one there is nothing to fetch."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Bitte wählen Sie Ihre Region. Marktpreise werden je Region veröffentlicht, ohne Region gibt es nichts abzurufen."));
+
+        Register(TranslationKeys.SetupIssueMarketRegionMissing,
+            new TextLocalizationTranslation(LanguageCodes.English, "Your electricity tariff follows the market price, so we need to know which region's prices apply."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Stromtarif folgt dem Marktpreis, daher müssen wir wissen, welche Regionspreise gelten."));
 
         Register(TranslationKeys.SetupPricesMarketSurchargeNote,
             new TextLocalizationTranslation(LanguageCodes.English, "The number this starts with is only an example. Use the figure from your own contract, or charging will be planned around the wrong price."),

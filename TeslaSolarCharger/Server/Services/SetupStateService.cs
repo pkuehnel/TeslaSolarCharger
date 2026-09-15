@@ -136,6 +136,7 @@ public class SetupStateService(
         //Whether the car is actually running is the installation's state, not an answer in the assistant. Keeping a
         //stale value here would make a running car look like a draft waiting to be switched on.
         draft.Configuration.ShouldBeManaged = car.ShouldBeManaged;
+        draft.WasManagedBeforeSetup = car.ShouldBeManaged;
         //A route derived from the old type no longer describes the car. Only fill in a route that follows from what
         //the car now is, so a user who deliberately picked one of several Tesla routes keeps their choice.
         var route = DeriveConnectionRoute(car);
@@ -225,6 +226,8 @@ public class SetupStateService(
         {
             CarId = car.Id,
             Configuration = car,
+            //Read from the database, which is the only place that knows whether this car is actually charging today.
+            WasManagedBeforeSetup = car.ShouldBeManaged,
             //A car that is already managed is part of a working installation. Setup must be able to describe it
             //without implying it is about to be switched on for the first time.
             ShouldBeActivated = car.ShouldBeManaged,

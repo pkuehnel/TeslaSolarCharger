@@ -7,6 +7,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Contracts
 
 @implements IDisposable
 
@@ -16,6 +17,7 @@
 @inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject ISetupService SetupService
 @inject NavigationManager NavigationManager
+@inject IDateTimeProvider DateTimeProvider
 @inject IConstants Constants
 @inject ISnackbar Snackbar
 
@@ -298,6 +300,16 @@
             Snackbar.Add(T(TranslationKeys.SetupEquipmentTeslaConnectUrlError), Severity.Error);
             return;
         }
+
+        // Note what the user is leaving for, so the assistant can say what is outstanding if they come back some
+        // other way than by following the return address.
+        Context.State.PendingOperation = new DtoSetupPendingOperation
+        {
+            StepKey = SetupStepKey.CarsAndCharging,
+            OperationName = "TeslaOAuth",
+            StartedAt = DateTimeProvider.DateTimeOffSetNow(),
+        };
+        await Context.Save();
 
         NavigationManager.NavigateTo(url);
     }

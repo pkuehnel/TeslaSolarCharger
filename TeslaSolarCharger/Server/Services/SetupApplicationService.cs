@@ -27,8 +27,10 @@ public class SetupApplicationService(
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IDateTimeProvider dateTimeProvider,
     IDeferredSetupCheckService deferredSetupCheckService,
+    ISetupDecisionService setupDecisionService,
     IValidator<CarBasicConfiguration> carConfigurationValidator,
-    IValidator<DtoBaseConfiguration> baseConfigurationValidator)
+    IValidator<DtoBaseConfiguration> baseConfigurationValidator,
+    IValidator<DtoChargePrice> chargePriceValidator)
     : ISetupApplicationService
 {
     public async Task<DtoSetupApplicationResult> ApplyConfiguration(DtoSetupState setupState)
@@ -43,6 +45,27 @@ public class SetupApplicationService(
     {
         logger.LogTrace("{method}(...)", nameof(ActivateAndCompleteSetup));
         var result = new DtoSetupApplicationResult();
+
+        //The readiness checks are what the assistant shows the user; finishing has to be held to the same answer.
+        //Checking it here rather than only in the browser is the difference between a rule and a suggestion: a
+        //stale tab, a retried request or anything else posting this state must not be able to switch equipment on
+        //that the app itself reports as not ready.
+        var decision = await setupDecisionService.Evaluate(setupState).ConfigureAwait(false);
+        if (!decision.IsConfigurationComplete)
+        {
+            result.Operations.Add(new DtoSetupOperationResult
+            {
+                OperationKey = SetupOperationKey.CompleteSetup,
+                IsSuccess = false,
+                ErrorMessage = "Setup is not ready to be finished yet: "
+                               + string.Join(", ", decision.MissingInformation.Concat(decision.Incompatibilities)
+                                   .Select(i => i.MessageKey).Distinct()),
+                //Something to answer, not something to try again unchanged.
+                IsRetryable = false,
+            });
+            return result;
+        }
+
         await ApplyConfigurationInternal(setupState, result).ConfigureAwait(false);
         if (!result.IsSuccess)
         {
@@ -57,7 +80,10 @@ public class SetupApplicationService(
                 () => ActivateCar(draft), CarContent(draft)).ConfigureAwait(false);
         }
 
-        foreach (var draft in setupState.ChargerDrafts.Where(d => d.ShouldBeActivated && d.ConnectorId != null))
+        //Deliberately not filtered by "has a connector": a charger the user asked to switch on but that never
+        //picked one has to be reported as a failure. Skipping it quietly used to leave setup marked finished
+        //around a charger the user believes is running.
+        foreach (var draft in setupState.ChargerDrafts.Where(d => d.ShouldBeActivated))
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateChargingStationConnector, draft.DraftId,
                 () => ActivateChargingStationConnector(draft),
@@ -228,6 +254,10 @@ public class SetupApplicationService(
     {
         draft.CarId,
         draft.Configuration,
+        //Part of what is written, not just of what happens afterwards: switching a running car off is done by the
+        //draft save. Leaving it out let "stop charging this car" be skipped as already done.
+        draft.ShouldBeActivated,
+        draft.WasManagedBeforeSetup,
         Assignments = draft.AssignedChargingConnectorIds.OrderBy(id => id).ToList(),
     };
 
@@ -349,10 +379,13 @@ public class SetupApplicationService(
             //the price. Writing the price without them would keep the tariff the user just replaced; clearing it
             //for the kinds that have no periods is what stops yesterday's periods staying in force after a change.
             EnergyProviderConfiguration =
-                setupState.ElectricityPriceKind == SetupElectricityPriceKind.TimeOfUse && setupState.FixedPrices.Count > 0
+                setupState.ResolvedElectricityPriceKind == SetupElectricityPriceKind.TimeOfUse && setupState.FixedPrices.Count > 0
                     ? JsonConvert.SerializeObject(setupState.FixedPrices)
                     : null,
         };
+        //Same rule the detailed tariff page is held to. Without this setup was the one route that could store a
+        //market tariff with no region, which no price can then be fetched for.
+        await Validate(chargePriceValidator, priceToSave).ConfigureAwait(false);
         await chargingCostService.UpdateChargePrice(priceToSave).ConfigureAwait(false);
     }
 
@@ -364,7 +397,7 @@ public class SetupApplicationService(
         //part of a working installation, and switching it off to save an unrelated answer would stop it charging
         //and drop its charging connector assignments. Unticking it is still respected - that is the user asking
         //for exactly that.
-        configuration.ShouldBeManaged = draft.IsAlreadyManaged && draft.ShouldBeActivated;
+        configuration.ShouldBeManaged = draft.WasManagedBeforeSetup && draft.ShouldBeActivated;
         await SaveCarConfiguration(draft, configuration).ConfigureAwait(false);
 
         if (draft.CarId == null)

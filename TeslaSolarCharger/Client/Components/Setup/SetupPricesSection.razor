@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
 @using MudExtensions
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
@@ -45,7 +46,7 @@
         @foreach (var fixedPrice in FixedPrices)
         {
             <MudPaper Class="pa-3 mt-3" Outlined="true">
-                <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
+                <FixedPriceComponent FixedPrice="fixedPrice" OnChanged="OnChanged"></FixedPriceComponent>
                 <div class="d-flex align-center">
                     <div class="flex-grow-1">
                         <GenericInput For="() => fixedPrice.Value"
@@ -122,27 +123,13 @@ else if (Kind != null)
     /// <summary>Raised whenever an answer changed, so the page can persist it.</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 
-    private SetupElectricityPriceKind? Kind => Context.State.ElectricityPriceKind ?? DeriveKindFromPrice();
-
     /// <summary>
-    /// What a configuration made before this question existed amounts to. Read back rather than asked again, so an
-    /// existing installation does not have to answer for something it already has.
+    /// What the tariff is, asked or read back from what is already stored, so an existing installation does not
+    /// have to answer for something it already has. Shared with the server, which decides on the same reading
+    /// whether to write the periods - the two drifting apart is how an imported tariff lost its periods.
     /// </summary>
-    private SetupElectricityPriceKind? DeriveKindFromPrice()
-    {
-        if (ChargePrice.Item.AddSpotPriceToGridPrice)
-        {
-            return SetupElectricityPriceKind.Market;
-        }
-
-        if (FixedPrices.Count > 0)
-        {
-            return SetupElectricityPriceKind.TimeOfUse;
-        }
-
-        //A grid price on its own is only an answer if somebody actually entered one.
-        return ChargePrice.Item.GridPrice > 0 ? SetupElectricityPriceKind.Fixed : null;
-    }
+    private SetupElectricityPriceKind? Kind =>
+        DtoSetupState.ResolveElectricityPriceKind(Context.State.ElectricityPriceKind, ChargePrice.Item, FixedPrices);
 
     private string GridPriceExplanationKey => Kind switch
     {

@@ -405,11 +405,26 @@ public class SetupDecisionServiceTests
     public async Task AlreadyManagedCar_IsReportedActiveRatherThanWaitingToBeSwitchedOn()
     {
         var state = CompleteState();
-        state.CarDrafts[0].Configuration.ShouldBeManaged = true;
+        state.CarDrafts[0].WasManagedBeforeSetup = true;
 
         var decision = await NewService(FullyCapable()).Evaluate(state);
 
         Assert.Equal(SetupActivationStatus.Active, decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.Car).ActivationStatus);
+    }
+
+    [Fact]
+    public async Task ACarTheUserJustAddedIsNotReportedAsAlreadyRunning()
+    {
+        //A new car's configuration says "should be managed" from the moment it is constructed. Reading that as
+        //"already running" would invite the user to skip switching on a car that is not on.
+        var state = CompleteState();
+        state.CarDrafts[0].WasManagedBeforeSetup = false;
+        state.CarDrafts[0].Configuration.ShouldBeManaged = true;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.Equal(SetupActivationStatus.ReadyForActivation,
+            decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.Car).ActivationStatus);
     }
 
     [Fact]
@@ -726,6 +741,34 @@ public class SetupDecisionServiceTests
         var status = decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.ChargingStationConnector);
         Assert.Equal(SetupActivationStatus.Blocked, status.ActivationStatus);
         Assert.Contains(status.ActivationBlockers, b => b.MessageKey == TranslationKeys.SetupIssueChargingStationConnectorNotChosen);
+    }
+
+    [Fact]
+    public async Task AMarketTariffWithoutARegionIsNotComplete()
+    {
+        //Asked here so the user answers it on the prices screen, rather than meeting it as a failed save at the end.
+        var state = CompleteState();
+        state.ElectricityPriceKind = SetupElectricityPriceKind.Market;
+        state.ChargePrice!.AddSpotPriceToGridPrice = true;
+        state.ChargePrice.SpotPriceRegion = null;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.False(decision.IsConfigurationComplete);
+        Assert.Contains(decision.MissingInformation, i => i.MessageKey == TranslationKeys.SetupIssueMarketRegionMissing);
+    }
+
+    [Fact]
+    public async Task AMarketTariffWithARegionIsComplete()
+    {
+        var state = CompleteState();
+        state.ElectricityPriceKind = SetupElectricityPriceKind.Market;
+        state.ChargePrice!.AddSpotPriceToGridPrice = true;
+        state.ChargePrice.SpotPriceRegion = SpotPriceRegion.DE_LU;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.True(decision.IsConfigurationComplete);
     }
 
     [Fact]

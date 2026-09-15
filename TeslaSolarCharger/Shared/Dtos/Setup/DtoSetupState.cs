@@ -76,6 +76,37 @@ public class DtoSetupState
     /// </summary>
     public DateTimeOffset? LastSavedAt { get; set; }
 
+    /// <summary>
+    /// The shape of the tariff as it stands, whether the user picked it or it follows from what is already stored.
+    /// Shared with the screen that asks the question so both read an imported tariff the same way: a tariff that
+    /// has periods but was never re-answered is still a time of use tariff, and saving must not strip its periods.
+    /// </summary>
+    public SetupElectricityPriceKind? ResolvedElectricityPriceKind =>
+        ResolveElectricityPriceKind(ElectricityPriceKind, ChargePrice, FixedPrices);
+
+    public static SetupElectricityPriceKind? ResolveElectricityPriceKind(SetupElectricityPriceKind? answered,
+        DtoChargePrice? chargePrice,
+        IReadOnlyCollection<FixedPrice> fixedPrices)
+    {
+        if (answered != null)
+        {
+            return answered;
+        }
+
+        if (chargePrice?.AddSpotPriceToGridPrice == true)
+        {
+            return SetupElectricityPriceKind.Market;
+        }
+
+        if (fixedPrices.Count > 0)
+        {
+            return SetupElectricityPriceKind.TimeOfUse;
+        }
+
+        //A grid price on its own is only an answer if somebody actually entered one.
+        return chargePrice?.GridPrice > 0 ? SetupElectricityPriceKind.Fixed : null;
+    }
+
     public bool IsStepCompleted(SetupStepKey step) => CompletedSteps.Contains(step);
 
     public DtoSetupCarDraft? FindCarDraft(Guid draftId) => CarDrafts.FirstOrDefault(d => d.DraftId == draftId);

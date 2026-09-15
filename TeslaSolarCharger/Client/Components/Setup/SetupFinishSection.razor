@@ -1,3 +1,4 @@
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared.Dtos.Setup
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
@@ -105,6 +106,21 @@ else
     public static string ProposalId(DtoSetupProposedValue proposal) => $"{proposal.DraftId}|{proposal.PropertyName}";
 
     /// <summary>
+    /// What an installation wide setting will actually be once finishing applies the recommendations the user has
+    /// left ticked. A recommendation that is still pending changes nothing yet, so it does not count.
+    /// </summary>
+    private bool WillBeTrue(string propertyName, bool currentValue)
+    {
+        var proposal = Decision?.ProposedValues.FirstOrDefault(p => p.DraftId == null && p.PropertyName == propertyName);
+        if (proposal is not { IsPending: false, } || DeclinedProposals.Contains(ProposalId(proposal)))
+        {
+            return currentValue;
+        }
+
+        return proposal.Value is true or "True" or "true";
+    }
+
+    /// <summary>
     /// Describes the installation the way its owner would: which car is controlled how, what the home battery does,
     /// and what has not been tried yet.
     /// </summary>
@@ -130,7 +146,11 @@ else
 
         if (Context.State.HasHomeBattery == true)
         {
-            yield return T(Context.State.Configuration.DynamicHomeBatteryMinSoc == true
+            //Read through the recommendations, not straight off the stored value. Those are applied on the way to
+            //finishing, so describing what is stored right now would tell the user their battery stays manual
+            //while a ticked box on the same screen says it is about to become automatic.
+            yield return T(WillBeTrue(nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Context.State.Configuration.DynamicHomeBatteryMinSoc == true)
                 ? TranslationKeys.SetupFinishBehaviourBatteryAutomatic
                 : TranslationKeys.SetupFinishBehaviourBatteryManual);
         }
