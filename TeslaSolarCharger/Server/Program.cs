@@ -27,6 +27,8 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 
@@ -59,6 +61,10 @@ builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>(
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
+//Registered one by one rather than by scanning the shared assembly: that assembly also holds the base class of the
+//server's own car validator, and registering it would let the weaker base rules win over the server's.
+builder.Services.AddScoped<IValidator<DtoBaseConfiguration>, BaseConfigurationValidator>();
+builder.Services.AddScoped<IValidator<DtoChargePrice>, DtoChargePriceValidator>();
 
 var maxFileSize = (long)1024 * 1024 * 1024 * 50; // 50GB
 builder.Services.Configure<KestrelServerOptions>(options =>
@@ -394,11 +400,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
-        var decimalValueHandlingServices = startupScope.ServiceProvider.GetServices<IDecimalValueHandlingService>();
-        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
-        {
-            await decimalValueHandlingService.RecreateValues(null).ConfigureAwait(false);
-        }
+        var genericValueService = startupScope.ServiceProvider.GetRequiredService<IGenericValueService>();
+        await genericValueService.RecreateValues(null).ConfigureAwait(false);
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)

@@ -92,12 +92,13 @@
                                             throw new ArgumentOutOfRangeException();
                                     }
                                 </div>
-                                <MudTooltip Text="@($"Last refreshed at {restValueResult.LastRefreshed.LocalDateTime.ToLongTimeString()}")"
+                                <MudTooltip Text="@($"Last refreshed at {restValueResult.Value?.Timestamp.LocalDateTime.ToLongTimeString()}")"
+                                            Disabled="@(restValueResult.Value == null)"
                                             RootClass="w-100"
                                             Placement="Placement.Left"
                                             Arrow="true">
                                     <div class="flex-grow-1">
-                                        <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? T(TranslationKeys.GenericValueConfigurationNotAvailable) : Math.Round(restValueResult.CalculatedValue.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
+                                        <MudChip T="string" Variant="Variant.Text">@(restValueResult.Value == null ? T(TranslationKeys.GenericValueConfigurationNotAvailable) : Math.Round(restValueResult.Value.Value, 2).ToString(CultureInfo.CurrentCulture) + $" {suffixString}")</MudChip>
                                     </div>
                                 </MudTooltip>
                                 

@@ -1,0 +1,66 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionTitle)</MudText>
+<MudText GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionDescription)</MudText>
+
+@* The base licence and the optional per car subscriptions are two different things, and the difference decides
+   what a user ends up paying. Said here, before either is asked for. *@
+<MudAlert Severity="Severity.Normal" Class="mb-4" ContentAlignment="HorizontalAlignment.Left">
+    <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupAccountWhatYouNeedTitle)</MudText>
+    <MudText Typo="Typo.body2">@T(TranslationKeys.SetupAccountBaseLicenceExplanation)</MudText>
+    <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupAccountCarSubscriptionExplanation)</MudText>
+</MudAlert>
+
+<div class="mt-4">
+    <CloudConnectionLoginComponent OnConnectionStateChanged="OnConnectionStateChanged" />
+</div>
+
+@if (IsConnected && !IsLicensed)
+{
+    <MudAlert Severity="Severity.Warning" Class="mt-4">
+        <div>@T(TranslationKeys.SetupBaseAppLicenseMissingInfo)</div>
+        <MudLink Href="https://solar4car.com/subscriptions" Target="_blank">https://solar4car.com/subscriptions</MudLink>
+    </MudAlert>
+    <RightAlignedButtonComponent OnButtonClicked="RecheckLicence"
+                                 ButtonText="@T(TranslationKeys.SetupBaseAppLicenseRecheckButton)"
+                                 IsLoading="@_isRecheckingLicence" />
+}
+
+@code {
+    [Parameter] public bool IsConnected { get; set; }
+    [Parameter] public bool IsLicensed { get; set; }
+
+    /// <summary>Reports connection and licence together, because the section is only done when both hold.</summary>
+    [Parameter] public EventCallback<(bool IsConnected, bool IsLicensed)> OnStateChanged { get; set; }
+
+    private bool _isRecheckingLicence;
+
+    private async Task OnConnectionStateChanged(TokenState state)
+    {
+        var isConnected = state == TokenState.UpToDate;
+        // The server clears its licence cache on a fresh login, so the cached check is still accurate here.
+        var isLicensed = isConnected && await CloudConnectionCheckService.IsBaseAppLicensed(true);
+        await OnStateChanged.InvokeAsync((isConnected, isLicensed));
+    }
+
+    private async Task RecheckLicence()
+    {
+        _isRecheckingLicence = true;
+        // Skip the cache so a licence bought on solar4car.com since the last check is detected.
+        var isLicensed = await CloudConnectionCheckService.IsBaseAppLicensed(false);
+        _isRecheckingLicence = false;
+        await OnStateChanged.InvokeAsync((IsConnected, isLicensed));
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

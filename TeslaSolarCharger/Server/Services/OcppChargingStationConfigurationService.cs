@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -12,8 +13,39 @@ namespace TeslaSolarCharger.Server.Services;
 public class OcppChargingStationConfigurationService(ILogger<OcppChargingStationConfigurationService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    IConfigurationWrapper configurationWrapper,
+    ISetupStateService setupStateService,
     ISettings settings) : IOcppChargingStationConfigurationService
 {
+    /// <summary>
+    /// Whether a connector that has just reported in may start being managed straight away. On a configured
+    /// installation that is what the user expects: they plugged a charger in and it works. While the setup
+    /// assistant is open it is not - the assistant promises that nothing is switched on until the user finishes,
+    /// and a charger that connects halfway through would break that promise.
+    /// <para>
+    /// An open assistant is what matters, not a first run: reopening setup on a working installation to add a
+    /// second charger has exactly the same promise to keep.
+    /// </para>
+    /// </summary>
+    private async Task<bool> MayManageOnConnect()
+    {
+        if (configurationWrapper.IsFirstRun())
+        {
+            return false;
+        }
+
+        try
+        {
+            return await setupStateService.GetSetupState().ConfigureAwait(false) == null;
+        }
+        catch (Exception exception)
+        {
+            //Not being able to tell whether setup is open is not a reason to switch a charger on behind the user's
+            //back, so the cautious answer wins.
+            logger.LogWarning(exception, "Could not read the setup state; leaving the charging connector switched off.");
+            return false;
+        }
+    }
     public async Task<List<DtoChargingStation>> GetChargingStations()
     {
         logger.LogTrace("{method}()", nameof(GetChargingStations));
@@ -80,7 +112,8 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             .Include(c => c.AllowedCars)
             .FirstAsync(c => c.Id == dtoChargingStation.Id);
         existingChargingStation.Name = dtoChargingStation.Name;
-        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged || settings.OcppConnectorStates.ContainsKey(dtoChargingStation.Id);
+        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged
+                                                 || (await MayManageOnConnect().ConfigureAwait(false) && settings.OcppConnectorStates.ContainsKey(dtoChargingStation.Id));
         existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
         existingChargingStation.SwitchOffAtCurrent = dtoChargingStation.SwitchOffAtCurrent;
         existingChargingStation.SwitchOnAtCurrent = dtoChargingStation.SwitchOnAtCurrent;
@@ -368,9 +401,12 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 });
             }
         }
-        foreach (var ocppChargingStationConnector in existingChargingStation.Connectors)
+        if (await MayManageOnConnect().ConfigureAwait(false))
         {
-            ocppChargingStationConnector.ShouldBeManaged = true;
+            foreach (var ocppChargingStationConnector in existingChargingStation.Connectors)
+            {
+                ocppChargingStationConnector.ShouldBeManaged = true;
+            }
         }
         var canSwitchPhases = await ocppChargePointConfigurationService.CanSwitchBetween1And3Phases(chargepointId, cancellationToken);
         if (canSwitchPhases.HasError)

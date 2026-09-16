@@ -1,5 +1,6 @@
 ﻿using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 

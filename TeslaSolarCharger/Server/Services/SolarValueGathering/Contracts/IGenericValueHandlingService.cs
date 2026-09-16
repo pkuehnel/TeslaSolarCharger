@@ -1,6 +1,5 @@
 ﻿using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.SharedModel.Enums;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 
@@ -9,7 +8,8 @@ public interface IDecimalValueHandlingService :
 {
 }
 
-public abstract class DecimalValueHandlingServiceBase<TGenericValue> : GenericValueHandlingServiceBase<TGenericValue, decimal, int>
+public abstract class DecimalValueHandlingServiceBase<TGenericValue> : GenericValueHandlingServiceBase<TGenericValue, decimal, int>,
+    IDecimalValueHandlingService
     where TGenericValue : IGenericValue<decimal>
 {
     protected DecimalValueHandlingServiceBase(IServiceScopeFactory serviceScopeFactory) : base(serviceScopeFactory)
@@ -21,8 +21,6 @@ public interface IGenericValueHandlingService<TValue, TConfigurationId>
 {
     Task RecreateValues(ConfigurationType? configurationType, params List<TConfigurationId> configurationIds);
     List<IGenericValue<TValue>> GetSnapshot();
-    IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages,
-        bool skipValuesWithError);
 }
 
 public abstract class
@@ -45,33 +43,6 @@ public abstract class
         return GetGenericValuesSnapshot()
             .Cast<IGenericValue<TValue>>()
             .ToList();
-    }
-
-    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages, bool skipValuesWithError)
-    {
-        var result = new Dictionary<ValueUsage, List<DtoHistoricValue<TValue>>>();
-
-        var refreshablesSnapshot = GetGenericValuesSnapshot();
-
-        foreach (var refreshable in refreshablesSnapshot)
-        {
-            if (skipValuesWithError && refreshable.HasError)
-            {
-                continue;
-            }
-            foreach (var (key, latestValue) in refreshable.HistoricValues)
-            {
-                if (key.ValueUsage == default || !valueUsages.Contains(key.ValueUsage.Value))
-                {
-                    continue;
-                }
-
-                result.TryAdd(key.ValueUsage.Value, new());
-                result[key.ValueUsage.Value].Add(latestValue);
-            }
-        }
-
-        return result;
     }
 
     protected List<TGenericValue> GetGenericValuesSnapshot()

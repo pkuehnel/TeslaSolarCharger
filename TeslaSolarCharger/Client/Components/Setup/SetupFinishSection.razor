@@ -1,0 +1,178 @@
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupFinishTitle)</MudText>
+<MudText GutterBottom="true">@T(TranslationKeys.SetupFinishDescription)</MudText>
+
+@if (Decision == null)
+{
+    <LoadingSpinnerComponent />
+}
+else
+{
+    @* Behaviour, not property names: what the installation will do, in sentences someone can check against their
+       own understanding. *@
+    <div class="p-3 rounded border mb-4">
+        <MudText Typo="Typo.subtitle1" Style="font-weight: bold" GutterBottom="true">@T(TranslationKeys.SetupFinishBehaviourTitle)</MudText>
+        <ul class="mb-0">
+            @foreach (var sentence in BehaviourSentences())
+            {
+                <li>@sentence</li>
+            }
+        </ul>
+    </div>
+
+    @if (Decision.NextAction != null && !Decision.IsConfigurationComplete)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4" ContentAlignment="HorizontalAlignment.Left">
+            <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupNextActionHeading)</MudText>
+            <MudText Typo="Typo.body2">@T(Decision.NextAction.DescriptionKey)</MudText>
+        </MudAlert>
+    }
+
+    @if (Decision.Incompatibilities.Count > 0)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" ContentAlignment="HorizontalAlignment.Left">
+            <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupIncompatibilitiesHeading)</MudText>
+            <ul class="mb-0">
+                @foreach (var issue in Decision.Incompatibilities)
+                {
+                    <li>@T(issue.MessageKey)</li>
+                }
+            </ul>
+        </MudAlert>
+    }
+
+    @if (Decision.MissingInformation.Count > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" ContentAlignment="HorizontalAlignment.Left">
+            <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupMissingInformationHeading)</MudText>
+            <ul class="mb-0">
+                @foreach (var issue in Decision.MissingInformation)
+                {
+                    <li>@T(issue.MessageKey)</li>
+                }
+            </ul>
+            @* Only promised when it is true. Otherwise the button below is disabled and says why. *@
+            @if (Decision.CanFinishSetup)
+            {
+                <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupConfigurationIncompleteInfo)</MudText>
+            }
+        </MudAlert>
+    }
+
+    @if (Decision.ProposedValues.Count > 0)
+    {
+        <div class="p-3 rounded border mb-4">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: bold" GutterBottom="true">@T(TranslationKeys.SetupProposalsHeading)</MudText>
+            @foreach (var proposal in Decision.ProposedValues)
+            {
+                <div class="d-flex align-start" style="gap: 8px;">
+                    <MudCheckBox T="bool"
+                                 Value="@(!DeclinedProposals.Contains(ProposalId(proposal)))"
+                                 ValueChanged="@(accepted => OnProposalToggled.InvokeAsync((ProposalId(proposal), accepted)))"
+                                 Color="Color.Primary"
+                                 Dense="true" />
+                    <div>
+                        <MudText Typo="Typo.body2">@T(proposal.ReasonKey)</MudText>
+                        @if (proposal.IsPending)
+                        {
+                            <MudText Typo="Typo.caption">
+                                @T(TranslationKeys.SetupProposalPendingPrefix)
+                                @string.Join(" ", proposal.PendingReasons.Select(r => T(r.MessageKey)))
+                            </MudText>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+<MudAlert Severity="Severity.Success" Class="mt-4">
+    @T(TranslationKeys.SetupEnableExplanation)
+</MudAlert>
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter] public List<string> DeclinedProposals { get; set; } = new();
+    [Parameter] public EventCallback<(string ProposalId, bool IsAccepted)> OnProposalToggled { get; set; }
+
+    private DtoSetupDecision? Decision => Context.Decision;
+
+    public static string ProposalId(DtoSetupProposedValue proposal) => $"{proposal.DraftId}|{proposal.PropertyName}";
+
+    /// <summary>
+    /// What an installation wide setting will actually be once finishing applies the recommendations the user has
+    /// left ticked. A recommendation that is still pending changes nothing yet, so it does not count.
+    /// </summary>
+    private bool WillBeTrue(string propertyName, bool currentValue)
+    {
+        var proposal = Decision?.ProposedValues.FirstOrDefault(p => p.DraftId == null && p.PropertyName == propertyName);
+        if (proposal is not { IsPending: false, } || DeclinedProposals.Contains(ProposalId(proposal)))
+        {
+            return currentValue;
+        }
+
+        return proposal.Value is true or "True" or "true";
+    }
+
+    /// <summary>
+    /// Describes the installation the way its owner would: which car is controlled how, what the home battery does,
+    /// and what has not been tried yet.
+    /// </summary>
+    private IEnumerable<string> BehaviourSentences()
+    {
+        foreach (var draft in Context.State.CarDrafts)
+        {
+            var name = string.IsNullOrWhiteSpace(draft.Configuration.Name)
+                ? T(TranslationKeys.SetupEquipmentUnnamedCar)
+                : draft.Configuration.Name;
+            yield return Format(ControlSentenceKey(draft.ConnectionRoute), name);
+
+            if (draft.AssignedChargingConnectorIds.Count > 0)
+            {
+                yield return Format(TranslationKeys.SetupFinishBehaviourChargerAssignedFormat, name);
+            }
+        }
+
+        if (Context.State.HasHomeBattery == true)
+        {
+            //Read through the recommendations, not straight off the stored value. Those are applied on the way to
+            //finishing, so describing what is stored right now would tell the user their battery stays manual
+            //while a ticked box on the same screen says it is about to become automatic.
+            yield return T(WillBeTrue(nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Context.State.Configuration.DynamicHomeBatteryMinSoc == true)
+                ? TranslationKeys.SetupFinishBehaviourBatteryAutomatic
+                : TranslationKeys.SetupFinishBehaviourBatteryManual);
+        }
+
+        if (Context.State.HasPvSystem == true)
+        {
+            yield return T(TranslationKeys.SetupFinishBehaviourFollowsSolarAndPrices);
+        }
+    }
+
+    private static string ControlSentenceKey(SetupCarConnectionRoute route) => route switch
+    {
+        SetupCarConnectionRoute.TeslaBluetooth => TranslationKeys.SetupFinishBehaviourCarBluetoothFormat,
+        SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupFinishBehaviourCarTeslaAccountFormat,
+        SetupCarConnectionRoute.SmartCarWithChargingStation => TranslationKeys.SetupFinishBehaviourCarSmartCarFormat,
+        SetupCarConnectionRoute.ChargingStationOnly => TranslationKeys.SetupFinishBehaviourCarChargingStationFormat,
+        _ => TranslationKeys.SetupFinishBehaviourCarUndecidedFormat,
+    };
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
+}

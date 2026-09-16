@@ -1,0 +1,62 @@
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupLocationTitle)</MudText>
+<MudText GutterBottom="true">@T(TranslationKeys.SetupLocationDescription)</MudText>
+
+@* Says what the location is actually used for. Without that, moving a pin on a map is a chore with no visible
+   purpose. *@
+<MudAlert Severity="Severity.Normal" Class="mb-3" ContentAlignment="HorizontalAlignment.Left">
+    <MudText Typo="Typo.body2">@T(TranslationKeys.SetupLocationWhyNeeded)</MudText>
+</MudAlert>
+
+@if (!IsConfirmed)
+{
+    @* The map starts on a placeholder in the middle of Berlin. Treating that as an address would silently give
+       every unconfigured installation the same one. *@
+    <MudAlert Severity="Severity.Warning" Class="mb-3">
+        @T(TranslationKeys.SetupIssueHomeLocationNotConfirmed)
+    </MudAlert>
+}
+
+<div class="mb-3">
+    <MapComponent Longitude="Configuration.Item.HomeGeofenceLongitude"
+                  Latitude="Configuration.Item.HomeGeofenceLatitude"
+                  Radius="Configuration.Item.HomeGeofenceRadius"
+                  LatitudeChanged="OnLatitudeChanged"
+                  LongitudeChanged="OnLongitudeChanged"></MapComponent>
+</div>
+
+<GenericInput For="() => Configuration.Item.HomeGeofenceRadius" />
+
+@code {
+    [Parameter, EditorRequired] public EditableItem<DtoBaseConfiguration> Configuration { get; set; } = default!;
+
+    /// <summary>Whether the user has actually picked this spot, as opposed to the preset still being in place.</summary>
+    [Parameter] public bool IsConfirmed { get; set; }
+
+    /// <summary>Reports that the user picked a spot, which is what turns the preset into a confirmed address.</summary>
+    [Parameter] public EventCallback OnLocationPicked { get; set; }
+
+    private async Task OnLatitudeChanged(double latitude)
+    {
+        Configuration.Item.HomeGeofenceLatitude = latitude;
+        await OnLocationPicked.InvokeAsync();
+    }
+
+    private async Task OnLongitudeChanged(double longitude)
+    {
+        Configuration.Item.HomeGeofenceLongitude = longitude;
+        await OnLocationPicked.InvokeAsync();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

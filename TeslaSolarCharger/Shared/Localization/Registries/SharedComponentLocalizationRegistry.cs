@@ -26,6 +26,14 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, "Previous"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zurück"));
 
+        Register(TranslationKeys.GeneralYes,
+            new TextLocalizationTranslation(LanguageCodes.English, "Yes"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ja"));
+
+        Register(TranslationKeys.GeneralNo,
+            new TextLocalizationTranslation(LanguageCodes.English, "No"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nein"));
+
         Register(TranslationKeys.GeneralSave,
             new TextLocalizationTranslation(LanguageCodes.English, "Save"),
             new TextLocalizationTranslation(LanguageCodes.German, "Speichern"));

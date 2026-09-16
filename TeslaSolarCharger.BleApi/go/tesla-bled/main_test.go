@@ -56,6 +56,7 @@ func TestCommandNeedsInfotainment(t *testing.T) {
 		{"charging-set-amps", true, false},
 		{"charging-set-limit", true, false},
 		{"flash-lights", true, false},
+		{"charge-port-open", true, false},
 		{"self-destruct", false, true},
 		{"", false, true},
 	}

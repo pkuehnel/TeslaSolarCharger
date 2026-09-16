@@ -1,0 +1,65 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+@* The three things that actually differ between the routes, in the same order every time, so a user can compare
+   two options without reading two paragraphs of prose. *@
+<div class="p-3 rounded border @Class">
+    @SummaryLine(T(TranslationKeys.SetupRouteControlledBy), T(ControlKey))
+    @SummaryLine(T(TranslationKeys.SetupRouteBatteryLevelFrom), T(BatteryKey))
+    @SummaryLine(T(TranslationKeys.SetupRouteSubscription), T(SubscriptionKey))
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SetupCarConnectionRoute Route { get; set; }
+
+    /// <summary>Whether the user chose to type the battery level in rather than connect a data service.</summary>
+    [Parameter] public bool EntersBatteryLevelManually { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private string ControlKey => Route switch
+    {
+        //A Tesla is always controlled through the car itself: the load point code uses car control whenever a Tesla
+        //is present, so offering charger control here would be a promise the app does not keep.
+        SetupCarConnectionRoute.TeslaBluetooth or SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupRouteControlCar,
+        SetupCarConnectionRoute.SmartCarWithChargingStation or SetupCarConnectionRoute.ChargingStationOnly => TranslationKeys.SetupRouteControlChargingStation,
+        _ => TranslationKeys.SetupRouteNotDecidedYet,
+    };
+
+    private string BatteryKey => Route switch
+    {
+        SetupCarConnectionRoute.TeslaBluetooth => TranslationKeys.SetupRouteBatteryBluetooth,
+        SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupRouteBatteryTeslaAccount,
+        //SmartCar supplies the vehicle data on this route; it does not replace the charging station.
+        SetupCarConnectionRoute.SmartCarWithChargingStation => TranslationKeys.SetupRouteBatterySmartCar,
+        SetupCarConnectionRoute.ChargingStationOnly => EntersBatteryLevelManually
+            ? TranslationKeys.SetupRouteBatteryManual
+            : TranslationKeys.SetupRouteBatteryEstimated,
+        _ => TranslationKeys.SetupRouteNotDecidedYet,
+    };
+
+    private string SubscriptionKey => Route switch
+    {
+        SetupCarConnectionRoute.TeslaBluetooth => TranslationKeys.SetupRouteSubscriptionNone,
+        SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupRouteSubscriptionRequired,
+        SetupCarConnectionRoute.SmartCarWithChargingStation => TranslationKeys.SetupRouteSubscriptionRequired,
+        SetupCarConnectionRoute.ChargingStationOnly => TranslationKeys.SetupRouteSubscriptionNone,
+        _ => TranslationKeys.SetupRouteNotDecidedYet,
+    };
+
+    private RenderFragment SummaryLine(string label, string value) =>
+        @<div class="d-flex flex-wrap" style="gap: 6px;">
+            <MudText Typo="Typo.body2" Style="font-weight: bold">@label</MudText>
+            <MudText Typo="Typo.body2">@value</MudText>
+        </div>;
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

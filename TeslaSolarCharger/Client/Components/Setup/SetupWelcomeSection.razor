@@ -1,0 +1,25 @@
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupWelcomeTitle)</MudText>
+<MudText>@T(TranslationKeys.SetupWelcomeDescription)</MudText>
+
+<MudAlert Severity="Severity.Info" Class="mt-4">
+    @T(TranslationKeys.SetupChangeLaterInfo)
+</MudAlert>
+
+@* Said up front, because it is the thing people worry about: nothing starts charging on its own until they say so
+   at the end, and a real charging test can wait until the car is actually there. *@
+<MudAlert Severity="Severity.Normal" Class="mt-4">
+    @T(TranslationKeys.SetupWelcomeNothingStartsYet)
+</MudAlert>
+
+@code {
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

@@ -8,6 +8,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Controllers;
 

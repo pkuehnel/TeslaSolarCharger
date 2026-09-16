@@ -1,0 +1,1384 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Bunit;
+using Bunit.TestDoubles;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using MudBlazor;
+using MudBlazor.Services;
+using MudExtensions.Services;
+using TeslaSolarCharger.Client.Components;
+using TeslaSolarCharger.Client.Components.Setup;
+using TeslaSolarCharger.Client.Components.StartPage;
+using TeslaSolarCharger.Client.Dtos;
+using TeslaSolarCharger.Client.Helper.Contracts;
+using TeslaSolarCharger.Client.Pages;
+using TeslaSolarCharger.Client.Services.Contracts;
+using TeslaSolarCharger.Shared;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.ChargingStation;
+using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
+using TeslaSolarCharger.Shared.Dtos.Setup;
+using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
+using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Localization;
+using TeslaSolarCharger.Shared.SignalRClients;
+using TeslaSolarCharger.Shared.TimeProviding;
+using TeslaSolarCharger.SharedModel.Enums;
+using Xunit;
+
+namespace TeslaSolarCharger.Tests.Components;
+
+/// <summary>
+/// Covers the routed setup shell: that an address lands on the screen it names, that the answers are saved as the
+/// user moves, and that a failed save is reported as a failure instead of as a finished setup.
+/// </summary>
+public class SetupPageTests : Bunit.TestContext
+{
+    private readonly Mock<ISetupService> _setupService = new();
+    private readonly Mock<ICloudConnectionCheckService> _cloudConnectionCheckService = new();
+    private readonly Mock<IChargingStationsService> _chargingStationsService = new();
+    private readonly Mock<ITemplateValueConfigurationService> _templateValueConfigurationService = new();
+    private readonly Mock<ICarSettingsService> _carSettingsService = new();
+    private readonly Mock<IHomeService> _homeService = new();
+    private readonly Mock<IHttpClientHelper> _httpClientHelper = new();
+    private readonly Mock<ISignalRStateService> _signalRStateService = new();
+    private readonly FakeDateTimeProvider _clock = new(new DateTime(2026, 9, 15, 8, 0, 0, DateTimeKind.Utc));
+
+    private DtoSetupState _storedState = new();
+
+    //The live solar and battery values as the server last pushed them. Null is a server that has not sent any yet.
+    private DtoPvValues? _pvValues;
+    private readonly List<Action<DtoPvValues>> _pvValueSubscribers = new();
+
+    //An installation the server considers fully described. Finishing switches equipment on, so the button is only
+    //offered once the server says everything required is there - tests that need it blocked say so explicitly.
+    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, CanFinishSetup = true, };
+
+    public SetupPageTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddMudServices();
+        Services.AddMudExtensions();
+        Services.AddSharedDependencies();
+        Services.AddSingleton<IDateTimeProvider>(_clock);
+
+        _setupService.Setup(s => s.GetOrCreateSetupState()).ReturnsAsync(() => _storedState);
+        _setupService.Setup(s => s.GetSetupState()).ReturnsAsync(() => _storedState);
+        _setupService.Setup(s => s.UpdateSetupState(It.IsAny<DtoSetupState>())).Returns(Task.CompletedTask);
+        _setupService.Setup(s => s.EvaluateSetupState(It.IsAny<DtoSetupState>())).ReturnsAsync(() => _decision);
+        _setupService.Setup(s => s.SyncCarDrafts(It.IsAny<DtoSetupState>())).ReturnsAsync((DtoSetupState s) => s);
+        _setupService
+            .Setup(s => s.AcceptProposals(It.IsAny<DtoSetupState>(), It.IsAny<List<DtoSetupProposedValue>>()))
+            .ReturnsAsync((DtoSetupState state, List<DtoSetupProposedValue> _) => state);
+        _setupService
+            .Setup(s => s.SaveCarDraft(It.IsAny<DtoSetupState>(), It.IsAny<Guid>()))
+            .ReturnsAsync(new DtoSetupApplicationResult
+            {
+                Operations = { new DtoSetupOperationResult { OperationKey = SetupOperationKey.SaveCarDraft, IsSuccess = true, }, },
+            });
+
+        _cloudConnectionCheckService.Setup(s => s.GetBackendTokenState(It.IsAny<bool>())).ReturnsAsync(TokenState.UpToDate);
+        _cloudConnectionCheckService.Setup(s => s.IsBaseAppLicensed(It.IsAny<bool>())).ReturnsAsync(true);
+        _chargingStationsService.Setup(s => s.GetChargingStations()).ReturnsAsync(new List<DtoChargingStation>());
+        _templateValueConfigurationService.Setup(s => s.GetOverviews()).ReturnsAsync(new List<DtoValueConfigurationOverview>());
+        _carSettingsService.Setup(s => s.GetFleetApiTokenState()).ReturnsAsync(TokenState.UpToDate);
+        _homeService.Setup(s => s.GetCarOverview(It.IsAny<int>())).ReturnsAsync(new DtoCarOverviewSettings("Car") { MinSoc = 20, });
+        _httpClientHelper
+            .Setup(h => h.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DtoChargePrice>());
+        _signalRStateService
+            .Setup(s => s.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues, It.IsAny<string>()))
+            .ReturnsAsync(() => _pvValues);
+        _signalRStateService
+            .Setup(s => s.Subscribe(DataTypeConstants.PvValues, It.IsAny<Action<DtoPvValues>>(), It.IsAny<string>()))
+            .Callback<string, Action<DtoPvValues>, string>((_, callback, _) => _pvValueSubscribers.Add(callback))
+            .ReturnsAsync(Mock.Of<IDisposable>());
+
+        Services.AddSingleton(_setupService.Object);
+        Services.AddSingleton(_signalRStateService.Object);
+        Services.AddSingleton(_cloudConnectionCheckService.Object);
+        Services.AddSingleton(_chargingStationsService.Object);
+        Services.AddSingleton(_templateValueConfigurationService.Object);
+        Services.AddSingleton(_carSettingsService.Object);
+        Services.AddSingleton(_homeService.Object);
+        Services.AddSingleton(_httpClientHelper.Object);
+        Services.AddSingleton(Mock.Of<IChargePriceService>());
+        Services.AddSingleton(Mock.Of<IOAuthNotificationService>());
+        Services.AddSingleton(Mock.Of<IJavaScriptWrapper>());
+        //The advanced value-source editors reach for a raw HttpClient while rendering. They are not what these
+        //tests are about, so they get an empty answer rather than a failure.
+        Services.AddSingleton(new HttpClient(new EmptyJsonHandler()) { BaseAddress = new Uri("http://localhost/"), });
+    }
+
+    /// <summary>Answers every request with an empty JSON list, so a component that lists things renders nothing.</summary>
+    private sealed class EmptyJsonHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("[]", System.Text.Encoding.UTF8, "application/json"),
+            });
+    }
+
+    private IRenderedComponent<Setup> RenderAt(string? section = null, Guid? draftId = null, string? stage = null) =>
+        Render<Setup>(parameters =>
+        {
+            if (section != null)
+            {
+                parameters.Add(p => p.Section, section);
+            }
+
+            if (draftId != null)
+            {
+                parameters.Add(p => p.DraftId, draftId);
+            }
+
+            if (stage != null)
+            {
+                parameters.Add(p => p.Stage, stage);
+            }
+        });
+
+    private static DtoSetupCarDraft CarDraft(string name = "Our car", SetupCarStage stage = SetupCarStage.Identify) => new()
+    {
+        CarId = 5,
+        Stage = stage,
+        ConnectionRoute = SetupCarConnectionRoute.TeslaBluetooth,
+        Configuration = new CarBasicConfiguration
+        {
+            Id = 5, Name = name, Vin = "VIN1", UsableEnergy = 75, MaximumPhases = 3,
+            MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 1, CarType = CarType.Tesla, UseBle = true,
+            BleApiBaseUrl = "http://ble",
+        },
+    };
+
+    [Fact]
+    public void NoSectionInTheAddressStartsAtTheBeginning()
+    {
+        var page = RenderAt();
+
+        Assert.Contains("Welcome to TeslaSolarCharger", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AnAddressNamesTheScreenItShows()
+    {
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("electricity", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(SetupStepKey.Prices, LastSavedState().CurrentStep);
+    }
+
+    [Fact]
+    public void TheEquipmentAddressShowsWhatTheUserHas()
+    {
+        _storedState = new DtoSetupState { CarDrafts = { CarDraft(), }, };
+
+        var page = RenderAt(SetupSections.Equipment);
+
+        Assert.Contains("Our car", page.Markup, StringComparison.Ordinal);
+        Assert.Contains("Add a car", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Add a charging station", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ACarAddressOpensThatCarAtThatStage()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        //The connection stage is the one that asks how the car should be reached.
+        Assert.Contains("How should we reach this car", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Our car", page.Markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ACarThatIsNoLongerPartOfSetupSaysSoInsteadOfShowingAnEmptyForm()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Car, Guid.NewGuid(), nameof(SetupCarStage.Identify));
+
+        Assert.Contains("not part of your setup", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EachRouteSaysWhatControlsChargingAndWhatItCosts()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.Undecided;
+        draft.Configuration.CarType = CarType.Tesla;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        Assert.Contains("Charging is controlled through", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Battery level comes from", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Extra subscription for this car", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //The free route and the paid route are both named before either is chosen.
+        Assert.Contains("none beyond the base licence", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("one subscription for this car", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ANonTeslaIsNotOfferedTheTeslaRoutes()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.Undecided;
+        draft.Make = "Hyundai";
+        draft.Configuration.CarType = CarType.Manual;
+        draft.Configuration.UseBle = false;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        Assert.Contains("Charging station only", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("through your Tesla account", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheChargerScreenBuildsTheAddressFromWhereTheUserIs()
+    {
+        var draft = new DtoSetupChargerDraft { ChargepointId = "GARAGE1", };
+        _storedState = new DtoSetupState { ChargerDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Charger, draft.DraftId, nameof(SetupChargerStage.Connect));
+
+        //bUnit's browser sits on http://localhost/, which is the address a charger would have to call too.
+        Assert.Contains("ws://localhost/api/Ocpp/GARAGE1", page.Markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AChargerThatHasNotReportedInKeepsLookingRatherThanAskingTheUserToCheck()
+    {
+        var draft = new DtoSetupChargerDraft { ChargepointId = "GARAGE1", };
+        _storedState = new DtoSetupState { ChargerDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Charger, draft.DraftId, nameof(SetupChargerStage.Connect));
+
+        Assert.Contains("Waiting for your charging station", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MovingToTheNextSectionSavesTheAnswersStraightAway()
+    {
+        _storedState = new DtoSetupState();
+        var page = RenderAt(SetupSections.Welcome);
+
+        ButtonWithText(page, "Next").Click();
+
+        //Saving as the user goes is what lets an account authorization or a reload happen without losing answers.
+        _setupService.Verify(s => s.UpdateSetupState(It.IsAny<DtoSetupState>()), Times.AtLeastOnce);
+        Assert.Contains(SetupStepKey.Welcome, LastSavedState().CompletedSteps);
+    }
+
+    [Fact]
+    public void AFailedSaveDoesNotFinishSetup()
+    {
+        _storedState = new DtoSetupState();
+        _setupService
+            .Setup(s => s.ActivateAndCompleteSetup(It.IsAny<DtoSetupState>()))
+            .ReturnsAsync(new DtoSetupApplicationResult
+            {
+                Operations =
+                {
+                    new DtoSetupOperationResult
+                    {
+                        OperationKey = SetupOperationKey.SaveCarDraft, IsSuccess = false, ErrorMessage = "car rejected",
+                    },
+                },
+            });
+
+        var page = RenderAt(SetupSections.Finish);
+        ButtonWithText(page, "Finish Setup").Click();
+
+        //Nothing was completed, so the user must stay where they are with their answers intact.
+        Assert.Empty(Services.GetRequiredService<BunitNavigationManager>().History);
+    }
+
+    [Fact]
+    public void ASuccessfulFinishLeavesTheAssistant()
+    {
+        _storedState = new DtoSetupState();
+        _setupService
+            .Setup(s => s.ActivateAndCompleteSetup(It.IsAny<DtoSetupState>()))
+            .ReturnsAsync(new DtoSetupApplicationResult { IsSetupCompleted = true, });
+
+        var page = RenderAt(SetupSections.Finish);
+        ButtonWithText(page, "Finish Setup").Click();
+
+        Assert.Single(Services.GetRequiredService<BunitNavigationManager>().History);
+    }
+
+    [Fact]
+    public void SavingWithoutEnablingDoesNotFinishSetupEither()
+    {
+        _storedState = new DtoSetupState();
+        _setupService
+            .Setup(s => s.ApplyConfiguration(It.IsAny<DtoSetupState>()))
+            .ReturnsAsync(new DtoSetupApplicationResult
+            {
+                Operations = { new DtoSetupOperationResult { OperationKey = SetupOperationKey.SaveBaseConfiguration, IsSuccess = true, }, },
+            });
+
+        var page = RenderAt(SetupSections.Finish);
+        ButtonWithText(page, "Save and enable later").Click();
+
+        _setupService.Verify(s => s.ApplyConfiguration(It.IsAny<DtoSetupState>()), Times.Once);
+        _setupService.Verify(s => s.ActivateAndCompleteSetup(It.IsAny<DtoSetupState>()), Times.Never);
+        Assert.Empty(Services.GetRequiredService<BunitNavigationManager>().History);
+    }
+
+    [Fact]
+    public void TheSolarScreenAsksForTheEquipmentByName()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //Asked by the name on the box. The protocols still exist, but behind a door labelled by the problem the
+        //user has ("my device is not in the list") rather than by the protocol names themselves.
+        Assert.Contains("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("My device is not in the list", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AMeasurementNobodySuppliesIsNamedRatherThanLeftBlank()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("Electricity to and from the grid", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("No device supplies this yet", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AHouseWithoutABatteryIsNotAskedForBatteryReadings()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //A gap that can never be closed is not a gap worth showing.
+        Assert.DoesNotContain("Home battery level", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ABatteryWithoutSolarPanelsIsStillSetUp()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("Home battery level", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("How much to keep back", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WorkingOutTheReserveIsKeptApartFromCommandingTheBattery()
+    {
+        _storedState = new DtoSetupState { HasHomeBattery = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //Setup does not switch battery control on, and says so rather than leaving the user to assume either way.
+        Assert.Contains("Telling the battery when to charge", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("leaves that switched off", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheAutomaticReserveSaysWhatItIsWaitingFor()
+    {
+        _storedState = new DtoSetupState { HasHomeBattery = true, };
+        _storedState.Configuration.DynamicHomeBatteryMinSoc = true;
+        _decision = new DtoSetupDecision
+        {
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    IsPending = true,
+                    PendingReasons =
+                    {
+                        new DtoSetupIssue { MessageKey = TranslationKeys.SetupIssueHomeBatteryCapacityUnknown, },
+                    },
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //The choice stays as the user left it and is reported as waiting, not quietly turned back into a number.
+        Assert.Contains("as soon as we know", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("usable capacity", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ThePriceScreenAsksOneQuestionBeforeShowingAnyForm()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("stay the same, change at set times, or follow market prices", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //Nothing is filled in until the question is answered, so no market or time-of-use form is on screen.
+        Assert.DoesNotContain("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("When the price is different", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AMarketContractShowsOnlyTheMarketForm()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Market, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("When the price is different", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //The starting markup is an example, and saying so is what stops it being taken for the user's contract.
+        Assert.Contains("only an example", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ATimeOfUseContractShowsOnlyTheTimeForm()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("When the price is different", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Whether each radio button on the screen is shown as selected, in the order they appear.</summary>
+    private static List<bool> RadioSelection(IRenderedComponent<Setup> page) =>
+        page.FindAll("input[type=radio]").Select(radio => radio.HasAttribute("checked")).ToList();
+
+    private int SaveCount() => _setupService.Invocations.Count(i => i.Method.Name == nameof(ISetupService.UpdateSetupState));
+
+    [Fact]
+    public void AnUnansweredPriceQuestionSelectsNoneOfTheAnswers()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Equal([false, false, false,], RadioSelection(page));
+    }
+
+    [Theory]
+    [InlineData(SetupElectricityPriceKind.Fixed, 0)]
+    [InlineData(SetupElectricityPriceKind.TimeOfUse, 1)]
+    [InlineData(SetupElectricityPriceKind.Market, 2)]
+    public void TheStoredPriceAnswerIsShownAsSelected(SetupElectricityPriceKind kind, int expectedIndex)
+    {
+        //The form below followed the answer while every radio button stayed empty, so nobody could see what they had chosen.
+        _storedState = new DtoSetupState { ElectricityPriceKind = kind, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Equal(Enumerable.Range(0, 3).Select(i => i == expectedIndex).ToList(), RadioSelection(page));
+    }
+
+    [Fact]
+    public void ChoosingAPriceAnswerMovesTheSelectionToIt()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, };
+        var page = RenderAt(SetupSections.Prices);
+
+        var savesBefore = SaveCount();
+
+        //The innermost card naming the answer, not the page around it.
+        page.FindAll(".mud-paper").Last(p => p.TextContent.Contains("It follows market prices", StringComparison.OrdinalIgnoreCase)).Click();
+
+        Assert.Equal([false, false, true,], RadioSelection(page));
+        Assert.Equal(SetupElectricityPriceKind.Market, LastSavedState().ElectricityPriceKind);
+        Assert.Equal(savesBefore + 1, SaveCount());
+    }
+
+    [Fact]
+    public void ClickingThePriceRadioButtonItselfChoosesThatAnswer()
+    {
+        //The button stops its click from reaching the card around it, so it has to make the choice on its own.
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, };
+        var page = RenderAt(SetupSections.Prices);
+
+        var savesBefore = SaveCount();
+
+        page.FindAll("input[type=radio]")[1].Click();
+
+        Assert.Equal([false, true, false,], RadioSelection(page));
+        Assert.Equal(SetupElectricityPriceKind.TimeOfUse, LastSavedState().ElectricityPriceKind);
+        //Heard by the button and not by the card as well, so one choice is saved once.
+        Assert.Equal(savesBefore + 1, SaveCount());
+    }
+
+    [Fact]
+    public void TheChosenCarRouteIsShownAsSelected()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.TeslaCloud;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        Assert.Equal([false, true,], RadioSelection(page));
+    }
+
+    [Fact]
+    public void AnUndecidedCarRouteSelectsNoneOfTheRoutes()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.Undecided;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        Assert.Equal([false, false,], RadioSelection(page));
+    }
+
+    [Fact]
+    public void ChoosingACarRouteMovesTheSelectionToIt()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.TeslaBluetooth;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        page.FindAll("input[type=radio]")[1].Click();
+
+        Assert.Equal([false, true,], RadioSelection(page));
+        Assert.Equal(SetupCarConnectionRoute.TeslaCloud, draft.ConnectionRoute);
+    }
+
+    [Fact]
+    public void WithoutSolarPanelsThereIsNoExportPriceToAskFor()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, HasPvSystem = false, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.DoesNotContain("What your own solar electricity is worth", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WithSolarPanelsTheExportPriceIsExplainedRatherThanJustAsked()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, HasPvSystem = true, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("What your own solar electricity is worth", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("electricity you do not sell", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AnInstallationConfiguredBeforeThisQuestionExistedIsNotAskedAgain()
+    {
+        //No stored answer, but the price already says it follows the market. Read back rather than asked again.
+        _storedState = new DtoSetupState
+        {
+            ChargePrice = new DtoChargePrice { GridPrice = 0.31m, AddSpotPriceToGridPrice = true, },
+        };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Contains("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheReviewSaysWhatWillHappenInPlainWords()
+    {
+        _storedState = new DtoSetupState { CarDrafts = { CarDraft(), }, HasHomeBattery = true, };
+        _storedState.Configuration.DynamicHomeBatteryMinSoc = true;
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.Contains("Our car is controlled over Bluetooth", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("home battery keeps just enough charge", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //Nothing tracks a real charging test anymore, so the review must not point the user at one.
+        Assert.DoesNotContain("charging test", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProposalsAreShownBeforeTheyAreApplied()
+    {
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = true,
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    ReasonKey = TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.Contains("home battery", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WhatIsStillMissingIsSaidInPlainWords()
+    {
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            MissingInformation =
+            {
+                new DtoSetupIssue
+                {
+                    Severity = SetupIssueSeverity.MissingInformation,
+                    MessageKey = TranslationKeys.SetupIssueHomeBatteryCapacityUnknown,
+                    StepKey = SetupStepKey.SolarAndBattery,
+                    //The internal name is carried for diagnostics only and must not reach the screen.
+                    PropertyName = nameof(BaseConfigurationBase.HomeBatteryUsableEnergy),
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.Contains("usable capacity", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(nameof(BaseConfigurationBase.HomeBatteryUsableEnergy), page.Markup, StringComparison.Ordinal);
+    }
+
+    /// <summary>The state as the page last handed it to the server, which is what a resume would read back.</summary>
+    private DtoSetupState LastSavedState()
+    {
+        var invocations = _setupService.Invocations
+            .Where(i => i.Method.Name == nameof(ISetupService.UpdateSetupState))
+            .ToList();
+        Assert.NotEmpty(invocations);
+        return (DtoSetupState)invocations.Last().Arguments[0];
+    }
+
+    private static AngleSharp.Dom.IElement ButtonWithText(IRenderedComponent<Setup> page, string text)
+    {
+        var buttons = page.FindAll("button")
+            .Where(b => b.TextContent.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        Assert.NotEmpty(buttons);
+        return buttons.Last();
+    }
+
+    [Fact]
+    public void FinishingIsNotOfferedWhileTheInstallationStillMissesSomething()
+    {
+        //The button used to be live whenever the page was not busy, so setup could be marked finished around an
+        //installation nobody had described.
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = false,
+            CanFinishSetup = false,
+            MissingInformation =
+            {
+                new DtoSetupIssue
+                {
+                    Severity = SetupIssueSeverity.MissingInformation,
+                    MessageKey = TranslationKeys.SetupIssueGridPriceMissing,
+                    StepKey = SetupStepKey.Prices,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.True(ButtonWithText(page, "Finish Setup").HasAttribute("disabled"));
+        //Saving without enabling changes nothing about how cars charge, so it stays available.
+        Assert.False(ButtonWithText(page, "Save and enable later").HasAttribute("disabled"));
+        //Promising otherwise next to a disabled button is what left the user stuck.
+        Assert.DoesNotContain("You can finish anyway", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ACarThatIsNotSetUpYetDoesNotStopFinishing()
+    {
+        //Three imported cars without a control route used to disable the button for good, while the screen said
+        //finishing was possible anyway.
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = false,
+            CanFinishSetup = true,
+            MissingInformation =
+            {
+                new DtoSetupIssue
+                {
+                    Severity = SetupIssueSeverity.MissingInformation,
+                    MessageKey = TranslationKeys.SetupIssueCarConnectionRouteUndecided,
+                    StepKey = SetupStepKey.CarsAndCharging,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.False(ButtonWithText(page, "Finish Setup").HasAttribute("disabled"));
+        Assert.Contains("You can finish anyway", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AnUnansweredTariffStartsEmptyRatherThanAtAnExampleNumber()
+    {
+        //A plausible looking price that was never the user's own quietly makes every charging decision wrong, and
+        //nothing would prompt them to look at it again.
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.DoesNotContain("0.285", page.Markup);
+        Assert.DoesNotContain("0,285", page.Markup);
+    }
+
+    [Fact]
+    public void TheBrowserKeepsBothIdsAfterTheServerCreatesTheCar()
+    {
+        //The configuration's own id is what reaches the runtime car on the next save. Copying only the draft id
+        //left a zero there, which renumbered a car that was already running.
+        var draft = new DtoSetupCarDraft
+        {
+            CarId = null,
+            Stage = SetupCarStage.Identify,
+            ConnectionRoute = SetupCarConnectionRoute.ChargingStationOnly,
+            Configuration = new CarBasicConfiguration { Id = 0, Name = "New car", Vin = "NEWVIN", ChargingPriority = 0, },
+        };
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+        // A separate object, the way the server's answer really arrives: the page must copy both ids out of it
+        // rather than happening to share one in-memory draft with the server.
+        _setupService.Setup(s => s.GetSetupState()).ReturnsAsync(() => new DtoSetupState
+        {
+            CarDrafts =
+            {
+                new DtoSetupCarDraft
+                {
+                    DraftId = draft.DraftId,
+                    CarId = 11,
+                    Configuration = new CarBasicConfiguration { Id = 11, Name = "New car", Vin = "NEWVIN", ChargingPriority = 3, },
+                },
+            },
+        });
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, SetupCarStage.Identify.ToString());
+        // Naming the car is what gives it a row; the stage saves as soon as it can tell the car apart.
+        NameField(page).Change("Renamed car");
+
+        Assert.Equal(11, draft.CarId);
+        Assert.Equal(11, draft.Configuration.Id);
+        //Its place in the charging order is given by the server too, and nothing on screen would set it again.
+        Assert.Equal(3, draft.Configuration.ChargingPriority);
+    }
+
+    /// <summary>The car's name field on the identify screen, found by its label rather than its position.</summary>
+    private static AngleSharp.Dom.IElement NameField(IRenderedComponent<Setup> page) =>
+        page.FindComponents<MudTextField<string>>()
+            .Single(field => field.Instance.Label == "What do you call this car?")
+            .Find("input");
+
+    [Fact]
+    public void TheIdentifyScreenDoesNotAskForTheModel()
+    {
+        //Only ever used as a name for a car that had none, and the name is asked for anyway.
+        var draft = CarDraft(stage: SetupCarStage.Identify);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Identify));
+
+        Assert.DoesNotContain(">Model<", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //Make, name and identification number.
+        Assert.Equal(3, page.FindAll("input").Count);
+    }
+
+    [Fact]
+    public void TheCarDetailsScreenOnlyAsksWhatTheCarItselfDictates()
+    {
+        var draft = CarDraft(stage: SetupCarStage.ChargingSettings);
+        _storedState = new DtoSetupState { CarDrafts = { draft, CarDraft("Second car"), }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.ChargingSettings));
+
+        Assert.Contains("Technical details of the car", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Highest charging current", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //A minimum level, deadlines and the order of several cars all start from defaults and are changed later.
+        Assert.DoesNotContain("Always keep at least", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Ready by a certain time", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Which car comes first", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("What this car can take", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Lowest charging current", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(page.FindComponents<ChargingTargetConfigurationComponent>());
+        _homeService.Verify(s => s.GetCarOverview(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public void TheHighestCurrentCannotBeSetBelowTheLowestOne()
+    {
+        //The lowest current is no longer on the screen, so being told the two clash would name a field nobody sees.
+        var draft = CarDraft(stage: SetupCarStage.ChargingSettings);
+        draft.Configuration.MinimumAmpere = 6;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.ChargingSettings));
+
+        var highestCurrent = page.FindComponents<MudNumericField<int>>()
+            .Single(f => f.Instance.Label?.Contains("Highest", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Equal(6, highestCurrent.Instance.Min);
+    }
+
+    [Theory]
+    [InlineData(SetupCarConnectionRoute.TeslaBluetooth)]
+    [InlineData(SetupCarConnectionRoute.ChargingStationOnly)]
+    public void TheCarReviewOffersNoSwitchToLeaveTheCarOff(SetupCarConnectionRoute route)
+    {
+        var draft = CarDraft(stage: SetupCarStage.Review);
+        draft.ConnectionRoute = route;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Review));
+
+        Assert.Empty(page.FindComponents<MudSwitch<bool>>());
+        Assert.DoesNotContain("Let this car charge automatically", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheChargerReviewOffersNoSwitchToLeaveTheChargerOff()
+    {
+        var draft = new DtoSetupChargerDraft { ChargepointId = "GARAGE1", Stage = SetupChargerStage.Review, };
+        _storedState = new DtoSetupState { ChargerDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Charger, draft.DraftId, nameof(SetupChargerStage.Review));
+
+        Assert.Empty(page.FindComponents<MudSwitch<bool>>());
+        Assert.DoesNotContain("Let us control this charging station", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheChargerSettingsDoNotAskForANameOrALowestCurrent()
+    {
+        var draft = new DtoSetupChargerDraft { ChargepointId = "GARAGE1", ChargingStationId = 2, ConnectorId = 7, Stage = SetupChargerStage.Settings, };
+        _storedState = new DtoSetupState { ChargerDrafts = { draft, }, };
+        _chargingStationsService.Setup(s => s.GetChargingStationConnectors(2)).ReturnsAsync(new List<DtoChargingStationConnector>
+        {
+            new("GARAGE1; Connector: 1") { Id = 7, MaxCurrent = 16, ConnectedPhasesCount = 3, },
+        });
+
+        var page = RenderAt(SetupSections.Charger, draft.DraftId, nameof(SetupChargerStage.Settings));
+
+        //What is still asked: the highest current, the phases and whether other people's cars may charge.
+        Assert.Contains("cars may charge here", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(page.FindComponents<MudNumericField<int?>>());
+        Assert.Empty(page.FindComponents<MudTextField<string>>());
+    }
+
+    [Fact]
+    public void RemovingACarThatHasARowKeepsItOutOfSetup()
+    {
+        //Every car in setup is switched on when it finishes, so taking one out has to stick.
+        var saved = CarDraft("Saved car");
+        var unsaved = new DtoSetupCarDraft { Configuration = new CarBasicConfiguration { Name = "Unsaved car", }, };
+        _storedState = new DtoSetupState { CarDrafts = { saved, unsaved, }, };
+        var page = RenderAt(SetupSections.Equipment);
+
+        ButtonWithText(page, "Not now").Click();
+        ButtonWithText(page, "Not now").Click();
+
+        Assert.Empty(LastSavedState().CarDrafts);
+        //Only a car with a row can come back from the car list, so only that one needs remembering.
+        Assert.Equal(new List<int> { 5, }, LastSavedState().RemovedCarIds);
+    }
+
+    [Fact]
+    public void ChangingOnlyATariffPeriodsDaysIsStoredStraightAway()
+    {
+        //The price callbacks were wired up, but the day and time fields of a period were not, so an edit that only
+        //moved a period was lost on the next reload.
+        _storedState = new DtoSetupState
+        {
+            ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse,
+            CurrentStep = SetupStepKey.Prices,
+        };
+        _httpClientHelper
+            .Setup(h => h.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DtoChargePrice>
+            {
+                new()
+                {
+                    Id = 1, GridPrice = 0.3m, SolarPrice = 0.1m, ValidSince = new DateTime(2026, 1, 1),
+                    EnergyProviderConfiguration = "[{\"FromHour\":22,\"ToHour\":6,\"Value\":0.19}]",
+                },
+            });
+
+        var page = RenderAt(SetupSections.Prices);
+        var savesBefore = _setupService.Invocations.Count(i => i.Method.Name == nameof(ISetupService.UpdateSetupState));
+        var mondayBox = page.FindComponents<MudCheckBox<bool>>().First();
+        page.InvokeAsync(() => mondayBox.Instance.ValueChanged.InvokeAsync(false)).GetAwaiter().GetResult();
+
+        Assert.True(_setupService.Invocations.Count(i => i.Method.Name == nameof(ISetupService.UpdateSetupState)) > savesBefore);
+        //And the change itself is real: the period now names the days it covers, minus the one just unticked.
+        var period = page.FindComponent<FixedPriceComponent>().Instance;
+        Assert.NotNull(period.FixedPrice!.ValidOnDays);
+        Assert.DoesNotContain(DayOfWeek.Sunday, period.FixedPrice.ValidOnDays!);
+    }
+
+    [Fact]
+    public void ANewTariffPeriodShowsTheDaysItActuallyCovers()
+    {
+        //A period with no day list applies every day, which is how the price is worked out. The editor showed it
+        //as covering no days, and ticking one did nothing at all.
+        _storedState = new DtoSetupState
+        {
+            ElectricityPriceKind = SetupElectricityPriceKind.TimeOfUse,
+            CurrentStep = SetupStepKey.Prices,
+        };
+        _httpClientHelper
+            .Setup(h => h.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DtoChargePrice>
+            {
+                new()
+                {
+                    Id = 1, GridPrice = 0.3m, SolarPrice = 0.1m, ValidSince = new DateTime(2026, 1, 1),
+                    EnergyProviderConfiguration = "[{\"FromHour\":22,\"ToHour\":6,\"Value\":0.19}]",
+                },
+            });
+
+        var page = RenderAt(SetupSections.Prices);
+        var dayBoxes = page.FindAll("input[type=checkbox]").Take(7).ToList();
+
+        Assert.Equal(7, dayBoxes.Count);
+        Assert.All(dayBoxes, box => Assert.True(box.HasAttribute("checked")));
+    }
+
+    [Fact]
+    public void TheReviewDescribesTheBatteryReserveThatWillActuallyApply()
+    {
+        //The recommendation is applied on the way to finishing. Describing the stored value instead told the user
+        //their battery stays manual while a ticked box on the same screen said it was about to become automatic.
+        _storedState = new DtoSetupState { HasHomeBattery = true, };
+        _storedState.Configuration.DynamicHomeBatteryMinSoc = null;
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = true,
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    ReasonKey = TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.DoesNotContain("reserve you set by hand", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DecliningAnAutomationSurvivesAReload()
+    {
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = true,
+            ProposedValues =
+            {
+                new DtoSetupProposedValue
+                {
+                    PropertyName = nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc),
+                    Value = true,
+                    ReasonKey = TranslationKeys.SetupReasonDynamicHomeBatteryMinSoc,
+                },
+            },
+        };
+        var page = RenderAt(SetupSections.Finish);
+
+        //Untick the recommendation.
+        page.FindAll("input[type=checkbox]").Last().Change(false);
+
+        //Kept with the rest of the answers, not only in the browser: a reload used to accept it again silently.
+        Assert.Contains($"|{nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc)}",
+            Assert.Single(LastSavedState().DeclinedProposalIds));
+    }
+
+    /// <summary>The moment the page sees as now, so the age of a reading is measured against the same clock.</summary>
+    private DateTimeOffset Now => _clock.DateTimeOffSetUtcNow();
+
+    private static DtoPvSourceValue Reading(ValueUsage usage, decimal value, DateTimeOffset lastUpdated, int sourceId = 1) => new()
+    {
+        ConfigurationType = ConfigurationType.TemplateValue,
+        SourceId = sourceId,
+        UsedFor = usage,
+        Value = new(lastUpdated, value),
+    };
+
+    /// <summary>Sends new live values, as the server does every time it reads the devices.</summary>
+    private void PushPvValues(IRenderedComponent<Setup> page, DtoPvValues pvValues)
+    {
+        _pvValues = pvValues;
+        page.InvokeAsync(() =>
+        {
+            foreach (var subscriber in _pvValueSubscribers.ToList())
+            {
+                subscriber(pvValues);
+            }
+        });
+    }
+
+    /// <summary>The "Yes" or "No" button of a question: the solar panel question is 0, the home battery question 1.</summary>
+    private static AngleSharp.Dom.IElement AnswerButton(IRenderedComponent<Setup> page, string answer, int questionIndex) =>
+        page.FindAll("button").Where(b => b.TextContent.Trim() == answer).ElementAt(questionIndex);
+
+    private static bool IsSelected(AngleSharp.Dom.IElement button) => button.GetAttribute("aria-pressed") == "true";
+
+    private static bool IsNextDisabled(IRenderedComponent<Setup> page) => ButtonWithText(page, "Next").HasAttribute("disabled");
+
+    [Fact]
+    public void AFreshInstallationStartsWithBothEquipmentQuestionsUnanswered()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //A switch that was simply left off could not be told apart from a "no".
+        Assert.DoesNotContain(page.FindAll("button"), IsSelected);
+        Assert.Contains("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.True(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void DevicesCanOnlyBeConnectedOnceBothQuestionsAreAnswered()
+    {
+        _storedState = new DtoSetupState();
+        var page = RenderAt(SetupSections.Solar);
+
+        AnswerButton(page, "Yes", 0).Click();
+
+        //Which readings a device has to deliver depends on the second answer too.
+        Assert.DoesNotContain("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.True(IsNextDisabled(page));
+
+        AnswerButton(page, "No", 1).Click();
+
+        Assert.Contains("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.False(IsNextDisabled(page));
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 0)));
+        Assert.True(IsSelected(AnswerButton(page, "No", 1)));
+    }
+
+    [Fact]
+    public void AnAnswerIsSavedAsSoonAsItIsGiven()
+    {
+        _storedState = new DtoSetupState();
+        var page = RenderAt(SetupSections.Solar);
+
+        AnswerButton(page, "No", 0).Click();
+        AnswerButton(page, "Yes", 1).Click();
+
+        Assert.False(LastSavedState().HasPvSystem);
+        Assert.True(LastSavedState().HasHomeBattery);
+    }
+
+    [Fact]
+    public void AnsweringNoToBothLeavesNothingToConnect()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = false, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.DoesNotContain("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.False(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void OnlyTheSolarScreenWaitsForTheEquipmentAnswers()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Location);
+
+        Assert.False(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void AnInstallationWhoseDeviceReadsABatteryIsTakenToHaveOne()
+    {
+        //The SMA hybrid inverter case: added from the device list, which the old guess did not look at.
+        _storedState = new DtoSetupState();
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.HomeBatteryPower, 1500, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 1)));
+        //Nothing here shows solar panels, and nothing could show their absence, so that one is left to the user.
+        Assert.False(IsSelected(AnswerButton(page, "Yes", 0)));
+        Assert.False(IsSelected(AnswerButton(page, "No", 0)));
+    }
+
+    [Fact]
+    public void AnInstallationWhoseDeviceReadsSolarGenerationIsTakenToHavePanels()
+    {
+        _storedState = new DtoSetupState();
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.InverterPower, 300, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 0)));
+        Assert.False(IsSelected(AnswerButton(page, "Yes", 1)));
+        Assert.False(IsSelected(AnswerButton(page, "No", 1)));
+    }
+
+    [Fact]
+    public void AnInstallationWithAStoredBatteryCapacityIsTakenToHaveABattery()
+    {
+        _storedState = new DtoSetupState();
+        _storedState.Configuration.HomeBatteryUsableEnergy = 10;
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 1)));
+    }
+
+    [Fact]
+    public void AStoredAnswerIsNeverReplacedByAGuess()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.HomeBatteryPower, 1500, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "No", 1)));
+        //The readings follow the answer strictly, even though a device reads battery values.
+        Assert.DoesNotContain("Home battery power", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheReadingsFollowTheDevicesLive()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _pvValues = new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.HomeBatteryPower, 0, Now), Reading(ValueUsage.GridPower, 0, Now), Reading(ValueUsage.HomeBatterySoc, 55, Now), },
+        };
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("neither charging nor discharging", page.Markup, StringComparison.OrdinalIgnoreCase);
+
+        PushPvValues(page, new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.HomeBatteryPower, 750, Now), Reading(ValueUsage.GridPower, 0, Now), Reading(ValueUsage.HomeBatterySoc, 56, Now), },
+        });
+
+        //The section used to keep the value it loaded when the page opened, so a charging battery stayed at 0 W.
+        page.WaitForAssertion(() =>
+        {
+            Assert.Contains("charging at 750 W", page.Markup, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("56 % full", page.Markup, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    [Theory]
+    [InlineData(750, "charging at 750 W")]
+    [InlineData(-750, "supplying 750 W to the house")]
+    [InlineData(0, "neither charging nor discharging")]
+    public void TheBatteryReadingSaysWhichWayTheElectricityFlows(int power, string expectedText)
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.HomeBatteryPower, power, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains(expectedText, page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("charging at 0 W", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(300, "sending 300 W to the grid")]
+    [InlineData(-300, "taking 300 W from the grid")]
+    [InlineData(0, "neither sending electricity to the grid nor taking any from it")]
+    public void TheGridReadingSaysWhichWayTheElectricityFlows(int power, string expectedText)
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.GridPower, power, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains(expectedText, page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EveryDeviceSupplyingAMeasurementCountsTowardsTheReading()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.InverterPower, 300, Now, sourceId: 1), Reading(ValueUsage.InverterPower, 400, Now, sourceId: 2), },
+        };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("700 W", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AReadingIsOnlyAsFreshAsItsOldestDevice()
+    {
+        //One device still answering must not hide another one that stopped three hours ago.
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.InverterPower, 300, Now, sourceId: 1), Reading(ValueUsage.InverterPower, 400, Now.AddHours(-3), sourceId: 2), },
+        };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("3 hours ago", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The solar and battery step as the server reports it, carrying the given issues.</summary>
+    private static DtoSetupDecision DecisionWithSolarAndBatteryIssues(params DtoSetupIssue[] issues) => new()
+    {
+        Steps = { new DtoSetupStepStatus { StepKey = SetupStepKey.SolarAndBattery, Issues = issues.ToList(), }, },
+    };
+
+    private static DtoSetupIssue BatteryIssue(string messageKey, string propertyName) => new()
+    {
+        MessageKey = messageKey,
+        StepKey = SetupStepKey.SolarAndBattery,
+        PropertyName = propertyName,
+    };
+
+    private static DtoSetupIssue[] AllBatteryDetailsMissing() =>
+    [
+        BatteryIssue(TranslationKeys.SetupIssueHomeBatteryCapacityUnknown, nameof(BaseConfigurationBase.HomeBatteryUsableEnergy)),
+        BatteryIssue(TranslationKeys.SetupIssueHomeBatteryChargingPowerUnknown, nameof(BaseConfigurationBase.HomeBatteryChargingPower)),
+        BatteryIssue(TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown, nameof(BaseConfigurationBase.HomeBatteryDischargingPower)),
+    ];
+
+    [Fact]
+    public void AHomeBatteryWithoutItsDetailsHoldsBackMovingOn()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing());
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsNextDisabled(page));
+        Assert.Contains("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("usable capacity in kWh", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("can charge with", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("can discharge with", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(nameof(BaseConfigurationBase.HomeBatteryUsableEnergy))]
+    [InlineData(nameof(BaseConfigurationBase.HomeBatteryChargingPower))]
+    [InlineData(nameof(BaseConfigurationBase.HomeBatteryDischargingPower))]
+    public void EachMissingBatteryDetailOnItsOwnHoldsBackMovingOn(string missingProperty)
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing().Where(i => i.PropertyName == missingProperty).ToArray());
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void AHomeBatteryWithAllItsDetailsLetsTheUserMoveOn()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = true, };
+        //Still open, but none of them are details the user types in: a device can take a while to deliver its
+        //first reading, and the forecast is only a recommendation.
+        _decision = DecisionWithSolarAndBatteryIssues(
+            new DtoSetupIssue { MessageKey = TranslationKeys.SetupIssueHomeBatterySourceMissing, StepKey = SetupStepKey.SolarAndBattery, },
+            BatteryIssue(TranslationKeys.SetupIssueSolarPredictionRequired, nameof(BaseConfigurationBase.PredictSolarPowerGeneration)));
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.False(IsNextDisabled(page));
+        Assert.DoesNotContain("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BatteryDetailsDoNotHoldBackAHouseWithoutABattery()
+    {
+        //The last decision may still describe the battery the user just said they do not have.
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing());
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.False(IsNextDisabled(page));
+        Assert.DoesNotContain("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BatteryDetailsOnlyHoldBackTheSolarScreen()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = true, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing());
+
+        var page = RenderAt(SetupSections.Location);
+
+        Assert.False(IsNextDisabled(page));
+        Assert.DoesNotContain("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheBatteryDetailsAreMarkedAsRequired()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        var requiredProperties = page.FindComponents<GenericInput<double?>>().Select(i => (i.Instance.For?.Body, i.Instance.IsRequiredParameter))
+            .Concat(page.FindComponents<GenericInput<int?>>().Select(i => (i.Instance.For?.Body, i.Instance.IsRequiredParameter)))
+            .Where(input => input.IsRequiredParameter == true)
+            .Select(input => ((System.Linq.Expressions.MemberExpression)input.Body!).Member.Name)
+            .ToList();
+        Assert.Contains(nameof(BaseConfigurationBase.HomeBatteryUsableEnergy), requiredProperties);
+        Assert.Contains(nameof(BaseConfigurationBase.HomeBatteryChargingPower), requiredProperties);
+        Assert.Contains(nameof(BaseConfigurationBase.HomeBatteryDischargingPower), requiredProperties);
+    }
+
+    [Fact]
+    public void AConnectedDeviceWithoutAReadingYetIsNotReportedAsMissing()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _templateValueConfigurationService.Setup(s => s.GetOverviews()).ReturnsAsync(new List<DtoValueConfigurationOverview>
+        {
+            new("SMA Hybrid Inverter Modbus")
+            {
+                Id = 3,
+                Results = { new DtoOverviewValueResult { Id = 4, UsedFor = ValueUsage.HomeBatteryPower, }, },
+            },
+        });
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("Connected, waiting for the first reading", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+}

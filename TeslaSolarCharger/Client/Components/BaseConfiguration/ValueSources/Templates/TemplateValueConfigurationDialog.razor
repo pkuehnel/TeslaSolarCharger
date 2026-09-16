@@ -1,5 +1,4 @@
-﻿@using MudExtensions
-@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms
+﻿@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
@@ -38,26 +37,44 @@ else
                                WrappedElement="TemplateValueConfiguration"
                                HideSubmitButton="true"
                                @ref="BaseForm">
-                <GenericInput For="() => TemplateValueConfiguration.Item.Name"></GenericInput>
+                @if (ShowName)
+                {
+                    <GenericInput For="() => TemplateValueConfiguration.Item.Name"></GenericInput>
+                }
                 <div class="p-2">
-                    <MudSelectExtended T="TemplateValueGatherType?"
-                                       Variant="Variant.Outlined"
-                                       Clearable="true"
-                                       AnchorOrigin="Origin.BottomCenter"
-                                       Value="@TemplateValueConfiguration.Item.GatherType"
-                                       Label="@T(TranslationKeys.ValueSourceConfigType)"
-                                       Margin="Constants.InputMargin"
-                                       ValueChanged="TypeChanged">
-                        @foreach (var vendorGroup in Enum.GetValues<TemplateValueGatherType>().GroupBy(GetVendorGroup))
-                        {
-                            <MudSelectItemGroupExtended T="TemplateValueGatherType?" Text="@vendorGroup.Key" Nested="false">
-                                @foreach (var item in vendorGroup)
-                                {
-                                    <MudSelectItemExtended T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)item)">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
-                                }
-                            </MudSelectItemGroupExtended>
-                        }
-                    </MudSelectExtended>
+                    @if (ShowTypeSelection)
+                    {
+                        @* The brand first, then only that brand's devices: one long list of every device of every brand
+                           was hard to find anything in. *@
+                        <MudSelect T="string"
+                                   Variant="Variant.Outlined"
+                                   Value="@_selectedVendor"
+                                   Label="@T(TranslationKeys.ValueSourceConfigVendor)"
+                                   Margin="Constants.InputMargin"
+                                   ValueChanged="VendorChanged">
+                            @foreach (var vendor in TemplateValueGatherTypeVendors.GetVendors())
+                            {
+                                <MudSelectItem T="string" Value="@vendor">@vendor</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="TemplateValueGatherType?"
+                                   Variant="Variant.Outlined"
+                                   Value="@TemplateValueConfiguration.Item.GatherType"
+                                   Label="@T(TranslationKeys.ValueSourceConfigModel)"
+                                   Margin="Constants.InputMargin"
+                                   Disabled="@(_selectedVendor == null)"
+                                   ToStringFunc="ModelName"
+                                   ValueChanged="TypeChanged">
+                            @foreach (var type in TemplateValueGatherTypeVendors.GetTypesOf(_selectedVendor))
+                            {
+                                <MudSelectItem T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)type)">@ModelName(type)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.ValueSourceConfigConnectionIntro)</MudText>
+                    }
                     @switch (TemplateValueConfiguration.Item.GatherType)
                     {
                         case TemplateValueGatherType.SmaEnergyMeter:
@@ -118,7 +135,9 @@ else
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel">@T(TranslationKeys.ValueSourceConfigCancel)</MudButton>
-            <MudButton Color="Color.Primary" OnClick="Submit">@T(TranslationKeys.ValueSourceConfigSave)</MudButton>
+            @* Nothing to connect until a device is chosen. *@
+            <MudButton Color="Color.Primary" OnClick="Submit"
+                       Disabled="@(TemplateValueConfiguration.Item.GatherType == null)">@T(TranslationKeys.ValueSourceConfigSave)</MudButton>
         </DialogActions>
     </MudDialog>
 }
@@ -130,7 +149,21 @@ else
     [Parameter]
     public int? ValueConfigurationId { get; set; }
 
+    /// <summary>False where a label is not worth asking for: the dialog then names the device after its make and model.</summary>
+    [Parameter]
+    public bool ShowName { get; set; } = true;
+
+    /// <summary>False where the device is already known and only how to reach it is left to change.</summary>
+    [Parameter]
+    public bool ShowTypeSelection { get; set; } = true;
+
     private EditableItem<DtoTemplateValueConfigurationBase>? TemplateValueConfiguration { get; set; }
+
+    /// <summary>The brand whose devices the device list offers. Null until one is chosen.</summary>
+    private string? _selectedVendor;
+
+    /// <summary>The last name this dialog proposed, so a proposal can follow a changed type but a typed name is kept.</summary>
+    private string? _suggestedName;
     private ITemplateEditFormComponent? ConfigurationComponent { get; set; }
 
     public EditFormComponent<DtoTemplateValueConfigurationBase>? BaseForm { get; set; }
@@ -187,16 +220,73 @@ else
             }
         }
         TemplateValueConfiguration ??= new(new());
+        var gatherType = TemplateValueConfiguration.Item.GatherType;
+        _selectedVendor ??= gatherType == null ? null : TemplateValueGatherTypeVendors.GetVendor(gatherType.Value);
+        await SuggestNameIfUnset();
     }
 
-    private void TypeChanged(TemplateValueGatherType? newType)
+    /// <summary>
+    /// Narrows the device list to the chosen brand. A device of another brand no longer fits and is dropped; a brand
+    /// with a single device has nothing left to choose, so that device is taken straight away.
+    /// </summary>
+    private async Task VendorChanged(string? vendor)
+    {
+        if (TemplateValueConfiguration == default)
+        {
+            return;
+        }
+
+        _selectedVendor = vendor;
+        var types = TemplateValueGatherTypeVendors.GetTypesOf(vendor);
+        if (types.Count == 1)
+        {
+            await TypeChanged(types[0]);
+            return;
+        }
+
+        var currentType = TemplateValueConfiguration.Item.GatherType;
+        if (currentType != null && !types.Contains(currentType.Value))
+        {
+            TemplateValueConfiguration.Item.GatherType = null;
+            //The form of the dropped device is gone from the page, so it must not be read on save either.
+            ConfigurationComponent = null;
+        }
+    }
+
+    private async Task TypeChanged(TemplateValueGatherType? newType)
     {
         if (newType == default || TemplateValueConfiguration == default)
         {
             return;
         }
         TemplateValueConfiguration.Item.GatherType = newType.Value;
+        await SuggestNameIfUnset();
         StateHasChanged();
+    }
+
+    private string ModelName(TemplateValueGatherType? type) =>
+        type == null ? string.Empty : TemplateValueGatherTypeVendors.GetModelName(type.Value, StringHelper);
+
+    /// <summary>
+    /// Names the device after its make and model. A name the user typed is theirs and is never replaced; only an
+    /// empty one, or one this dialog proposed for a different type, is.
+    /// </summary>
+    private async Task SuggestNameIfUnset()
+    {
+        var item = TemplateValueConfiguration?.Item;
+        if (item?.GatherType == default)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Name) && item.Name != _suggestedName)
+        {
+            return;
+        }
+
+        var existingNames = (await Service.GetOverviews()).Select(o => o.Heading);
+        _suggestedName = TemplateValueGatherTypeVendors.SuggestName(item.GatherType.Value, existingNames, StringHelper);
+        item.Name = _suggestedName;
     }
 
 
@@ -204,80 +294,6 @@ else
     {
         return TemplateValueConfiguration?.Item.Configuration?.ToObject<DtoSmaInverterTemplateValueConfiguration>();
     }
-
-    private static string GetVendorGroup(TemplateValueGatherType type) => type switch
-    {
-        TemplateValueGatherType.SmaEnergyMeter
-            or TemplateValueGatherType.SmaInverterModbus
-            or TemplateValueGatherType.SmaHybridInverterModbus
-            or TemplateValueGatherType.SmaSunnyBoyStorageModbus
-            or TemplateValueGatherType.SmaSunnyIslandModbus
-            or TemplateValueGatherType.SmaDataManagerModbus
-            or TemplateValueGatherType.SmaWebBoxModbus => "SMA",
-        TemplateValueGatherType.TeslaPowerwallFleetApi => "Tesla",
-        TemplateValueGatherType.SolaxApi
-            or TemplateValueGatherType.SolaxHybridInverterModbus => "Solax",
-        TemplateValueGatherType.KostalHybridInverterModbus
-            or TemplateValueGatherType.KostalKsemInverterModbus
-            or TemplateValueGatherType.KostalPikoApi
-            or TemplateValueGatherType.KostalPlenticoreGen2 => "Kostal",
-        TemplateValueGatherType.SungrowHybridInverterModbus
-            or TemplateValueGatherType.SungrowInverterModbus
-            or TemplateValueGatherType.SungrowIhmModbus => "Sungrow",
-        TemplateValueGatherType.HuaweiSun2000HybridInverterModbus
-            or TemplateValueGatherType.HuaweiSun2000InverterModbus
-            or TemplateValueGatherType.HuaweiSmartLoggerModbus
-            or TemplateValueGatherType.HuaweiEmmaModbus => "Huawei",
-        TemplateValueGatherType.GoodweHybridInverterModbus
-            or TemplateValueGatherType.GoodweDtInverterModbus => "GoodWe",
-        TemplateValueGatherType.GrowattSphHybridInverterModbus
-            or TemplateValueGatherType.GrowattTlxhHybridInverterModbus => "Growatt",
-        TemplateValueGatherType.DeyeHybridInverterModbus
-            or TemplateValueGatherType.DeyeStorageModbus
-            or TemplateValueGatherType.DeyeStringInverterModbus => "Deye",
-        TemplateValueGatherType.FoxEssH3HybridInverterModbus
-            or TemplateValueGatherType.FoxEssH1Modbus
-            or TemplateValueGatherType.FoxEssH3SmartModbus
-            or TemplateValueGatherType.FoxEssAvocadoModbus => "FoxESS",
-        TemplateValueGatherType.AlphaEssSmileModbus => "Alpha ESS",
-        TemplateValueGatherType.SajH2HybridInverterModbus => "SAJ",
-        TemplateValueGatherType.MarstekVenusModbus => "Marstek",
-        TemplateValueGatherType.FroniusSolarApiV1
-            or TemplateValueGatherType.FroniusGen24 => "Fronius",
-        TemplateValueGatherType.SofarSolarModbus
-            or TemplateValueGatherType.SofarSolarG3HybridModbus => "Sofar Solar",
-        TemplateValueGatherType.VartaModbus => "Varta",
-        TemplateValueGatherType.SaxPowerModbus => "SAX",
-        TemplateValueGatherType.MtecEbGen3Modbus => "M-TEC",
-        TemplateValueGatherType.SolarmaxMaxStorageModbus
-            or TemplateValueGatherType.SolarmaxSmtInverterModbus => "Solarmax",
-        TemplateValueGatherType.VictronGxModbus => "Victron",
-        TemplateValueGatherType.IntilionScaleblocModbus => "Intilion",
-        TemplateValueGatherType.SiemensJunelightModbus => "Siemens",
-        TemplateValueGatherType.StoraxeModbus => "Ads-tec",
-        TemplateValueGatherType.SolintegModbus => "Solinteg",
-        TemplateValueGatherType.AforeHybridModbus => "Afore",
-        TemplateValueGatherType.AnkerSolixX1Modbus => "Anker",
-        TemplateValueGatherType.IbcHomeOneModbus => "IBC",
-        TemplateValueGatherType.EcoflowPowerOceanModbus => "EcoFlow",
-        TemplateValueGatherType.SenergyInverterModbus => "Senergy",
-        TemplateValueGatherType.SolarlogModbus => "Solar-Log",
-        TemplateValueGatherType.PlexlogModbus => "Plexlog",
-        TemplateValueGatherType.PowerdogModbus => "Powerdog",
-        TemplateValueGatherType.SonnenBatterieApi => "Sonnen",
-        TemplateValueGatherType.SessySmartBatteryApi => "Sessy",
-        TemplateValueGatherType.BatterXApi => "batterX",
-        TemplateValueGatherType.ApsystemsEz1Api => "APsystems",
-        TemplateValueGatherType.HoymilesOpenDtuApi
-            or TemplateValueGatherType.HoymilesAhoyDtuApi
-            or TemplateValueGatherType.HoymilesDtuGatewayApi => "Hoymiles",
-        TemplateValueGatherType.SmartfoxApi => "Smartfox",
-        TemplateValueGatherType.SunSpecInverter
-            or TemplateValueGatherType.SunSpecMeter => "SunSpec (generic)",
-        TemplateValueGatherType.SolarEdgeInverter
-            or TemplateValueGatherType.SolarEdgeHybrid => "SolarEdge",
-        _ => "Other",
-    };
 
     private string T(string key) =>
         TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key)

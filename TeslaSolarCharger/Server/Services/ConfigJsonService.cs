@@ -263,7 +263,10 @@ public class ConfigJsonService(
         else
         {
             var dtoCar = settings.Cars.First(c => c.Id == carId);
-            dtoCar.Id = carBasicConfiguration.Id;
+            //The row being written is the one named by carId, so that is what the in memory car is. Taking the id
+            //out of the posted configuration instead let a caller that had not filled it in renumber a running car
+            //to zero, after which every later lookup by its real id failed.
+            dtoCar.Id = carId;
             dtoCar.Vin = carBasicConfiguration.Vin;
             dtoCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
             dtoCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
