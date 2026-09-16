@@ -546,6 +546,8 @@ func (d *daemon) execute(req request) (proto.Message, error) {
 		return nil, d.car.Wakeup(ctx)
 	case "flash-lights":
 		return nil, d.car.FlashLights(ctx)
+	case "charge-port-open":
+		return nil, d.car.ChargePortOpen(ctx)
 	default:
 		return nil, fmt.Errorf("unknown command '%s'", fields[0])
 	}
@@ -583,7 +585,7 @@ func commandNeedsInfotainment(command string) (bool, error) {
 	case "body-controller-state", "wake":
 		//VCSEC commands: work while the car is asleep and do not wake it.
 		return false, nil
-	case "state", "charging-start", "charging-stop", "charging-set-amps", "charging-set-limit", "flash-lights":
+	case "state", "charging-start", "charging-stop", "charging-set-amps", "charging-set-limit", "flash-lights", "charge-port-open":
 		return true, nil
 	default:
 		return false, fmt.Errorf("unknown command '%s'", fields[0])
