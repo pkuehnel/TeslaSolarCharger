@@ -22,8 +22,7 @@ public class DtoPvValuesTests
         ConfigurationType = configurationType,
         SourceId = sourceId,
         UsedFor = usage,
-        Value = value,
-        LastUpdated = ReadAt,
+        Value = new(ReadAt, value),
     };
 
     [Fact]
@@ -144,7 +143,8 @@ public class DtoPvValuesTests
         var sourceValue = Assert.Single(received.SourceValues);
         Assert.Equal(7, sourceValue.SourceId);
         Assert.Equal(ConfigurationType.TemplateValue, sourceValue.ConfigurationType);
-        Assert.Equal(ReadAt, sourceValue.LastUpdated);
+        Assert.Equal(1500, sourceValue.Value.Value);
+        Assert.Equal(ReadAt, sourceValue.Value.Timestamp);
     }
 
     [Fact]
@@ -159,7 +159,8 @@ public class DtoPvValuesTests
             SignalRStateService.ChangedPropertySerializerOptions)!;
 
         var sourceValue = Assert.Single(received);
-        Assert.Equal(1500, sourceValue.Value);
+        Assert.Equal(1500, sourceValue.Value.Value);
+        Assert.Equal(ReadAt, sourceValue.Value.Timestamp);
         Assert.Equal(7, sourceValue.SourceId);
         Assert.Equal(ValueUsage.HomeBatteryPower, sourceValue.UsedFor);
     }

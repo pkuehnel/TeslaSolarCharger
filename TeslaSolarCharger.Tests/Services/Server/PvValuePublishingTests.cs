@@ -1,4 +1,6 @@
 using Autofac;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -7,7 +9,11 @@ using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -28,6 +34,7 @@ namespace TeslaSolarCharger.Tests.Services.Server;
 public class PvValuePublishingTests : TestBase
 {
     private readonly Settings _settings = new();
+    private List<DtoPvSourceValue> _deviceValues = new();
 
     public PvValuePublishingTests(ITestOutputHelper outputHelper) : base(outputHelper)
     {
@@ -35,73 +42,79 @@ public class PvValuePublishingTests : TestBase
         Mock.Mock<ILoadPointManagementService>()
             .Setup(s => s.GetLoadPointsWithChargingDetails())
             .ReturnsAsync(new List<DtoLoadPointWithCurrentChargingValues>());
+        Mock.Mock<IGenericValueService>()
+            .Setup(s => s.GetSourceValues(It.IsAny<bool>()))
+            .Returns(() => _deviceValues);
     }
 
-    private static DtoPvSourceValue Source(ValueUsage usage, decimal value, int sourceId = 1) => new()
+    private DtoPvSourceValue Source(ValueUsage usage, decimal value, int sourceId = 1,
+        ConfigurationType configurationType = ConfigurationType.TemplateValue) => new()
     {
-        ConfigurationType = ConfigurationType.TemplateValue,
+        ConfigurationType = configurationType,
         SourceId = sourceId,
         UsedFor = usage,
-        Value = value,
+        Value = new(CurrentFakeDate, value),
     };
 
-    private IndexService CreateIndexService() => Mock.Create<IndexService>(new TypedParameter(typeof(ISettings), _settings));
+    private IndexService CreateIndexService(IGenericValueService? genericValueService = null) => Mock.Create<IndexService>(
+        new TypedParameter(typeof(ISettings), _settings),
+        new TypedParameter(typeof(IGenericValueService), genericValueService ?? Mock.Mock<IGenericValueService>().Object));
 
-    private TeslaSolarCharger.Server.Services.PvValueService CreatePvValueService(IEnumerable<IDecimalValueHandlingService> handlingServices) =>
+    private TeslaSolarCharger.Server.Services.PvValueService CreatePvValueService(IGenericValueService? genericValueService = null,
+        IFakeSolarValueHandlingService? fakeSolarValueHandlingService = null) =>
         Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>(
             new TypedParameter(typeof(ISettings), _settings),
-            new TypedParameter(typeof(IIndexService), CreateIndexService()),
-            new TypedParameter(typeof(IEnumerable<IDecimalValueHandlingService>), handlingServices));
+            new TypedParameter(typeof(IIndexService), CreateIndexService(genericValueService)),
+            new TypedParameter(typeof(IFakeSolarValueHandlingService),
+                fakeSolarValueHandlingService ?? Mock.Mock<IFakeSolarValueHandlingService>().Object));
 
-    /// <summary>Creates the service with one value handling service per list, each delivering those device values.</summary>
-    private TeslaSolarCharger.Server.Services.PvValueService CreatePvValueService(params List<DtoPvSourceValue>[] valuesPerHandlingService)
+    /// <summary>
+    /// The value handling as the app wires it: a real device reading <paramref name="realGridPower"/> next to the fake
+    /// device, both reached through the one generic value service.
+    /// </summary>
+    private (IGenericValueService GenericValueService, FakeSolarValueHandlingService FakeSolarValueHandlingService) CreateRealValueHandling(
+        decimal realGridPower)
     {
-        var handlingServices = valuesPerHandlingService.Select(values =>
+        var realDevice = new Mock<IGenericValue<decimal>>();
+        realDevice.Setup(v => v.SourceValueKey).Returns(new SourceValueKey(1, ConfigurationType.TemplateValue));
+        realDevice.Setup(v => v.HistoricValues).Returns(new Dictionary<ValueKey, DtoHistoricValue<decimal>>
         {
-            var handlingService = new Mock<IDecimalValueHandlingService>();
-            handlingService
-                .Setup(s => s.GetSourceValues(It.IsAny<HashSet<ValueUsage>>(), It.IsAny<bool>()))
-                .Returns(values);
-            return handlingService.Object;
-        }).ToList();
-        return CreatePvValueService(handlingServices);
+            { new ValueKey(ValueUsage.GridPower, null, 1), new DtoHistoricValue<decimal>(CurrentFakeDate, realGridPower, 1) },
+        });
+        var realHandlingService = new Mock<IDecimalValueHandlingService>();
+        realHandlingService.Setup(s => s.GetSnapshot()).Returns([realDevice.Object,]);
+        var fakeSolarValueHandlingService = new FakeSolarValueHandlingService(new Mock<IServiceScopeFactory>().Object);
+        var genericValueService = new GenericValueService(NullLogger<GenericValueService>.Instance,
+            [realHandlingService.Object, fakeSolarValueHandlingService,]);
+        return (genericValueService, fakeSolarValueHandlingService);
     }
 
     [Fact]
     public async Task TheChargingLogicWorksWithTheTotalsOfEveryDevice()
     {
-        var pvValueService = CreatePvValueService(
-            [Source(ValueUsage.InverterPower, 3000, sourceId: 1), Source(ValueUsage.HomeBatteryPower, 1500, sourceId: 1),],
-            [Source(ValueUsage.InverterPower, 500, sourceId: 2), Source(ValueUsage.GridPower, -200, sourceId: 2),]);
+        _deviceValues =
+        [
+            Source(ValueUsage.InverterPower, 3000, sourceId: 1), Source(ValueUsage.HomeBatteryPower, 1500, sourceId: 1),
+            Source(ValueUsage.InverterPower, 500, sourceId: 2), Source(ValueUsage.GridPower, -200, sourceId: 2),
+        ];
 
-        await pvValueService.UpdatePvValues();
+        await CreatePvValueService().UpdatePvValues();
 
         Assert.Equal(3500, _settings.InverterPower);
         Assert.Equal(-200, _settings.Overage);
         Assert.Equal(1500, _settings.HomeBatteryPower);
         //No device reads a state of charge, which must stay unknown rather than become zero.
         Assert.Null(_settings.HomeBatterySoc);
-        Assert.Equal(4, _settings.PvSourceValues.Count);
         Assert.Equal(CurrentFakeDate, _settings.LastPvValueUpdate);
     }
 
     [Fact]
-    public async Task OnlySolarBatteryAndGridReadingsWithoutErrorsAreAskedFor()
+    public async Task OnlyReadingsWithoutErrorsAreUsed()
     {
-        HashSet<ValueUsage>? askedUsages = null;
-        bool? skippedErrors = null;
-        var handlingService = new Mock<IDecimalValueHandlingService>();
-        handlingService
-            .Setup(s => s.GetSourceValues(It.IsAny<HashSet<ValueUsage>>(), It.IsAny<bool>()))
-            .Callback<HashSet<ValueUsage>, bool>((usages, skip) => (askedUsages, skippedErrors) = (usages, skip))
-            .Returns(new List<DtoPvSourceValue>());
-        var pvValueService = CreatePvValueService(new[] { handlingService.Object, });
+        await CreatePvValueService().UpdatePvValues();
 
-        await pvValueService.UpdatePvValues();
-
-        Assert.NotNull(askedUsages);
-        Assert.True(askedUsages.SetEquals(Enum.GetValues<ValueUsage>()));
-        Assert.True(skippedErrors);
+        Mock.Mock<IGenericValueService>().Verify(s => s.GetSourceValues(true), Times.Once);
+        Mock.Mock<IGenericValueService>().Verify(s => s.GetSourceValues(false), Times.Never);
     }
 
     [Fact]
@@ -111,15 +124,13 @@ public class PvValuePublishingTests : TestBase
         _settings.Overage = 100;
         _settings.HomeBatteryPower = 50;
         _settings.HomeBatterySoc = 40;
-        var pvValueService = CreatePvValueService(new List<DtoPvSourceValue>());
 
-        await pvValueService.UpdatePvValues();
+        await CreatePvValueService().UpdatePvValues();
 
         Assert.Null(_settings.InverterPower);
         Assert.Null(_settings.Overage);
         Assert.Null(_settings.HomeBatteryPower);
         Assert.Null(_settings.HomeBatterySoc);
-        Assert.Empty(_settings.PvSourceValues);
     }
 
     [Fact]
@@ -131,12 +142,12 @@ public class PvValuePublishingTests : TestBase
             .Setup(s => s.DetectChanges(DataTypeConstants.PvValues, null, It.IsAny<DtoPvValues>()))
             .Callback<string, string?, DtoPvValues>((_, _, pvValues) => sentValues = pvValues)
             .Returns(update);
-        var pvValueService = CreatePvValueService([Source(ValueUsage.HomeBatteryPower, 1500),]);
+        _deviceValues = [Source(ValueUsage.HomeBatteryPower, 1500),];
 
-        await pvValueService.UpdatePvValues();
+        await CreatePvValueService().UpdatePvValues();
 
         Assert.NotNull(sentValues);
-        Assert.Equal(1500, Assert.Single(sentValues.SourceValues).Value);
+        Assert.Equal(1500, Assert.Single(sentValues.SourceValues).Value.Value);
         Assert.Equal(1500, sentValues.HomeBatteryPower);
         Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(update), Times.Once);
     }
@@ -147,11 +158,21 @@ public class PvValuePublishingTests : TestBase
         Mock.Mock<IChangeTrackingService>()
             .Setup(s => s.DetectChanges(DataTypeConstants.PvValues, null, It.IsAny<DtoPvValues>()))
             .Returns((StateUpdateDto?)null);
-        var pvValueService = CreatePvValueService([Source(ValueUsage.GridPower, 100),]);
+        _deviceValues = [Source(ValueUsage.GridPower, 100),];
 
-        await pvValueService.UpdatePvValues();
+        await CreatePvValueService().UpdatePvValues();
 
         Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(It.IsAny<StateUpdateDto>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WithoutFakeValuesTheFakeDeviceIsLeftEmpty()
+    {
+        await CreatePvValueService().UpdatePvValues();
+
+        Mock.Mock<IFakeSolarValueHandlingService>().Verify(
+            s => s.SetValues(It.IsAny<DateTimeOffset>(), It.IsAny<IReadOnlyDictionary<ValueUsage, int?>>()), Times.Never);
+        Assert.Equal(0, _settings.LastPvDemoCase);
     }
 
     [Theory]
@@ -165,37 +186,83 @@ public class PvValuePublishingTests : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.ShouldUseFakeSolarValues()).Returns(true);
         _settings.LastPvDemoCase = demoCase;
         //A real device is still configured, but fake values replace it entirely.
-        var pvValueService = CreatePvValueService([Source(ValueUsage.GridPower, 99999),]);
+        var (genericValueService, fakeSolarValueHandlingService) = CreateRealValueHandling(99999);
+        DtoPvValues? sentValues = null;
+        Mock.Mock<IChangeTrackingService>()
+            .Setup(s => s.DetectChanges(DataTypeConstants.PvValues, null, It.IsAny<DtoPvValues>()))
+            .Callback<string, string?, DtoPvValues>((_, _, pvValues) => sentValues = pvValues);
 
-        await pvValueService.UpdatePvValues();
+        await CreatePvValueService(genericValueService, fakeSolarValueHandlingService).UpdatePvValues();
 
         Assert.Equal(inverterPower, _settings.InverterPower);
         Assert.Equal(gridPower, _settings.Overage);
         Assert.Equal(homeBatteryPower, _settings.HomeBatteryPower);
         Assert.Equal(homeBatterySoc, _settings.HomeBatterySoc);
-        Assert.All(_settings.PvSourceValues, v => Assert.Equal(ConfigurationType.FakeSolarValue, v.ConfigurationType));
+        Assert.NotNull(sentValues);
+        Assert.All(sentValues.SourceValues, v =>
+        {
+            Assert.Equal(ConfigurationType.FakeSolarValue, v.ConfigurationType);
+            Assert.Equal(CurrentFakeDate, v.Value.Timestamp);
+        });
         Assert.Equal(demoCase + 1, _settings.LastPvDemoCase);
     }
 
     [Fact]
-    public async Task ThePagesGetTheTotalsFromTheStoredDeviceValues()
+    public async Task AFakeMeasurementDroppedByTheNextCaseDoesNotStayBehind()
     {
-        _settings.PvSourceValues = [Source(ValueUsage.GridPower, 400), Source(ValueUsage.InverterPower, 1200),];
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.ShouldUseFakeSolarValues()).Returns(true);
+        var (genericValueService, fakeSolarValueHandlingService) = CreateRealValueHandling(99999);
+        var pvValueService = CreatePvValueService(genericValueService, fakeSolarValueHandlingService);
+        //Case 12 has every measurement, case 0 (reached again at 16) none at all.
+        _settings.LastPvDemoCase = 12;
+        await pvValueService.UpdatePvValues();
+        Assert.Equal(500, _settings.HomeBatteryPower);
+
+        _settings.LastPvDemoCase = 16;
+        await pvValueService.UpdatePvValues();
+
+        Assert.Null(_settings.InverterPower);
+        Assert.Null(_settings.Overage);
+        Assert.Null(_settings.HomeBatteryPower);
+        Assert.Null(_settings.HomeBatterySoc);
+    }
+
+    [Fact]
+    public async Task ThePagesGetTheCurrentValuesOfEveryDevice()
+    {
+        _deviceValues = [Source(ValueUsage.GridPower, 400), Source(ValueUsage.InverterPower, 1200),];
         _settings.LastPvValueUpdate = CurrentFakeDate;
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.PowerBuffer()).Returns(250);
         Mock.Mock<ILoadPointManagementService>()
             .Setup(s => s.GetLoadPointsWithChargingDetails())
             .ReturnsAsync([new DtoLoadPointWithCurrentChargingValues { ChargingPower = 700, }, new DtoLoadPointWithCurrentChargingValues { ChargingPower = 300, },]);
-        var indexService = CreateIndexService();
 
-        var pvValues = await indexService.GetPvValues();
+        var pvValues = await CreateIndexService().GetPvValues();
 
-        Assert.Same(_settings.PvSourceValues, pvValues.SourceValues);
+        Assert.Equal(_deviceValues, pvValues.SourceValues);
         Assert.Equal(400, pvValues.GridPower);
         Assert.Equal(1200, pvValues.InverterPower);
         Assert.Equal(250, pvValues.PowerBuffer);
         Assert.Equal(1000, pvValues.CarCombinedChargingPowerAtHome);
         Assert.Equal(CurrentFakeDate, pvValues.LastUpdated);
+        Mock.Mock<IGenericValueService>().Verify(s => s.GetSourceValues(true), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true, 1000)]
+    [InlineData(false, 1400)]
+    public async Task FakeValuesReplaceTheRealDevicesOnlyWhileSwitchedOn(bool useFakeValues, int expectedInverterPower)
+    {
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.ShouldUseFakeSolarValues()).Returns(useFakeValues);
+        _deviceValues =
+        [
+            Source(ValueUsage.InverterPower, 400),
+            Source(ValueUsage.InverterPower, 1000, sourceId: 0, configurationType: ConfigurationType.FakeSolarValue),
+        ];
+
+        var pvValues = await CreateIndexService().GetPvValues();
+
+        Assert.Equal(expectedInverterPower, pvValues.InverterPower);
     }
 
     [Theory]
@@ -206,11 +273,10 @@ public class PvValuePublishingTests : TestBase
     [InlineData(ValueUsage.InverterPower, 250)]
     public async Task ThePowerBufferIsOnlyShownWithSolarOrGridValues(ValueUsage? measuredUsage, int? expectedPowerBuffer)
     {
-        _settings.PvSourceValues = measuredUsage == null ? [] : [Source(measuredUsage.Value, 100),];
+        _deviceValues = measuredUsage == null ? [] : [Source(measuredUsage.Value, 100),];
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.PowerBuffer()).Returns(250);
-        var indexService = CreateIndexService();
 
-        var pvValues = await indexService.GetPvValues();
+        var pvValues = await CreateIndexService().GetPvValues();
 
         Assert.Equal(expectedPowerBuffer, pvValues.PowerBuffer);
     }

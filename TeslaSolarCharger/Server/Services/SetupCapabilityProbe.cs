@@ -88,12 +88,8 @@ public class SetupCapabilityProbe(
     {
         try
         {
-            var values = genericValueService.GetAllByPredicate(_ => true);
-            return values
-                .SelectMany(v => v.HistoricValues.Keys)
-                .Select(k => k.ValueUsage)
-                .Where(u => u != null)
-                .Select(u => u!.Value)
+            return genericValueService.GetSourceValues(false)
+                .Select(v => v.UsedFor)
                 .ToHashSet();
         }
         catch (Exception exception)

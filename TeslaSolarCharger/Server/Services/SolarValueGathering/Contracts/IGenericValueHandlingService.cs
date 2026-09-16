@@ -1,18 +1,11 @@
 ﻿using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
-using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 
 public interface IDecimalValueHandlingService :
     IGenericValueHandlingService<decimal, int>
 {
-    /// <summary>
-    /// The current value of every device for each of <paramref name="valueUsages"/>, with everything one device reads
-    /// for the same usage added up into one entry.
-    /// </summary>
-    List<DtoPvSourceValue> GetSourceValues(HashSet<ValueUsage> valueUsages, bool skipValuesWithError);
 }
 
 public abstract class DecimalValueHandlingServiceBase<TGenericValue> : GenericValueHandlingServiceBase<TGenericValue, decimal, int>,
@@ -21,36 +14,6 @@ public abstract class DecimalValueHandlingServiceBase<TGenericValue> : GenericVa
 {
     protected DecimalValueHandlingServiceBase(IServiceScopeFactory serviceScopeFactory) : base(serviceScopeFactory)
     {
-    }
-
-    public List<DtoPvSourceValue> GetSourceValues(HashSet<ValueUsage> valueUsages, bool skipValuesWithError)
-    {
-        var result = new List<DtoPvSourceValue>();
-
-        foreach (var genericValue in GetGenericValuesSnapshot())
-        {
-            if (skipValuesWithError && genericValue.HasError)
-            {
-                continue;
-            }
-
-            var valuesByUsage = genericValue.HistoricValues
-                .Where(v => v.Key.ValueUsage != default && valueUsages.Contains(v.Key.ValueUsage.Value))
-                .GroupBy(v => v.Key.ValueUsage!.Value);
-            foreach (var usageValues in valuesByUsage)
-            {
-                result.Add(new DtoPvSourceValue
-                {
-                    ConfigurationType = genericValue.SourceValueKey.ConfigurationType,
-                    SourceId = genericValue.SourceValueKey.SourceId,
-                    UsedFor = usageValues.Key,
-                    Value = usageValues.Sum(v => v.Value.Value),
-                    LastUpdated = usageValues.Max(v => v.Value.Timestamp),
-                });
-            }
-        }
-
-        return result;
     }
 }
 

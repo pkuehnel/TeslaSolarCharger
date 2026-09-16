@@ -1,6 +1,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -13,16 +14,23 @@ public class IndexService(
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ILoadPointManagementService loadPointManagementService)
+    ILoadPointManagementService loadPointManagementService,
+    IGenericValueService genericValueService)
     : IIndexService
 {
     public async Task<DtoPvValues> GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
+        var sourceValues = genericValueService.GetSourceValues(true);
+        if (configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            //Fake values replace every real device instead of adding to it.
+            sourceValues = sourceValues.Where(v => v.ConfigurationType == ConfigurationType.FakeSolarValue).ToList();
+        }
         var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var pvValues = new DtoPvValues()
         {
-            SourceValues = settings.PvSourceValues,
+            SourceValues = sourceValues,
             CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };

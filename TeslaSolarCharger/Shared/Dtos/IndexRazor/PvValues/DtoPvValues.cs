@@ -32,7 +32,7 @@ public class DtoPvValues
             return null;
         }
 
-        var total = (int)Math.Min(Math.Max(values.Sum(v => v.Value), int.MinValue), int.MaxValue);
+        var total = (int)Math.Min(Math.Max(values.Sum(v => v.Value.Value), int.MinValue), int.MaxValue);
         //An inverter's own standby draw is not solar generation.
         if (usage == ValueUsage.InverterPower && total < 0)
         {

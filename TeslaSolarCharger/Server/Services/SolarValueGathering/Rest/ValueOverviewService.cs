@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -164,31 +165,13 @@ public class ValueOverviewService(
         int resultConfigurationId, DtoOverviewValueResult overviewValueResult,
         DtoValueConfigurationOverview valueOverview)
     {
-        var genericValues = values
-            .Where(v => v.SourceValueKey == new SourceValueKey(
-                configurationId,
-                configurationType))
-            .ToList();
-        var calculatedValue = 0m;
-        DateTimeOffset? lastUpdated = default;
-        foreach (var genericValue in genericValues)
-        {
-            foreach (var genericValueHistoricValue in genericValue.HistoricValues)
-            {
-                if (genericValueHistoricValue.Key.ResultConfigurationId == resultConfigurationId)
-                {
-                    calculatedValue += genericValueHistoricValue.Value.Value;
-                    var timestamp = genericValueHistoricValue.Value.Timestamp;
-                    if (lastUpdated == default || lastUpdated < timestamp)
-                    {
-                        lastUpdated = timestamp;
-                    }
-                }
-            }
-        }
-
-        overviewValueResult.CalculatedValue = calculatedValue;
-        overviewValueResult.LastRefreshed = lastUpdated ?? default;
+        var sourceValueKey = new SourceValueKey(configurationId, configurationType);
+        overviewValueResult.Value = values
+            .Where(v => v.SourceValueKey == sourceValueKey)
+            .SelectMany(v => v.HistoricValues)
+            .Where(v => v.Key.ResultConfigurationId == resultConfigurationId)
+            .Select(v => v.Value)
+            .SumWithNewestTimestamp();
         valueOverview.Results.Add(overviewValueResult);
     }
 }

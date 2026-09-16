@@ -27,6 +27,8 @@ using TeslaSolarCharger.Server.Services.HomeBatteryControl;
 using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
@@ -212,6 +214,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<IGenericValueService, GenericValueService>()
             .AddSingleton<RefreshableValueHandlingService>()
             .AddSingleton<AutoRefreshingValueHandlingService>()
+            .AddSingleton<FakeSolarValueHandlingService>()
+            .AddSingleton<IFakeSolarValueHandlingService>(sp => sp.GetRequiredService<FakeSolarValueHandlingService>())
 
             .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
             .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
@@ -247,6 +251,7 @@ public static class ServiceCollectionExtensions
 
             .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<AutoRefreshingValueHandlingService>())
             .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
+            .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<FakeSolarValueHandlingService>())
 
             .AddHostedService<DatabaseValueBufferFlushService>()
             .AddSharedBackendDependencies();

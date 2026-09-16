@@ -2,7 +2,6 @@
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
-using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -14,7 +13,6 @@ public class Settings : ISettings
     public int? HomeBatterySoc { get; set; }
     public int? LastLoggedHomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
-    public List<DtoPvSourceValue> PvSourceValues { get; set; } = new();
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
     public int? AverageHomeGridVoltage { get; set; }

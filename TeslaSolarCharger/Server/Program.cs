@@ -400,11 +400,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
-        var decimalValueHandlingServices = startupScope.ServiceProvider.GetServices<IDecimalValueHandlingService>();
-        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
-        {
-            await decimalValueHandlingService.RecreateValues(null).ConfigureAwait(false);
-        }
+        var genericValueService = startupScope.ServiceProvider.GetRequiredService<IGenericValueService>();
+        await genericValueService.RecreateValues(null).ConfigureAwait(false);
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)

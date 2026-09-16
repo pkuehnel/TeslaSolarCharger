@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -9,10 +8,9 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
-using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
-using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 using Xunit;
@@ -34,8 +32,8 @@ public class SetupCapabilityProbeTests : TestBase
         _tokenHelper.Setup(h => h.GetFleetApiTokenState(It.IsAny<bool>())).ReturnsAsync(TokenState.UpToDate);
         _backendApiService.Setup(s => s.IsBaseAppLicensed(It.IsAny<bool>())).ReturnsAsync(new Result<bool?>(true, null, null));
         _genericValueService
-            .Setup(s => s.GetAllByPredicate(It.IsAny<Expression<Func<IGenericValue<decimal>, bool>>>()))
-            .Returns(new List<IGenericValue<decimal>>());
+            .Setup(s => s.GetSourceValues(It.IsAny<bool>()))
+            .Returns(new List<DtoPvSourceValue>());
         _chargingStationConfigurationService.Setup(s => s.GetChargingStations()).ReturnsAsync(new List<DtoChargingStation>());
     }
 
@@ -48,26 +46,25 @@ public class SetupCapabilityProbeTests : TestBase
         _configurationWrapper.Object,
         Context);
 
-    /// <summary>A gathered value that reports the given measurements, which is how a configured source shows up.</summary>
-    private static IGenericValue<decimal> ValueProviding(params ValueUsage[] usages)
+    /// <summary>What a device delivering <paramref name="usage"/> reports, which is how a configured source shows up.</summary>
+    private static DtoPvSourceValue ValueProviding(ValueUsage usage, int sourceId = 1) => new()
     {
-        var value = new Mock<IGenericValue<decimal>>();
-        var historicValues = usages.ToDictionary(
-            u => new ValueKey(u, null, 1),
-            _ => new DtoHistoricValue<decimal>(DateTimeOffset.UtcNow, 0, 1));
-        value.Setup(v => v.HistoricValues).Returns(historicValues);
-        return value.Object;
-    }
+        ConfigurationType = ConfigurationType.TemplateValue,
+        SourceId = sourceId,
+        UsedFor = usage,
+        Value = new(DateTimeOffset.UtcNow, 0),
+    };
 
     [Fact]
     public async Task ConfiguredMeasurementsAreReportedAsAvailable()
     {
+        //A device that currently fails still shows the measurement is configured, so its errors are not left out.
         _genericValueService
-            .Setup(s => s.GetAllByPredicate(It.IsAny<Expression<Func<IGenericValue<decimal>, bool>>>()))
-            .Returns(new List<IGenericValue<decimal>>
+            .Setup(s => s.GetSourceValues(false))
+            .Returns(new List<DtoPvSourceValue>
             {
-                ValueProviding(ValueUsage.GridPower, ValueUsage.InverterPower),
-                ValueProviding(ValueUsage.HomeBatterySoc, ValueUsage.HomeBatteryPower),
+                ValueProviding(ValueUsage.GridPower), ValueProviding(ValueUsage.InverterPower),
+                ValueProviding(ValueUsage.HomeBatterySoc, sourceId: 2), ValueProviding(ValueUsage.HomeBatteryPower, sourceId: 2),
             });
 
         var capabilities = await NewProbe().GetCapabilities();

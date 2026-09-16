@@ -95,7 +95,7 @@
     /// </summary>
     private DateTimeOffset OldestReadingOf(ValueUsage usage) => _pvValues!.SourceValues
         .Where(v => v.UsedFor == usage)
-        .Min(v => v.LastUpdated);
+        .Min(v => v.Value.Timestamp);
 
     /// <summary>
     /// Says what the number means rather than only showing it, because the sign carries the direction and a bare

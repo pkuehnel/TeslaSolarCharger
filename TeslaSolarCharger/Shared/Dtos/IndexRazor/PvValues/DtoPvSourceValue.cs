@@ -1,3 +1,4 @@
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -16,8 +17,6 @@ public class DtoPvSourceValue
 
     public ValueUsage UsedFor { get; set; }
 
-    public decimal Value { get; set; }
-
-    /// <summary>When the device last delivered this value.</summary>
-    public DateTimeOffset LastUpdated { get; set; }
+    /// <summary>The value together with when the device last delivered it.</summary>
+    public DtoTimeStampedValue<decimal> Value { get; set; } = new(DateTimeOffset.MinValue, 0);
 }

@@ -1028,8 +1028,7 @@ public class SetupPageTests : Bunit.TestContext
         ConfigurationType = ConfigurationType.TemplateValue,
         SourceId = sourceId,
         UsedFor = usage,
-        Value = value,
-        LastUpdated = lastUpdated,
+        Value = new(lastUpdated, value),
     };
 
     /// <summary>Sends new live values, as the server does every time it reads the devices.</summary>

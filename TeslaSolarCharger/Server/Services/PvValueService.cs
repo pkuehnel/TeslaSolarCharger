@@ -12,6 +12,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
@@ -42,7 +43,7 @@ public class PvValueService(
     IAppStateNotifier appStateNotifier,
     IChangeTrackingService changeTrackingService,
     IIndexService indexService,
-    IEnumerable<IDecimalValueHandlingService> decimalValueHandlingServices)
+    IFakeSolarValueHandlingService fakeSolarValueHandlingService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -716,24 +717,28 @@ public class PvValueService(
         if (configurationWrapper.ShouldUseFakeSolarValues())
         {
             logger.LogWarning("Fake solar values are used.");
-            await PublishPvValues(GetFakeSourceValues()).ConfigureAwait(false);
-            return;
+            fakeSolarValueHandlingService.SetValues(dateTimeProvider.DateTimeOffSetUtcNow(), GetFakeValues());
         }
 
-        var valueUsages = new HashSet<ValueUsage>
+        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var pvValues = await indexService.GetPvValues().ConfigureAwait(false);
+        settings.InverterPower = pvValues.InverterPower;
+        settings.Overage = pvValues.GridPower;
+        settings.HomeBatteryPower = pvValues.HomeBatteryPower;
+        settings.HomeBatterySoc = pvValues.HomeBatterySoc;
+
+        var changes = changeTrackingService.DetectChanges(
+            DataTypeConstants.PvValues,
+            null, // No entity ID for singleton PV values
+            pvValues);
+
+        if (changes != null)
         {
-            ValueUsage.InverterPower,
-            ValueUsage.GridPower,
-            ValueUsage.HomeBatteryPower,
-            ValueUsage.HomeBatterySoc,
-        };
-        var sourceValues = decimalValueHandlingServices
-            .SelectMany(s => s.GetSourceValues(valueUsages, true))
-            .ToList();
-        await PublishPvValues(sourceValues).ConfigureAwait(false);
+            await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
+        }
     }
 
-    private List<DtoPvSourceValue> GetFakeSourceValues()
+    private Dictionary<ValueUsage, int?> GetFakeValues()
     {
         if (true)
         {
@@ -759,22 +764,22 @@ public class PvValueService(
             }
             return (settings.LastPvDemoCase++ % 16) switch
             {
-                1 => FakeSourceValues(null, 200, null, null),
-                8 => FakeSourceValues(null, -200, null, null),
-                9 => FakeSourceValues(null, 0, null, null),
-                2 => FakeSourceValues(500, null, null, null),
-                5 => FakeSourceValues(0, null, null, null),
-                3 => FakeSourceValues(500, 300, null, null),
-                4 => FakeSourceValues(500, -300, null, null),
-                6 => FakeSourceValues(0, -300, null, null),
-                7 => FakeSourceValues(0, -300, 0, 0),
-                10 => FakeSourceValues(0, -300, -500, 20),
-                11 => FakeSourceValues(0, 300, -500, 20),
-                12 => FakeSourceValues(1000, 300, 500, 20),
-                13 => FakeSourceValues(1000, -20, 500, 20),
-                14 => FakeSourceValues(10, -200, 100, 20),
-                15 => FakeSourceValues(10, -500, 100, 20),
-                _ => FakeSourceValues(null, null, null, null),
+                1 => FakeValues(null, 200, null, null),
+                8 => FakeValues(null, -200, null, null),
+                9 => FakeValues(null, 0, null, null),
+                2 => FakeValues(500, null, null, null),
+                5 => FakeValues(0, null, null, null),
+                3 => FakeValues(500, 300, null, null),
+                4 => FakeValues(500, -300, null, null),
+                6 => FakeValues(0, -300, null, null),
+                7 => FakeValues(0, -300, 0, 0),
+                10 => FakeValues(0, -300, -500, 20),
+                11 => FakeValues(0, 300, -500, 20),
+                12 => FakeValues(1000, 300, 500, 20),
+                13 => FakeValues(1000, -20, 500, 20),
+                14 => FakeValues(10, -200, 100, 20),
+                15 => FakeValues(10, -500, 100, 20),
+                _ => FakeValues(null, null, null, null),
             };
         }
         else
@@ -802,59 +807,21 @@ public class PvValueService(
                 }
                 fakeOverage -= fakeHomeBatteryPower;
             }
-            return FakeSourceValues(fakeInverterPower, fakeOverage, fakeHomeBatteryPower, 82);
+            return FakeValues(fakeInverterPower, fakeOverage, fakeHomeBatteryPower, 82);
         }
     }
 
     /// <summary>
-    /// Fake values as if they came from one device, so they reach the charging logic and the pages the same way real
-    /// ones do. A null leaves that measurement out, as if no device supplied it.
+    /// The value of every measurement the fake device delivers. A null leaves that measurement out, as if no device
+    /// supplied it.
     /// </summary>
-    private List<DtoPvSourceValue> FakeSourceValues(int? inverterPower, int? gridPower, int? homeBatteryPower, int? homeBatterySoc)
+    private static Dictionary<ValueUsage, int?> FakeValues(int? inverterPower, int? gridPower, int? homeBatteryPower, int? homeBatterySoc) => new()
     {
-        var now = dateTimeProvider.DateTimeOffSetUtcNow();
-        var values = new Dictionary<ValueUsage, int?>
-        {
-            { ValueUsage.InverterPower, inverterPower },
-            { ValueUsage.GridPower, gridPower },
-            { ValueUsage.HomeBatteryPower, homeBatteryPower },
-            { ValueUsage.HomeBatterySoc, homeBatterySoc },
-        };
-        return values
-            .Where(v => v.Value != null)
-            .Select(v => new DtoPvSourceValue
-            {
-                ConfigurationType = ConfigurationType.FakeSolarValue,
-                UsedFor = v.Key,
-                Value = v.Value!.Value,
-                LastUpdated = now,
-            })
-            .ToList();
-    }
-
-    /// <summary>
-    /// Stores what every device delivered, takes the totals the charging logic works with from it and tells the pages.
-    /// </summary>
-    private async Task PublishPvValues(List<DtoPvSourceValue> sourceValues)
-    {
-        settings.PvSourceValues = sourceValues;
-        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var pvValues = await indexService.GetPvValues().ConfigureAwait(false);
-        settings.InverterPower = pvValues.InverterPower;
-        settings.Overage = pvValues.GridPower;
-        settings.HomeBatteryPower = pvValues.HomeBatteryPower;
-        settings.HomeBatterySoc = pvValues.HomeBatterySoc;
-
-        var changes = changeTrackingService.DetectChanges(
-            DataTypeConstants.PvValues,
-            null, // No entity ID for singleton PV values
-            pvValues);
-
-        if (changes != null)
-        {
-            await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
-        }
-    }
+        { ValueUsage.InverterPower, inverterPower },
+        { ValueUsage.GridPower, gridPower },
+        { ValueUsage.HomeBatteryPower, homeBatteryPower },
+        { ValueUsage.HomeBatterySoc, homeBatterySoc },
+    };
 
 
 
