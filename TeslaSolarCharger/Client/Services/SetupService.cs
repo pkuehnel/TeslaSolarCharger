@@ -63,19 +63,4 @@ public class SetupService(IHttpClientHelper httpClientHelper) : ISetupService
     {
         return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoSetupApplicationResult>("api/Setup/ActivateAndCompleteSetup", setupState);
     }
-
-    public async Task<List<DtoDeferredSetupCheck>?> GetDeferredChecks()
-    {
-        return await httpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoDeferredSetupCheck>>("api/Setup/GetDeferredChecks");
-    }
-
-    public async Task<DtoDeferredSetupCheck?> AddOrUpdateDeferredCheck(DtoDeferredSetupCheck check)
-    {
-        return await httpClientHelper.SendPostRequestWithSnackbarAsync<DtoDeferredSetupCheck>("api/Setup/AddOrUpdateDeferredCheck", check);
-    }
-
-    public async Task DeleteDeferredCheck(Guid checkId)
-    {
-        await httpClientHelper.SendDeleteRequestWithSnackbarAsync<object>($"api/Setup/DeleteDeferredCheck?checkId={checkId}");
-    }
 }

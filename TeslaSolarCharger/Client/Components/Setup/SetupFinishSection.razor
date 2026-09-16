@@ -158,9 +158,6 @@ else
         {
             yield return T(TranslationKeys.SetupFinishBehaviourFollowsSolarAndPrices);
         }
-
-        //A real charging test is a separate thing from a complete configuration, and finishing without one is fine.
-        yield return T(TranslationKeys.SetupFinishBehaviourNoChargingTestYet);
     }
 
     private static string ControlSentenceKey(SetupCarConnectionRoute route) => route switch

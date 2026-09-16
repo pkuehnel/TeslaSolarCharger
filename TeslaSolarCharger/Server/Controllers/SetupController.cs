@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Setup;
-using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -10,8 +9,7 @@ public class SetupController(
     ISetupStateService setupStateService,
     ISetupDecisionService setupDecisionService,
     ISetupApplicationService setupApplicationService,
-    ISetupCapabilityProbe setupCapabilityProbe,
-    IDeferredSetupCheckService deferredSetupCheckService)
+    ISetupCapabilityProbe setupCapabilityProbe)
     : ApiBaseController
 {
     [HttpGet]
@@ -96,31 +94,5 @@ public class SetupController(
     public async Task<ActionResult<DtoSetupApplicationResult>> ActivateAndCompleteSetup([FromBody] DtoSetupState setupState)
     {
         return await setupApplicationService.ActivateAndCompleteSetup(setupState);
-    }
-
-    [HttpGet]
-    public async Task<ActionResult<List<DtoDeferredSetupCheck>>> GetDeferredChecks()
-    {
-        return await deferredSetupCheckService.GetDeferredChecks();
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<DtoDeferredSetupCheck>> AddOrUpdateDeferredCheck([FromBody] DtoDeferredSetupCheck check)
-    {
-        return await deferredSetupCheckService.AddOrUpdateDeferredCheck(check);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult> RecordDeferredCheckResult(Guid checkId, SetupCheckResultState state, string? message)
-    {
-        await deferredSetupCheckService.RecordCheckResult(checkId, state, message);
-        return Ok();
-    }
-
-    [HttpDelete]
-    public async Task<ActionResult> DeleteDeferredCheck(Guid checkId)
-    {
-        await deferredSetupCheckService.RemoveDeferredCheck(checkId);
-        return Ok();
     }
 }

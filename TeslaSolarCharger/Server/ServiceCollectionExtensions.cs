@@ -143,8 +143,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<ISetupCapabilityProbe, SetupCapabilityProbe>()
             .AddTransient<ISetupDecisionService, SetupDecisionService>()
             .AddTransient<ISetupApplicationService, SetupApplicationService>()
-            .AddTransient<IDeferredSetupCheckService, DeferredSetupCheckService>()
-            .AddTransient<IDeferredChargingTestObserver, DeferredChargingTestObserver>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()

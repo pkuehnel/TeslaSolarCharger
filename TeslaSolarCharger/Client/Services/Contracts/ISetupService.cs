@@ -37,10 +37,4 @@ public interface ISetupService
 
     /// <summary>Saves, activates the chosen equipment and finishes setup. Reports per operation.</summary>
     Task<DtoSetupApplicationResult?> ActivateAndCompleteSetup(DtoSetupState setupState);
-
-    Task<List<DtoDeferredSetupCheck>?> GetDeferredChecks();
-
-    Task<DtoDeferredSetupCheck?> AddOrUpdateDeferredCheck(DtoDeferredSetupCheck check);
-
-    Task DeleteDeferredCheck(Guid checkId);
 }

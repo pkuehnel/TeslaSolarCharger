@@ -610,8 +610,8 @@ public class SetupPageTests : Bunit.TestContext
 
         Assert.Contains("Our car is controlled over Bluetooth", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("home battery keeps just enough charge", page.Markup, StringComparison.OrdinalIgnoreCase);
-        //Configuration being complete and a charging test having been run are different things.
-        Assert.Contains("No real charging test has been done yet", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //Nothing tracks a real charging test anymore, so the review must not point the user at one.
+        Assert.DoesNotContain("charging test", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

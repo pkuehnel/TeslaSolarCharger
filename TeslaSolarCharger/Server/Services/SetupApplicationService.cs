@@ -26,7 +26,6 @@ public class SetupApplicationService(
     IConfigJsonService configJsonService,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IDateTimeProvider dateTimeProvider,
-    IDeferredSetupCheckService deferredSetupCheckService,
     ISetupDecisionService setupDecisionService,
     IValidator<CarBasicConfiguration> carConfigurationValidator,
     IValidator<DtoBaseConfiguration> baseConfigurationValidator,
@@ -113,7 +112,6 @@ public class SetupApplicationService(
         //Only now is it true that setup finished. Clearing the state any earlier would lose the answers that a
         //failed save still needs.
         result.IsSetupCompleted = true;
-        await RecordOutstandingChargingTests(carDraftsToActivate, chargerDraftsToActivate).ConfigureAwait(false);
         await setupStateService.DeleteSetupState().ConfigureAwait(false);
         return result;
     }
@@ -181,60 +179,6 @@ public class SetupApplicationService(
 
         return setupState;
     }
-
-    /// <summary>
-    /// Notes, for every piece of equipment that was just switched on, that nobody has seen it actually charge yet.
-    /// Kept outside the setup state so finishing does not erase it, and left to resolve itself the first time the
-    /// equipment really charges rather than asking the user to run a test on the spot.
-    /// </summary>
-    private async Task RecordOutstandingChargingTests(IEnumerable<DtoSetupCarDraft> activatedCarDrafts,
-        IEnumerable<DtoSetupChargerDraft> activatedChargerDrafts)
-    {
-        foreach (var draft in activatedCarDrafts.Where(d => d.CarId != null))
-        {
-            await AddChargingTest(SetupDeviceKind.Car, draft.CarId!.Value, draft.Configuration.Name,
-                DescribeCarSetup(draft)).ConfigureAwait(false);
-        }
-
-        foreach (var draft in activatedChargerDrafts.Where(d => d.ConnectorId != null))
-        {
-            await AddChargingTest(SetupDeviceKind.ChargingStationConnector, draft.ConnectorId!.Value,
-                draft.DisplayName ?? draft.ChargepointId, draft.ChargepointId).ConfigureAwait(false);
-        }
-    }
-
-    private async Task AddChargingTest(SetupDeviceKind deviceKind, int deviceId, string? displayName, string? fingerprint)
-    {
-        try
-        {
-            await deferredSetupCheckService.AddOrUpdateDeferredCheck(new DtoDeferredSetupCheck
-            {
-                Kind = DeferredSetupCheckKind.RealChargingTest,
-                DeviceKind = deviceKind,
-                DeviceId = deviceId,
-                DisplayName = displayName,
-                ConfigurationFingerprint = fingerprint,
-            }).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            //Not being able to note the outstanding test is not a reason to fail a setup that otherwise worked.
-            logger.LogWarning(exception, "Could not record the outstanding charging test for {deviceKind} {deviceId}.",
-                deviceKind, deviceId);
-        }
-    }
-
-    /// <summary>
-    /// What this car's charging depends on. When any of it changes, the recorded result no longer describes what is
-    /// configured, and the check starts again.
-    /// </summary>
-    private static string DescribeCarSetup(DtoSetupCarDraft draft) =>
-        string.Join('|',
-            draft.ConnectionRoute,
-            draft.Configuration.UseBle,
-            draft.Configuration.UseFleetTelemetry,
-            draft.Configuration.BleApiBaseUrl ?? string.Empty,
-            string.Join(',', draft.AssignedChargingConnectorIds.OrderBy(id => id)));
 
     private async Task ApplyConfigurationInternal(DtoSetupState setupState, DtoSetupApplicationResult result)
     {

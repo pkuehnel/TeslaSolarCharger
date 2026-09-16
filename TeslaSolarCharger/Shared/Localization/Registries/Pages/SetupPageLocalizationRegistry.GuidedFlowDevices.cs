@@ -587,9 +587,5 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupFinishBehaviourFollowsSolarAndPrices,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging follows your solar production and the electricity price you entered."),
             new TextLocalizationTranslation(LanguageCodes.German, "Das Laden richtet sich nach Ihrer Solarproduktion und dem von Ihnen angegebenen Strompreis."));
-
-        Register(TranslationKeys.SetupFinishBehaviourNoChargingTestYet,
-            new TextLocalizationTranslation(LanguageCodes.English, "No real charging test has been done yet. You can try one from the start page whenever your car is plugged in."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ein echter Ladetest wurde noch nicht durchgeführt. Sie können ihn jederzeit von der Startseite aus starten, wenn Ihr Auto angesteckt ist."));
     }
 }

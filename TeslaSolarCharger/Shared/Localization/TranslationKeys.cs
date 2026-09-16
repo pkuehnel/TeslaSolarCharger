@@ -1088,7 +1088,6 @@ public static class TranslationKeys
     public static string SetupFinishBehaviourBatteryAutomatic => nameof(SetupFinishBehaviourBatteryAutomatic);
     public static string SetupFinishBehaviourBatteryManual => nameof(SetupFinishBehaviourBatteryManual);
     public static string SetupFinishBehaviourFollowsSolarAndPrices => nameof(SetupFinishBehaviourFollowsSolarAndPrices);
-    public static string SetupFinishBehaviourNoChargingTestYet => nameof(SetupFinishBehaviourNoChargingTestYet);
 
     public static string SetupIssueCarSmartCarNotConnected => nameof(SetupIssueCarSmartCarNotConnected);
     public static string SetupIssueCarNeedsChargingStation => nameof(SetupIssueCarNeedsChargingStation);
@@ -1160,14 +1159,6 @@ public static class TranslationKeys
     public static string SetupPricesMarketSurchargeNote => nameof(SetupPricesMarketSurchargeNote);
     public static string SetupPricesSolarTitle => nameof(SetupPricesSolarTitle);
     public static string SetupPricesSolarExplanation => nameof(SetupPricesSolarExplanation);
-
-    // The postponed charging test, shown on the start page until the equipment has actually charged.
-    public static string PendingChecksTitle => nameof(PendingChecksTitle);
-    public static string PendingChecksExplanation => nameof(PendingChecksExplanation);
-    public static string PendingChecksItemFormat => nameof(PendingChecksItemFormat);
-    public static string PendingChecksUnnamedDevice => nameof(PendingChecksUnnamedDevice);
-    public static string PendingChecksLastAttemptFailed => nameof(PendingChecksLastAttemptFailed);
-    public static string PendingChecksDismissButton => nameof(PendingChecksDismissButton);
 
     public static string CarControlCapabilityTitle => nameof(CarControlCapabilityTitle);
     public static string CarControlCapabilityIntro => nameof(CarControlCapabilityIntro);

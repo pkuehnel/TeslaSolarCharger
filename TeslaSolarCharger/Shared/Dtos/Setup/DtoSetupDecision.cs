@@ -18,8 +18,8 @@ public class DtoSetupDecision
     public List<DtoSetupDeviceStatus> DeviceStatuses { get; set; } = new();
 
     /// <summary>
-    /// True when every applicable step is complete. A postponed charging test or a sleeping car does not make this
-    /// false: configuration completeness and verification are tracked separately.
+    /// True when every applicable step is complete. A sleeping car does not make this false: configuration
+    /// completeness and verification are tracked separately.
     /// </summary>
     public bool IsConfigurationComplete { get; set; }
 

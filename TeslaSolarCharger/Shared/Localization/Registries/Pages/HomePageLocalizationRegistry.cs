@@ -45,29 +45,5 @@ public class HomePageLocalizationRegistry : TextLocalizationRegistry<HomePageLoc
         Register(TranslationKeys.SignalRConnected,
             new TextLocalizationTranslation(LanguageCodes.English, "Connection established."),
             new TextLocalizationTranslation(LanguageCodes.German, "Verbindung wiederhergestellt."));
-
-        Register(TranslationKeys.PendingChecksTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Not tried in the real world yet"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Noch nicht in der Praxis erprobt"));
-
-        Register(TranslationKeys.PendingChecksExplanation,
-            new TextLocalizationTranslation(LanguageCodes.English, "Everything is set up. We just have not seen this actually charge yet. Next time it charges at home, this disappears on its own - there is nothing for you to do."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Es ist alles eingerichtet. Wir haben nur noch nicht gesehen, dass hier wirklich geladen wird. Beim nächsten Laden zu Hause verschwindet dieser Hinweis von selbst – Sie müssen nichts tun."));
-
-        Register(TranslationKeys.PendingChecksItemFormat,
-            new TextLocalizationTranslation(LanguageCodes.English, "{0} has not charged under our control yet."),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} hat noch nicht unter unserer Steuerung geladen."));
-
-        Register(TranslationKeys.PendingChecksUnnamedDevice,
-            new TextLocalizationTranslation(LanguageCodes.English, "This device"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Dieses Gerät"));
-
-        Register(TranslationKeys.PendingChecksLastAttemptFailed,
-            new TextLocalizationTranslation(LanguageCodes.English, "last attempt did not work"),
-            new TextLocalizationTranslation(LanguageCodes.German, "letzter Versuch hat nicht funktioniert"));
-
-        Register(TranslationKeys.PendingChecksDismissButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Hide this"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ausblenden"));
     }
 }
