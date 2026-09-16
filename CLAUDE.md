@@ -11,3 +11,6 @@ Whenever you write, refactor, or modify implementation code, you must automatica
 
 ## 3. Strict DRY Policy & Code Reusability
 Before creating new methods, classes, or components, you must thoroughly analyze the existing codebase. You are required to keep code duplication to an absolute minimum. Always prioritize reusing existing methods. If an existing method nearly meets the new requirement, you must refactor or slightly modify it (e.g., by adding optional parameters, utilizing generics, or extending its logic) to accommodate the broader use cases, rather than writing a new, duplicate, or highly similar method.
+
+## 4. Blazor-First & Minimal JavaScript Policy
+When developing or modifying this application, you must attempt to implement all functionality natively within Blazor using C#. You are required to keep the use of custom JavaScript as low as absolutely possible. Only resort to JavaScript interop as a strict last resort when native Blazor solutions do not exist or are fundamentally insufficient. **When JavaScript is required, it must exclusively be called through the `JavaScriptWrapper` class.** You are forbidden from injecting or calling `IJSRuntime` directly from standard components or other services.
