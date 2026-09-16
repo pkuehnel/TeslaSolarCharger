@@ -33,8 +33,6 @@ public class DtoSetupCarDraft
     /// </summary>
     public string? Make { get; set; }
 
-    public string? Model { get; set; }
-
     /// <summary>
     /// Whether a Bluetooth device can sit within a few metres of where this car parks. Asked per car, because one
     /// household can have a car in the garage and another on the street.
@@ -68,12 +66,6 @@ public class DtoSetupCarDraft
     public bool WasManagedBeforeSetup { get; set; }
 
     /// <summary>
-    /// Whether the user asked for this car to charge automatically once setup finishes. Kept separate from
-    /// <see cref="CarBasicConfiguration.ShouldBeManaged"/> so the wish survives while the car is still a draft.
-    /// </summary>
-    public bool ShouldBeActivated { get; set; } = true;
-
-    /// <summary>
     /// Provenance per configuration property name (e.g. "UsableEnergy"). A property missing here has no known
     /// value; a property marked <see cref="SetupValueSource.UserEntered"/> is never overwritten by a proposal.
     /// </summary>
@@ -88,4 +80,18 @@ public class DtoSetupCarDraft
     public SetupCheckResultState ConnectionCheckState { get; set; } = SetupCheckResultState.NotRun;
     public string? ConnectionCheckMessage { get; set; }
     public DateTimeOffset? ConnectionCheckedAt { get; set; }
+
+    /// <summary>
+    /// What to call this car on screen: its name, otherwise its make. Null when neither is known yet, so the caller
+    /// can say "unnamed car" in the user's language.
+    /// </summary>
+    public string? GetDisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(Configuration.Name))
+        {
+            return Configuration.Name;
+        }
+
+        return string.IsNullOrWhiteSpace(Make) ? null : Make.Trim();
+    }
 }

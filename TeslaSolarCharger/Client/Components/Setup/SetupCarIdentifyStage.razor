@@ -16,11 +16,6 @@
               Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
               Immediate="false" />
 
-<MudTextField T="string" Value="@Draft.Model" ValueChanged="OnModelChanged"
-              Label="@T(TranslationKeys.SetupCarModelLabel)"
-              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
-              Immediate="false" />
-
 <MudTextField T="string" Value="@Draft.Configuration.Name" ValueChanged="OnNameChanged"
               Label="@T(TranslationKeys.SetupCarNameLabel)"
               HelperText="@T(TranslationKeys.SetupCarNameHelper)"
@@ -58,12 +53,6 @@
     private async Task OnMakeChanged(string? value)
     {
         Draft.Make = value;
-        await SaveDraft();
-    }
-
-    private async Task OnModelChanged(string? value)
-    {
-        Draft.Model = value;
         await SaveDraft();
     }
 

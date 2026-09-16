@@ -635,6 +635,13 @@
             draft.Configuration.Id = savedDraft.CarId.Value;
         }
 
+        // The server also gives a new car its place in the charging order. Nothing on screen sets it, so the only
+        // way the next save keeps that place is by carrying the number back.
+        if (savedDraft?.Configuration.ChargingPriority > 0)
+        {
+            draft.Configuration.ChargingPriority = savedDraft.Configuration.ChargingPriority;
+        }
+
         await RefreshDecision();
         return true;
     }

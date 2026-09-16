@@ -13,6 +13,7 @@ using MudBlazor.Services;
 using MudExtensions.Services;
 using TeslaSolarCharger.Client.Components;
 using TeslaSolarCharger.Client.Components.Setup;
+using TeslaSolarCharger.Client.Components.StartPage;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Pages;
@@ -730,7 +731,7 @@ public class SetupPageTests : Bunit.TestContext
             CarId = null,
             Stage = SetupCarStage.Identify,
             ConnectionRoute = SetupCarConnectionRoute.ChargingStationOnly,
-            Configuration = new CarBasicConfiguration { Id = 0, Name = "New car", Vin = "NEWVIN", },
+            Configuration = new CarBasicConfiguration { Id = 0, Name = "New car", Vin = "NEWVIN", ChargingPriority = 0, },
         };
         _storedState = new DtoSetupState { CarDrafts = { draft, }, };
         // A separate object, the way the server's answer really arrives: the page must copy both ids out of it
@@ -743,17 +744,136 @@ public class SetupPageTests : Bunit.TestContext
                 {
                     DraftId = draft.DraftId,
                     CarId = 11,
-                    Configuration = new CarBasicConfiguration { Id = 11, Name = "New car", Vin = "NEWVIN", },
+                    Configuration = new CarBasicConfiguration { Id = 11, Name = "New car", Vin = "NEWVIN", ChargingPriority = 3, },
                 },
             },
         });
 
         var page = RenderAt(SetupSections.Car, draft.DraftId, SetupCarStage.Identify.ToString());
         // Naming the car is what gives it a row; the stage saves as soon as it can tell the car apart.
-        page.FindAll("input")[2].Change("Renamed car");
+        NameField(page).Change("Renamed car");
 
         Assert.Equal(11, draft.CarId);
         Assert.Equal(11, draft.Configuration.Id);
+        //Its place in the charging order is given by the server too, and nothing on screen would set it again.
+        Assert.Equal(3, draft.Configuration.ChargingPriority);
+    }
+
+    /// <summary>The car's name field on the identify screen, found by its label rather than its position.</summary>
+    private static AngleSharp.Dom.IElement NameField(IRenderedComponent<Setup> page) =>
+        page.FindComponents<MudTextField<string>>()
+            .Single(field => field.Instance.Label == "What do you call this car?")
+            .Find("input");
+
+    [Fact]
+    public void TheIdentifyScreenDoesNotAskForTheModel()
+    {
+        //Only ever used as a name for a car that had none, and the name is asked for anyway.
+        var draft = CarDraft(stage: SetupCarStage.Identify);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Identify));
+
+        Assert.DoesNotContain(">Model<", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //Make, name and identification number.
+        Assert.Equal(3, page.FindAll("input").Count);
+    }
+
+    [Fact]
+    public void TheCarDetailsScreenOnlyAsksWhatTheCarItselfDictates()
+    {
+        var draft = CarDraft(stage: SetupCarStage.ChargingSettings);
+        _storedState = new DtoSetupState { CarDrafts = { draft, CarDraft("Second car"), }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.ChargingSettings));
+
+        Assert.Contains("Technical details of the car", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Highest charging current", page.Markup, StringComparison.OrdinalIgnoreCase);
+        //A minimum level, deadlines and the order of several cars all start from defaults and are changed later.
+        Assert.DoesNotContain("Always keep at least", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Ready by a certain time", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Which car comes first", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("What this car can take", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Lowest charging current", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(page.FindComponents<ChargingTargetConfigurationComponent>());
+        _homeService.Verify(s => s.GetCarOverview(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public void TheHighestCurrentCannotBeSetBelowTheLowestOne()
+    {
+        //The lowest current is no longer on the screen, so being told the two clash would name a field nobody sees.
+        var draft = CarDraft(stage: SetupCarStage.ChargingSettings);
+        draft.Configuration.MinimumAmpere = 6;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.ChargingSettings));
+
+        var highestCurrent = page.FindComponents<MudNumericField<int>>()
+            .Single(f => f.Instance.Label?.Contains("Highest", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Equal(6, highestCurrent.Instance.Min);
+    }
+
+    [Theory]
+    [InlineData(SetupCarConnectionRoute.TeslaBluetooth)]
+    [InlineData(SetupCarConnectionRoute.ChargingStationOnly)]
+    public void TheCarReviewOffersNoSwitchToLeaveTheCarOff(SetupCarConnectionRoute route)
+    {
+        var draft = CarDraft(stage: SetupCarStage.Review);
+        draft.ConnectionRoute = route;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Review));
+
+        Assert.Empty(page.FindComponents<MudSwitch<bool>>());
+        Assert.DoesNotContain("Let this car charge automatically", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheChargerReviewOffersNoSwitchToLeaveTheChargerOff()
+    {
+        var draft = new DtoSetupChargerDraft { ChargepointId = "GARAGE1", Stage = SetupChargerStage.Review, };
+        _storedState = new DtoSetupState { ChargerDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Charger, draft.DraftId, nameof(SetupChargerStage.Review));
+
+        Assert.Empty(page.FindComponents<MudSwitch<bool>>());
+        Assert.DoesNotContain("Let us control this charging station", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheChargerSettingsDoNotAskForANameOrALowestCurrent()
+    {
+        var draft = new DtoSetupChargerDraft { ChargepointId = "GARAGE1", ChargingStationId = 2, ConnectorId = 7, Stage = SetupChargerStage.Settings, };
+        _storedState = new DtoSetupState { ChargerDrafts = { draft, }, };
+        _chargingStationsService.Setup(s => s.GetChargingStationConnectors(2)).ReturnsAsync(new List<DtoChargingStationConnector>
+        {
+            new("GARAGE1; Connector: 1") { Id = 7, MaxCurrent = 16, ConnectedPhasesCount = 3, },
+        });
+
+        var page = RenderAt(SetupSections.Charger, draft.DraftId, nameof(SetupChargerStage.Settings));
+
+        //What is still asked: the highest current, the phases and whether other people's cars may charge.
+        Assert.Contains("cars may charge here", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(page.FindComponents<MudNumericField<int?>>());
+        Assert.Empty(page.FindComponents<MudTextField<string>>());
+    }
+
+    [Fact]
+    public void RemovingACarThatHasARowKeepsItOutOfSetup()
+    {
+        //Every car in setup is switched on when it finishes, so taking one out has to stick.
+        var saved = CarDraft("Saved car");
+        var unsaved = new DtoSetupCarDraft { Configuration = new CarBasicConfiguration { Name = "Unsaved car", }, };
+        _storedState = new DtoSetupState { CarDrafts = { saved, unsaved, }, };
+        var page = RenderAt(SetupSections.Equipment);
+
+        ButtonWithText(page, "Not now").Click();
+        ButtonWithText(page, "Not now").Click();
+
+        Assert.Empty(LastSavedState().CarDrafts);
+        //Only a car with a row can come back from the car list, so only that one needs remembering.
+        Assert.Equal(new List<int> { 5, }, LastSavedState().RemovedCarIds);
     }
 
     [Fact]

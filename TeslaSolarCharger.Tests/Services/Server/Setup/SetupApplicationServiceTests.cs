@@ -104,7 +104,7 @@ public class SetupApplicationServiceTests : TestBase
     /// A car that has a row but is not running yet - the normal state of a car being set up. Whether it was already
     /// managed decides whether saving may leave it switched off, so the two cases are kept apart deliberately.
     /// </summary>
-    private static DtoSetupState StateWithOneCar(bool shouldBeActivated = true, bool isAlreadyManaged = false) => new()
+    private static DtoSetupState StateWithOneCar(bool isAlreadyManaged = false) => new()
     {
         Configuration = new DtoBaseConfiguration { HomeGeofenceLatitude = 48.13, HomeGeofenceRadius = 120, },
         ChargePrice = new DtoChargePrice { GridPrice = 0.31m, SolarPrice = 0.1m, },
@@ -113,7 +113,6 @@ public class SetupApplicationServiceTests : TestBase
             new DtoSetupCarDraft
             {
                 CarId = 5,
-                ShouldBeActivated = shouldBeActivated,
                 WasManagedBeforeSetup = isAlreadyManaged,
                 ConnectionRoute = SetupCarConnectionRoute.TeslaCloud,
                 Configuration = new CarBasicConfiguration
@@ -157,19 +156,10 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ARunningCarTheUserSwitchesOffInSetupIsActuallySwitchedOff()
-    {
-        //Unticking "charge automatically" for a car that is running is the one case where setup may stop it.
-        await NewService().ApplyConfiguration(StateWithOneCar(shouldBeActivated: false, isAlreadyManaged: true));
-
-        Assert.False(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
-    }
-
-    [Fact]
     public async Task ApplyingDoesNotEditTheDraftTheUserIsStillWorkingOn()
     {
-        var state = StateWithOneCar(isAlreadyManaged: true);
-        state.CarDrafts[0].ShouldBeActivated = false;
+        var state = StateWithOneCar();
+        state.CarDrafts[0].Configuration.ShouldBeManaged = true;
 
         await NewService().ApplyConfiguration(state);
 
@@ -282,12 +272,29 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ACarTheUserDoesNotWantEnabledIsSavedButNotActivated()
+    public async Task FinishingSwitchesOnEveryCarInSetup()
     {
-        var result = await NewService().ActivateAndCompleteSetup(StateWithOneCar(shouldBeActivated: false));
+        //There is no switch to leave a car off any more. A car the user does not want controlled is taken out of
+        //setup instead, so every car still in it - one that was already in the database but not running included -
+        //is switched on.
+        var state = StateWithOneCar();
+        state.CarDrafts.Add(new DtoSetupCarDraft
+        {
+            CarId = 6,
+            WasManagedBeforeSetup = false,
+            ConnectionRoute = SetupCarConnectionRoute.TeslaCloud,
+            Configuration = new CarBasicConfiguration
+            {
+                Id = 6, Name = "Second car", Vin = "VIN2", UsableEnergy = 60, MaximumPhases = 3,
+                MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 2, ShouldBeManaged = false,
+            },
+        });
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
 
         Assert.True(result.IsSetupCompleted);
-        Assert.False(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+        var activated = _savedCarConfigurations.Where(c => c.ShouldBeManaged).Select(c => c.Id).ToList();
+        Assert.Equal(new List<int> { 5, 6, }, activated);
     }
 
     [Fact]
@@ -385,7 +392,7 @@ public class SetupApplicationServiceTests : TestBase
         DetachAllEntities();
         var state = StateWithOneCar();
         state.CarDrafts.Clear();
-        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ConnectorId = 7, ShouldBeActivated = true, AllowGuestCars = true, });
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ConnectorId = 7, AllowGuestCars = true, });
 
         var result = await NewService().ActivateAndCompleteSetup(state);
 
@@ -393,6 +400,42 @@ public class SetupApplicationServiceTests : TestBase
         var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == 7);
         Assert.True(connector.ShouldBeManaged);
         Assert.True(connector.AllowGuestCars);
+    }
+
+    [Fact]
+    public async Task ActivatingAConnectorWithoutALowestCurrentUsesSixAmps()
+    {
+        //Setup does not ask for it, but a managed connector cannot do without one.
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 1") { Id = 7, OcppChargingStationId = 1, MinCurrent = null, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.CarDrafts.Clear();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ConnectorId = 7, });
+
+        await NewService().ActivateAndCompleteSetup(state);
+
+        var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == 7);
+        Assert.Equal(SetupApplicationService.DefaultChargingStationMinCurrent, connector.MinCurrent);
+        Assert.Equal(6, connector.MinCurrent);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(10)]
+    public async Task ActivatingAConnectorKeepsALowestCurrentItAlreadyHas(int minCurrent)
+    {
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 1") { Id = 7, OcppChargingStationId = 1, MinCurrent = minCurrent, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.CarDrafts.Clear();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ConnectorId = 7, });
+
+        await NewService().ActivateAndCompleteSetup(state);
+
+        var connector = await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == 7);
+        Assert.Equal(minCurrent, connector.MinCurrent);
     }
 
     [Fact]
@@ -406,15 +449,6 @@ public class SetupApplicationServiceTests : TestBase
             c => c.Kind == DeferredSetupCheckKind.RealChargingTest
                  && c.DeviceKind == SetupDeviceKind.Car
                  && c.DeviceId == 5)), Times.Once);
-    }
-
-    [Fact]
-    public async Task EquipmentTheUserLeftSwitchedOffIsNotWaitingForAChargingTest()
-    {
-        await NewService().ActivateAndCompleteSetup(StateWithOneCar(shouldBeActivated: false));
-
-        //Nothing was switched on, so there is nothing whose charging could be observed.
-        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.IsAny<DtoDeferredSetupCheck>()), Times.Never);
     }
 
     [Fact]
@@ -575,7 +609,6 @@ public class SetupApplicationServiceTests : TestBase
     [Theory]
     [InlineData(nameof(CarBasicConfiguration.UsableEnergy))]
     [InlineData(nameof(CarBasicConfiguration.MaximumPhases))]
-    [InlineData(nameof(CarBasicConfiguration.ChargingPriority))]
     public async Task ACarWithMissingSpecificationsCannotBeSwitchedOn(string missingProperty)
     {
         //The detailed settings pages are validated by the controller before they reach the service. Setup posts a
@@ -750,20 +783,79 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
-    public async Task TurningOffARunningCarAfterAnEarlierSaveIsNotSkipped()
+    public async Task TheFirstCarGetsTheFirstPlace()
     {
-        //Only the activation choice changed, which is exactly what the draft save writes. Leaving it out of the
-        //record of what was written let "stop charging this car" be treated as already done.
-        var state = StateWithOneCar(isAlreadyManaged: true);
-        var service = NewService();
-        await service.ApplyConfiguration(state);
-        Assert.True(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+        var state = StateWithOneCar();
+        state.CarDrafts[0].Configuration.ChargingPriority = 0;
 
-        state.CarDrafts[0].ShouldBeActivated = false;
-        await service.ApplyConfiguration(state);
+        await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
 
-        Assert.Equal(2, _savedCarConfigurations.Count);
-        Assert.False(_savedCarConfigurations.Last().ShouldBeManaged);
+        Assert.Equal(1, Assert.Single(_savedCarConfigurations).ChargingPriority);
+        Assert.Equal(1, state.CarDrafts[0].Configuration.ChargingPriority);
+    }
+
+    [Fact]
+    public async Task ANewCarGetsThePlaceAfterEveryOtherCar()
+    {
+        //Cars are served in the order they were set up, and the order is never asked for.
+        Context.Cars.Add(new Car { Id = 1, Vin = "OTHER1", ChargingPriority = 1, });
+        Context.Cars.Add(new Car { Id = 2, Vin = "OTHER2", ChargingPriority = 4, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.CarDrafts[0].CarId = null;
+        state.CarDrafts[0].Configuration.Id = 0;
+        state.CarDrafts[0].Configuration.ChargingPriority = 0;
+
+        await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.Equal(5, Assert.Single(_savedCarConfigurations).ChargingPriority);
+        Assert.Equal(5, state.CarDrafts[0].Configuration.ChargingPriority);
+    }
+
+    [Fact]
+    public async Task ACarKeepsThePlaceItsRowAlreadyHas()
+    {
+        //A browser that did not pick up the number from the first save posts zero again. Counting on from the other
+        //cars then would move this car behind every car added since.
+        Context.Cars.Add(new Car { Id = 5, Vin = "VIN1", ChargingPriority = 2, });
+        Context.Cars.Add(new Car { Id = 6, Vin = "OTHER", ChargingPriority = 3, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.CarDrafts[0].Configuration.ChargingPriority = 0;
+
+        await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.Equal(2, Assert.Single(_savedCarConfigurations).ChargingPriority);
+    }
+
+    [Fact]
+    public async Task ACarWithAPlaceKeepsIt()
+    {
+        Context.Cars.Add(new Car { Id = 6, Vin = "OTHER", ChargingPriority = 9, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.CarDrafts[0].Configuration.ChargingPriority = 3;
+
+        await NewService().SaveCarDraft(state, state.CarDrafts[0].DraftId);
+
+        Assert.Equal(3, Assert.Single(_savedCarConfigurations).ChargingPriority);
+    }
+
+    [Fact]
+    public async Task ACarWithoutAPlaceCanStillBeSwitchedOn()
+    {
+        //The car validator refuses a managed car without a priority, and nobody is asked for one any more.
+        var state = StateWithOneCar();
+        state.CarDrafts[0].Configuration.ChargingPriority = 0;
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSetupCompleted);
+        Assert.All(_savedCarConfigurations, c => Assert.Equal(1, c.ChargingPriority));
+        Assert.True(_savedCarConfigurations.Last().ShouldBeManaged);
     }
 
     [Fact]
@@ -831,7 +923,7 @@ public class SetupApplicationServiceTests : TestBase
         var state = StateWithOneCar();
         state.ChargerDrafts.Add(new DtoSetupChargerDraft
         {
-            ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = null, ShouldBeActivated = true,
+            ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = null,
         });
 
         var result = await NewService().ActivateAndCompleteSetup(state);

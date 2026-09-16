@@ -37,7 +37,7 @@
     }
 </div>
 
-<div class="p-3 rounded border mb-4">
+<div class="p-3 rounded border">
     <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupChargerReviewConnectorsTitle)</MudText>
     @if (_connectors == null)
     {
@@ -56,13 +56,6 @@
             }
         </ul>
     }
-</div>
-
-<div class="p-3 rounded border">
-    <MudSwitch T="bool" Value="Draft.ShouldBeActivated" ValueChanged="OnShouldBeActivatedChanged"
-               Color="Color.Primary"
-               Label="@T(TranslationKeys.SetupChargerActivateLabel)" />
-    <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupChargerActivateHint)</MudText>
 </div>
 
 @code {
@@ -91,23 +84,7 @@
                       ?? new List<DtoChargingStationConnector>();
     }
 
-    private async Task OnShouldBeActivatedChanged(bool value)
-    {
-        Draft.ShouldBeActivated = value;
-        await Context.Save();
-        await Context.RefreshDecision();
-    }
-
-    private string CarName(DtoSetupCarDraft draft)
-    {
-        if (!string.IsNullOrWhiteSpace(draft.Configuration.Name))
-        {
-            return draft.Configuration.Name;
-        }
-
-        var makeAndModel = $"{draft.Make} {draft.Model}".Trim();
-        return string.IsNullOrWhiteSpace(makeAndModel) ? T(TranslationKeys.SetupEquipmentUnnamedCar) : makeAndModel;
-    }
+    private string CarName(DtoSetupCarDraft draft) => draft.GetDisplayName() ?? T(TranslationKeys.SetupEquipmentUnnamedCar);
 
     private string T(string key) =>
         TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))

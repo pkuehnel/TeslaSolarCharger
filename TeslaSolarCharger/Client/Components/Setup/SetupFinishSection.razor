@@ -137,11 +137,6 @@ else
             {
                 yield return Format(TranslationKeys.SetupFinishBehaviourChargerAssignedFormat, name);
             }
-
-            if (!draft.ShouldBeActivated)
-            {
-                yield return Format(TranslationKeys.SetupFinishBehaviourCarNotActivatedFormat, name);
-            }
         }
 
         if (Context.State.HasHomeBattery == true)

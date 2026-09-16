@@ -314,10 +314,6 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.English, "We let Tesla tell us this car is home, because you chose not to share its exact position with us."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wir lassen uns von Tesla sagen, dass dieses Auto zu Hause ist, da Sie uns seine genaue Position nicht mitteilen möchten."));
 
-        Register(TranslationKeys.SetupReasonCarChargingPriority,
-            new TextLocalizationTranslation(LanguageCodes.English, "With a single car there is nothing to prioritise, so we set the order for you."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Bei einem einzigen Auto gibt es nichts zu priorisieren, daher legen wir die Reihenfolge für Sie fest."));
-
         Register(TranslationKeys.SetupNextActionConnectCloud,
             new TextLocalizationTranslation(LanguageCodes.English, "Sign in with your Solar4Car account"),
             new TextLocalizationTranslation(LanguageCodes.German, "Mit Solar4Car-Konto anmelden"));

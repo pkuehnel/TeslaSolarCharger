@@ -1,104 +1,48 @@
-@using TeslaSolarCharger.Client.Components.StartPage
-@using TeslaSolarCharger.Client.Services.Contracts
-@using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Dtos.Setup
-@using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
 
 @inject ITextLocalizationService TextLocalizer
-@inject IHomeService HomeService
-@inject ISnackbar Snackbar
 
-<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarChargingIntro)</MudText>
+@* Only what the car itself dictates. How it should charge - a minimum level, deadlines, which car goes first - starts
+   from defaults and is changed later on the home page, once the user has seen it charge. *@
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarElectricalExplanation)</MudText>
 
-@if (Draft.CarId == null)
+@* The lowest current is not asked here, so the highest cannot be entered below it: the user would be told about a
+   limit they cannot see. *@
+<MudNumericField T="int" Value="Draft.Configuration.MaximumAmpere" ValueChanged="OnMaximumAmpereChanged"
+                 Min="@Math.Max(1, Draft.Configuration.MinimumAmpere)" Max="64"
+                 Label="@T(TranslationKeys.SetupCarMaximumCurrentLabel)"
+                 HelperText="@T(TranslationKeys.SetupCarMaximumCurrentHelper)"
+                 Adornment="Adornment.End" AdornmentText="A"
+                 Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 260px;" />
+
+@if (Draft.Configuration.MaximumAmpere < Draft.Configuration.MinimumAmpere)
 {
-    <MudAlert Severity="Severity.Info">@T(TranslationKeys.SetupCarNeedsIdentityBeforeSettings)</MudAlert>
-}
-else
-{
-    <div class="p-3 rounded border mb-4">
-        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarMinimumChargeTitle)</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarMinimumChargeExplanation)</MudText>
-        <MudNumericField T="int?" Value="_minimumSoc" ValueChanged="OnMinimumSocChanged"
-                         Min="0" Max="100"
-                         Label="@T(TranslationKeys.SetupCarMinimumChargeLabel)"
-                         Adornment="Adornment.End" AdornmentText="%"
-                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 220px;" />
-    </div>
-
-    <div class="p-3 rounded border mb-4">
-        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarDeadlineTitle)</MudText>
-        <MudText Typo="Typo.body2" Class="mb-1">@T(TranslationKeys.SetupCarDeadlineExplanation)</MudText>
-        @* Meeting a deadline can mean paying for grid electricity. Said here, where the deadline is set. *@
-        <MudText Typo="Typo.caption" Class="d-block mb-3">@T(TranslationKeys.SetupCarDeadlineGridPowerNote)</MudText>
-        <ChargingTargetConfigurationComponent CarId="Draft.CarId.Value" />
-    </div>
+    <MudAlert Severity="Severity.Error" Class="mb-3">@T(TranslationKeys.SetupIssueCarCurrentLimitsInvalid)</MudAlert>
 }
 
-<div class="p-3 rounded border mb-4">
-    <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarElectricalTitle)</MudText>
-    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarElectricalExplanation)</MudText>
+<MudSelect T="int" Value="Draft.Configuration.MaximumPhases" ValueChanged="OnPhasesChanged"
+           Label="@T(TranslationKeys.SetupCarPhasesLabel)"
+           HelperText="@T(TranslationKeys.SetupCarPhasesHelper)"
+           Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 320px;">
+    <MudSelectItem T="int" Value="1">@T(TranslationKeys.SetupCarPhasesSingle)</MudSelectItem>
+    <MudSelectItem T="int" Value="3">@T(TranslationKeys.SetupCarPhasesThree)</MudSelectItem>
+</MudSelect>
 
-    <MudNumericField T="int" Value="Draft.Configuration.MaximumAmpere" ValueChanged="OnMaximumAmpereChanged"
-                     Min="1" Max="64"
-                     Label="@T(TranslationKeys.SetupCarMaximumCurrentLabel)"
-                     HelperText="@T(TranslationKeys.SetupCarMaximumCurrentHelper)"
-                     Adornment="Adornment.End" AdornmentText="A"
-                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 260px;" />
-
-    <MudNumericField T="int" Value="Draft.Configuration.MinimumAmpere" ValueChanged="OnMinimumAmpereChanged"
-                     Min="0" Max="64"
-                     Label="@T(TranslationKeys.SetupCarMinimumCurrentLabel)"
-                     HelperText="@T(TranslationKeys.SetupCarMinimumCurrentHelper)"
-                     Adornment="Adornment.End" AdornmentText="A"
-                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 260px;" />
-
-    @if (Draft.Configuration.MaximumAmpere < Draft.Configuration.MinimumAmpere)
-    {
-        <MudAlert Severity="Severity.Error" Class="mb-3">@T(TranslationKeys.SetupIssueCarCurrentLimitsInvalid)</MudAlert>
-    }
-
-    <MudSelect T="int" Value="Draft.Configuration.MaximumPhases" ValueChanged="OnPhasesChanged"
-               Label="@T(TranslationKeys.SetupCarPhasesLabel)"
-               HelperText="@T(TranslationKeys.SetupCarPhasesHelper)"
-               Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 320px;">
-        <MudSelectItem T="int" Value="1">@T(TranslationKeys.SetupCarPhasesSingle)</MudSelectItem>
-        <MudSelectItem T="int" Value="3">@T(TranslationKeys.SetupCarPhasesThree)</MudSelectItem>
-    </MudSelect>
-
-    <MudNumericField T="int" Value="Draft.Configuration.UsableEnergy" ValueChanged="OnUsableEnergyChanged"
-                     Min="0" Max="500"
-                     Label="@T(TranslationKeys.SetupCarBatterySizeLabel)"
-                     HelperText="@T(TranslationKeys.SetupCarBatterySizeHelper)"
-                     Adornment="Adornment.End" AdornmentText="kWh"
-                     Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 260px;" />
-    @if (Draft.Configuration.UsableEnergy <= 5)
-    {
-        @* Zero is not a car with no battery, it is a number nobody has told us yet. Say where to find it rather
-           than letting the user guess. *@
-        <MudText Typo="Typo.caption" Class="d-block mt-1">@T(TranslationKeys.SetupCarBatterySizeUnknownHint)</MudText>
-    }
-</div>
-
-@if (HasSeveralCars)
+<MudNumericField T="int" Value="Draft.Configuration.UsableEnergy" ValueChanged="OnUsableEnergyChanged"
+                 Min="0" Max="500"
+                 Label="@T(TranslationKeys.SetupCarBatterySizeLabel)"
+                 HelperText="@T(TranslationKeys.SetupCarBatterySizeHelper)"
+                 Adornment="Adornment.End" AdornmentText="kWh"
+                 Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 260px;" />
+@if (Draft.Configuration.UsableEnergy <= 5)
 {
-    <div class="p-3 rounded border">
-        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarPriorityTitle)</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarPriorityExplanation)</MudText>
-        <MudSelect T="int" Value="_priorityPosition" ValueChanged="OnPriorityChanged"
-                   Label="@T(TranslationKeys.SetupCarPriorityLabel)"
-                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 320px;">
-            @for (var position = 1; position <= Context.State.CarDrafts.Count; position++)
-            {
-                var value = position;
-                <MudSelectItem T="int" Value="@value">@Format(TranslationKeys.SetupCarPriorityPositionFormat, value)</MudSelectItem>
-            }
-        </MudSelect>
-    </div>
+    @* Zero is not a car with no battery, it is a number nobody has told us yet. Say where to find it rather
+       than letting the user guess. *@
+    <MudText Typo="Typo.caption" Class="d-block mt-1">@T(TranslationKeys.SetupCarBatterySizeUnknownHint)</MudText>
 }
 
 @code {
@@ -106,48 +50,9 @@ else
     [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
     [Parameter] public EventCallback OnCompleted { get; set; }
 
-    private int? _minimumSoc;
-    private int _priorityPosition = 1;
-
-    /// <summary>With a single car there is nothing to put in order, so the question is not asked at all.</summary>
-    private bool HasSeveralCars => Context.State.CarDrafts.Count > 1;
-
-    protected override async Task OnParametersSetAsync()
-    {
-        _priorityPosition = Draft.Configuration.ChargingPriority > 0 ? Draft.Configuration.ChargingPriority : 1;
-        if (Draft.CarId == null)
-        {
-            return;
-        }
-
-        var overview = await HomeService.GetCarOverview(Draft.CarId.Value);
-        _minimumSoc = overview?.MinSoc;
-    }
-
-    private async Task OnMinimumSocChanged(int? value)
-    {
-        _minimumSoc = value;
-        if (Draft.CarId == null || value == null)
-        {
-            return;
-        }
-
-        var result = await HomeService.UpdateCarMinSoc(Draft.CarId.Value, value.Value);
-        if (result.HasError)
-        {
-            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SetupCarMinimumChargeSaveError), Severity.Error);
-        }
-    }
-
     private async Task OnMaximumAmpereChanged(int value)
     {
         Draft.Configuration.MaximumAmpere = value;
-        await SaveDraft();
-    }
-
-    private async Task OnMinimumAmpereChanged(int value)
-    {
-        Draft.Configuration.MinimumAmpere = value;
         await SaveDraft();
     }
 
@@ -160,28 +65,6 @@ else
     private async Task OnUsableEnergyChanged(int value)
     {
         Draft.Configuration.UsableEnergy = value;
-        await SaveDraft();
-    }
-
-    /// <summary>
-    /// The user picks a position in a list; the app turns it into the number the scheduler works with, and shifts
-    /// the other cars so two cars never claim the same place.
-    /// </summary>
-    private async Task OnPriorityChanged(int position)
-    {
-        _priorityPosition = position;
-        var others = Context.State.CarDrafts
-            .Where(d => d.DraftId != Draft.DraftId)
-            .OrderBy(d => d.Configuration.ChargingPriority <= 0 ? int.MaxValue : d.Configuration.ChargingPriority)
-            .ToList();
-
-        var ordered = new List<DtoSetupCarDraft>(others);
-        ordered.Insert(Math.Min(position - 1, ordered.Count), Draft);
-        for (var index = 0; index < ordered.Count; index++)
-        {
-            ordered[index].Configuration.ChargingPriority = index + 1;
-        }
-
         await SaveDraft();
     }
 
@@ -199,7 +82,4 @@ else
     private string T(string key) =>
         TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
-
-    private string Format(string key, params object?[] arguments) =>
-        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
 }

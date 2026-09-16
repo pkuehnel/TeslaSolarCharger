@@ -26,8 +26,8 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Verbindung herstellen"));
 
         Register(TranslationKeys.SetupCarStageChargingTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "How should this car charge?"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Wie soll dieses Auto laden?"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Technical details of the car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Technische Daten des Autos"));
 
         Register(TranslationKeys.SetupCarStageReviewTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "What we have set up"),
@@ -48,10 +48,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupCarMakeHelper,
             new TextLocalizationTranslation(LanguageCodes.English, "For example Tesla, Hyundai, Volkswagen."),
             new TextLocalizationTranslation(LanguageCodes.German, "Zum Beispiel Tesla, Hyundai, Volkswagen."));
-
-        Register(TranslationKeys.SetupCarModelLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Model"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Modell"));
 
         Register(TranslationKeys.SetupCarNameLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "What do you call this car?"),
@@ -259,46 +255,6 @@ public partial class SetupPageLocalizationRegistry
 
     private void RegisterCarChargingTexts()
     {
-        Register(TranslationKeys.SetupCarChargingIntro,
-            new TextLocalizationTranslation(LanguageCodes.English, "By default this car charges from your own solar electricity whenever there is enough. These settings say what should happen when there is not."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Standardmäßig lädt dieses Auto mit Ihrem eigenen Solarstrom, sobald genug da ist. Diese Einstellungen legen fest, was passieren soll, wenn nicht."));
-
-        Register(TranslationKeys.SetupCarNeedsIdentityBeforeSettings,
-            new TextLocalizationTranslation(LanguageCodes.English, "Go back and give this car a name and its identification number first. We save these settings on the car itself."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gehen Sie zurück und geben Sie dem Auto zuerst einen Namen und die Fahrgestellnummer. Diese Einstellungen speichern wir am Auto selbst."));
-
-        Register(TranslationKeys.SetupCarMinimumChargeTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Always keep at least"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Immer mindestens halten"));
-
-        Register(TranslationKeys.SetupCarMinimumChargeExplanation,
-            new TextLocalizationTranslation(LanguageCodes.English, "We top the car up to this level even without sun, so you are never stranded. Anything above it waits for your own solar electricity."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Bis zu diesem Stand laden wir auch ohne Sonne nach, damit Sie nie liegen bleiben. Alles darüber wartet auf Ihren eigenen Solarstrom."));
-
-        Register(TranslationKeys.SetupCarMinimumChargeLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Minimum charge"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Mindestladestand"));
-
-        Register(TranslationKeys.SetupCarMinimumChargeSaveError,
-            new TextLocalizationTranslation(LanguageCodes.English, "The minimum charge could not be saved."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Mindestladestand konnte nicht gespeichert werden."));
-
-        Register(TranslationKeys.SetupCarDeadlineTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Ready by a certain time"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zu einer bestimmten Zeit fertig"));
-
-        Register(TranslationKeys.SetupCarDeadlineExplanation,
-            new TextLocalizationTranslation(LanguageCodes.English, "Optional. Say when the car has to be at a certain level, for example every weekday at seven in the morning."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Optional. Legen Sie fest, wann das Auto einen bestimmten Stand erreicht haben muss, zum Beispiel werktags um sieben Uhr morgens."));
-
-        Register(TranslationKeys.SetupCarDeadlineGridPowerNote,
-            new TextLocalizationTranslation(LanguageCodes.English, "To meet a deadline we buy electricity from the grid if the sun is not enough, picking the cheapest hours we can."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Um eine Vorgabe einzuhalten, beziehen wir Strom aus dem Netz, wenn die Sonne nicht reicht – und wählen dafür die günstigsten Stunden."));
-
-        Register(TranslationKeys.SetupCarElectricalTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "What this car can take"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Was dieses Auto verträgt"));
-
         Register(TranslationKeys.SetupCarElectricalExplanation,
             new TextLocalizationTranslation(LanguageCodes.English, "These come from the car and your wiring. If you are unsure, the car's manual lists them."),
             new TextLocalizationTranslation(LanguageCodes.German, "Diese Werte ergeben sich aus dem Auto und Ihrer Installation. Im Zweifel stehen sie im Handbuch des Autos."));
@@ -310,14 +266,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupCarMaximumCurrentHelper,
             new TextLocalizationTranslation(LanguageCodes.English, "The most this car may draw. 16 A is typical for a home installation."),
             new TextLocalizationTranslation(LanguageCodes.German, "Das Maximum, das dieses Auto ziehen darf. 16 A sind bei einer Hausinstallation üblich."));
-
-        Register(TranslationKeys.SetupCarMinimumCurrentLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Lowest charging current"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Niedrigster Ladestrom"));
-
-        Register(TranslationKeys.SetupCarMinimumCurrentHelper,
-            new TextLocalizationTranslation(LanguageCodes.English, "Below this the car stops charging altogether. Most cars will not go under 6 A."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Darunter lädt das Auto gar nicht mehr. Die meisten Autos gehen nicht unter 6 A."));
 
         Register(TranslationKeys.SetupCarPhasesLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "How the car charges"),
@@ -346,22 +294,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupCarBatterySizeUnknownHint,
             new TextLocalizationTranslation(LanguageCodes.English, "You will find this in the car's manual or data sheet, usually as \"usable capacity\" in kWh."),
             new TextLocalizationTranslation(LanguageCodes.German, "Sie finden das im Handbuch oder Datenblatt des Autos, meist als „nutzbare Kapazität“ in kWh."));
-
-        Register(TranslationKeys.SetupCarPriorityTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Which car comes first?"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Welches Auto kommt zuerst?"));
-
-        Register(TranslationKeys.SetupCarPriorityExplanation,
-            new TextLocalizationTranslation(LanguageCodes.English, "When there is not enough sun for every car at once, the one nearer the top gets it first."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Wenn die Sonne nicht für alle Autos gleichzeitig reicht, bekommt das weiter oben stehende Auto den Strom zuerst."));
-
-        Register(TranslationKeys.SetupCarPriorityLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Place in the order"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Platz in der Reihenfolge"));
-
-        Register(TranslationKeys.SetupCarPriorityPositionFormat,
-            new TextLocalizationTranslation(LanguageCodes.English, "Position {0}"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Platz {0}"));
     }
 
     private void RegisterCarReviewTexts()
@@ -414,10 +346,6 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "cannot start yet, see below"),
             new TextLocalizationTranslation(LanguageCodes.German, "kann noch nicht starten, siehe unten"));
 
-        Register(TranslationKeys.SetupCarReviewActivationDraft,
-            new TextLocalizationTranslation(LanguageCodes.English, "off, as you asked"),
-            new TextLocalizationTranslation(LanguageCodes.German, "aus, wie von Ihnen gewünscht"));
-
         Register(TranslationKeys.SetupCarReviewConnectionCheck,
             new TextLocalizationTranslation(LanguageCodes.English, "Connection check:"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verbindungsprüfung:"));
@@ -437,14 +365,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupCarReviewCheckNotRun,
             new TextLocalizationTranslation(LanguageCodes.English, "not tried yet"),
             new TextLocalizationTranslation(LanguageCodes.German, "noch nicht versucht"));
-
-        Register(TranslationKeys.SetupCarActivateLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Let this car charge automatically"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Dieses Auto automatisch laden lassen"));
-
-        Register(TranslationKeys.SetupCarActivateHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Turn this off to keep the settings without letting us control this car yet."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Schalten Sie das aus, um die Einstellungen zu behalten, ohne dass wir dieses Auto schon steuern."));
     }
 
     private void RegisterChargerTexts()
@@ -561,14 +481,6 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "Charging point {0}"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladepunkt {0}"));
 
-        Register(TranslationKeys.SetupChargerConnectorNameLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Name of this charging point"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Name dieses Ladepunkts"));
-
-        Register(TranslationKeys.SetupChargerConnectorNameHelper,
-            new TextLocalizationTranslation(LanguageCodes.English, "For example \"Garage\" or \"Left socket\"."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zum Beispiel „Garage“ oder „Linke Buchse“."));
-
         Register(TranslationKeys.SetupChargerMaxCurrentLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Highest current this charging point may give"),
             new TextLocalizationTranslation(LanguageCodes.German, "Höchster Strom, den dieser Ladepunkt abgeben darf"));
@@ -576,18 +488,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupChargerMaxCurrentHelper,
             new TextLocalizationTranslation(LanguageCodes.English, "What your installation allows. Your electrician will have told you, and it is usually on the charger's label."),
             new TextLocalizationTranslation(LanguageCodes.German, "Was Ihre Installation zulässt. Ihr Elektriker hat es Ihnen gesagt, meist steht es auch auf dem Typenschild."));
-
-        Register(TranslationKeys.SetupChargerMinCurrentLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Lowest current this charging point may give"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Niedrigster Strom, den dieser Ladepunkt abgeben darf"));
-
-        Register(TranslationKeys.SetupChargerMinCurrentHelper,
-            new TextLocalizationTranslation(LanguageCodes.English, "6 A is the usual floor."),
-            new TextLocalizationTranslation(LanguageCodes.German, "6 A sind üblicherweise das Minimum."));
-
-        Register(TranslationKeys.SetupChargerLowCurrentWarning,
-            new TextLocalizationTranslation(LanguageCodes.English, "Below 6 A most cars stop charging rather than charge slowly."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Unter 6 A brechen die meisten Autos das Laden ab, statt langsam zu laden."));
 
         Register(TranslationKeys.SetupChargerPhasesLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "How this charging point is wired"),
@@ -644,14 +544,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupChargerReviewConnectorFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "{0}: up to {1} A on {2} phase(s)"),
             new TextLocalizationTranslation(LanguageCodes.German, "{0}: bis zu {1} A auf {2} Phase(n)"));
-
-        Register(TranslationKeys.SetupChargerActivateLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Let us control this charging station"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Diese Ladestation von uns steuern lassen"));
-
-        Register(TranslationKeys.SetupChargerActivateHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Turn this off to keep the settings without letting us start or stop charging here yet."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Schalten Sie das aus, um die Einstellungen zu behalten, ohne dass wir hier schon starten oder stoppen."));
     }
 
     private void RegisterFinishBehaviourTexts()
@@ -683,10 +575,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupFinishBehaviourChargerAssignedFormat,
             new TextLocalizationTranslation(LanguageCodes.English, "{0} is assigned to your charging station."),
             new TextLocalizationTranslation(LanguageCodes.German, "{0} ist Ihrer Ladestation zugeordnet."));
-
-        Register(TranslationKeys.SetupFinishBehaviourCarNotActivatedFormat,
-            new TextLocalizationTranslation(LanguageCodes.English, "{0} stays switched off for now, as you asked."),
-            new TextLocalizationTranslation(LanguageCodes.German, "{0} bleibt vorerst ausgeschaltet, wie von Ihnen gewünscht."));
 
         Register(TranslationKeys.SetupFinishBehaviourBatteryAutomatic,
             new TextLocalizationTranslation(LanguageCodes.English, "Your home battery keeps just enough charge for the evening, and your car gets the rest."),

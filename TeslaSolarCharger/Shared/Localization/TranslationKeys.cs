@@ -854,7 +854,6 @@ public static class TranslationKeys
     public static string SetupReasonGetVehicleDataViaBle => nameof(SetupReasonGetVehicleDataViaBle);
     public static string SetupReasonCarHomeDetectionViaBlePresence => nameof(SetupReasonCarHomeDetectionViaBlePresence);
     public static string SetupReasonCarHomeDetectionViaLocatedAtHome => nameof(SetupReasonCarHomeDetectionViaLocatedAtHome);
-    public static string SetupReasonCarChargingPriority => nameof(SetupReasonCarChargingPriority);
 
     public static string SetupNextActionConnectCloud => nameof(SetupNextActionConnectCloud);
     public static string SetupNextActionDescribeSolarAndBattery => nameof(SetupNextActionDescribeSolarAndBattery);
@@ -912,7 +911,6 @@ public static class TranslationKeys
     public static string SetupStatusActive => nameof(SetupStatusActive);
     public static string SetupStatusReady => nameof(SetupStatusReady);
     public static string SetupStatusNeedsAttention => nameof(SetupStatusNeedsAttention);
-    public static string SetupStatusDraft => nameof(SetupStatusDraft);
     public static string SetupStatusChargerConnected => nameof(SetupStatusChargerConnected);
     public static string SetupStatusChargerWaiting => nameof(SetupStatusChargerWaiting);
 
@@ -954,7 +952,6 @@ public static class TranslationKeys
     public static string SetupCarIdentifyIntro => nameof(SetupCarIdentifyIntro);
     public static string SetupCarMakeLabel => nameof(SetupCarMakeLabel);
     public static string SetupCarMakeHelper => nameof(SetupCarMakeHelper);
-    public static string SetupCarModelLabel => nameof(SetupCarModelLabel);
     public static string SetupCarNameLabel => nameof(SetupCarNameLabel);
     public static string SetupCarNameHelper => nameof(SetupCarNameHelper);
     public static string SetupCarVinLabel => nameof(SetupCarVinLabel);
@@ -1007,21 +1004,9 @@ public static class TranslationKeys
     public static string SetupCarChargingStationOnlyNothingToConnect => nameof(SetupCarChargingStationOnlyNothingToConnect);
     public static string SetupCarGoToChargersButton => nameof(SetupCarGoToChargersButton);
 
-    public static string SetupCarChargingIntro => nameof(SetupCarChargingIntro);
-    public static string SetupCarNeedsIdentityBeforeSettings => nameof(SetupCarNeedsIdentityBeforeSettings);
-    public static string SetupCarMinimumChargeTitle => nameof(SetupCarMinimumChargeTitle);
-    public static string SetupCarMinimumChargeExplanation => nameof(SetupCarMinimumChargeExplanation);
-    public static string SetupCarMinimumChargeLabel => nameof(SetupCarMinimumChargeLabel);
-    public static string SetupCarMinimumChargeSaveError => nameof(SetupCarMinimumChargeSaveError);
-    public static string SetupCarDeadlineTitle => nameof(SetupCarDeadlineTitle);
-    public static string SetupCarDeadlineExplanation => nameof(SetupCarDeadlineExplanation);
-    public static string SetupCarDeadlineGridPowerNote => nameof(SetupCarDeadlineGridPowerNote);
-    public static string SetupCarElectricalTitle => nameof(SetupCarElectricalTitle);
     public static string SetupCarElectricalExplanation => nameof(SetupCarElectricalExplanation);
     public static string SetupCarMaximumCurrentLabel => nameof(SetupCarMaximumCurrentLabel);
     public static string SetupCarMaximumCurrentHelper => nameof(SetupCarMaximumCurrentHelper);
-    public static string SetupCarMinimumCurrentLabel => nameof(SetupCarMinimumCurrentLabel);
-    public static string SetupCarMinimumCurrentHelper => nameof(SetupCarMinimumCurrentHelper);
     public static string SetupCarPhasesLabel => nameof(SetupCarPhasesLabel);
     public static string SetupCarPhasesHelper => nameof(SetupCarPhasesHelper);
     public static string SetupCarPhasesSingle => nameof(SetupCarPhasesSingle);
@@ -1029,10 +1014,6 @@ public static class TranslationKeys
     public static string SetupCarBatterySizeLabel => nameof(SetupCarBatterySizeLabel);
     public static string SetupCarBatterySizeHelper => nameof(SetupCarBatterySizeHelper);
     public static string SetupCarBatterySizeUnknownHint => nameof(SetupCarBatterySizeUnknownHint);
-    public static string SetupCarPriorityTitle => nameof(SetupCarPriorityTitle);
-    public static string SetupCarPriorityExplanation => nameof(SetupCarPriorityExplanation);
-    public static string SetupCarPriorityLabel => nameof(SetupCarPriorityLabel);
-    public static string SetupCarPriorityPositionFormat => nameof(SetupCarPriorityPositionFormat);
 
     public static string SetupCarReviewIntro => nameof(SetupCarReviewIntro);
     public static string SetupCarAssignmentTitle => nameof(SetupCarAssignmentTitle);
@@ -1046,14 +1027,11 @@ public static class TranslationKeys
     public static string SetupCarReviewActivationActive => nameof(SetupCarReviewActivationActive);
     public static string SetupCarReviewActivationReady => nameof(SetupCarReviewActivationReady);
     public static string SetupCarReviewActivationBlocked => nameof(SetupCarReviewActivationBlocked);
-    public static string SetupCarReviewActivationDraft => nameof(SetupCarReviewActivationDraft);
     public static string SetupCarReviewConnectionCheck => nameof(SetupCarReviewConnectionCheck);
     public static string SetupCarReviewCheckSucceeded => nameof(SetupCarReviewCheckSucceeded);
     public static string SetupCarReviewCheckFailed => nameof(SetupCarReviewCheckFailed);
     public static string SetupCarReviewCheckPending => nameof(SetupCarReviewCheckPending);
     public static string SetupCarReviewCheckNotRun => nameof(SetupCarReviewCheckNotRun);
-    public static string SetupCarActivateLabel => nameof(SetupCarActivateLabel);
-    public static string SetupCarActivateHint => nameof(SetupCarActivateHint);
 
     public static string SetupChargerNotFound => nameof(SetupChargerNotFound);
     public static string SetupChargerStageConnectTitle => nameof(SetupChargerStageConnectTitle);
@@ -1083,13 +1061,8 @@ public static class TranslationKeys
     public static string SetupChargerConnectorChoiceExplanation => nameof(SetupChargerConnectorChoiceExplanation);
     public static string SetupChargerConnectorChoiceLabel => nameof(SetupChargerConnectorChoiceLabel);
     public static string SetupChargerConnectorFallbackNameFormat => nameof(SetupChargerConnectorFallbackNameFormat);
-    public static string SetupChargerConnectorNameLabel => nameof(SetupChargerConnectorNameLabel);
-    public static string SetupChargerConnectorNameHelper => nameof(SetupChargerConnectorNameHelper);
     public static string SetupChargerMaxCurrentLabel => nameof(SetupChargerMaxCurrentLabel);
     public static string SetupChargerMaxCurrentHelper => nameof(SetupChargerMaxCurrentHelper);
-    public static string SetupChargerMinCurrentLabel => nameof(SetupChargerMinCurrentLabel);
-    public static string SetupChargerMinCurrentHelper => nameof(SetupChargerMinCurrentHelper);
-    public static string SetupChargerLowCurrentWarning => nameof(SetupChargerLowCurrentWarning);
     public static string SetupChargerPhasesLabel => nameof(SetupChargerPhasesLabel);
     public static string SetupChargerPhasesHelper => nameof(SetupChargerPhasesHelper);
     public static string SetupChargerPhasesSingle => nameof(SetupChargerPhasesSingle);
@@ -1104,8 +1077,6 @@ public static class TranslationKeys
     public static string SetupChargerReviewGuestIdentificationNote => nameof(SetupChargerReviewGuestIdentificationNote);
     public static string SetupChargerReviewConnectorsTitle => nameof(SetupChargerReviewConnectorsTitle);
     public static string SetupChargerReviewConnectorFormat => nameof(SetupChargerReviewConnectorFormat);
-    public static string SetupChargerActivateLabel => nameof(SetupChargerActivateLabel);
-    public static string SetupChargerActivateHint => nameof(SetupChargerActivateHint);
 
     public static string SetupFinishBehaviourTitle => nameof(SetupFinishBehaviourTitle);
     public static string SetupFinishBehaviourCarBluetoothFormat => nameof(SetupFinishBehaviourCarBluetoothFormat);
@@ -1114,7 +1085,6 @@ public static class TranslationKeys
     public static string SetupFinishBehaviourCarChargingStationFormat => nameof(SetupFinishBehaviourCarChargingStationFormat);
     public static string SetupFinishBehaviourCarUndecidedFormat => nameof(SetupFinishBehaviourCarUndecidedFormat);
     public static string SetupFinishBehaviourChargerAssignedFormat => nameof(SetupFinishBehaviourChargerAssignedFormat);
-    public static string SetupFinishBehaviourCarNotActivatedFormat => nameof(SetupFinishBehaviourCarNotActivatedFormat);
     public static string SetupFinishBehaviourBatteryAutomatic => nameof(SetupFinishBehaviourBatteryAutomatic);
     public static string SetupFinishBehaviourBatteryManual => nameof(SetupFinishBehaviourBatteryManual);
     public static string SetupFinishBehaviourFollowsSolarAndPrices => nameof(SetupFinishBehaviourFollowsSolarAndPrices);

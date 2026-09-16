@@ -33,6 +33,8 @@ public class SetupApplicationService(
     IValidator<DtoChargePrice> chargePriceValidator)
     : ISetupApplicationService
 {
+    internal const int DefaultChargingStationMinCurrent = 6;
+
     public async Task<DtoSetupApplicationResult> ApplyConfiguration(DtoSetupState setupState)
     {
         logger.LogTrace("{method}(...)", nameof(ApplyConfiguration));
@@ -74,16 +76,18 @@ public class SetupApplicationService(
             return result;
         }
 
-        foreach (var draft in setupState.CarDrafts.Where(d => d.ShouldBeActivated))
+        //Every car still in setup is switched on. A car the user does not want controlled is taken out of setup
+        //instead, which leaves it exactly as it was.
+        foreach (var draft in setupState.CarDrafts)
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateCar, draft.DraftId,
                 () => ActivateCar(draft), CarContent(draft)).ConfigureAwait(false);
         }
 
-        //Deliberately not filtered by "has a connector": a charger the user asked to switch on but that never
-        //picked one has to be reported as a failure. Skipping it quietly used to leave setup marked finished
-        //around a charger the user believes is running.
-        foreach (var draft in setupState.ChargerDrafts.Where(d => d.ShouldBeActivated))
+        //Deliberately not filtered by "has a connector": a charger in setup that never picked one has to be reported
+        //as a failure. Skipping it quietly used to leave setup marked finished around a charger the user believes is
+        //running.
+        foreach (var draft in setupState.ChargerDrafts)
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateChargingStationConnector, draft.DraftId,
                 () => ActivateChargingStationConnector(draft),
@@ -175,13 +179,13 @@ public class SetupApplicationService(
     /// </summary>
     private async Task RecordOutstandingChargingTests(DtoSetupState setupState)
     {
-        foreach (var draft in setupState.CarDrafts.Where(d => d.ShouldBeActivated && d.CarId != null))
+        foreach (var draft in setupState.CarDrafts.Where(d => d.CarId != null))
         {
             await AddChargingTest(SetupDeviceKind.Car, draft.CarId!.Value, draft.Configuration.Name,
                 DescribeCarSetup(draft)).ConfigureAwait(false);
         }
 
-        foreach (var draft in setupState.ChargerDrafts.Where(d => d.ShouldBeActivated && d.ConnectorId != null))
+        foreach (var draft in setupState.ChargerDrafts.Where(d => d.ConnectorId != null))
         {
             await AddChargingTest(SetupDeviceKind.ChargingStationConnector, draft.ConnectorId!.Value,
                 draft.DisplayName ?? draft.ChargepointId, draft.ChargepointId).ConfigureAwait(false);
@@ -254,9 +258,6 @@ public class SetupApplicationService(
     {
         draft.CarId,
         draft.Configuration,
-        //Part of what is written, not just of what happens afterwards: switching a running car off is done by the
-        //draft save. Leaving it out let "stop charging this car" be skipped as already done.
-        draft.ShouldBeActivated,
         draft.WasManagedBeforeSetup,
         Assignments = draft.AssignedChargingConnectorIds.OrderBy(id => id).ToList(),
     };
@@ -391,13 +392,13 @@ public class SetupApplicationService(
 
     private async Task SaveCarDraft(DtoSetupCarDraft draft)
     {
+        await AssignChargingPriority(draft).ConfigureAwait(false);
         var configuration = CloneForDraftSave(draft.Configuration);
-        //Saving during setup must never hand new equipment to the charging scheduler; activation is its own
-        //explicit step. A car that was already charging before the assistant opened is a different matter: it is
-        //part of a working installation, and switching it off to save an unrelated answer would stop it charging
-        //and drop its charging connector assignments. Unticking it is still respected - that is the user asking
-        //for exactly that.
-        configuration.ShouldBeManaged = draft.WasManagedBeforeSetup && draft.ShouldBeActivated;
+        //Saving during setup must never hand new equipment to the charging scheduler; that happens when setup
+        //finishes. A car that was already charging before the assistant opened is a different matter: it is part of
+        //a working installation, and switching it off to save an unrelated answer would stop it charging and drop
+        //its charging connector assignments.
+        configuration.ShouldBeManaged = draft.WasManagedBeforeSetup;
         await SaveCarConfiguration(draft, configuration).ConfigureAwait(false);
 
         if (draft.CarId == null)
@@ -422,11 +423,44 @@ public class SetupApplicationService(
             throw new InvalidOperationException("The car was not saved, so it cannot be activated.");
         }
 
+        await AssignChargingPriority(draft).ConfigureAwait(false);
         var configuration = CloneForDraftSave(draft.Configuration);
         configuration.Id = draft.CarId.Value;
         configuration.ShouldBeManaged = true;
         await SaveCarConfiguration(draft, configuration).ConfigureAwait(false);
         await ApplyConnectorAssignments(draft).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gives a car without a charging priority the next place after every other car, so cars are served in the order
+    /// they were set up and nobody has to be asked. A car that already has a place keeps it, including one the draft
+    /// has not heard about yet because it was written by an earlier save.
+    /// </summary>
+    private async Task AssignChargingPriority(DtoSetupCarDraft draft)
+    {
+        if (draft.Configuration.ChargingPriority > 0)
+        {
+            return;
+        }
+
+        var carId = draft.CarId;
+        var storedPriority = carId == null
+            ? 0
+            : await teslaSolarChargerContext.Cars
+                .Where(c => c.Id == carId.Value)
+                .Select(c => c.ChargingPriority)
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (storedPriority > 0)
+        {
+            draft.Configuration.ChargingPriority = storedPriority;
+            return;
+        }
+
+        var highestOtherPriority = await teslaSolarChargerContext.Cars
+            .Where(c => carId == null || c.Id != carId.Value)
+            .Select(c => (int?)c.ChargingPriority)
+            .MaxAsync().ConfigureAwait(false) ?? 0;
+        draft.Configuration.ChargingPriority = Math.Max(highestOtherPriority, 0) + 1;
     }
 
     /// <summary>
@@ -511,6 +545,9 @@ public class SetupApplicationService(
 
         connector.ShouldBeManaged = true;
         connector.AllowGuestCars = draft.AllowGuestCars;
+        //Setup does not ask for the lowest current: almost no car charges below 6 A, and a managed connector must
+        //have one. A value set earlier, for example on the charging stations page, is kept.
+        connector.MinCurrent ??= DefaultChargingStationMinCurrent;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 

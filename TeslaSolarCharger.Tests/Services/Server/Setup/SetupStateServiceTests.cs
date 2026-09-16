@@ -177,17 +177,37 @@ public class SetupStateServiceTests : TestBase
         Assert.Equal(expected, Assert.Single(state.CarDrafts).ConnectionRoute);
     }
 
-    [Fact]
-    public async Task AnAlreadyManagedCarIsNotProposedForActivationAgain()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AnExistingCarRemembersWhetherItWasAlreadyRunning(bool isManaged)
     {
         _existingCars = new List<CarBasicConfiguration>
         {
-            new(1, "Running car") { Vin = "VIN1", CarType = CarType.Tesla, UseBle = true, ShouldBeManaged = true, },
+            new(1, "Car") { Vin = "VIN1", CarType = CarType.Tesla, UseBle = true, ShouldBeManaged = isManaged, },
         };
 
         var state = await NewService().GetOrCreateSetupState();
 
-        Assert.True(Assert.Single(state.CarDrafts).ShouldBeActivated);
+        Assert.Equal(isManaged, Assert.Single(state.CarDrafts).WasManagedBeforeSetup);
+    }
+
+    [Fact]
+    public async Task ACarTheUserTookOutOfSetupIsNotBroughtBackBySyncing()
+    {
+        //Every car in setup is switched on when it finishes. Bringing a removed car back - after importing the cars
+        //of a Tesla account, for one - would switch on the car the user asked to leave alone.
+        var state = new DtoSetupState { RemovedCarIds = { 9, }, };
+        _existingCars = new List<CarBasicConfiguration>
+        {
+            new(9, "Left alone") { Vin = "VIN9", CarType = CarType.Tesla, UseFleetTelemetry = true, },
+            new(10, "Newly imported") { Vin = "VIN10", CarType = CarType.Tesla, UseFleetTelemetry = true, },
+        };
+
+        var synced = await NewService().SyncCarDrafts(state);
+
+        Assert.Equal(10, Assert.Single(synced.CarDrafts).CarId);
+        Assert.Equal(new List<int> { 9, }, synced.RemovedCarIds);
     }
 
     [Fact]

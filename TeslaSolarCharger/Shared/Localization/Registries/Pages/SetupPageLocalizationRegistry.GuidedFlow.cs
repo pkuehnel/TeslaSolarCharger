@@ -149,10 +149,6 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "Something is still missing"),
             new TextLocalizationTranslation(LanguageCodes.German, "Es fehlt noch etwas"));
 
-        Register(TranslationKeys.SetupStatusDraft,
-            new TextLocalizationTranslation(LanguageCodes.English, "Saved, will stay off"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gespeichert, bleibt aus"));
-
         Register(TranslationKeys.SetupStatusChargerConnected,
             new TextLocalizationTranslation(LanguageCodes.English, "Connected"),
             new TextLocalizationTranslation(LanguageCodes.German, "Verbunden"));

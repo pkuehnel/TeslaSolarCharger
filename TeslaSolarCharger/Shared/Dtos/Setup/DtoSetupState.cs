@@ -53,6 +53,13 @@ public class DtoSetupState
     public List<DtoSetupChargerDraft> ChargerDrafts { get; set; } = new();
 
     /// <summary>
+    /// Existing cars the user took out of this setup. Every car in setup is switched on when it finishes, so taking
+    /// one out is the way to leave it as it is - and it has to stay out when the car list is read again, for example
+    /// after importing the cars of a Tesla account.
+    /// </summary>
+    public List<int> RemovedCarIds { get; set; } = new();
+
+    /// <summary>
     /// Provenance per base configuration property name. A property recorded as UserEntered is never replaced by a
     /// proposed value, which is what keeps an existing installation's explicit choices.
     /// </summary>

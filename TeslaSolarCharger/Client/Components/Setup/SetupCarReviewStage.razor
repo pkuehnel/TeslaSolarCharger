@@ -71,13 +71,6 @@
     </MudAlert>
 }
 
-<div class="p-3 rounded border">
-    <MudSwitch T="bool" Value="Draft.ShouldBeActivated" ValueChanged="OnShouldBeActivatedChanged"
-               Color="Color.Primary"
-               Label="@T(TranslationKeys.SetupCarActivateLabel)" />
-    <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupCarActivateHint)</MudText>
-</div>
-
 @code {
     [CascadingParameter] public SetupContext Context { get; set; } = default!;
     [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
@@ -141,13 +134,6 @@
         await Context.RefreshDecision();
     }
 
-    private async Task OnShouldBeActivatedChanged(bool value)
-    {
-        Draft.ShouldBeActivated = value;
-        await Context.Save();
-        await Context.RefreshDecision();
-    }
-
     private string ConnectorName(int connectorId) =>
         _connectors?.FirstOrDefault(c => c.Id == connectorId)?.Name ?? connectorId.ToString();
 
@@ -159,8 +145,8 @@
     {
         SetupActivationStatus.Active => TranslationKeys.SetupCarReviewActivationActive,
         SetupActivationStatus.ReadyForActivation => TranslationKeys.SetupCarReviewActivationReady,
-        SetupActivationStatus.Blocked => TranslationKeys.SetupCarReviewActivationBlocked,
-        _ => TranslationKeys.SetupCarReviewActivationDraft,
+        //Every car in setup starts when setup finishes, so the only other answer is that it cannot start yet.
+        _ => TranslationKeys.SetupCarReviewActivationBlocked,
     };
 
     private string ConnectionCheckKey => Draft.ConnectionCheckState switch

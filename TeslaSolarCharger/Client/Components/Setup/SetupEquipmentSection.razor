@@ -246,12 +246,18 @@
         Context.Navigate(SetupSections.Charger, draft.DraftId, draft.Stage.ToString());
 
     /// <summary>
-    /// Takes a car out of this setup. The car itself is left alone: it was never switched on by setup, and deleting
+    /// Takes a car out of this setup. The car itself is left alone: it is neither switched on nor off, and deleting
     /// someone's car with its whole charging history is not something a wizard should do behind a small button.
+    /// A car that already has a row is remembered, so reading the car list again does not bring it back.
     /// </summary>
     private async Task RemoveDraft(DtoSetupCarDraft draft)
     {
         Context.State.CarDrafts.Remove(draft);
+        if (draft.CarId != null && !Context.State.RemovedCarIds.Contains(draft.CarId.Value))
+        {
+            Context.State.RemovedCarIds.Add(draft.CarId.Value);
+        }
+
         await Context.Save();
         await Context.RefreshDecision();
     }
@@ -314,16 +320,7 @@
         NavigationManager.NavigateTo(url);
     }
 
-    private string DisplayName(DtoSetupCarDraft draft)
-    {
-        if (!string.IsNullOrWhiteSpace(draft.Configuration.Name))
-        {
-            return draft.Configuration.Name;
-        }
-
-        var makeAndModel = $"{draft.Make} {draft.Model}".Trim();
-        return string.IsNullOrWhiteSpace(makeAndModel) ? T(TranslationKeys.SetupEquipmentUnnamedCar) : makeAndModel;
-    }
+    private string DisplayName(DtoSetupCarDraft draft) => draft.GetDisplayName() ?? T(TranslationKeys.SetupEquipmentUnnamedCar);
 
     private string ChargerDisplayName(DtoSetupChargerDraft draft) =>
         !string.IsNullOrWhiteSpace(draft.DisplayName) ? draft.DisplayName
@@ -337,8 +334,8 @@
         {
             SetupActivationStatus.Active => (TranslationKeys.SetupStatusActive, Color.Success),
             SetupActivationStatus.ReadyForActivation => (TranslationKeys.SetupStatusReady, Color.Info),
-            SetupActivationStatus.Blocked => (TranslationKeys.SetupStatusNeedsAttention, Color.Warning),
-            _ => (TranslationKeys.SetupStatusDraft, Color.Default),
+            //Every car in setup is switched on when it finishes, so anything else still needs something from the user.
+            _ => (TranslationKeys.SetupStatusNeedsAttention, Color.Warning),
         };
         return @<MudChip T="string" Size="Size.Small" Color="@color" Variant="Variant.Text">@T(labelKey)</MudChip>;
     }

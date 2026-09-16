@@ -317,14 +317,9 @@ public class SetupDecisionService(
         //it as a draft would invite the user to "activate" equipment that is already running. Read from the flag
         //recorded when the draft was created: a new car's configuration says "should be managed" from the moment it
         //is constructed, so asking it would call every car the user adds an already running one.
-        if (draft.WasManagedBeforeSetup && draft.ShouldBeActivated)
+        if (draft.WasManagedBeforeSetup)
         {
             return SetupActivationStatus.Active;
-        }
-
-        if (!draft.ShouldBeActivated)
-        {
-            return SetupActivationStatus.Draft;
         }
 
         return blockers.Count == 0 ? SetupActivationStatus.ReadyForActivation : SetupActivationStatus.Blocked;
@@ -430,11 +425,7 @@ public class SetupDecisionService(
                 DeviceId = draft.ConnectorId,
                 DisplayName = draft.ChargepointId,
                 ConfigurationStatus = isKnown ? SetupCompletionStatus.Complete : SetupCompletionStatus.InProgress,
-                ActivationStatus = !draft.ShouldBeActivated
-                    ? SetupActivationStatus.Draft
-                    : isKnown
-                        ? SetupActivationStatus.ReadyForActivation
-                        : SetupActivationStatus.Blocked,
+                ActivationStatus = isKnown ? SetupActivationStatus.ReadyForActivation : SetupActivationStatus.Blocked,
                 ConnectionCheckState = draft.ConnectionCheckState,
                 ActivationBlockers = blockers,
             };
@@ -543,23 +534,10 @@ public class SetupDecisionService(
 
     private static IEnumerable<DtoSetupProposedValue> BuildCarProposals(DtoSetupState state)
     {
-        for (var index = 0; index < state.CarDrafts.Count; index++)
+        //The charging priority is not proposed: it is not a choice setup offers, so the car is given the next place
+        //when it is saved.
+        foreach (var draft in state.CarDrafts)
         {
-            var draft = state.CarDrafts[index];
-
-            //A priority of zero is not a valid order, it is the value an untouched car starts with. Filling it in
-            //order means a beginner never has to meet the concept at all.
-            if (draft.Configuration.ChargingPriority <= 0)
-            {
-                yield return new DtoSetupProposedValue
-                {
-                    PropertyName = nameof(CarBasicConfiguration.ChargingPriority),
-                    Value = index + 1,
-                    ReasonKey = TranslationKeys.SetupReasonCarChargingPriority,
-                    DraftId = draft.DraftId,
-                };
-            }
-
             //How the app can tell this car is at home follows from how it reaches the car. Asking the user to line
             //the two up themselves is exactly the knowledge they do not have, and getting it wrong is a
             //combination the car validator refuses - which used to surface only as a failure at the very end.

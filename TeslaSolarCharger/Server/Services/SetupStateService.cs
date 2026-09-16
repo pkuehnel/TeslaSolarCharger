@@ -110,7 +110,10 @@ public class SetupStateService(
             }
         }
 
-        foreach (var car in existingCars.Where(c => setupState.CarDrafts.All(d => d.CarId != c.Id)))
+        //A car the user took out of setup stays out. Finishing switches on every car in setup, so bringing it back
+        //would switch on the one car the user asked to leave alone.
+        foreach (var car in existingCars.Where(c => setupState.CarDrafts.All(d => d.CarId != c.Id)
+                                                    && !setupState.RemovedCarIds.Contains(c.Id)))
         {
             setupState.CarDrafts.Add(await CreateDraftWithAssignments(car).ConfigureAwait(false));
         }
@@ -228,9 +231,6 @@ public class SetupStateService(
             Configuration = car,
             //Read from the database, which is the only place that knows whether this car is actually charging today.
             WasManagedBeforeSetup = car.ShouldBeManaged,
-            //A car that is already managed is part of a working installation. Setup must be able to describe it
-            //without implying it is about to be switched on for the first time.
-            ShouldBeActivated = car.ShouldBeManaged,
             ConnectionRoute = route,
             //A car that arrived with a known name and identification number has nothing left to identify, so start
             //it where there is actually something to do.

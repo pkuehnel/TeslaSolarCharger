@@ -84,24 +84,9 @@ else
 
     private int StageNumber => Array.IndexOf(StageOrder, Stage) + 1;
 
-    private string DisplayName
-    {
-        get
-        {
-            if (Draft == null)
-            {
-                return string.Empty;
-            }
-
-            if (!string.IsNullOrWhiteSpace(Draft.Configuration.Name))
-            {
-                return Draft.Configuration.Name;
-            }
-
-            var makeAndModel = $"{Draft.Make} {Draft.Model}".Trim();
-            return string.IsNullOrWhiteSpace(makeAndModel) ? T(TranslationKeys.SetupEquipmentUnnamedCar) : makeAndModel;
-        }
-    }
+    private string DisplayName => Draft == null
+        ? string.Empty
+        : Draft.GetDisplayName() ?? T(TranslationKeys.SetupEquipmentUnnamedCar);
 
     private string StageTitleKey => Stage switch
     {

@@ -309,6 +309,22 @@ public class SetupDecisionServiceTests
     }
 
     [Fact]
+    public async Task ChargingStationThatHasReportedIn_IsReadyToBeSwitchedOn()
+    {
+        //There is no way left to keep a charger in setup switched off, so a connected one is simply ready.
+        var state = CompleteState();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ConnectorId = 3, ChargepointId = "CP1", });
+        var capabilities = FullyCapable();
+        capabilities.KnownChargingStationConnectorIds = new List<int> { 3, };
+
+        var decision = await NewService(capabilities).Evaluate(state);
+
+        var connectorStatus = decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.ChargingStationConnector);
+        Assert.Equal(SetupActivationStatus.ReadyForActivation, connectorStatus.ActivationStatus);
+        Assert.Empty(connectorStatus.ActivationBlockers);
+    }
+
+    [Fact]
     public async Task ChargingStationThatHasNotReportedIn_IsReportedAndBlocksActivation()
     {
         var state = CompleteState();
@@ -485,20 +501,6 @@ public class SetupDecisionServiceTests
     }
 
     [Fact]
-    public async Task ConfiguredCarTheUserDoesNotWantActivated_StaysADraft()
-    {
-        var state = CompleteState();
-        state.CarDrafts[0].Configuration.ShouldBeManaged = false;
-        state.CarDrafts[0].ShouldBeActivated = false;
-
-        var decision = await NewService(FullyCapable()).Evaluate(state);
-
-        var carStatus = decision.DeviceStatuses.Single(d => d.DeviceKind == SetupDeviceKind.Car);
-        Assert.Equal(SetupActivationStatus.Draft, carStatus.ActivationStatus);
-        Assert.Equal(SetupCompletionStatus.Complete, carStatus.ConfigurationStatus);
-    }
-
-    [Fact]
     public async Task FullyConfiguredCarWaitingToBeSwitchedOn_IsReadyForActivation()
     {
         var state = CompleteState();
@@ -620,8 +622,10 @@ public class SetupDecisionServiceTests
     }
 
     [Fact]
-    public async Task CarWithoutAnOrder_GetsOneWithoutAskingTheUserForANumber()
+    public async Task CarWithoutAnOrder_IsNotOfferedAnOrderTheUserCouldDecline()
     {
+        //The order is not a choice setup offers any more. A recommendation can be unticked, and a car left without a
+        //place cannot be switched on, so it is given one when it is saved instead.
         var state = CompleteState();
         state.CarDrafts[0].Configuration.ChargingPriority = 0;
         state.CarDrafts.Add(ValidCarDraft());
@@ -629,11 +633,7 @@ public class SetupDecisionServiceTests
 
         var decision = await NewService(FullyCapable()).Evaluate(state);
 
-        var priorities = decision.ProposedValues
-            .Where(p => p.PropertyName == nameof(CarBasicConfiguration.ChargingPriority))
-            .Select(p => p.Value)
-            .ToList();
-        Assert.Equal(new object?[] { 1, 2, }, priorities);
+        Assert.DoesNotContain(decision.ProposedValues, p => p.PropertyName == nameof(CarBasicConfiguration.ChargingPriority));
     }
 
     [Fact]
@@ -789,7 +789,7 @@ public class SetupDecisionServiceTests
         var state = CompleteState();
         state.ChargerDrafts.Add(new DtoSetupChargerDraft
         {
-            ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = null, ShouldBeActivated = true,
+            ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = null,
         });
 
         var decision = await NewService(FullyCapable()).Evaluate(state);

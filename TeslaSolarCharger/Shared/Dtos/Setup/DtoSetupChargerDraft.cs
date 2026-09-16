@@ -4,8 +4,8 @@ namespace TeslaSolarCharger.Shared.Dtos.Setup;
 
 /// <summary>
 /// A charging station connector being configured in the setup assistant. A charging station connects itself over
-/// OCPP, so unlike a car draft this always references an existing connector; the draft only holds the answers and
-/// the activation wish until the configuration is applied.
+/// OCPP, so unlike a car draft this always references an existing connector; the draft only holds the answers until
+/// setup finishes and switches the connector on.
 /// </summary>
 public class DtoSetupChargerDraft
 {
@@ -24,8 +24,6 @@ public class DtoSetupChargerDraft
 
     /// <summary>What the user calls this charger. Only for telling several chargers apart on screen.</summary>
     public string? DisplayName { get; set; }
-
-    public bool ShouldBeActivated { get; set; } = true;
 
     /// <summary>Draft ids of the cars allowed on this connector, including cars without a database row yet.</summary>
     public List<Guid> AllowedCarDraftIds { get; set; } = new();
