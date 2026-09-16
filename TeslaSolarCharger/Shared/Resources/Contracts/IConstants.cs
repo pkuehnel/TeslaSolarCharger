@@ -82,6 +82,9 @@ public interface IConstants
     string QueryParamSmartCarAdded { get; }
     string QueryParamTeslaConnected { get; }
 
+    /// <summary>Where the base licence and the per-car subscriptions are booked.</summary>
+    string SubscriptionsUrl { get; }
+
     int DefaultHoldHomeBatteryChargeSocBuffer { get; }
     int DefaultChargeHomeBatterySocBuffer { get; }
 }

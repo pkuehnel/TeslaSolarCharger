@@ -248,6 +248,10 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "an estimate from how much was charged"),
             new TextLocalizationTranslation(LanguageCodes.German, "einer Schätzung aus der geladenen Energie"));
 
+        Register(TranslationKeys.SetupRouteBatteryEstimatedOrManual,
+            new TextLocalizationTranslation(LanguageCodes.English, "an estimate from how much was charged, or what you enter yourself"),
+            new TextLocalizationTranslation(LanguageCodes.German, "einer Schätzung aus der geladenen Energie oder Ihrer eigenen Eingabe"));
+
         Register(TranslationKeys.SetupRouteSubscriptionNone,
             new TextLocalizationTranslation(LanguageCodes.English, "none beyond the base licence"),
             new TextLocalizationTranslation(LanguageCodes.German, "keines über die Basis-Lizenz hinaus"));
@@ -255,6 +259,10 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupRouteSubscriptionRequired,
             new TextLocalizationTranslation(LanguageCodes.English, "yes, one subscription for this car"),
             new TextLocalizationTranslation(LanguageCodes.German, "ja, ein Abonnement für dieses Auto"));
+
+        Register(TranslationKeys.SetupRouteSubscriptionsLink,
+            new TextLocalizationTranslation(LanguageCodes.English, "See subscriptions and prices"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Abonnements und Preise ansehen"));
 
         Register(TranslationKeys.SetupRouteNotDecidedYet,
             new TextLocalizationTranslation(LanguageCodes.English, "not decided yet"),

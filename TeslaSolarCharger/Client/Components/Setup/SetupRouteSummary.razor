@@ -18,8 +18,11 @@
 @code {
     [Parameter, EditorRequired] public SetupCarConnectionRoute Route { get; set; }
 
-    /// <summary>Whether the user chose to type the battery level in rather than connect a data service.</summary>
-    [Parameter] public bool EntersBatteryLevelManually { get; set; }
+    /// <summary>
+    /// Whether the user chose to type the battery level in rather than have it estimated. Null where nobody has been
+    /// asked, such as an overview of all routes, so both ways are named instead of one being picked for the user.
+    /// </summary>
+    [Parameter] public bool? EntersBatteryLevelManually { get; set; }
 
     [Parameter] public string? Class { get; set; }
 
@@ -38,20 +41,20 @@
         SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupRouteBatteryTeslaAccount,
         //SmartCar supplies the vehicle data on this route; it does not replace the charging station.
         SetupCarConnectionRoute.SmartCarWithChargingStation => TranslationKeys.SetupRouteBatterySmartCar,
-        SetupCarConnectionRoute.ChargingStationOnly => EntersBatteryLevelManually
-            ? TranslationKeys.SetupRouteBatteryManual
-            : TranslationKeys.SetupRouteBatteryEstimated,
+        SetupCarConnectionRoute.ChargingStationOnly => EntersBatteryLevelManually switch
+        {
+            true => TranslationKeys.SetupRouteBatteryManual,
+            false => TranslationKeys.SetupRouteBatteryEstimated,
+            null => TranslationKeys.SetupRouteBatteryEstimatedOrManual,
+        },
         _ => TranslationKeys.SetupRouteNotDecidedYet,
     };
 
-    private string SubscriptionKey => Route switch
-    {
-        SetupCarConnectionRoute.TeslaBluetooth => TranslationKeys.SetupRouteSubscriptionNone,
-        SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupRouteSubscriptionRequired,
-        SetupCarConnectionRoute.SmartCarWithChargingStation => TranslationKeys.SetupRouteSubscriptionRequired,
-        SetupCarConnectionRoute.ChargingStationOnly => TranslationKeys.SetupRouteSubscriptionNone,
-        _ => TranslationKeys.SetupRouteNotDecidedYet,
-    };
+    private string SubscriptionKey => !SetupCarConnectionRoutes.IsDecided(Route)
+        ? TranslationKeys.SetupRouteNotDecidedYet
+        : SetupCarConnectionRoutes.RequiresSubscription(Route)
+            ? TranslationKeys.SetupRouteSubscriptionRequired
+            : TranslationKeys.SetupRouteSubscriptionNone;
 
     private RenderFragment SummaryLine(string label, string value) =>
         @<div class="d-flex flex-wrap" style="gap: 6px;">

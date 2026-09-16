@@ -1,0 +1,47 @@
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
+
+@* Everything a user needs to compare one way of reaching a car with another: what it is, how it works, what differs
+   and what else it takes. The setup assistant offers these as answers, the car settings page lists them as an
+   overview, and both have to say exactly the same thing. *@
+<MudText Typo="Typo.subtitle1">@T(SetupCarConnectionRoutes.NameKey(Route))</MudText>
+@if (SetupCarConnectionRoutes.DescriptionKey(Route) is { } descriptionKey)
+{
+    <MudText Typo="Typo.body2" Class="mb-2">@T(descriptionKey)</MudText>
+}
+<SetupRouteSummary Route="Route" EntersBatteryLevelManually="EntersBatteryLevelManually" />
+@if (SetupCarConnectionRoutes.RequirementKey(Route) is { } requirementKey)
+{
+    @* What else the user has to have or buy, said before they choose and not after. *@
+    <MudText Typo="Typo.caption" Class="d-block mt-2">@T(requirementKey)</MudText>
+}
+@if (ShowSubscriptionLink && SetupCarConnectionRoutes.RequiresSubscription(Route))
+{
+    <MudLink Href="@Constants.SubscriptionsUrl" Target="_blank" Typo="Typo.caption" Class="d-block mt-1">
+        @T(TranslationKeys.SetupRouteSubscriptionsLink)
+    </MudLink>
+}
+
+@code {
+    [Parameter, EditorRequired] public SetupCarConnectionRoute Route { get; set; }
+
+    /// <summary>See <see cref="SetupRouteSummary.EntersBatteryLevelManually"/>.</summary>
+    [Parameter] public bool? EntersBatteryLevelManually { get; set; }
+
+    /// <summary>
+    /// Whether a paid route links to where the subscription is booked. Off where the details sit on a card that is
+    /// itself a choice, because following the link would also choose the route.
+    /// </summary>
+    [Parameter] public bool ShowSubscriptionLink { get; set; }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

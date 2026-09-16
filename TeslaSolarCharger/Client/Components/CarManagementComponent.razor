@@ -21,14 +21,6 @@
 @inject IOAuthNotificationService OAuthNotificationService
 @inject IDialogService DialogService
 
-@if (ShowControlCapabilityInfo)
-{
-    <div class="mb-3">
-        <CarControlCapabilityComponent Class="mt-3" />
-    </div>
-}
-
-
 <MudOverlay Visible="@(_deletionProgress != null)" DarkBackground="true" ZIndex="9999">
     @if (_deletionProgress != null)
     {
@@ -51,6 +43,13 @@
 }
 else
 {
+    @if (ShowControlCapabilityInfo)
+    {
+        @* Rendered only once the cars are known: a user who has none yet is still choosing how to connect one and
+           gets the explanation open, everybody else gets their cars first. *@
+        <CarControlCapabilityComponent Class="mt-3 mb-3" InitiallyExpanded="@(_carBasicConfigurations.Count == 0)" />
+    }
+
     <RightAlignedButtonComponent ButtonText='@T(TranslationKeys.CarSettingsAddCarButton)'
                                  StartIcon="@Icons.Material.Filled.Add"
                                  OnButtonClicked="OpenAddCarWizard"></RightAlignedButtonComponent>
