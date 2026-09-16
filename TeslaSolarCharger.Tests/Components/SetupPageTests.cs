@@ -61,7 +61,7 @@ public class SetupPageTests : Bunit.TestContext
 
     //An installation the server considers fully described. Finishing switches equipment on, so the button is only
     //offered once the server says everything required is there - tests that need it blocked say so explicitly.
-    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, };
+    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, CanFinishSetup = true, };
 
     public SetupPageTests()
     {
@@ -682,21 +682,22 @@ public class SetupPageTests : Bunit.TestContext
     }
 
     [Fact]
-    public void FinishingIsNotOfferedWhileSomethingIsStillMissing()
+    public void FinishingIsNotOfferedWhileTheInstallationStillMissesSomething()
     {
-        //The button used to be live whenever the page was not busy, so a car with no capacity or phases could be
-        //switched on and setup marked finished around it.
+        //The button used to be live whenever the page was not busy, so setup could be marked finished around an
+        //installation nobody had described.
         _storedState = new DtoSetupState();
         _decision = new DtoSetupDecision
         {
             IsConfigurationComplete = false,
+            CanFinishSetup = false,
             MissingInformation =
             {
                 new DtoSetupIssue
                 {
                     Severity = SetupIssueSeverity.MissingInformation,
-                    MessageKey = TranslationKeys.SetupIssueCarUsableEnergyUnknown,
-                    StepKey = SetupStepKey.CarsAndCharging,
+                    MessageKey = TranslationKeys.SetupIssueGridPriceMissing,
+                    StepKey = SetupStepKey.Prices,
                 },
             },
         };
@@ -706,6 +707,35 @@ public class SetupPageTests : Bunit.TestContext
         Assert.True(ButtonWithText(page, "Finish Setup").HasAttribute("disabled"));
         //Saving without enabling changes nothing about how cars charge, so it stays available.
         Assert.False(ButtonWithText(page, "Save and enable later").HasAttribute("disabled"));
+        //Promising otherwise next to a disabled button is what left the user stuck.
+        Assert.DoesNotContain("You can finish anyway", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ACarThatIsNotSetUpYetDoesNotStopFinishing()
+    {
+        //Three imported cars without a control route used to disable the button for good, while the screen said
+        //finishing was possible anyway.
+        _storedState = new DtoSetupState();
+        _decision = new DtoSetupDecision
+        {
+            IsConfigurationComplete = false,
+            CanFinishSetup = true,
+            MissingInformation =
+            {
+                new DtoSetupIssue
+                {
+                    Severity = SetupIssueSeverity.MissingInformation,
+                    MessageKey = TranslationKeys.SetupIssueCarConnectionRouteUndecided,
+                    StepKey = SetupStepKey.CarsAndCharging,
+                },
+            },
+        };
+
+        var page = RenderAt(SetupSections.Finish);
+
+        Assert.False(ButtonWithText(page, "Finish Setup").HasAttribute("disabled"));
+        Assert.Contains("You can finish anyway", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

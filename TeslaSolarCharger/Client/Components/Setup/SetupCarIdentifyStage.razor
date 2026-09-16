@@ -78,9 +78,7 @@
         //As soon as the car can be told apart from any other, give it a row of its own. Everything that follows -
         //a connection test, a charging deadline - needs something real to attach to, and the row is created
         //switched off so this never starts anything charging.
-        if (Draft.CarId == null
-            && !string.IsNullOrWhiteSpace(Draft.Configuration.Name)
-            && !string.IsNullOrWhiteSpace(Draft.Configuration.Vin))
+        if (Draft.CarId == null && Draft.CanBeStored())
         {
             await Context.SaveCarDraft(Draft);
         }

@@ -178,10 +178,11 @@
     private bool _isInitialized;
 
     /// <summary>
-    /// Whether finishing would switch on equipment that is actually ready. The server decides what "complete"
-    /// means and reports it; the button only reflects that answer, so the two can never disagree.
+    /// Whether everything the installation depends on is answered. Equipment that is not set up yet does not hold
+    /// finishing back; it stays switched off. The server decides this and reports it; the button only reflects that
+    /// answer, so the two can never disagree.
     /// </summary>
-    private bool CanFinish => _context?.Decision?.IsConfigurationComplete == true;
+    private bool CanFinish => _context?.Decision?.CanFinishSetup == true;
 
 
     /// <summary>

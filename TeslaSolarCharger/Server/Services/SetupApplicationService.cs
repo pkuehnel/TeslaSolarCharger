@@ -53,7 +53,7 @@ public class SetupApplicationService(
         //stale tab, a retried request or anything else posting this state must not be able to switch equipment on
         //that the app itself reports as not ready.
         var decision = await setupDecisionService.Evaluate(setupState).ConfigureAwait(false);
-        if (!decision.IsConfigurationComplete)
+        if (!decision.CanFinishSetup)
         {
             result.Operations.Add(new DtoSetupOperationResult
             {
@@ -61,6 +61,7 @@ public class SetupApplicationService(
                 IsSuccess = false,
                 ErrorMessage = "Setup is not ready to be finished yet: "
                                + string.Join(", ", decision.MissingInformation.Concat(decision.Incompatibilities)
+                                   .Where(i => i.StepKey != SetupStepKey.CarsAndCharging)
                                    .Select(i => i.MessageKey).Distinct()),
                 //Something to answer, not something to try again unchanged.
                 IsRetryable = false,
@@ -76,18 +77,20 @@ public class SetupApplicationService(
             return result;
         }
 
-        //Every car still in setup is switched on. A car the user does not want controlled is taken out of setup
-        //instead, which leaves it exactly as it was.
-        foreach (var draft in setupState.CarDrafts)
+        //Every car in setup that is ready is switched on. One that still misses something stays as it is: the finish
+        //screen lists it as not controlled yet, and it can be set up later. A car the user does not want controlled
+        //is taken out of setup instead, which leaves it exactly as it was too.
+        var carDraftsToActivate = setupState.CarDrafts.Where(d => IsReadyToSwitchOn(decision, d.DraftId)).ToList();
+        foreach (var draft in carDraftsToActivate)
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateCar, draft.DraftId,
                 () => ActivateCar(draft), CarContent(draft)).ConfigureAwait(false);
         }
 
-        //Deliberately not filtered by "has a connector": a charger in setup that never picked one has to be reported
-        //as a failure. Skipping it quietly used to leave setup marked finished around a charger the user believes is
-        //running.
-        foreach (var draft in setupState.ChargerDrafts)
+        //Filtered by what the readiness checks report, not by "has a connector": a charger reported ready that turns
+        //out to have none is still a failure rather than something to skip quietly.
+        var chargerDraftsToActivate = setupState.ChargerDrafts.Where(d => IsReadyToSwitchOn(decision, d.DraftId)).ToList();
+        foreach (var draft in chargerDraftsToActivate)
         {
             await RunOperation(setupState, result, SetupOperationKey.ActivateChargingStationConnector, draft.DraftId,
                 () => ActivateChargingStationConnector(draft),
@@ -110,10 +113,17 @@ public class SetupApplicationService(
         //Only now is it true that setup finished. Clearing the state any earlier would lose the answers that a
         //failed save still needs.
         result.IsSetupCompleted = true;
-        await RecordOutstandingChargingTests(setupState).ConfigureAwait(false);
+        await RecordOutstandingChargingTests(carDraftsToActivate, chargerDraftsToActivate).ConfigureAwait(false);
         await setupStateService.DeleteSetupState().ConfigureAwait(false);
         return result;
     }
+
+    /// <summary>
+    /// Whether the readiness checks report this device as having nothing left to answer. A device they say nothing
+    /// about is not switched on: finishing only ever starts what the app itself calls ready.
+    /// </summary>
+    private static bool IsReadyToSwitchOn(DtoSetupDecision decision, Guid draftId) =>
+        decision.DeviceStatuses.FirstOrDefault(s => s.DraftId == draftId) is { ActivationBlockers.Count: 0, };
 
     public async Task<DtoSetupApplicationResult> SaveCarDraft(DtoSetupState setupState, Guid draftId)
     {
@@ -177,15 +187,16 @@ public class SetupApplicationService(
     /// Kept outside the setup state so finishing does not erase it, and left to resolve itself the first time the
     /// equipment really charges rather than asking the user to run a test on the spot.
     /// </summary>
-    private async Task RecordOutstandingChargingTests(DtoSetupState setupState)
+    private async Task RecordOutstandingChargingTests(IEnumerable<DtoSetupCarDraft> activatedCarDrafts,
+        IEnumerable<DtoSetupChargerDraft> activatedChargerDrafts)
     {
-        foreach (var draft in setupState.CarDrafts.Where(d => d.CarId != null))
+        foreach (var draft in activatedCarDrafts.Where(d => d.CarId != null))
         {
             await AddChargingTest(SetupDeviceKind.Car, draft.CarId!.Value, draft.Configuration.Name,
                 DescribeCarSetup(draft)).ConfigureAwait(false);
         }
 
-        foreach (var draft in setupState.ChargerDrafts.Where(d => d.ConnectorId != null))
+        foreach (var draft in activatedChargerDrafts.Where(d => d.ConnectorId != null))
         {
             await AddChargingTest(SetupDeviceKind.ChargingStationConnector, draft.ConnectorId!.Value,
                 draft.DisplayName ?? draft.ChargepointId, draft.ChargepointId).ConfigureAwait(false);
@@ -243,7 +254,9 @@ public class SetupApplicationService(
             () => SaveChargePrice(setupState),
             new { setupState.ChargePrice, setupState.FixedPrices, setupState.ElectricityPriceKind, }).ConfigureAwait(false);
 
-        foreach (var draft in setupState.CarDrafts)
+        //A car added but never identified has nothing to be written as. Now that finishing no longer waits for every
+        //car, saving it anyway would leave a nameless car behind.
+        foreach (var draft in setupState.CarDrafts.Where(d => d.CanBeStored()))
         {
             await RunOperation(setupState, result, SetupOperationKey.SaveCarDraft, draft.DraftId,
                 () => SaveCarDraft(draft), CarContent(draft)).ConfigureAwait(false);

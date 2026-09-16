@@ -85,6 +85,14 @@ public class DtoSetupCarDraft
     /// What to call this car on screen: its name, otherwise its make. Null when neither is known yet, so the caller
     /// can say "unnamed car" in the user's language.
     /// </summary>
+    /// <summary>
+    /// Whether this car may be written to the database. A car gets its own row only once it can be told apart from
+    /// any other; before that, saving would create a nameless car that no later save can find again.
+    /// </summary>
+    public bool CanBeStored() =>
+        CarId != null
+        || (!string.IsNullOrWhiteSpace(Configuration.Name) && !string.IsNullOrWhiteSpace(Configuration.Vin));
+
     public string? GetDisplayName()
     {
         if (!string.IsNullOrWhiteSpace(Configuration.Name))

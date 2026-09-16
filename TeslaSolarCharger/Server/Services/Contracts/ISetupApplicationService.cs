@@ -12,8 +12,9 @@ public interface ISetupApplicationService
     Task<DtoSetupApplicationResult> ApplyConfiguration(DtoSetupState setupState);
 
     /// <summary>
-    /// Applies the configuration, then activates the equipment the user asked for and marks setup finished. Setup is
-    /// only marked complete, and its state only cleared, once every required save has actually succeeded.
+    /// Applies the configuration, then activates every piece of equipment that is ready and marks setup finished.
+    /// Equipment that still misses something is left switched off. Setup is only marked complete, and its state only
+    /// cleared, once every required save has actually succeeded.
     /// </summary>
     Task<DtoSetupApplicationResult> ActivateAndCompleteSetup(DtoSetupState setupState);
 

@@ -85,6 +85,77 @@ public class SetupDecisionServiceTests
     }
 
     [Fact]
+    public async Task CompleteState_CanBeFinished()
+    {
+        var decision = await NewService(FullyCapable()).Evaluate(CompleteState());
+
+        Assert.True(decision.CanFinishSetup);
+    }
+
+    [Fact]
+    public async Task ImportedCarsNobodySetUp_DoNotStopSetupFromBeingFinished()
+    {
+        //The installation a user was trapped in: every installation wide answer given, one car ready and three
+        //imported Teslas whose control route was never chosen.
+        var state = CompleteState();
+        state.CarDrafts.Add(new DtoSetupCarDraft { CarId = 8, Configuration = new CarBasicConfiguration { Id = 8, Name = "Imported", Vin = "VIN8", }, });
+        state.CarDrafts.Add(new DtoSetupCarDraft { CarId = 9, Configuration = new CarBasicConfiguration { Id = 9, Name = "Imported 2", Vin = "VIN9", }, });
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.False(decision.IsConfigurationComplete);
+        Assert.True(decision.CanFinishSetup);
+    }
+
+    [Fact]
+    public async Task AChargerThatNeverConnected_DoesNotStopSetupFromBeingFinished()
+    {
+        var state = CompleteState();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ChargepointId = "CP1", });
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.False(decision.IsConfigurationComplete);
+        Assert.True(decision.CanFinishSetup);
+    }
+
+    [Fact]
+    public async Task NoEquipmentAtAll_DoesNotStopSetupFromBeingFinished()
+    {
+        var state = CompleteState();
+        state.CarDrafts.Clear();
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.Contains(decision.MissingInformation, i => i.MessageKey == TranslationKeys.SetupIssueNoEquipmentConfigured);
+        Assert.True(decision.CanFinishSetup);
+    }
+
+    [Fact]
+    public async Task MissingInstallationWideAnswer_StillStopsSetupFromBeingFinished()
+    {
+        var capabilities = FullyCapable();
+        capabilities.HasGridPowerSource = false;
+        var state = CompleteState();
+        state.CarDrafts.Add(new DtoSetupCarDraft { CarId = 8, });
+
+        var decision = await NewService(capabilities).Evaluate(state);
+
+        Assert.False(decision.CanFinishSetup);
+    }
+
+    [Fact]
+    public async Task MissingPrice_StillStopsSetupFromBeingFinished()
+    {
+        var state = CompleteState();
+        state.ChargePrice = null;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.False(decision.CanFinishSetup);
+    }
+
+    [Fact]
     public async Task EveryStepIsReported_SoAScreenCanRenderTheWholeRoute()
     {
         var decision = await NewService(FullyCapable()).Evaluate(CompleteState());

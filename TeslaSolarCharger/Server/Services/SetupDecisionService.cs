@@ -54,9 +54,11 @@ public class SetupDecisionService(
         //Welcome and Finish carry no configuration: one is read and moved past, the other is the act of finishing
         //itself. Counting them would make an installation that is fully described look incomplete right up to the
         //moment it is finished.
-        decision.IsConfigurationComplete = decision.Steps
-            .Where(s => s.IsApplicable && IsConfigurationStep(s.StepKey))
-            .All(s => s.Status is SetupCompletionStatus.Complete or SetupCompletionStatus.NotApplicable);
+        decision.IsConfigurationComplete = AreComplete(decision.Steps.Where(s => IsConfigurationStep(s.StepKey)));
+        //Equipment is left out: finishing switches on only what is ready and leaves the rest off, so an imported car
+        //nobody has set up yet must not trap the user in the assistant.
+        decision.CanFinishSetup = AreComplete(decision.Steps
+            .Where(s => IsConfigurationStep(s.StepKey) && s.StepKey != SetupStepKey.CarsAndCharging));
 
         decision.NextAction = BuildNextAction(decision);
         return decision;
@@ -64,6 +66,10 @@ public class SetupDecisionService(
 
     private static bool IsConfigurationStep(SetupStepKey stepKey) =>
         stepKey is not (SetupStepKey.Welcome or SetupStepKey.Finish);
+
+    private static bool AreComplete(IEnumerable<DtoSetupStepStatus> steps) =>
+        steps.Where(s => s.IsApplicable)
+            .All(s => s.Status is SetupCompletionStatus.Complete or SetupCompletionStatus.NotApplicable);
 
     private DtoSetupStepStatus BuildStepStatus(SetupStepKey stepKey,
         DtoSetupState state,

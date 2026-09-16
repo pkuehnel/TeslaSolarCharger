@@ -35,7 +35,15 @@ public class SetupApplicationServiceTests : TestBase
     /// What the readiness checks make of the state. Finishing is held to this, so a test that wants it refused
     /// says so by making the configuration incomplete.
     /// </summary>
-    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, };
+    private DtoSetupDecision _decision = new() { IsConfigurationComplete = true, CanFinishSetup = true, };
+
+    /// <summary>
+    /// Drafts the readiness checks report as still missing something. Every other draft in the posted state is
+    /// reported ready, unless <see cref="_reportsDeviceStatuses"/> says the checks report no devices at all.
+    /// </summary>
+    private readonly HashSet<Guid> _incompleteDraftIds = new();
+
+    private bool _reportsDeviceStatuses = true;
 
     /// <summary>The configuration as it is on the installation right now, before the assistant writes anything.</summary>
     private DtoBaseConfiguration _liveConfiguration = new();
@@ -56,7 +64,8 @@ public class SetupApplicationServiceTests : TestBase
         : base(outputHelper)
     {
         _configurationWrapper.Setup(w => w.GetBaseConfigurationAsync()).ReturnsAsync(() => _liveConfiguration);
-        _setupDecisionService.Setup(s => s.Evaluate(It.IsAny<DtoSetupState>())).ReturnsAsync(() => _decision);
+        _setupDecisionService.Setup(s => s.Evaluate(It.IsAny<DtoSetupState>()))
+            .ReturnsAsync((DtoSetupState state) => DecisionFor(state));
         _baseConfigurationService
             .Setup(s => s.UpdateBaseConfigurationAsync(It.IsAny<DtoBaseConfiguration>()))
             .Callback<DtoBaseConfiguration>(c =>
@@ -82,6 +91,37 @@ public class SetupApplicationServiceTests : TestBase
             })
             .Returns(Task.CompletedTask);
     }
+
+    private DtoSetupDecision DecisionFor(DtoSetupState state)
+    {
+        var draftIds = state.CarDrafts.Select(d => d.DraftId).Concat(state.ChargerDrafts.Select(d => d.DraftId));
+        _decision.DeviceStatuses = !_reportsDeviceStatuses
+            ? new List<DtoSetupDeviceStatus>()
+            : draftIds.Select(draftId => new DtoSetupDeviceStatus
+            {
+                DraftId = draftId,
+                ActivationBlockers = _incompleteDraftIds.Contains(draftId)
+                    ? new List<DtoSetupIssue>
+                    {
+                        new() { MessageKey = "SetupIssueCarConnectionRouteUndecided", StepKey = SetupStepKey.CarsAndCharging, DraftId = draftId, },
+                    }
+                    : new List<DtoSetupIssue>(),
+            }).ToList();
+        return _decision;
+    }
+
+    /// <summary>A second car, already in the database but not running, in the shape an imported Tesla has.</summary>
+    private static DtoSetupCarDraft SecondCar() => new()
+    {
+        CarId = 6,
+        WasManagedBeforeSetup = false,
+        ConnectionRoute = SetupCarConnectionRoute.TeslaCloud,
+        Configuration = new CarBasicConfiguration
+        {
+            Id = 6, Name = "Second car", Vin = "VIN2", UsableEnergy = 60, MaximumPhases = 3,
+            MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 2, ShouldBeManaged = false,
+        },
+    };
 
     //The real validators, not mocks: what these tests have to prove is that a car cannot be switched on with
     //values the app itself rejects, and a mocked validator would agree to anything.
@@ -272,29 +312,134 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
-    public async Task FinishingSwitchesOnEveryCarInSetup()
+    public async Task FinishingSwitchesOnEveryReadyCarInSetup()
     {
         //There is no switch to leave a car off any more. A car the user does not want controlled is taken out of
-        //setup instead, so every car still in it - one that was already in the database but not running included -
-        //is switched on.
+        //setup instead, so every ready car still in it - one that was already in the database but not running
+        //included - is switched on.
         var state = StateWithOneCar();
-        state.CarDrafts.Add(new DtoSetupCarDraft
-        {
-            CarId = 6,
-            WasManagedBeforeSetup = false,
-            ConnectionRoute = SetupCarConnectionRoute.TeslaCloud,
-            Configuration = new CarBasicConfiguration
-            {
-                Id = 6, Name = "Second car", Vin = "VIN2", UsableEnergy = 60, MaximumPhases = 3,
-                MinimumAmpere = 6, MaximumAmpere = 16, ChargingPriority = 2, ShouldBeManaged = false,
-            },
-        });
+        state.CarDrafts.Add(SecondCar());
 
         var result = await NewService().ActivateAndCompleteSetup(state);
 
         Assert.True(result.IsSetupCompleted);
         var activated = _savedCarConfigurations.Where(c => c.ShouldBeManaged).Select(c => c.Id).ToList();
         Assert.Equal(new List<int> { 5, 6, }, activated);
+    }
+
+    [Fact]
+    public async Task ACarThatIsNotSetUpYetIsLeftOffAndDoesNotHoldFinishingBack()
+    {
+        //The trap this fixes: an imported car nobody chose a control route for disabled finishing for good.
+        _liveConfiguration = new DtoBaseConfiguration { IsFirstRun = true, };
+        _decision.IsConfigurationComplete = false;
+        var state = StateWithOneCar();
+        var incompleteCar = SecondCar();
+        incompleteCar.ConnectionRoute = SetupCarConnectionRoute.Undecided;
+        state.CarDrafts.Add(incompleteCar);
+        _incompleteDraftIds.Add(incompleteCar.DraftId);
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSetupCompleted);
+        Assert.False(_liveConfiguration.IsFirstRun);
+        //Its answers are still written, but only switched off.
+        Assert.All(_savedCarConfigurations.Where(c => c.Id == 6), c => Assert.False(c.ShouldBeManaged));
+        Assert.Contains(_savedCarConfigurations, c => c.Id == 6);
+        Assert.Equal(new List<int> { 5, }, _savedCarConfigurations.Where(c => c.ShouldBeManaged).Select(c => c.Id).ToList());
+        Assert.DoesNotContain(result.Operations, o => o.OperationKey == SetupOperationKey.ActivateCar && o.DraftId == incompleteCar.DraftId);
+        _setupStateService.Verify(s => s.DeleteSetupState(), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetupCanBeFinishedWhenNoCarIsReady()
+    {
+        _liveConfiguration = new DtoBaseConfiguration { IsFirstRun = true, };
+        var state = StateWithOneCar();
+        _incompleteDraftIds.Add(state.CarDrafts[0].DraftId);
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSetupCompleted);
+        Assert.False(_liveConfiguration.IsFirstRun);
+        Assert.All(_savedCarConfigurations, c => Assert.False(c.ShouldBeManaged));
+    }
+
+    [Fact]
+    public async Task ACarThatIsLeftOffGetsNoChargingTestNoted()
+    {
+        var state = StateWithOneCar();
+        var incompleteCar = SecondCar();
+        state.CarDrafts.Add(incompleteCar);
+        _incompleteDraftIds.Add(incompleteCar.DraftId);
+
+        await NewService().ActivateAndCompleteSetup(state);
+
+        //Nothing will charge it, so there is nothing to watch for.
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.Is<DtoDeferredSetupCheck>(c => c.DeviceId == 6)), Times.Never);
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.Is<DtoDeferredSetupCheck>(c => c.DeviceId == 5)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ACarThatWasAlreadyRunningButMissesSomethingKeepsRunning()
+    {
+        //Not switched on again, but not switched off either: saving keeps a car that was charging before setup opened
+        //charging.
+        var state = StateWithOneCar(isAlreadyManaged: true);
+        _incompleteDraftIds.Add(state.CarDrafts[0].DraftId);
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSetupCompleted);
+        Assert.True(Assert.Single(_savedCarConfigurations).ShouldBeManaged);
+        Assert.DoesNotContain(result.Operations, o => o.OperationKey == SetupOperationKey.ActivateCar);
+    }
+
+    [Fact]
+    public async Task EquipmentTheReadinessChecksSayNothingAboutIsNotSwitchedOn()
+    {
+        _reportsDeviceStatuses = false;
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 1") { Id = 7, OcppChargingStationId = 1, ShouldBeManaged = false, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        state.ChargerDrafts.Add(new DtoSetupChargerDraft { ConnectorId = 7, });
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSetupCompleted);
+        Assert.All(_savedCarConfigurations, c => Assert.False(c.ShouldBeManaged));
+        Assert.False((await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == 7)).ShouldBeManaged);
+    }
+
+    [Fact]
+    public async Task ACarThatWasNeverIdentifiedIsNotWritten()
+    {
+        //Added and abandoned before it had a name or a VIN. Writing it would create a nameless car.
+        var state = StateWithOneCar();
+        var abandoned = new DtoSetupCarDraft();
+        state.CarDrafts.Add(abandoned);
+        _incompleteDraftIds.Add(abandoned.DraftId);
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSetupCompleted);
+        Assert.All(_savedCarConfigurations, c => Assert.Equal("VIN1", c.Vin));
+        Assert.DoesNotContain(result.Operations, o => o.DraftId == abandoned.DraftId);
+    }
+
+    [Fact]
+    public async Task ACarWithoutARowIsWrittenOnceItHasANameAndAVin()
+    {
+        var state = StateWithOneCar();
+        state.CarDrafts[0].CarId = null;
+        state.CarDrafts[0].Configuration.Id = 0;
+
+        var result = await NewService().ApplyConfiguration(state);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(_savedCarConfigurations);
     }
 
     [Fact]
@@ -902,13 +1047,22 @@ public class SetupApplicationServiceTests : TestBase
         _decision = new DtoSetupDecision
         {
             IsConfigurationComplete = false,
-            MissingInformation = { new DtoSetupIssue { MessageKey = "SetupIssueGridPriceMissing", }, },
+            CanFinishSetup = false,
+            MissingInformation =
+            {
+                new DtoSetupIssue { MessageKey = "SetupIssueGridPriceMissing", StepKey = SetupStepKey.Prices, },
+                new DtoSetupIssue { MessageKey = "SetupIssueCarConnectionRouteUndecided", StepKey = SetupStepKey.CarsAndCharging, },
+            },
         };
 
         var result = await NewService().ActivateAndCompleteSetup(StateWithOneCar());
 
         Assert.False(result.IsSetupCompleted);
-        Assert.False(Assert.Single(result.FailedOperations).IsRetryable);
+        var failure = Assert.Single(result.FailedOperations);
+        Assert.False(failure.IsRetryable);
+        //Only what actually holds finishing back is named; the car is not one of them.
+        Assert.Contains("SetupIssueGridPriceMissing", failure.ErrorMessage);
+        Assert.DoesNotContain("SetupIssueCarConnectionRouteUndecided", failure.ErrorMessage);
         //Nothing was written at all, so the user loses nothing by being sent back.
         Assert.Empty(_savedCarConfigurations);
         Assert.True(_liveConfiguration.IsFirstRun);
@@ -916,10 +1070,28 @@ public class SetupApplicationServiceTests : TestBase
     }
 
     [Fact]
-    public async Task AChargerWithNoConnectorChosenFailsInsteadOfBeingSkipped()
+    public async Task AChargerThatIsNotSetUpYetIsLeftOffAndDoesNotHoldFinishingBack()
     {
-        //It used to be filtered out of activation while setup still completed, leaving the user with a charger
-        //they believe is switched on.
+        Context.OcppChargingStationConnectors.Add(new OcppChargingStationConnector("Connector 1") { Id = 7, OcppChargingStationId = 1, ShouldBeManaged = false, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        var state = StateWithOneCar();
+        var charger = new DtoSetupChargerDraft { ChargepointId = "CP1", ChargingStationId = 2, ConnectorId = 7, };
+        state.ChargerDrafts.Add(charger);
+        _incompleteDraftIds.Add(charger.DraftId);
+
+        var result = await NewService().ActivateAndCompleteSetup(state);
+
+        Assert.True(result.IsSetupCompleted);
+        Assert.False((await Context.OcppChargingStationConnectors.FirstAsync(c => c.Id == 7)).ShouldBeManaged);
+        _deferredSetupCheckService.Verify(s => s.AddOrUpdateDeferredCheck(It.Is<DtoDeferredSetupCheck>(
+            c => c.DeviceKind == SetupDeviceKind.ChargingStationConnector)), Times.Never);
+    }
+
+    [Fact]
+    public async Task AChargerReportedReadyWithNoConnectorChosenFailsInsteadOfBeingSkipped()
+    {
+        //Skipping it while setup still completed would leave the user with a charger they believe is switched on.
         var state = StateWithOneCar();
         state.ChargerDrafts.Add(new DtoSetupChargerDraft
         {

@@ -60,7 +60,11 @@ else
                     <li>@T(issue.MessageKey)</li>
                 }
             </ul>
-            <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupConfigurationIncompleteInfo)</MudText>
+            @* Only promised when it is true. Otherwise the button below is disabled and says why. *@
+            @if (Decision.CanFinishSetup)
+            {
+                <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupConfigurationIncompleteInfo)</MudText>
+            }
         </MudAlert>
     }
 
