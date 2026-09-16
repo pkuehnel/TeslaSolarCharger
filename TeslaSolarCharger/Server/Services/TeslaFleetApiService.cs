@@ -1335,13 +1335,13 @@ public class TeslaFleetApiService(
         if (accessToken == default)
         {
             logger.LogError("Can not add cars to TSC as no Backend Token was found");
-            return Fin<List<DtoTesla>>.Fail("No Backend token found.");
+            return Fin.Fail<List<DtoTesla>>("No Backend token found.");
         }
         var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
         if (decryptionKey == default)
         {
             logger.LogError("Decryption key not found do not send command");
-            return Fin<List<DtoTesla>>.Fail("No Decryption key found.");
+            return Fin.Fail<List<DtoTesla>>("No Decryption key found.");
         }
         var requestUri = $"FleetApiRequests/GetAllCarsFromAccount?encryptionKey={Uri.EscapeDataString(decryptionKey)}";
         try
@@ -1352,14 +1352,14 @@ public class TeslaFleetApiService(
             {
                 logger.LogError("Error while getting all cars from account: {errorMessage}", backendResponse.ErrorMessage);
                 var exception = new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
-                return Fin<List<DtoTesla>>.Fail(Error.New(exception));
+                return Fin.Fail<List<DtoTesla>>(Error.New(exception));
             }
 
             var teslaBackendResult = backendResponse.Data;
             if (teslaBackendResult == null)
             {
                 logger.LogError("Could not deserialize Solar4CarBackend response body");
-                return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body");
+                return Fin.Fail<List<DtoTesla>>($"Could not deserialize response body");
             }
 
             if (!(teslaBackendResult.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices))
@@ -1367,13 +1367,13 @@ public class TeslaFleetApiService(
                 logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Result: {jsonResult}", teslaBackendResult.StatusCode, teslaBackendResult.JsonResponse);
                 var excpetion = new HttpRequestException($"Requesting {requestUri} returned following statusCode: {teslaBackendResult.StatusCode} Underlaying result: {teslaBackendResult.JsonResponse}", null,
                     teslaBackendResult.StatusCode);
-                return Fin<List<DtoTesla>>.Fail(Error.New(excpetion));
+                return Fin.Fail<List<DtoTesla>>(Error.New(excpetion));
             }
 
             if(string.IsNullOrWhiteSpace(teslaBackendResult.JsonResponse))
             {
                 logger.LogError("Empty Tesla JSON response body from Solar4Car Backend");
-                return Fin<List<DtoTesla>>.Fail("Empty Tesla JSON response body from Solar4Car Backend");
+                return Fin.Fail<List<DtoTesla>>("Empty Tesla JSON response body from Solar4Car Backend");
             }
 
             var vehicles = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<List<DtoVehicleResult>>>(teslaBackendResult.JsonResponse);
@@ -1381,28 +1381,28 @@ public class TeslaFleetApiService(
             if (vehicles?.Response == null)
             {
                 logger.LogError("Could not deserialize vehicle list response body");
-                return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body");
+                return Fin.Fail<List<DtoTesla>>($"Could not deserialize response body");
             }
 
             // Convert TeslaVehicle to DtoTesla
             var dtos = vehicles.Response.Select(v => new DtoTesla { Name = v.DisplayName, Vin = v.Vin }).ToList();
             logger.LogTrace("Found {count} cars in Tesla account", dtos.Count);
-            return Fin<List<DtoTesla>>.Succ(dtos);
+            return Fin.Succ(dtos);
         }
         catch (HttpRequestException e)
         {
             logger.LogError(e,"An HTTP request error occured");
-            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+            return Fin.Fail<List<DtoTesla>>(Error.New(e));
         }
         catch (JsonException e)
         {
             logger.LogError(e, "Failed to parse JSON response");
-            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+            return Fin.Fail<List<DtoTesla>>(Error.New(e));
         }
         catch (Exception e)
         {
             logger.LogError(e, "An unexpected error occurred");
-            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+            return Fin.Fail<List<DtoTesla>>(Error.New(e));
         }
     }
 

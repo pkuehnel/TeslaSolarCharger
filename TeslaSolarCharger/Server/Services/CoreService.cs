@@ -248,8 +248,8 @@ public class CoreService : ICoreService
         var statusCode = await _telegramService.SendMessage("TeslaSolarCharger test message");
         if (((int)statusCode >= 200) && ((int)statusCode <= 299))
         {
-            return Fin<DtoValue<string>>.Succ(new("Sending message succeeded"));
+            return Fin.Succ(new DtoValue<string>("Sending message succeeded"));
         }
-        return Fin<DtoValue<string>>.Fail($"Sending error message failed with status code {statusCode}");
+        return Fin.Fail<DtoValue<string>>($"Sending error message failed with status code {statusCode}");
     }
 }

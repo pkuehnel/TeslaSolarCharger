@@ -7,7 +7,7 @@ public class FleetTelemetryReconnectionJob(
     ILogger<FleetTelemetryReconnectionJob> logger,
     IFleetTelemetryWebSocketService service) : IJob
 {
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
         await service.ReconnectWebSocketsForEnabledCars();

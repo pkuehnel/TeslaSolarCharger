@@ -14,9 +14,9 @@ public class ManualCarsDataClearingJob : IJob
         _logger = logger;
         _carValueEstimationService = carValueEstimationService;
     }
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(Execute));
-        await _carValueEstimationService.PlugoutCarsAndClearSocIfRequired(context.CancellationToken);
+        await _carValueEstimationService.PlugoutCarsAndClearSocIfRequired(cancellationToken);
     }
 }

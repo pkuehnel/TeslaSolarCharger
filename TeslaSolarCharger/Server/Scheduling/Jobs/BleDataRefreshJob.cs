@@ -11,7 +11,7 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class BleDataRefreshJob(ILogger<BleDataRefreshJob> logger,
     IBleVehicleDataService bleVehicleDataService) : IJob
 {
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
         //Errors are handled inside the service, so a failing car never stops the others.

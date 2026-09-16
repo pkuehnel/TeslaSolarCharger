@@ -19,8 +19,8 @@ public class JobRegistrationTests : TestBase
     }
 
     /// <summary>
-    /// The <see cref="JobFactory"/> resolves jobs from the service provider. A job that is scheduled but not registered
-    /// throws on every fire, which sets its trigger to error state, so the job silently never runs again.
+    /// Quartz's job factory resolves jobs from the service provider. It still builds a job that is not registered, but
+    /// only a registration makes the job's lifetime and its dependencies part of the container's configuration.
     /// </summary>
     [Fact]
     public void AllJobsAreRegisteredForDependencyInjection()

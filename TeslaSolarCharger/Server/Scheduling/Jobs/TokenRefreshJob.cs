@@ -20,7 +20,7 @@ public class TokenRefreshJob : IJob
         _smartCarApiService = smartCarApiService;
     }
 
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
         try

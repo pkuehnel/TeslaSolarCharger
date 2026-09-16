@@ -13,7 +13,7 @@ public class RefreshableValuesRefreshJob : IJob
         _logger = logger;
         _service = service;
     }
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
         await _service.RefreshValues().ConfigureAwait(false);

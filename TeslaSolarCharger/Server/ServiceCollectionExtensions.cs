@@ -4,8 +4,6 @@ using MQTTnet.Adapter;
 using MQTTnet.Diagnostics.Logger;
 using MQTTnet.Implementations;
 using Quartz;
-using Quartz.Impl;
-using Quartz.Spi;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
@@ -96,9 +94,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<RefreshableValuesRefreshJob>()
             .AddTransient<ManualCarsDataClearingJob>()
             .AddTransient<BleDataRefreshJob>()
-            .AddTransient<JobFactory>()
-            .AddTransient<IJobFactory, JobFactory>()
-            .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
+            .AddJobScheduler()
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
             .AddTransient<ITelegramService, TelegramService>()
@@ -279,4 +275,10 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient();
         return services;
     }
+
+    /// <summary>
+    /// Quartz's default job factory resolves every job execution from its own dependency injection scope.
+    /// </summary>
+    public static IServiceCollection AddJobScheduler(this IServiceCollection services) =>
+        services.AddQuartz(JobManager.SchedulerName, _ => { });
 }
