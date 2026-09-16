@@ -1,5 +1,6 @@
 ﻿using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
@@ -7,13 +8,49 @@ namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 public interface IDecimalValueHandlingService :
     IGenericValueHandlingService<decimal, int>
 {
+    /// <summary>
+    /// The current value of every device for each of <paramref name="valueUsages"/>, with everything one device reads
+    /// for the same usage added up into one entry.
+    /// </summary>
+    List<DtoPvSourceValue> GetSourceValues(HashSet<ValueUsage> valueUsages, bool skipValuesWithError);
 }
 
-public abstract class DecimalValueHandlingServiceBase<TGenericValue> : GenericValueHandlingServiceBase<TGenericValue, decimal, int>
+public abstract class DecimalValueHandlingServiceBase<TGenericValue> : GenericValueHandlingServiceBase<TGenericValue, decimal, int>,
+    IDecimalValueHandlingService
     where TGenericValue : IGenericValue<decimal>
 {
     protected DecimalValueHandlingServiceBase(IServiceScopeFactory serviceScopeFactory) : base(serviceScopeFactory)
     {
+    }
+
+    public List<DtoPvSourceValue> GetSourceValues(HashSet<ValueUsage> valueUsages, bool skipValuesWithError)
+    {
+        var result = new List<DtoPvSourceValue>();
+
+        foreach (var genericValue in GetGenericValuesSnapshot())
+        {
+            if (skipValuesWithError && genericValue.HasError)
+            {
+                continue;
+            }
+
+            var valuesByUsage = genericValue.HistoricValues
+                .Where(v => v.Key.ValueUsage != default && valueUsages.Contains(v.Key.ValueUsage.Value))
+                .GroupBy(v => v.Key.ValueUsage!.Value);
+            foreach (var usageValues in valuesByUsage)
+            {
+                result.Add(new DtoPvSourceValue
+                {
+                    ConfigurationType = genericValue.SourceValueKey.ConfigurationType,
+                    SourceId = genericValue.SourceValueKey.SourceId,
+                    UsedFor = usageValues.Key,
+                    Value = usageValues.Sum(v => v.Value.Value),
+                    LastUpdated = usageValues.Max(v => v.Value.Timestamp),
+                });
+            }
+        }
+
+        return result;
     }
 }
 
@@ -21,8 +58,6 @@ public interface IGenericValueHandlingService<TValue, TConfigurationId>
 {
     Task RecreateValues(ConfigurationType? configurationType, params List<TConfigurationId> configurationIds);
     List<IGenericValue<TValue>> GetSnapshot();
-    IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages,
-        bool skipValuesWithError);
 }
 
 public abstract class
@@ -45,33 +80,6 @@ public abstract class
         return GetGenericValuesSnapshot()
             .Cast<IGenericValue<TValue>>()
             .ToList();
-    }
-
-    public IReadOnlyDictionary<ValueUsage, List<DtoHistoricValue<TValue>>> GetValuesByUsage(HashSet<ValueUsage> valueUsages, bool skipValuesWithError)
-    {
-        var result = new Dictionary<ValueUsage, List<DtoHistoricValue<TValue>>>();
-
-        var refreshablesSnapshot = GetGenericValuesSnapshot();
-
-        foreach (var refreshable in refreshablesSnapshot)
-        {
-            if (skipValuesWithError && refreshable.HasError)
-            {
-                continue;
-            }
-            foreach (var (key, latestValue) in refreshable.HistoricValues)
-            {
-                if (key.ValueUsage == default || !valueUsages.Contains(key.ValueUsage.Value))
-                {
-                    continue;
-                }
-
-                result.TryAdd(key.ValueUsage.Value, new());
-                result[key.ValueUsage.Value].Add(latestValue);
-            }
-        }
-
-        return result;
     }
 
     protected List<TGenericValue> GetGenericValuesSnapshot()

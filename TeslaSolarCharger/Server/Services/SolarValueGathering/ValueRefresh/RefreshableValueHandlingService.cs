@@ -2,11 +2,12 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 
-public class RefreshableValueHandlingService : GenericValueHandlingServiceBase<IRefreshableValue<decimal>, decimal, int>,
-    IRefreshableValueHandlingService, IDecimalValueHandlingService
+public class RefreshableValueHandlingService : DecimalValueHandlingServiceBase<IRefreshableValue<decimal>>,
+    IRefreshableValueHandlingService
 {
     private readonly ILogger<RefreshableValueHandlingService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;

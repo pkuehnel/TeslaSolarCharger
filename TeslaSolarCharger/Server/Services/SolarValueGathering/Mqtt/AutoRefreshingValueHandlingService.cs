@@ -2,10 +2,11 @@
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
 
-public class AutoRefreshingValueHandlingService : GenericValueHandlingServiceBase<IAutoRefreshingValue<decimal>, decimal, int>, IDecimalValueHandlingService
+public class AutoRefreshingValueHandlingService : DecimalValueHandlingServiceBase<IAutoRefreshingValue<decimal>>
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<AutoRefreshingValueHandlingService> _logger;

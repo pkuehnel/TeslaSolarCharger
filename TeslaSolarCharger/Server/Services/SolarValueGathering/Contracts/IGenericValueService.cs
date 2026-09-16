@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 

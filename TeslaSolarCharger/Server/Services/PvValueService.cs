@@ -9,6 +9,7 @@ using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
@@ -40,6 +41,7 @@ public class PvValueService(
     ILoadPointManagementService loadPointManagementService,
     IAppStateNotifier appStateNotifier,
     IChangeTrackingService changeTrackingService,
+    IIndexService indexService,
     IEnumerable<IDecimalValueHandlingService> decimalValueHandlingServices)
     : IPvValueService
 {
@@ -714,164 +716,7 @@ public class PvValueService(
         if (configurationWrapper.ShouldUseFakeSolarValues())
         {
             logger.LogWarning("Fake solar values are used.");
-            if (true)
-            {
-                foreach (var car in settings.CarsToManage)
-                {
-                    car.ChargerActualCurrent.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
-                    car.ChargerVoltage.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
-                    car.ChargerPhases.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
-                }
-                if (((settings.LastPvDemoCase / 16) % 2) == 0)
-                {
-                    foreach (var dtoCar in settings.CarsToManage)
-                    {
-                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), true);
-                    }
-                }
-                else
-                {
-                    foreach (var dtoCar in settings.CarsToManage)
-                    {
-                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), false);
-                    }
-                }
-                switch ((settings.LastPvDemoCase++ % 16))
-                {
-                    case 0:
-                        settings.InverterPower = null;
-                        settings.Overage = null;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 1:
-                        settings.InverterPower = null;
-                        settings.Overage = 200;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 8:
-                        settings.InverterPower = null;
-                        settings.Overage = -200;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 9:
-                        settings.InverterPower = null;
-                        settings.Overage = 0;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 2:
-                        settings.InverterPower = 500;
-                        settings.Overage = null;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 5:
-                        settings.InverterPower = 0;
-                        settings.Overage = null;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 3:
-                        settings.InverterPower = 500;
-                        settings.Overage = 300;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 4:
-                        settings.InverterPower = 500;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 6:
-                        settings.InverterPower = 0;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = null;
-                        settings.HomeBatterySoc = null;
-                        break;
-                    case 7:
-                        settings.InverterPower = 0;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = 0;
-                        settings.HomeBatterySoc = 0;
-                        break;
-                    case 10:
-                        settings.InverterPower = 0;
-                        settings.Overage = -300;
-                        settings.HomeBatteryPower = -500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 11:
-                        settings.InverterPower = 0;
-                        settings.Overage = 300;
-                        settings.HomeBatteryPower = -500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 12:
-                        settings.InverterPower = 1000;
-                        settings.Overage = 300;
-                        settings.HomeBatteryPower = 500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 13:
-                        settings.InverterPower = 1000;
-                        settings.Overage = -20;
-                        settings.HomeBatteryPower = 500;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 14:
-                        settings.InverterPower = 10;
-                        settings.Overage = -200;
-                        settings.HomeBatteryPower = 100;
-                        settings.HomeBatterySoc = 20;
-                        break;
-                    case 15:
-                        settings.InverterPower = 10;
-                        settings.Overage = -500;
-                        settings.HomeBatteryPower = 100;
-                        settings.HomeBatterySoc = 20;
-                        break;
-
-                }
-            }
-            else
-            {
-                var random = new Random();
-                var fakeInverterPower = random.Next(0, 30000);
-                var fakeHousePower = random.Next(500, 25000);
-                var fakeOverage = fakeInverterPower - fakeHousePower;
-                var fakeHomeBatteryPower = 0;
-                if (Math.Abs(fakeOverage) < 7000)
-                {
-                    var deviation = random.Next(-150, 150);
-                    fakeHomeBatteryPower = fakeOverage - deviation;
-                    fakeOverage = -deviation;
-                }
-                else
-                {
-                    if (fakeOverage > 0)
-                    {
-                        fakeHomeBatteryPower = 7000;
-                    }
-                    else
-                    {
-                        fakeHomeBatteryPower = -7000;
-                    }
-                    fakeOverage -= fakeHomeBatteryPower;
-                }
-                settings.InverterPower = fakeInverterPower;
-                settings.Overage = fakeOverage;
-                settings.HomeBatteryPower = fakeHomeBatteryPower;
-                settings.HomeBatterySoc = 82;
-                settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-            }
-            
-            
-            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-            await NotifyPvValuesChangedAsync().ConfigureAwait(false);
+            await PublishPvValues(GetFakeSourceValues()).ConfigureAwait(false);
             return;
         }
 
@@ -882,48 +727,124 @@ public class PvValueService(
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
-        var resultSums = new Dictionary<ValueUsage, decimal>();
-        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
-        {
-            var refreshableResults = decimalValueHandlingService.GetValuesByUsage(valueUsages, true);
-            foreach (var refreshableResult in refreshableResults)
-            {
-                resultSums.TryAdd(refreshableResult.Key, 0);
-                resultSums[refreshableResult.Key] += refreshableResult.Value.Sum(v => v.Value);
-            }
-        }
-
-        int? inverterValue = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
-            SafeToInt(inverterPower) : null;
-        settings.InverterPower = inverterValue < 0 ? 0 : inverterValue;
-        settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
-            SafeToInt(gridPower) : null;
-        settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
-            SafeToInt(homeBatteryPower) : null;
-        settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
-            SafeToInt(homeBatterySoc) : null;
-        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
-        await NotifyPvValuesChangedAsync().ConfigureAwait(false);
+        var sourceValues = decimalValueHandlingServices
+            .SelectMany(s => s.GetSourceValues(valueUsages, true))
+            .ToList();
+        await PublishPvValues(sourceValues).ConfigureAwait(false);
     }
 
-    private async Task NotifyPvValuesChangedAsync()
+    private List<DtoPvSourceValue> GetFakeSourceValues()
     {
-        int? powerBuffer = configurationWrapper.PowerBuffer();
-        if (settings.InverterPower == null && settings.Overage == null)
+        if (true)
         {
-            powerBuffer = null;
+            foreach (var car in settings.CarsToManage)
+            {
+                car.ChargerActualCurrent.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+                car.ChargerVoltage.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+                car.ChargerPhases.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+            }
+            if (((settings.LastPvDemoCase / 16) % 2) == 0)
+            {
+                foreach (var dtoCar in settings.CarsToManage)
+                {
+                    dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), true);
+                }
+            }
+            else
+            {
+                foreach (var dtoCar in settings.CarsToManage)
+                {
+                    dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), false);
+                }
+            }
+            return (settings.LastPvDemoCase++ % 16) switch
+            {
+                1 => FakeSourceValues(null, 200, null, null),
+                8 => FakeSourceValues(null, -200, null, null),
+                9 => FakeSourceValues(null, 0, null, null),
+                2 => FakeSourceValues(500, null, null, null),
+                5 => FakeSourceValues(0, null, null, null),
+                3 => FakeSourceValues(500, 300, null, null),
+                4 => FakeSourceValues(500, -300, null, null),
+                6 => FakeSourceValues(0, -300, null, null),
+                7 => FakeSourceValues(0, -300, 0, 0),
+                10 => FakeSourceValues(0, -300, -500, 20),
+                11 => FakeSourceValues(0, 300, -500, 20),
+                12 => FakeSourceValues(1000, 300, 500, 20),
+                13 => FakeSourceValues(1000, -20, 500, 20),
+                14 => FakeSourceValues(10, -200, 100, 20),
+                15 => FakeSourceValues(10, -500, 100, 20),
+                _ => FakeSourceValues(null, null, null, null),
+            };
         }
-        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
-        var pvValues = new DtoPvValues()
+        else
         {
-            GridPower = settings.Overage,
-            InverterPower = settings.InverterPower,
-            HomeBatteryPower = settings.HomeBatteryPower,
-            HomeBatterySoc = settings.HomeBatterySoc,
-            PowerBuffer = powerBuffer,
-            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
-            LastUpdated = settings.LastPvValueUpdate,
+            var random = new Random();
+            var fakeInverterPower = random.Next(0, 30000);
+            var fakeHousePower = random.Next(500, 25000);
+            var fakeOverage = fakeInverterPower - fakeHousePower;
+            var fakeHomeBatteryPower = 0;
+            if (Math.Abs(fakeOverage) < 7000)
+            {
+                var deviation = random.Next(-150, 150);
+                fakeHomeBatteryPower = fakeOverage - deviation;
+                fakeOverage = -deviation;
+            }
+            else
+            {
+                if (fakeOverage > 0)
+                {
+                    fakeHomeBatteryPower = 7000;
+                }
+                else
+                {
+                    fakeHomeBatteryPower = -7000;
+                }
+                fakeOverage -= fakeHomeBatteryPower;
+            }
+            return FakeSourceValues(fakeInverterPower, fakeOverage, fakeHomeBatteryPower, 82);
+        }
+    }
+
+    /// <summary>
+    /// Fake values as if they came from one device, so they reach the charging logic and the pages the same way real
+    /// ones do. A null leaves that measurement out, as if no device supplied it.
+    /// </summary>
+    private List<DtoPvSourceValue> FakeSourceValues(int? inverterPower, int? gridPower, int? homeBatteryPower, int? homeBatterySoc)
+    {
+        var now = dateTimeProvider.DateTimeOffSetUtcNow();
+        var values = new Dictionary<ValueUsage, int?>
+        {
+            { ValueUsage.InverterPower, inverterPower },
+            { ValueUsage.GridPower, gridPower },
+            { ValueUsage.HomeBatteryPower, homeBatteryPower },
+            { ValueUsage.HomeBatterySoc, homeBatterySoc },
         };
+        return values
+            .Where(v => v.Value != null)
+            .Select(v => new DtoPvSourceValue
+            {
+                ConfigurationType = ConfigurationType.FakeSolarValue,
+                UsedFor = v.Key,
+                Value = v.Value!.Value,
+                LastUpdated = now,
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Stores what every device delivered, takes the totals the charging logic works with from it and tells the pages.
+    /// </summary>
+    private async Task PublishPvValues(List<DtoPvSourceValue> sourceValues)
+    {
+        settings.PvSourceValues = sourceValues;
+        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var pvValues = await indexService.GetPvValues().ConfigureAwait(false);
+        settings.InverterPower = pvValues.InverterPower;
+        settings.Overage = pvValues.GridPower;
+        settings.HomeBatteryPower = pvValues.HomeBatteryPower;
+        settings.HomeBatterySoc = pvValues.HomeBatterySoc;
+
         var changes = changeTrackingService.DetectChanges(
             DataTypeConstants.PvValues,
             null, // No entity ID for singleton PV values
@@ -933,17 +854,6 @@ public class PvValueService(
         {
             await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
         }
-    }
-
-
-    /// <summary>
-    /// Safely converts a decimal value to an integer, clamping the value within the range of int.MinValue to int.MaxValue.
-    /// </summary>
-    /// <param name="value">The decimal value to convert.</param>
-    /// <returns>An integer value clamped within the legal range of an int.</returns>
-    private static int SafeToInt(decimal value)
-    {
-        return (int)Math.Min(Math.Max(value, int.MinValue), int.MaxValue);
     }
 
 

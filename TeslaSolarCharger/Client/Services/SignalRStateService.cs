@@ -22,6 +22,12 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
     private const int ConnectionRetryIntervallMilliseconds = 5000;
+
+    /// <summary>
+    /// SignalR sends the properties of nested objects in camel case, so a changed property holding an object or a
+    /// list would otherwise arrive with every field left at its default.
+    /// </summary>
+    public static readonly JsonSerializerOptions ChangedPropertySerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly Lock _isRetryingBlockObject = new Lock();
     private bool _isRetryingInitialConnection;
 
@@ -419,7 +425,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                     {
                         var value = JsonSerializer.Deserialize(
                             JsonSerializer.Serialize(change.Value),
-                            property.PropertyType);
+                            property.PropertyType,
+                            ChangedPropertySerializerOptions);
                         property.SetValue(currentState, value);
                     }
                     catch (Exception ex)

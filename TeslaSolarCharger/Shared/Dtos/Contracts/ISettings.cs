@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -11,6 +12,8 @@ public interface ISettings
     int? Overage { get; set; }
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
+    /// <summary>What each device contributed to the solar and battery values above at the last update.</summary>
+    List<DtoPvSourceValue> PvSourceValues { get; set; }
     bool ControlledACarAtLastCycle { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }
     int? AverageHomeGridVoltage { get; set; }

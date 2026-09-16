@@ -116,14 +116,3 @@ public sealed record SourceValueKey(
     int SourceId,
     ConfigurationType ConfigurationType
 );
-
-
-public enum ConfigurationType
-{
-    RestSolarValue,
-    ModbusSolarValue,
-    MqttSolarValue,
-    CarValue,
-    OcppChargingConnectorValue,
-    TemplateValue = 1000,
-}
