@@ -4,9 +4,11 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
 
 <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionTitle)</MudText>
 <MudText GutterBottom="true">@T(TranslationKeys.SetupCloudConnectionDescription)</MudText>
@@ -27,7 +29,7 @@
 {
     <MudAlert Severity="Severity.Warning" Class="mt-4">
         <div>@T(TranslationKeys.SetupBaseAppLicenseMissingInfo)</div>
-        <MudLink Href="https://solar4car.com/subscriptions" Target="_blank">https://solar4car.com/subscriptions</MudLink>
+        <MudLink Href="@Constants.SubscriptionsUrl" Target="_blank">@Constants.SubscriptionsUrl</MudLink>
     </MudAlert>
     <RightAlignedButtonComponent OnButtonClicked="RecheckLicence"
                                  ButtonText="@T(TranslationKeys.SetupBaseAppLicenseRecheckButton)"

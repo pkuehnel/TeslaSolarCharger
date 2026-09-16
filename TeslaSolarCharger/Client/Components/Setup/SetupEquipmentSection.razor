@@ -42,7 +42,7 @@
                             <MudText Typo="Typo.subtitle1">@DisplayName(draft)</MudText>
                             @StatusChip(draft)
                         </div>
-                        <MudText Typo="Typo.body2" Class="mt-1">@T(RouteNameKey(draft.ConnectionRoute))</MudText>
+                        <MudText Typo="Typo.body2" Class="mt-1">@T(SetupCarConnectionRoutes.NameKey(draft.ConnectionRoute))</MudText>
                         @foreach (var blocker in Context.BlockersFor(draft.DraftId))
                         {
                             <MudText Typo="Typo.caption" Class="d-block">@T(blocker.MessageKey)</MudText>
@@ -347,15 +347,6 @@
                    @T(isConnected ? TranslationKeys.SetupStatusChargerConnected : TranslationKeys.SetupStatusChargerWaiting)
                </MudChip>;
     }
-
-    private static string RouteNameKey(SetupCarConnectionRoute route) => route switch
-    {
-        SetupCarConnectionRoute.TeslaBluetooth => TranslationKeys.SetupRouteNameTeslaBluetooth,
-        SetupCarConnectionRoute.TeslaCloud => TranslationKeys.SetupRouteNameTeslaCloud,
-        SetupCarConnectionRoute.SmartCarWithChargingStation => TranslationKeys.SetupRouteNameSmartCar,
-        SetupCarConnectionRoute.ChargingStationOnly => TranslationKeys.SetupRouteNameChargingStation,
-        _ => TranslationKeys.SetupRouteNotDecidedYet,
-    };
 
     private string T(string key) =>
         TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))

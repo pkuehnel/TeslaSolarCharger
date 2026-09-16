@@ -93,4 +93,6 @@ public class Constants : IConstants
     public string QueryParamVin => "vin";
     public string QueryParamSmartCarAdded => "smartCarAdded";
     public string QueryParamTeslaConnected => "teslaConnected";
+
+    public string SubscriptionsUrl => "https://solar4car.com/subscriptions";
 }
