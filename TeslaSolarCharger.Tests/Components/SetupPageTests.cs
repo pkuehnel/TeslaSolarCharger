@@ -463,6 +463,107 @@ public class SetupPageTests : Bunit.TestContext
         Assert.DoesNotContain("Your market price contract", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Whether each radio button on the screen is shown as selected, in the order they appear.</summary>
+    private static List<bool> RadioSelection(IRenderedComponent<Setup> page) =>
+        page.FindAll("input[type=radio]").Select(radio => radio.HasAttribute("checked")).ToList();
+
+    private int SaveCount() => _setupService.Invocations.Count(i => i.Method.Name == nameof(ISetupService.UpdateSetupState));
+
+    [Fact]
+    public void AnUnansweredPriceQuestionSelectsNoneOfTheAnswers()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Equal([false, false, false,], RadioSelection(page));
+    }
+
+    [Theory]
+    [InlineData(SetupElectricityPriceKind.Fixed, 0)]
+    [InlineData(SetupElectricityPriceKind.TimeOfUse, 1)]
+    [InlineData(SetupElectricityPriceKind.Market, 2)]
+    public void TheStoredPriceAnswerIsShownAsSelected(SetupElectricityPriceKind kind, int expectedIndex)
+    {
+        //The form below followed the answer while every radio button stayed empty, so nobody could see what they had chosen.
+        _storedState = new DtoSetupState { ElectricityPriceKind = kind, };
+
+        var page = RenderAt(SetupSections.Prices);
+
+        Assert.Equal(Enumerable.Range(0, 3).Select(i => i == expectedIndex).ToList(), RadioSelection(page));
+    }
+
+    [Fact]
+    public void ChoosingAPriceAnswerMovesTheSelectionToIt()
+    {
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, };
+        var page = RenderAt(SetupSections.Prices);
+
+        var savesBefore = SaveCount();
+
+        //The innermost card naming the answer, not the page around it.
+        page.FindAll(".mud-paper").Last(p => p.TextContent.Contains("It follows market prices", StringComparison.OrdinalIgnoreCase)).Click();
+
+        Assert.Equal([false, false, true,], RadioSelection(page));
+        Assert.Equal(SetupElectricityPriceKind.Market, LastSavedState().ElectricityPriceKind);
+        Assert.Equal(savesBefore + 1, SaveCount());
+    }
+
+    [Fact]
+    public void ClickingThePriceRadioButtonItselfChoosesThatAnswer()
+    {
+        //The button stops its click from reaching the card around it, so it has to make the choice on its own.
+        _storedState = new DtoSetupState { ElectricityPriceKind = SetupElectricityPriceKind.Fixed, };
+        var page = RenderAt(SetupSections.Prices);
+
+        var savesBefore = SaveCount();
+
+        page.FindAll("input[type=radio]")[1].Click();
+
+        Assert.Equal([false, true, false,], RadioSelection(page));
+        Assert.Equal(SetupElectricityPriceKind.TimeOfUse, LastSavedState().ElectricityPriceKind);
+        //Heard by the button and not by the card as well, so one choice is saved once.
+        Assert.Equal(savesBefore + 1, SaveCount());
+    }
+
+    [Fact]
+    public void TheChosenCarRouteIsShownAsSelected()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.TeslaCloud;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        Assert.Equal([false, true,], RadioSelection(page));
+    }
+
+    [Fact]
+    public void AnUndecidedCarRouteSelectsNoneOfTheRoutes()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.Undecided;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        Assert.Equal([false, false,], RadioSelection(page));
+    }
+
+    [Fact]
+    public void ChoosingACarRouteMovesTheSelectionToIt()
+    {
+        var draft = CarDraft(stage: SetupCarStage.Connection);
+        draft.ConnectionRoute = SetupCarConnectionRoute.TeslaBluetooth;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connection));
+
+        page.FindAll("input[type=radio]")[1].Click();
+
+        Assert.Equal([false, true,], RadioSelection(page));
+        Assert.Equal(SetupCarConnectionRoute.TeslaCloud, draft.ConnectionRoute);
+    }
+
     [Fact]
     public void WithoutSolarPanelsThereIsNoExportPriceToAskFor()
     {

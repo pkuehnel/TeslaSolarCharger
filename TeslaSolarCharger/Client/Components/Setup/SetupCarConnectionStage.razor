@@ -10,25 +10,18 @@
 
 <MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarConnectionIntro)</MudText>
 
-@foreach (var route in AvailableRoutes)
-{
-    var isSelected = Draft.ConnectionRoute == route;
-    <MudPaper Outlined="true" Class="pa-3 mb-3" Style="cursor: pointer;" @onclick="@(() => SelectRoute(route))">
-        <div class="d-flex align-start" style="gap: 12px;">
-            <MudRadio T="bool" Value="@isSelected" Color="Color.Primary" Dense="true" />
-            <div class="flex-grow-1">
-                <MudText Typo="Typo.subtitle1">@T(RouteNameKey(route))</MudText>
-                <MudText Typo="Typo.body2" Class="mb-2">@T(RouteDescriptionKey(route))</MudText>
-                <SetupRouteSummary Route="route" EntersBatteryLevelManually="Draft.EntersBatteryLevelManually" />
-                @if (RouteRequirementKey(route) != null)
-                {
-                    @* What else the user has to have or buy, said before they choose and not after. *@
-                    <MudText Typo="Typo.caption" Class="d-block mt-2">@T(RouteRequirementKey(route)!)</MudText>
-                }
-            </div>
-        </div>
-    </MudPaper>
-}
+<SetupChoiceCards T="SetupCarConnectionRoute" Options="AvailableRoutes" Value="Draft.ConnectionRoute" ValueChanged="SelectRoute">
+    <ItemTemplate Context="route">
+        <MudText Typo="Typo.subtitle1">@T(RouteNameKey(route))</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(RouteDescriptionKey(route))</MudText>
+        <SetupRouteSummary Route="route" EntersBatteryLevelManually="Draft.EntersBatteryLevelManually" />
+        @if (RouteRequirementKey(route) != null)
+        {
+            @* What else the user has to have or buy, said before they choose and not after. *@
+            <MudText Typo="Typo.caption" Class="d-block mt-2">@T(RouteRequirementKey(route)!)</MudText>
+        }
+    </ItemTemplate>
+</SetupChoiceCards>
 
 @if (Draft.ConnectionRoute == SetupCarConnectionRoute.TeslaBluetooth)
 {
