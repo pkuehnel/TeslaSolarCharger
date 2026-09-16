@@ -738,6 +738,8 @@ public static class TranslationKeys
     public static string Password => nameof(Password);
     public static string GeneralNext => nameof(GeneralNext);
     public static string GeneralPrev => nameof(GeneralPrev);
+    public static string GeneralYes => nameof(GeneralYes);
+    public static string GeneralNo => nameof(GeneralNo);
 
     public static string MainLayoutAbout => nameof(MainLayoutAbout);
     public static string MainLayoutUnhandledError => nameof(MainLayoutUnhandledError);
@@ -788,6 +790,7 @@ public static class TranslationKeys
     public static string SetupWelcomeDescription => nameof(SetupWelcomeDescription);
     public static string SetupChangeLaterInfo => nameof(SetupChangeLaterInfo);
     public static string SetupHasPvSystemQuestion => nameof(SetupHasPvSystemQuestion);
+    public static string SetupEquipmentQuestionsUnansweredHint => nameof(SetupEquipmentQuestionsUnansweredHint);
     public static string SetupLocationTitle => nameof(SetupLocationTitle);
     public static string SetupLocationDescription => nameof(SetupLocationDescription);
     public static string SetupSolarBatteryTitle => nameof(SetupSolarBatteryTitle);
@@ -1146,6 +1149,8 @@ public static class TranslationKeys
     public static string SetupMeasurementBatterySocFormat => nameof(SetupMeasurementBatterySocFormat);
     public static string SetupMeasurementBatteryChargingFormat => nameof(SetupMeasurementBatteryChargingFormat);
     public static string SetupMeasurementBatteryDischargingFormat => nameof(SetupMeasurementBatteryDischargingFormat);
+    public static string SetupMeasurementBatteryIdle => nameof(SetupMeasurementBatteryIdle);
+    public static string SetupMeasurementGridBalanced => nameof(SetupMeasurementGridBalanced);
     public static string SetupMeasurementJustNow => nameof(SetupMeasurementJustNow);
     public static string SetupMeasurementMinutesAgoFormat => nameof(SetupMeasurementMinutesAgoFormat);
     public static string SetupMeasurementHoursAgoFormat => nameof(SetupMeasurementHoursAgoFormat);

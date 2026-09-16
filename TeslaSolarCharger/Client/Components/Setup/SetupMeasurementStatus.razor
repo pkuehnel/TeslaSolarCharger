@@ -1,14 +1,21 @@
 @using System.Globalization
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.SignalRClients
 @using TeslaSolarCharger.SharedModel.Enums
+
+@implements IDisposable
 
 @inject ITextLocalizationService TextLocalizer
 @inject IDateTimeProvider DateTimeProvider
+@inject ISignalRStateService SignalRStateService
+@inject ILogger<SetupMeasurementStatus> Logger
 
 @* What we can actually read, in the units the user recognises and with the time it last arrived. A number with no
    timestamp cannot be told apart from a number that stopped updating three days ago. *@
@@ -17,34 +24,38 @@
 
     @foreach (var usage in ExpectedUsages)
     {
-        var reading = FindReading(usage);
+        var total = _pvValues?.ValueFor(usage);
         <div class="d-flex align-center flex-wrap py-1" style="gap: 8px;">
-            <MudIcon Icon="@IconFor(reading)" Color="@ColorFor(reading)" Size="Size.Small" />
+            <MudIcon Icon="@(total != null ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.HourglassEmpty)"
+                     Color="@(total != null ? Color.Success : Color.Warning)" Size="Size.Small" />
             <MudText Typo="Typo.body2" Style="font-weight: bold; min-width: 190px;">@T(NameKeyOf(usage))</MudText>
-            @if (reading == null)
+            @if (total != null)
             {
-                <MudText Typo="Typo.body2">@T(TranslationKeys.SetupMeasurementNotConfigured)</MudText>
+                <MudText Typo="Typo.body2">@DescribeValue(usage, total.Value)</MudText>
+                <MudText Typo="Typo.caption">@DescribeAge(OldestReadingOf(usage))</MudText>
             }
-            else if (reading.CalculatedValue == null)
+            else if (IsConfigured(usage))
             {
                 <MudText Typo="Typo.body2">@T(TranslationKeys.SetupMeasurementWaitingForData)</MudText>
             }
             else
             {
-                <MudText Typo="Typo.body2">@DescribeValue(usage, reading.CalculatedValue.Value)</MudText>
-                <MudText Typo="Typo.caption">@DescribeAge(reading.LastRefreshed)</MudText>
+                <MudText Typo="Typo.body2">@T(TranslationKeys.SetupMeasurementNotConfigured)</MudText>
             }
         </div>
     }
 
-    @if (ExpectedUsages.Any(u => FindReading(u) == null))
+    @if (ExpectedUsages.Any(u => _pvValues?.ValueFor(u) == null && !IsConfigured(u)))
     {
         <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupMeasurementMissingHint)</MudText>
     }
 </div>
 
 @code {
-    /// <summary>Every configured source, as the value configuration screens report them.</summary>
+    /// <summary>
+    /// Every configured source, as the value configuration screens report them. Only used to tell a device that has
+    /// not delivered anything yet apart from no device at all; the readings themselves arrive live.
+    /// </summary>
     [Parameter, EditorRequired] public List<DtoValueConfigurationOverview> Configurations { get; set; } = new();
 
     /// <summary>Which measurements this installation should have, given what the user said they own.</summary>
@@ -52,29 +63,61 @@
 
     [Parameter] public string? Class { get; set; }
 
-    private DtoOverviewValueResult? FindReading(ValueUsage usage) => Configurations
+    /// <summary>The same values the charging logic uses, pushed whenever the devices are read.</summary>
+    private DtoPvValues? _pvValues;
+
+    private IDisposable? _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = await SignalRStateService.Subscribe<DtoPvValues>(DataTypeConstants.PvValues, async void (pvValues) =>
+        {
+            try
+            {
+                _pvValues = pvValues;
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Could not show the updated readings");
+            }
+        });
+        _pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
+    }
+
+    private bool IsConfigured(ValueUsage usage) => Configurations
         .SelectMany(c => c.Results)
-        .Where(r => r.UsedFor == usage)
-        //Several sources can supply the same measurement; the freshest one is the one being used.
-        .OrderByDescending(r => r.LastRefreshed)
-        .FirstOrDefault();
+        .Any(r => r.UsedFor == usage);
+
+    /// <summary>
+    /// When the least recently read device supplying <paramref name="usage"/> last delivered. A total is only as fresh
+    /// as the oldest value in it, so one device that stopped answering must not hide behind another one that did not.
+    /// </summary>
+    private DateTimeOffset OldestReadingOf(ValueUsage usage) => _pvValues!.SourceValues
+        .Where(v => v.UsedFor == usage)
+        .Min(v => v.LastUpdated);
 
     /// <summary>
     /// Says what the number means rather than only showing it, because the sign carries the direction and a bare
     /// "-1200 W" does not tell anyone whether that is electricity bought or sold.
     /// </summary>
-    private string DescribeValue(ValueUsage usage, decimal value)
+    private string DescribeValue(ValueUsage usage, int value)
     {
-        var rounded = Math.Round(value, 0);
-        var magnitude = Math.Abs(rounded).ToString("N0", CultureInfo.CurrentCulture);
+        var magnitude = Math.Abs(value).ToString("N0", CultureInfo.CurrentCulture);
         return usage switch
         {
-            ValueUsage.GridPower => rounded >= 0
-                ? Format(TranslationKeys.SetupMeasurementGridExportFormat, magnitude)
-                : Format(TranslationKeys.SetupMeasurementGridImportFormat, magnitude),
-            ValueUsage.HomeBatteryPower => rounded >= 0
-                ? Format(TranslationKeys.SetupMeasurementBatteryChargingFormat, magnitude)
-                : Format(TranslationKeys.SetupMeasurementBatteryDischargingFormat, magnitude),
+            ValueUsage.GridPower => value switch
+            {
+                > 0 => Format(TranslationKeys.SetupMeasurementGridExportFormat, magnitude),
+                < 0 => Format(TranslationKeys.SetupMeasurementGridImportFormat, magnitude),
+                _ => T(TranslationKeys.SetupMeasurementGridBalanced),
+            },
+            ValueUsage.HomeBatteryPower => value switch
+            {
+                > 0 => Format(TranslationKeys.SetupMeasurementBatteryChargingFormat, magnitude),
+                < 0 => Format(TranslationKeys.SetupMeasurementBatteryDischargingFormat, magnitude),
+                _ => T(TranslationKeys.SetupMeasurementBatteryIdle),
+            },
             ValueUsage.HomeBatterySoc => Format(TranslationKeys.SetupMeasurementBatterySocFormat, magnitude),
             _ => Format(TranslationKeys.SetupMeasurementSolarFormat, magnitude),
         };
@@ -93,14 +136,6 @@
             : Format(TranslationKeys.SetupMeasurementHoursAgoFormat, (int)age.TotalHours);
     }
 
-    private string IconFor(DtoOverviewValueResult? reading) => reading?.CalculatedValue != null
-        ? Icons.Material.Filled.CheckCircle
-        : Icons.Material.Filled.HourglassEmpty;
-
-    private Color ColorFor(DtoOverviewValueResult? reading) => reading?.CalculatedValue != null
-        ? Color.Success
-        : Color.Warning;
-
     private static string NameKeyOf(ValueUsage usage) => usage switch
     {
         ValueUsage.GridPower => TranslationKeys.SetupMeasurementGridName,
@@ -115,4 +150,9 @@
 
     private string Format(string key, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
 }

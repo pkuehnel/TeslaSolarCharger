@@ -113,6 +113,14 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.English, "supplying {0} W to the house"),
             new TextLocalizationTranslation(LanguageCodes.German, "gibt {0} W an das Haus ab"));
 
+        Register(TranslationKeys.SetupMeasurementBatteryIdle,
+            new TextLocalizationTranslation(LanguageCodes.English, "neither charging nor discharging"),
+            new TextLocalizationTranslation(LanguageCodes.German, "lädt und entlädt gerade nicht"));
+
+        Register(TranslationKeys.SetupMeasurementGridBalanced,
+            new TextLocalizationTranslation(LanguageCodes.English, "neither sending electricity to the grid nor taking any from it"),
+            new TextLocalizationTranslation(LanguageCodes.German, "weder Einspeisung ins Netz noch Bezug aus dem Netz"));
+
         Register(TranslationKeys.SetupMeasurementJustNow,
             new TextLocalizationTranslation(LanguageCodes.English, "just now"),
             new TextLocalizationTranslation(LanguageCodes.German, "gerade eben"));

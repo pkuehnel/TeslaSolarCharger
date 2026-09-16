@@ -20,6 +20,8 @@
 @using TeslaSolarCharger.Shared.Enums
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
+@using TeslaSolarCharger.Shared.SignalRClients
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IHttpClientHelper HttpClientHelper
@@ -27,7 +29,7 @@
 @inject ITextLocalizationService TextLocalizer
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
-@inject ITemplateValueConfigurationService TemplateService
+@inject ISignalRStateService SignalRStateService
 @inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject ICarSettingsService CarSettingsService
 @inject IOAuthNotificationService OAuthNotificationService
@@ -78,7 +80,7 @@
                     case SetupSections.Prices:
                         <SetupPricesSection ChargePrice="_chargePrice"
                                             FixedPrices="_fixedPrices"
-                                            HasPvSystem="_hasPvSystem"
+                                            HasPvSystem="@(_hasPvSystem == true)"
                                             OnChanged="OnPriceAnswersChanged" />
                         break;
                     case SetupSections.Equipment:
@@ -128,7 +130,7 @@
                 {
                     <MudButton Color="Color.Primary" Variant="Variant.Filled"
                                EndIcon="@Icons.Material.Filled.ArrowForward"
-                               Disabled="@(CurrentSection == SetupSections.Account && !IsAccountReady)"
+                               Disabled="@IsNextBlocked"
                                OnClick="GoToNextSection">
                         @T(TranslationKeys.GeneralNext)
                     </MudButton>
@@ -156,8 +158,10 @@
     private EditableItem<DtoChargePrice>? _chargePrice;
     private List<FixedPrice> _fixedPrices = new();
 
-    private bool _hasPvSystem = true;
-    private bool _hasHomeBattery;
+    // Null while unanswered. An unanswered question must not look like a "no", or the readings expected from the
+    // installation would silently leave out equipment the user owns.
+    private bool? _hasPvSystem;
+    private bool? _hasHomeBattery;
     // Whether the instance is connected to the Solar4Car cloud and the account has a base licence. Both are
     // required to use TeslaSolarCharger, so the rest of the assistant is gated on them.
     private bool _cloudConnected;
@@ -203,6 +207,17 @@
     private string? CurrentStage => Address.Stage;
 
     private bool IsAccountReady => _cloudConnected && _baseAppLicensed;
+
+    /// <summary>
+    /// Moving on is held back where the rest of the assistant depends on this screen: without an account nothing can
+    /// be saved, and without both equipment answers it is not known which readings the installation needs.
+    /// </summary>
+    private bool IsNextBlocked => CurrentSection switch
+    {
+        SetupSections.Account => !IsAccountReady,
+        SetupSections.Solar => _hasPvSystem == null || _hasHomeBattery == null,
+        _ => false,
+    };
 
     private SetupCarStage CarStage =>
         Enum.TryParse<SetupCarStage>(CurrentStage, ignoreCase: true, out var parsed) ? parsed : SetupCarStage.Identify;
@@ -338,37 +353,28 @@
     }
 
     /// <summary>
-    /// Fills the solar and battery switches. An answer already stored wins; otherwise it is derived from what the
-    /// installation has configured, which is a better starting point than a blank form.
+    /// Fills the solar and battery answers. An answer already stored wins. Otherwise an existing installation is
+    /// answered with yes where its configuration or a connected device shows the equipment is there. Nothing ever
+    /// shows that equipment is missing, so a question without such evidence stays unanswered for the user.
     /// </summary>
     private async Task InitializeEquipmentAnswers(DtoSetupState state)
     {
-        if (state.HasPvSystem != null)
-        {
-            _hasPvSystem = state.HasPvSystem.Value;
-        }
-        else
-        {
-            var configuration = state.Configuration;
-            var templates = await TemplateService.GetOverviews();
-            _hasPvSystem = configuration.PredictSolarPowerGeneration
-                           || !string.IsNullOrEmpty(configuration.CurrentPowerToGridUrl)
-                           || !string.IsNullOrEmpty(configuration.CurrentPowerToGridMqttTopic)
-                           || configuration.IsModbusGridUrl
-                           || (templates != null && templates.Any());
-        }
+        var configuration = state.Configuration;
+        var pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
 
-        if (state.HasHomeBattery != null)
-        {
-            _hasHomeBattery = state.HasHomeBattery.Value;
-        }
-        else
-        {
-            var configuration = state.Configuration;
-            _hasHomeBattery = configuration.HomeBatteryUsableEnergy > 0
-                              || !string.IsNullOrEmpty(configuration.HomeBatteryPowerUrl)
-                              || !string.IsNullOrEmpty(configuration.HomeBatteryPowerMqttTopic);
-        }
+        var solarIsConfigured = configuration.PredictSolarPowerGeneration
+                                || !string.IsNullOrEmpty(configuration.CurrentPowerToGridUrl)
+                                || !string.IsNullOrEmpty(configuration.CurrentPowerToGridMqttTopic)
+                                || configuration.IsModbusGridUrl
+                                || pvValues?.InverterPower != null;
+        _hasPvSystem = state.HasPvSystem ?? (solarIsConfigured ? true : null);
+
+        var batteryIsConfigured = configuration.HomeBatteryUsableEnergy > 0
+                                  || !string.IsNullOrEmpty(configuration.HomeBatteryPowerUrl)
+                                  || !string.IsNullOrEmpty(configuration.HomeBatteryPowerMqttTopic)
+                                  || pvValues?.HomeBatterySoc != null
+                                  || pvValues?.HomeBatteryPower != null;
+        _hasHomeBattery = state.HasHomeBattery ?? (batteryIsConfigured ? true : null);
     }
 
     private async Task LoadChargePrice()

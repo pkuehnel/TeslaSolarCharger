@@ -1,0 +1,20 @@
+@* One of two answers, given with a button each. Without a value neither button is selected, so a question nobody
+   answered yet never looks like it was answered either way. *@
+<div class="d-flex flex-wrap" style="gap: 8px;">
+    @ChoiceButton(true, TrueLabel)
+    @ChoiceButton(false, FalseLabel)
+</div>
+
+@code {
+    /// <summary>The answer given so far, or null while the question is unanswered.</summary>
+    [Parameter] public bool? Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public string TrueLabel { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string FalseLabel { get; set; } = string.Empty;
+
+    private RenderFragment ChoiceButton(bool choice, string label) => @<MudButton
+        Variant="@(Value == choice ? Variant.Filled : Variant.Outlined)"
+        Color="@(Value == choice ? Color.Primary : Color.Default)"
+        aria-pressed="@(Value == choice ? "true" : "false")"
+        OnClick="@(() => ValueChanged.InvokeAsync(choice))">@label</MudButton>;
+}

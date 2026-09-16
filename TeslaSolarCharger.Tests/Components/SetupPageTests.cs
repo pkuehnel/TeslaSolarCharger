@@ -24,11 +24,14 @@ using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.Setup;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Localization;
+using TeslaSolarCharger.Shared.SignalRClients;
 using TeslaSolarCharger.Shared.TimeProviding;
+using TeslaSolarCharger.SharedModel.Enums;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Components;
@@ -46,8 +49,14 @@ public class SetupPageTests : Bunit.TestContext
     private readonly Mock<ICarSettingsService> _carSettingsService = new();
     private readonly Mock<IHomeService> _homeService = new();
     private readonly Mock<IHttpClientHelper> _httpClientHelper = new();
+    private readonly Mock<ISignalRStateService> _signalRStateService = new();
+    private readonly FakeDateTimeProvider _clock = new(new DateTime(2026, 9, 15, 8, 0, 0, DateTimeKind.Utc));
 
     private DtoSetupState _storedState = new();
+
+    //The live solar and battery values as the server last pushed them. Null is a server that has not sent any yet.
+    private DtoPvValues? _pvValues;
+    private readonly List<Action<DtoPvValues>> _pvValueSubscribers = new();
 
     //An installation the server considers fully described. Finishing switches equipment on, so the button is only
     //offered once the server says everything required is there - tests that need it blocked say so explicitly.
@@ -59,7 +68,7 @@ public class SetupPageTests : Bunit.TestContext
         Services.AddMudServices();
         Services.AddMudExtensions();
         Services.AddSharedDependencies();
-        Services.AddSingleton<IDateTimeProvider>(new FakeDateTimeProvider(new DateTime(2026, 9, 15, 8, 0, 0, DateTimeKind.Utc)));
+        Services.AddSingleton<IDateTimeProvider>(_clock);
 
         _setupService.Setup(s => s.GetOrCreateSetupState()).ReturnsAsync(() => _storedState);
         _setupService.Setup(s => s.GetSetupState()).ReturnsAsync(() => _storedState);
@@ -85,8 +94,16 @@ public class SetupPageTests : Bunit.TestContext
         _httpClientHelper
             .Setup(h => h.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DtoChargePrice>());
+        _signalRStateService
+            .Setup(s => s.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues, It.IsAny<string>()))
+            .ReturnsAsync(() => _pvValues);
+        _signalRStateService
+            .Setup(s => s.Subscribe(DataTypeConstants.PvValues, It.IsAny<Action<DtoPvValues>>(), It.IsAny<string>()))
+            .Callback<string, Action<DtoPvValues>, string>((_, callback, _) => _pvValueSubscribers.Add(callback))
+            .ReturnsAsync(Mock.Of<IDisposable>());
 
         Services.AddSingleton(_setupService.Object);
+        Services.AddSingleton(_signalRStateService.Object);
         Services.AddSingleton(_cloudConnectionCheckService.Object);
         Services.AddSingleton(_chargingStationsService.Object);
         Services.AddSingleton(_templateValueConfigurationService.Object);
@@ -325,7 +342,7 @@ public class SetupPageTests : Bunit.TestContext
     [Fact]
     public void TheSolarScreenAsksForTheEquipmentByName()
     {
-        _storedState = new DtoSetupState { HasPvSystem = true, };
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
 
         var page = RenderAt(SetupSections.Solar);
 
@@ -338,7 +355,7 @@ public class SetupPageTests : Bunit.TestContext
     [Fact]
     public void AMeasurementNobodySuppliesIsNamedRatherThanLeftBlank()
     {
-        _storedState = new DtoSetupState { HasPvSystem = true, };
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
 
         var page = RenderAt(SetupSections.Solar);
 
@@ -750,5 +767,261 @@ public class SetupPageTests : Bunit.TestContext
         //Kept with the rest of the answers, not only in the browser: a reload used to accept it again silently.
         Assert.Contains($"|{nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc)}",
             Assert.Single(LastSavedState().DeclinedProposalIds));
+    }
+
+    /// <summary>The moment the page sees as now, so the age of a reading is measured against the same clock.</summary>
+    private DateTimeOffset Now => _clock.DateTimeOffSetUtcNow();
+
+    private static DtoPvSourceValue Reading(ValueUsage usage, decimal value, DateTimeOffset lastUpdated, int sourceId = 1) => new()
+    {
+        ConfigurationType = ConfigurationType.TemplateValue,
+        SourceId = sourceId,
+        UsedFor = usage,
+        Value = value,
+        LastUpdated = lastUpdated,
+    };
+
+    /// <summary>Sends new live values, as the server does every time it reads the devices.</summary>
+    private void PushPvValues(IRenderedComponent<Setup> page, DtoPvValues pvValues)
+    {
+        _pvValues = pvValues;
+        page.InvokeAsync(() =>
+        {
+            foreach (var subscriber in _pvValueSubscribers.ToList())
+            {
+                subscriber(pvValues);
+            }
+        });
+    }
+
+    /// <summary>The "Yes" or "No" button of a question: the solar panel question is 0, the home battery question 1.</summary>
+    private static AngleSharp.Dom.IElement AnswerButton(IRenderedComponent<Setup> page, string answer, int questionIndex) =>
+        page.FindAll("button").Where(b => b.TextContent.Trim() == answer).ElementAt(questionIndex);
+
+    private static bool IsSelected(AngleSharp.Dom.IElement button) => button.GetAttribute("aria-pressed") == "true";
+
+    private static bool IsNextDisabled(IRenderedComponent<Setup> page) => ButtonWithText(page, "Next").HasAttribute("disabled");
+
+    [Fact]
+    public void AFreshInstallationStartsWithBothEquipmentQuestionsUnanswered()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Solar);
+
+        //A switch that was simply left off could not be told apart from a "no".
+        Assert.DoesNotContain(page.FindAll("button"), IsSelected);
+        Assert.Contains("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.True(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void DevicesCanOnlyBeConnectedOnceBothQuestionsAreAnswered()
+    {
+        _storedState = new DtoSetupState();
+        var page = RenderAt(SetupSections.Solar);
+
+        AnswerButton(page, "Yes", 0).Click();
+
+        //Which readings a device has to deliver depends on the second answer too.
+        Assert.DoesNotContain("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.True(IsNextDisabled(page));
+
+        AnswerButton(page, "No", 1).Click();
+
+        Assert.Contains("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.False(IsNextDisabled(page));
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 0)));
+        Assert.True(IsSelected(AnswerButton(page, "No", 1)));
+    }
+
+    [Fact]
+    public void AnAnswerIsSavedAsSoonAsItIsGiven()
+    {
+        _storedState = new DtoSetupState();
+        var page = RenderAt(SetupSections.Solar);
+
+        AnswerButton(page, "No", 0).Click();
+        AnswerButton(page, "Yes", 1).Click();
+
+        Assert.False(LastSavedState().HasPvSystem);
+        Assert.True(LastSavedState().HasHomeBattery);
+    }
+
+    [Fact]
+    public void AnsweringNoToBothLeavesNothingToConnect()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = false, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.DoesNotContain("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.False(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void OnlyTheSolarScreenWaitsForTheEquipmentAnswers()
+    {
+        _storedState = new DtoSetupState();
+
+        var page = RenderAt(SetupSections.Location);
+
+        Assert.False(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void AnInstallationWhoseDeviceReadsABatteryIsTakenToHaveOne()
+    {
+        //The SMA hybrid inverter case: added from the device list, which the old guess did not look at.
+        _storedState = new DtoSetupState();
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.HomeBatteryPower, 1500, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 1)));
+        //Nothing here shows solar panels, and nothing could show their absence, so that one is left to the user.
+        Assert.False(IsSelected(AnswerButton(page, "Yes", 0)));
+        Assert.False(IsSelected(AnswerButton(page, "No", 0)));
+    }
+
+    [Fact]
+    public void AnInstallationWhoseDeviceReadsSolarGenerationIsTakenToHavePanels()
+    {
+        _storedState = new DtoSetupState();
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.InverterPower, 300, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 0)));
+        Assert.False(IsSelected(AnswerButton(page, "Yes", 1)));
+        Assert.False(IsSelected(AnswerButton(page, "No", 1)));
+    }
+
+    [Fact]
+    public void AnInstallationWithAStoredBatteryCapacityIsTakenToHaveABattery()
+    {
+        _storedState = new DtoSetupState();
+        _storedState.Configuration.HomeBatteryUsableEnergy = 10;
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "Yes", 1)));
+    }
+
+    [Fact]
+    public void AStoredAnswerIsNeverReplacedByAGuess()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.HomeBatteryPower, 1500, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsSelected(AnswerButton(page, "No", 1)));
+        //The readings follow the answer strictly, even though a device reads battery values.
+        Assert.DoesNotContain("Home battery power", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheReadingsFollowTheDevicesLive()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _pvValues = new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.HomeBatteryPower, 0, Now), Reading(ValueUsage.GridPower, 0, Now), Reading(ValueUsage.HomeBatterySoc, 55, Now), },
+        };
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("neither charging nor discharging", page.Markup, StringComparison.OrdinalIgnoreCase);
+
+        PushPvValues(page, new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.HomeBatteryPower, 750, Now), Reading(ValueUsage.GridPower, 0, Now), Reading(ValueUsage.HomeBatterySoc, 56, Now), },
+        });
+
+        //The section used to keep the value it loaded when the page opened, so a charging battery stayed at 0 W.
+        page.WaitForAssertion(() =>
+        {
+            Assert.Contains("charging at 750 W", page.Markup, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("56 % full", page.Markup, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    [Theory]
+    [InlineData(750, "charging at 750 W")]
+    [InlineData(-750, "supplying 750 W to the house")]
+    [InlineData(0, "neither charging nor discharging")]
+    public void TheBatteryReadingSaysWhichWayTheElectricityFlows(int power, string expectedText)
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.HomeBatteryPower, power, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains(expectedText, page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("charging at 0 W", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(300, "sending 300 W to the grid")]
+    [InlineData(-300, "taking 300 W from the grid")]
+    [InlineData(0, "neither sending electricity to the grid nor taking any from it")]
+    public void TheGridReadingSaysWhichWayTheElectricityFlows(int power, string expectedText)
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues { SourceValues = { Reading(ValueUsage.GridPower, power, Now), }, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains(expectedText, page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EveryDeviceSupplyingAMeasurementCountsTowardsTheReading()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.InverterPower, 300, Now, sourceId: 1), Reading(ValueUsage.InverterPower, 400, Now, sourceId: 2), },
+        };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("700 W", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AReadingIsOnlyAsFreshAsItsOldestDevice()
+    {
+        //One device still answering must not hide another one that stopped three hours ago.
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _pvValues = new DtoPvValues
+        {
+            SourceValues = { Reading(ValueUsage.InverterPower, 300, Now, sourceId: 1), Reading(ValueUsage.InverterPower, 400, Now.AddHours(-3), sourceId: 2), },
+        };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("3 hours ago", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AConnectedDeviceWithoutAReadingYetIsNotReportedAsMissing()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _templateValueConfigurationService.Setup(s => s.GetOverviews()).ReturnsAsync(new List<DtoValueConfigurationOverview>
+        {
+            new("SMA Hybrid Inverter Modbus")
+            {
+                Id = 3,
+                Results = { new DtoOverviewValueResult { Id = 4, UsedFor = ValueUsage.HomeBatteryPower, }, },
+            },
+        });
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.Contains("Connected, waiting for the first reading", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 }

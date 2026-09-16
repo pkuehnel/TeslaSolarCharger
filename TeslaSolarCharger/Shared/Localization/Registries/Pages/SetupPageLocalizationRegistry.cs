@@ -62,6 +62,10 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.English, "Do you have a photovoltaic (PV) system?"),
             new TextLocalizationTranslation(LanguageCodes.German, "Haben Sie eine Photovoltaikanlage (PV)?"));
 
+        Register(TranslationKeys.SetupEquipmentQuestionsUnansweredHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Answer both questions, then you can connect your devices."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Beantworten Sie beide Fragen, dann können Sie Ihre Geräte verbinden."));
+
         Register(TranslationKeys.SetupLocationTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "System Location"),
             new TextLocalizationTranslation(LanguageCodes.German, "Standort der Anlage"));

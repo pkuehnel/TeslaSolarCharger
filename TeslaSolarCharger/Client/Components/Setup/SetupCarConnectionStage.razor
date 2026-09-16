@@ -35,10 +35,9 @@
     <div class="mt-4 p-3 rounded border">
         <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBluetoothReadinessQuestion)</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothReadinessExplanation)</MudText>
-        <div class="d-flex flex-wrap" style="gap: 8px;">
-            @ReadinessButton(true, TranslationKeys.SetupCarBluetoothReadinessHaveOne)
-            @ReadinessButton(false, TranslationKeys.SetupCarBluetoothReadinessNeedOne)
-        </div>
+        <SetupTwoChoiceButtons Value="Draft.CanPlaceBluetoothDeviceNearCar" ValueChanged="SetReadiness"
+                               TrueLabel="@T(TranslationKeys.SetupCarBluetoothReadinessHaveOne)"
+                               FalseLabel="@T(TranslationKeys.SetupCarBluetoothReadinessNeedOne)" />
         @if (Draft.CanPlaceBluetoothDeviceNearCar == false)
         {
             @* Being physically able to put a device there is not the same as having one, so the difference is
@@ -53,18 +52,9 @@
     <div class="mt-4 p-3 rounded border">
         <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBatteryLevelQuestion)</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBatteryLevelExplanation)</MudText>
-        <div class="d-flex flex-wrap" style="gap: 8px;">
-            <MudButton Variant="@(Draft.EntersBatteryLevelManually ? Variant.Filled : Variant.Outlined)"
-                       Color="@(Draft.EntersBatteryLevelManually ? Color.Primary : Color.Default)"
-                       OnClick="@(() => SetManualBatteryLevel(true))">
-                @T(TranslationKeys.SetupCarBatteryLevelManual)
-            </MudButton>
-            <MudButton Variant="@(!Draft.EntersBatteryLevelManually ? Variant.Filled : Variant.Outlined)"
-                       Color="@(!Draft.EntersBatteryLevelManually ? Color.Primary : Color.Default)"
-                       OnClick="@(() => SetManualBatteryLevel(false))">
-                @T(TranslationKeys.SetupCarBatteryLevelEstimated)
-            </MudButton>
-        </div>
+        <SetupTwoChoiceButtons Value="Draft.EntersBatteryLevelManually" ValueChanged="SetManualBatteryLevel"
+                               TrueLabel="@T(TranslationKeys.SetupCarBatteryLevelManual)"
+                               FalseLabel="@T(TranslationKeys.SetupCarBatteryLevelEstimated)" />
         <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupCarBatteryLevelConsequence)</MudText>
     </div>
 }
@@ -132,11 +122,6 @@
         Draft.EntersBatteryLevelManually = isManual;
         await Context.Save();
     }
-
-    private RenderFragment ReadinessButton(bool value, string labelKey) => @<MudButton
-        Variant="@(Draft.CanPlaceBluetoothDeviceNearCar == value ? Variant.Filled : Variant.Outlined)"
-        Color="@(Draft.CanPlaceBluetoothDeviceNearCar == value ? Color.Primary : Color.Default)"
-        OnClick="@(() => SetReadiness(value))">@T(labelKey)</MudButton>;
 
     private static string RouteNameKey(SetupCarConnectionRoute route) => route switch
     {

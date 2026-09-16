@@ -22,18 +22,26 @@
 <MudText GutterBottom="true">@T(TranslationKeys.SetupSolarBatteryDescription)</MudText>
 
 <div class="mt-4">
-    <MudSwitch T="bool" Value="HasPvSystem" ValueChanged="OnHasPvSystemChanged"
-               Label="@T(TranslationKeys.SetupHasPvSystemQuestion)" Color="Color.Primary" />
+    <MudText Typo="Typo.subtitle1" Class="mb-2">@T(TranslationKeys.SetupHasPvSystemQuestion)</MudText>
+    <SetupTwoChoiceButtons Value="HasPvSystem" ValueChanged="OnHasPvSystemChanged"
+                           TrueLabel="@T(TranslationKeys.GeneralYes)" FalseLabel="@T(TranslationKeys.GeneralNo)" />
 </div>
 
 @* Asked on its own: a home battery is worth managing whether or not there are solar panels, so it must not
    disappear from setup just because the answer above was no. *@
-<div class="mt-2">
-    <MudSwitch T="bool" Value="HasHomeBattery" ValueChanged="OnHasHomeBatteryChanged"
-               Label="@T(TranslationKeys.SetupHasHomeBatteryQuestion)" Color="Color.Primary" />
+<div class="mt-4">
+    <MudText Typo="Typo.subtitle1" Class="mb-2">@T(TranslationKeys.SetupHasHomeBatteryQuestion)</MudText>
+    <SetupTwoChoiceButtons Value="HasHomeBattery" ValueChanged="OnHasHomeBatteryChanged"
+                           TrueLabel="@T(TranslationKeys.GeneralYes)" FalseLabel="@T(TranslationKeys.GeneralNo)" />
 </div>
 
-@if (HasPvSystem || HasHomeBattery)
+@* Devices are only connected once both questions are answered. Which readings a device has to deliver follows from
+   the answers, so connecting one before would list gaps that are not gaps, or hide ones that are. *@
+@if (HasPvSystem == null || HasHomeBattery == null)
+{
+    <MudText Typo="Typo.caption" Class="d-block mt-3">@T(TranslationKeys.SetupEquipmentQuestionsUnansweredHint)</MudText>
+}
+else if (HasPvSystem == true || HasHomeBattery == true)
 {
     <MudDivider Class="my-4" />
 
@@ -58,7 +66,7 @@
     </MudExpansionPanels>
 }
 
-@if (HasPvSystem)
+@if (HasPvSystem == true)
 {
     <div class="mt-4">
         <GenericInput For="() => Configuration.Item.PredictSolarPowerGeneration"
@@ -66,7 +74,7 @@
     </div>
 }
 
-@if (HasHomeBattery)
+@if (HasHomeBattery == true)
 {
     <div class="mt-4 p-4 rounded border">
         <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupHomeBatterySettingsTitle)</MudText>
@@ -128,8 +136,10 @@
 @code {
     [CascadingParameter] public SetupContext Context { get; set; } = default!;
     [Parameter, EditorRequired] public EditableItem<DtoBaseConfiguration> Configuration { get; set; } = default!;
-    [Parameter] public bool HasPvSystem { get; set; }
-    [Parameter] public bool HasHomeBattery { get; set; }
+    /// <summary>The answer to whether there are solar panels, or null while it is unanswered.</summary>
+    [Parameter] public bool? HasPvSystem { get; set; }
+    /// <summary>The answer to whether there is a home battery, or null while it is unanswered.</summary>
+    [Parameter] public bool? HasHomeBattery { get; set; }
     [Parameter] public EventCallback<bool> HasPvSystemChanged { get; set; }
     [Parameter] public EventCallback<bool> HasHomeBatteryChanged { get; set; }
 
@@ -154,18 +164,18 @@
         get
         {
             var usages = new List<ValueUsage>();
-            if (HasPvSystem)
+            if (HasPvSystem == true)
             {
                 usages.Add(ValueUsage.GridPower);
                 usages.Add(ValueUsage.InverterPower);
             }
-            else if (HasHomeBattery)
+            else if (HasHomeBattery == true)
             {
                 //Even without panels the grid reading is what tells us whether the house is importing.
                 usages.Add(ValueUsage.GridPower);
             }
 
-            if (HasHomeBattery)
+            if (HasHomeBattery == true)
             {
                 usages.Add(ValueUsage.HomeBatterySoc);
                 usages.Add(ValueUsage.HomeBatteryPower);
