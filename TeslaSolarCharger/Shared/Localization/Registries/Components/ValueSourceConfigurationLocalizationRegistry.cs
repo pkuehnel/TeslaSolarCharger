@@ -152,6 +152,10 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.English, "Type"),
             new TextLocalizationTranslation(LanguageCodes.German, "Typ"));
 
+        Register(TranslationKeys.ValueSourceConfigConnectionIntro,
+            new TextLocalizationTranslation(LanguageCodes.English, "Enter the connection details for this device."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tragen Sie die Verbindungsdaten für dieses Gerät ein."));
+
         Register(TranslationKeys.ValueSourceConfigFormNull,
             new TextLocalizationTranslation(LanguageCodes.English, "Config form is null, cannot save values"),
             new TextLocalizationTranslation(LanguageCodes.German, "Konfigurationsformular ist null, Werte können nicht gespeichert werden"));

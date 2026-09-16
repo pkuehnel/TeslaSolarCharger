@@ -356,6 +356,7 @@ public static class TranslationKeys
     public static string ValueSourceConfigEndianess => nameof(ValueSourceConfigEndianess);
     public static string ValueSourceConfigHttpMethod => nameof(ValueSourceConfigHttpMethod);
     public static string ValueSourceConfigType => nameof(ValueSourceConfigType);
+    public static string ValueSourceConfigConnectionIntro => nameof(ValueSourceConfigConnectionIntro);
 
     public static string ValueUsageInverterPower => nameof(ValueUsageInverterPower);
     public static string ValueUsageGridPower => nameof(ValueUsageGridPower);

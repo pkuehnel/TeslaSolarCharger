@@ -42,7 +42,7 @@
             <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" />
             <MudText Typo="Typo.body2" Class="flex-grow-1">@configuration.Heading</MudText>
             <MudButton Size="Size.Small" Variant="Variant.Text"
-                       OnClick="@(() => OpenConfiguration(configuration.Id))">
+                       OnClick="@(() => OpenConfiguration(configuration.Id, title: configuration.Heading))">
                 @T(TranslationKeys.SetupSourcePickerEditButton)
             </MudButton>
             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
@@ -82,18 +82,8 @@
         return Task.FromResult(all);
     }
 
-    private string Describe(TemplateValueGatherType? type)
-    {
-        if (type == null)
-        {
-            return string.Empty;
-        }
-
-        var vendor = TemplateValueGatherTypeVendors.GetVendor(type.Value);
-        var model = StringHelper.GenerateFriendlyStringFromPascalString(type.Value.ToString());
-        //The vendor is usually the start of the model name too, so it is not repeated.
-        return model.StartsWith(vendor, StringComparison.OrdinalIgnoreCase) ? model : $"{vendor} {model}";
-    }
+    private string Describe(TemplateValueGatherType? type) =>
+        type == null ? string.Empty : TemplateValueGatherTypeVendors.GetDisplayName(type.Value, StringHelper);
 
     private async Task OnDeviceChosen(TemplateValueGatherType? type)
     {
@@ -103,7 +93,7 @@
             return;
         }
 
-        await OpenConfiguration(null, type);
+        await OpenConfiguration(null, type, Describe(type));
         //Cleared so the field reads as an invitation to add the next device rather than as a current selection.
         _selected = null;
     }
@@ -112,7 +102,7 @@
     /// Opens the same editor the detailed configuration page uses. Reused rather than rebuilt: these forms carry
     /// each device's own quirks, and a second set would drift away from them.
     /// </summary>
-    private async Task OpenConfiguration(int? id, TemplateValueGatherType? preselectedType = null)
+    private async Task OpenConfiguration(int? id, TemplateValueGatherType? preselectedType = null, string? title = null)
     {
         var options = new DialogOptions
         {
@@ -120,14 +110,16 @@
             CloseOnEscapeKey = false,
             BackdropClick = true,
         };
+        //The device was already picked by name, and what it is called is only a label for the list above. Asking for
+        //either again made people wonder what they had got wrong, so the dialog asks only how to reach the device.
         var parameters = new DialogParameters<TemplateValueConfigurationDialog>
         {
             { x => x.ValueConfigurationId, id },
+            { x => x.PreselectedType, preselectedType },
+            { x => x.ShowNameAndType, false },
         };
-        var title = preselectedType == null
-            ? T(TranslationKeys.SetupSourcePickerEditTitle)
-            : Describe(preselectedType);
-        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(title, parameters, options);
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(
+            title ?? T(TranslationKeys.SetupSourcePickerEditTitle), parameters, options);
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {

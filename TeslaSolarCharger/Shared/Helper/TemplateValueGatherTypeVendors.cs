@@ -1,4 +1,5 @@
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 
 namespace TeslaSolarCharger.Shared.Helper;
 
@@ -82,4 +83,38 @@ public static class TemplateValueGatherTypeVendors
             or TemplateValueGatherType.SolarEdgeHybrid => "SolarEdge",
         _ => "Other",
     };
+
+    /// <summary>
+    /// The make and model as a person would look for it, for example "SMA Hybrid Inverter Modbus".
+    /// </summary>
+    public static string GetDisplayName(TemplateValueGatherType type, IStringHelper stringHelper)
+    {
+        var vendor = GetVendor(type);
+        var model = stringHelper.GenerateFriendlyStringFromPascalString(type.ToString());
+        //The vendor is usually the start of the model name too, so it is not repeated, but spelled the way the
+        //manufacturer spells it ("SMA", not "Sma").
+        return model.StartsWith(vendor, StringComparison.OrdinalIgnoreCase)
+            ? vendor + model[vendor.Length..]
+            : $"{vendor} {model}";
+    }
+
+    /// <summary>
+    /// A name for a newly connected device, so nobody has to invent a label before they can connect anything. A second
+    /// device of the same kind is numbered, because two identical entries in a list cannot be told apart.
+    /// </summary>
+    public static string SuggestName(TemplateValueGatherType type, IEnumerable<string?> existingNames, IStringHelper stringHelper)
+    {
+        var baseName = GetDisplayName(type, stringHelper);
+        var takenNames = new HashSet<string>(
+            existingNames.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+
+        var candidate = baseName;
+        for (var number = 2; takenNames.Contains(candidate); number++)
+        {
+            candidate = $"{baseName} {number}";
+        }
+
+        return candidate;
+    }
 }

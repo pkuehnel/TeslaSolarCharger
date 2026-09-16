@@ -38,26 +38,36 @@ else
                                WrappedElement="TemplateValueConfiguration"
                                HideSubmitButton="true"
                                @ref="BaseForm">
-                <GenericInput For="() => TemplateValueConfiguration.Item.Name"></GenericInput>
+                @if (ShowNameAndType)
+                {
+                    <GenericInput For="() => TemplateValueConfiguration.Item.Name"></GenericInput>
+                }
                 <div class="p-2">
-                    <MudSelectExtended T="TemplateValueGatherType?"
-                                       Variant="Variant.Outlined"
-                                       Clearable="true"
-                                       AnchorOrigin="Origin.BottomCenter"
-                                       Value="@TemplateValueConfiguration.Item.GatherType"
-                                       Label="@T(TranslationKeys.ValueSourceConfigType)"
-                                       Margin="Constants.InputMargin"
-                                       ValueChanged="TypeChanged">
-                        @foreach (var vendorGroup in Enum.GetValues<TemplateValueGatherType>().GroupBy(GetVendorGroup))
-                        {
-                            <MudSelectItemGroupExtended T="TemplateValueGatherType?" Text="@vendorGroup.Key" Nested="false">
-                                @foreach (var item in vendorGroup)
-                                {
-                                    <MudSelectItemExtended T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)item)">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
-                                }
-                            </MudSelectItemGroupExtended>
-                        }
-                    </MudSelectExtended>
+                    @if (ShowNameAndType)
+                    {
+                        <MudSelectExtended T="TemplateValueGatherType?"
+                                           Variant="Variant.Outlined"
+                                           Clearable="true"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           Value="@TemplateValueConfiguration.Item.GatherType"
+                                           Label="@T(TranslationKeys.ValueSourceConfigType)"
+                                           Margin="Constants.InputMargin"
+                                           ValueChanged="TypeChanged">
+                            @foreach (var vendorGroup in Enum.GetValues<TemplateValueGatherType>().GroupBy(GetVendorGroup))
+                            {
+                                <MudSelectItemGroupExtended T="TemplateValueGatherType?" Text="@vendorGroup.Key" Nested="false">
+                                    @foreach (var item in vendorGroup)
+                                    {
+                                        <MudSelectItemExtended T="TemplateValueGatherType?" Value="@((TemplateValueGatherType?)item)">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                                    }
+                                </MudSelectItemGroupExtended>
+                            }
+                        </MudSelectExtended>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.ValueSourceConfigConnectionIntro)</MudText>
+                    }
                     @switch (TemplateValueConfiguration.Item.GatherType)
                     {
                         case TemplateValueGatherType.SmaEnergyMeter:
@@ -130,7 +140,21 @@ else
     [Parameter]
     public int? ValueConfigurationId { get; set; }
 
+    /// <summary>The device the caller already knows about, so a new configuration starts as that device.</summary>
+    [Parameter]
+    public TemplateValueGatherType? PreselectedType { get; set; }
+
+    /// <summary>
+    /// False where the device was already picked by name: the dialog then only asks how to reach it, and names it by
+    /// itself.
+    /// </summary>
+    [Parameter]
+    public bool ShowNameAndType { get; set; } = true;
+
     private EditableItem<DtoTemplateValueConfigurationBase>? TemplateValueConfiguration { get; set; }
+
+    /// <summary>The last name this dialog proposed, so a proposal can follow a changed type but a typed name is kept.</summary>
+    private string? _suggestedName;
     private ITemplateEditFormComponent? ConfigurationComponent { get; set; }
 
     public EditFormComponent<DtoTemplateValueConfigurationBase>? BaseForm { get; set; }
@@ -186,17 +210,41 @@ else
                 TemplateValueConfiguration = new(result.Data);
             }
         }
-        TemplateValueConfiguration ??= new(new());
+        TemplateValueConfiguration ??= new(new() { GatherType = PreselectedType, });
+        await SuggestNameIfUnset();
     }
 
-    private void TypeChanged(TemplateValueGatherType? newType)
+    private async Task TypeChanged(TemplateValueGatherType? newType)
     {
         if (newType == default || TemplateValueConfiguration == default)
         {
             return;
         }
         TemplateValueConfiguration.Item.GatherType = newType.Value;
+        await SuggestNameIfUnset();
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Names the device after its make and model. A name the user typed is theirs and is never replaced; only an
+    /// empty one, or one this dialog proposed for a different type, is.
+    /// </summary>
+    private async Task SuggestNameIfUnset()
+    {
+        var item = TemplateValueConfiguration?.Item;
+        if (item?.GatherType == default)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Name) && item.Name != _suggestedName)
+        {
+            return;
+        }
+
+        var existingNames = (await Service.GetOverviews()).Select(o => o.Heading);
+        _suggestedName = TemplateValueGatherTypeVendors.SuggestName(item.GatherType.Value, existingNames, StringHelper);
+        item.Name = _suggestedName;
     }
 
 
