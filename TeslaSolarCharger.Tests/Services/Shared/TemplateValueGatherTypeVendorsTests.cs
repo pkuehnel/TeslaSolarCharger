@@ -42,6 +42,90 @@ public class TemplateValueGatherTypeVendorsTests
     }
 
     [Fact]
+    public void AModelUnderItsMakeIsNotPrefixedWithTheMakeAgain()
+    {
+        Assert.Equal("Hybrid Inverter Modbus",
+            TemplateValueGatherTypeVendors.GetModelName(TemplateValueGatherType.SmaHybridInverterModbus, _stringHelper));
+    }
+
+    [Fact]
+    public void AModelNamedWithoutItsMakeKeepsItsWholeName()
+    {
+        Assert.Equal("Storaxe Modbus",
+            TemplateValueGatherTypeVendors.GetModelName(TemplateValueGatherType.StoraxeModbus, _stringHelper));
+    }
+
+    [Fact]
+    public void TheDisplayNameIsTheMakeFollowedByTheModel()
+    {
+        Assert.All(Enum.GetValues<TemplateValueGatherType>(), type => Assert.Equal(
+            $"{TemplateValueGatherTypeVendors.GetVendor(type)} {TemplateValueGatherTypeVendors.GetModelName(type, _stringHelper)}",
+            TemplateValueGatherTypeVendors.GetDisplayName(type, _stringHelper)));
+    }
+
+    [Fact]
+    public void EveryBrandIsOfferedOnceAndInAlphabeticalOrder()
+    {
+        var vendors = TemplateValueGatherTypeVendors.GetVendors();
+
+        Assert.Equal(vendors.Distinct().Count(), vendors.Count);
+        Assert.Equal(vendors.OrderBy(v => v, StringComparer.OrdinalIgnoreCase), vendors);
+        Assert.Contains("SMA", vendors);
+        Assert.Contains("Fronius", vendors);
+    }
+
+    [Fact]
+    public void EveryDeviceIsOfferedUnderExactlyOneBrand()
+    {
+        //A device missing here could not be chosen at all, and one listed twice would look like two products.
+        var offered = TemplateValueGatherTypeVendors.GetVendors()
+            .SelectMany(TemplateValueGatherTypeVendors.GetTypesOf)
+            .ToList();
+
+        Assert.Equal(offered.Distinct().Count(), offered.Count);
+        Assert.Equal(Enum.GetValues<TemplateValueGatherType>().OrderBy(t => t), offered.OrderBy(t => t));
+    }
+
+    [Fact]
+    public void ABrandOffersOnlyItsOwnDevices()
+    {
+        var smaDevices = TemplateValueGatherTypeVendors.GetTypesOf("SMA");
+
+        Assert.Equal(7, smaDevices.Count);
+        Assert.Contains(TemplateValueGatherType.SmaHybridInverterModbus, smaDevices);
+        Assert.All(smaDevices, type => Assert.Equal("SMA", TemplateValueGatherTypeVendors.GetVendor(type)));
+    }
+
+    [Fact]
+    public void ABrandWithASingleDeviceOffersOnlyThatOne()
+    {
+        Assert.Equal(new[] { TemplateValueGatherType.TeslaPowerwallFleetApi, }, TemplateValueGatherTypeVendors.GetTypesOf("Tesla"));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Unknown brand")]
+    public void NoOrAnUnknownBrandOffersNoDevices(string? vendor)
+    {
+        Assert.Empty(TemplateValueGatherTypeVendors.GetTypesOf(vendor));
+    }
+
+    [Fact]
+    public void TheDevicesOfOneBrandCanBeToldApartByTheirModelName()
+    {
+        //Under a chosen brand only the model is shown, so the model alone has to tell the devices apart.
+        Assert.All(TemplateValueGatherTypeVendors.GetVendors(), vendor =>
+        {
+            var modelNames = TemplateValueGatherTypeVendors.GetTypesOf(vendor)
+                .Select(type => TemplateValueGatherTypeVendors.GetModelName(type, _stringHelper))
+                .ToList();
+            Assert.All(modelNames, name => Assert.False(string.IsNullOrWhiteSpace(name)));
+            Assert.Equal(modelNames.Count, modelNames.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        });
+    }
+
+    [Fact]
     public void TheFirstDeviceOfAKindIsNamedAfterIt()
     {
         var name = TemplateValueGatherTypeVendors.SuggestName(TemplateValueGatherType.SmaHybridInverterModbus,

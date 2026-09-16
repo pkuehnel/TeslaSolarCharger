@@ -84,10 +84,13 @@ else if (HasPvSystem == true || HasHomeBattery == true)
            following the link into Base Configuration - is exactly the kind of silent loss the durable setup state
            exists to prevent. *@
         <GenericInput For="() => Configuration.Item.HomeBatteryUsableEnergy"
+                      IsRequiredParameter="true"
                       OnValueChanged="@((double? _) => Save())" />
         <GenericInput For="() => Configuration.Item.HomeBatteryChargingPower"
+                      IsRequiredParameter="true"
                       OnValueChanged="@((int? _) => Save())" />
         <GenericInput For="() => Configuration.Item.HomeBatteryDischargingPower"
+                      IsRequiredParameter="true"
                       OnValueChanged="@((int? _) => Save())" />
 
         <MudDivider Class="my-3" />

@@ -84,19 +84,41 @@ public static class TemplateValueGatherTypeVendors
         _ => "Other",
     };
 
+    /// <summary>Every manufacturer that has at least one supported device, in alphabetical order.</summary>
+    public static IReadOnlyList<string> GetVendors() =>
+        Enum.GetValues<TemplateValueGatherType>()
+            .Select(GetVendor)
+            .Distinct()
+            .OrderBy(vendor => vendor, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>The devices of one manufacturer, so a list of models only offers what that brand makes.</summary>
+    public static IReadOnlyList<TemplateValueGatherType> GetTypesOf(string? vendor) =>
+        Enum.GetValues<TemplateValueGatherType>()
+            .Where(type => string.Equals(GetVendor(type), vendor, StringComparison.Ordinal))
+            .OrderBy(type => type.ToString(), StringComparer.Ordinal)
+            .ToList();
+
     /// <summary>
-    /// The make and model as a person would look for it, for example "SMA Hybrid Inverter Modbus".
+    /// The model without its make, for example "Hybrid Inverter Modbus", for a list where the make was already chosen.
     /// </summary>
-    public static string GetDisplayName(TemplateValueGatherType type, IStringHelper stringHelper)
+    public static string GetModelName(TemplateValueGatherType type, IStringHelper stringHelper)
     {
         var vendor = GetVendor(type);
         var model = stringHelper.GenerateFriendlyStringFromPascalString(type.ToString());
-        //The vendor is usually the start of the model name too, so it is not repeated, but spelled the way the
-        //manufacturer spells it ("SMA", not "Sma").
-        return model.StartsWith(vendor, StringComparison.OrdinalIgnoreCase)
-            ? vendor + model[vendor.Length..]
-            : $"{vendor} {model}";
+        //The vendor is usually the start of the model name too, and repeating it under a chosen make is noise.
+        var withoutVendor = model.StartsWith(vendor, StringComparison.OrdinalIgnoreCase)
+            ? model[vendor.Length..].Trim()
+            : model;
+        return withoutVendor.Length == 0 ? model : withoutVendor;
     }
+
+    /// <summary>
+    /// The make and model as a person would look for it, for example "SMA Hybrid Inverter Modbus". The make is spelled
+    /// the way the manufacturer spells it ("SMA", not "Sma").
+    /// </summary>
+    public static string GetDisplayName(TemplateValueGatherType type, IStringHelper stringHelper) =>
+        $"{GetVendor(type)} {GetModelName(type, stringHelper)}";
 
     /// <summary>
     /// A name for a newly connected device, so nobody has to invent a label before they can connect anything. A second

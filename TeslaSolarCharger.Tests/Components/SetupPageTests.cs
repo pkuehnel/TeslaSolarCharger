@@ -348,7 +348,7 @@ public class SetupPageTests : Bunit.TestContext
 
         //Asked by the name on the box. The protocols still exist, but behind a door labelled by the problem the
         //user has ("my device is not in the list") rather than by the protocol names themselves.
-        Assert.Contains("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("My device is not in the list", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -812,7 +812,7 @@ public class SetupPageTests : Bunit.TestContext
         //A switch that was simply left off could not be told apart from a "no".
         Assert.DoesNotContain(page.FindAll("button"), IsSelected);
         Assert.Contains("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.True(IsNextDisabled(page));
     }
 
@@ -825,12 +825,12 @@ public class SetupPageTests : Bunit.TestContext
         AnswerButton(page, "Yes", 0).Click();
 
         //Which readings a device has to deliver depends on the second answer too.
-        Assert.DoesNotContain("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.True(IsNextDisabled(page));
 
         AnswerButton(page, "No", 1).Click();
 
-        Assert.Contains("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.False(IsNextDisabled(page));
         Assert.True(IsSelected(AnswerButton(page, "Yes", 0)));
@@ -857,7 +857,7 @@ public class SetupPageTests : Bunit.TestContext
 
         var page = RenderAt(SetupSections.Solar);
 
-        Assert.DoesNotContain("Make and model", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Add device", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Answer both questions", page.Markup, StringComparison.OrdinalIgnoreCase);
         Assert.False(IsNextDisabled(page));
     }
@@ -1005,6 +1005,113 @@ public class SetupPageTests : Bunit.TestContext
         var page = RenderAt(SetupSections.Solar);
 
         Assert.Contains("3 hours ago", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The solar and battery step as the server reports it, carrying the given issues.</summary>
+    private static DtoSetupDecision DecisionWithSolarAndBatteryIssues(params DtoSetupIssue[] issues) => new()
+    {
+        Steps = { new DtoSetupStepStatus { StepKey = SetupStepKey.SolarAndBattery, Issues = issues.ToList(), }, },
+    };
+
+    private static DtoSetupIssue BatteryIssue(string messageKey, string propertyName) => new()
+    {
+        MessageKey = messageKey,
+        StepKey = SetupStepKey.SolarAndBattery,
+        PropertyName = propertyName,
+    };
+
+    private static DtoSetupIssue[] AllBatteryDetailsMissing() =>
+    [
+        BatteryIssue(TranslationKeys.SetupIssueHomeBatteryCapacityUnknown, nameof(BaseConfigurationBase.HomeBatteryUsableEnergy)),
+        BatteryIssue(TranslationKeys.SetupIssueHomeBatteryChargingPowerUnknown, nameof(BaseConfigurationBase.HomeBatteryChargingPower)),
+        BatteryIssue(TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown, nameof(BaseConfigurationBase.HomeBatteryDischargingPower)),
+    ];
+
+    [Fact]
+    public void AHomeBatteryWithoutItsDetailsHoldsBackMovingOn()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing());
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsNextDisabled(page));
+        Assert.Contains("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("usable capacity in kWh", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("can charge with", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("can discharge with", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(nameof(BaseConfigurationBase.HomeBatteryUsableEnergy))]
+    [InlineData(nameof(BaseConfigurationBase.HomeBatteryChargingPower))]
+    [InlineData(nameof(BaseConfigurationBase.HomeBatteryDischargingPower))]
+    public void EachMissingBatteryDetailOnItsOwnHoldsBackMovingOn(string missingProperty)
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing().Where(i => i.PropertyName == missingProperty).ToArray());
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.True(IsNextDisabled(page));
+    }
+
+    [Fact]
+    public void AHomeBatteryWithAllItsDetailsLetsTheUserMoveOn()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = true, };
+        //Still open, but none of them are details the user types in: a device can take a while to deliver its
+        //first reading, and the forecast is only a recommendation.
+        _decision = DecisionWithSolarAndBatteryIssues(
+            new DtoSetupIssue { MessageKey = TranslationKeys.SetupIssueHomeBatterySourceMissing, StepKey = SetupStepKey.SolarAndBattery, },
+            BatteryIssue(TranslationKeys.SetupIssueSolarPredictionRequired, nameof(BaseConfigurationBase.PredictSolarPowerGeneration)));
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.False(IsNextDisabled(page));
+        Assert.DoesNotContain("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BatteryDetailsDoNotHoldBackAHouseWithoutABattery()
+    {
+        //The last decision may still describe the battery the user just said they do not have.
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = false, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing());
+
+        var page = RenderAt(SetupSections.Solar);
+
+        Assert.False(IsNextDisabled(page));
+        Assert.DoesNotContain("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BatteryDetailsOnlyHoldBackTheSolarScreen()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = true, HasHomeBattery = true, };
+        _decision = DecisionWithSolarAndBatteryIssues(AllBatteryDetailsMissing());
+
+        var page = RenderAt(SetupSections.Location);
+
+        Assert.False(IsNextDisabled(page));
+        Assert.DoesNotContain("Fill in your home battery's details to continue", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheBatteryDetailsAreMarkedAsRequired()
+    {
+        _storedState = new DtoSetupState { HasPvSystem = false, HasHomeBattery = true, };
+
+        var page = RenderAt(SetupSections.Solar);
+
+        var requiredProperties = page.FindComponents<GenericInput<double?>>().Select(i => (i.Instance.For?.Body, i.Instance.IsRequiredParameter))
+            .Concat(page.FindComponents<GenericInput<int?>>().Select(i => (i.Instance.For?.Body, i.Instance.IsRequiredParameter)))
+            .Where(input => input.IsRequiredParameter == true)
+            .Select(input => ((System.Linq.Expressions.MemberExpression)input.Body!).Member.Name)
+            .ToList();
+        Assert.Contains(nameof(BaseConfigurationBase.HomeBatteryUsableEnergy), requiredProperties);
+        Assert.Contains(nameof(BaseConfigurationBase.HomeBatteryChargingPower), requiredProperties);
+        Assert.Contains(nameof(BaseConfigurationBase.HomeBatteryDischargingPower), requiredProperties);
     }
 
     [Fact]

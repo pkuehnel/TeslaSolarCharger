@@ -136,6 +136,14 @@
                     </MudButton>
                 }
             </div>
+            @if (CurrentSection == SetupSections.Solar && MissingHomeBatteryFacts.Count > 0)
+            {
+                <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupHomeBatteryFactsRequiredHint)</MudText>
+                @foreach (var issue in MissingHomeBatteryFacts)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@T(issue.MessageKey)</MudText>
+                }
+            }
             @if (CurrentSection == SetupSections.Finish)
             {
                 @if (!CanFinish)
@@ -210,14 +218,37 @@
 
     /// <summary>
     /// Moving on is held back where the rest of the assistant depends on this screen: without an account nothing can
-    /// be saved, and without both equipment answers it is not known which readings the installation needs.
+    /// be saved, without both equipment answers it is not known which readings the installation needs, and a home
+    /// battery nobody described cannot be planned with.
     /// </summary>
     private bool IsNextBlocked => CurrentSection switch
     {
         SetupSections.Account => !IsAccountReady,
-        SetupSections.Solar => _hasPvSystem == null || _hasHomeBattery == null,
+        SetupSections.Solar => _hasPvSystem == null || _hasHomeBattery == null || MissingHomeBatteryFacts.Count > 0,
         _ => false,
     };
+
+    /// <summary>The battery details that have to be entered before moving on.</summary>
+    private static readonly string[] RequiredHomeBatteryProperties =
+    [
+        nameof(BaseConfigurationBase.HomeBatteryUsableEnergy),
+        nameof(BaseConfigurationBase.HomeBatteryChargingPower),
+        nameof(BaseConfigurationBase.HomeBatteryDischargingPower),
+    ];
+
+    /// <summary>
+    /// Which of the required battery details are still missing, as the server reported them, so this button and the
+    /// server's idea of a complete setup cannot disagree. Readings from a device are deliberately not among them: a
+    /// device may take a while to deliver its first value.
+    /// </summary>
+    private List<DtoSetupIssue> MissingHomeBatteryFacts =>
+        _hasHomeBattery != true
+            ? new List<DtoSetupIssue>()
+            : _context?.Decision?.Steps
+                  .FirstOrDefault(s => s.StepKey == SetupStepKey.SolarAndBattery)
+                  ?.Issues.Where(i => RequiredHomeBatteryProperties.Contains(i.PropertyName))
+                  .ToList()
+              ?? new List<DtoSetupIssue>();
 
     private SetupCarStage CarStage =>
         Enum.TryParse<SetupCarStage>(CurrentStage, ignoreCase: true, out var parsed) ? parsed : SetupCarStage.Identify;

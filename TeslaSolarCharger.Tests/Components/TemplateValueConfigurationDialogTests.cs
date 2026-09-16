@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using MudBlazor;
 using MudBlazor.Services;
-using MudExtensions;
 using MudExtensions.Services;
 using Newtonsoft.Json.Linq;
 using TeslaSolarCharger.Client.Components;
@@ -25,13 +24,15 @@ using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Components;
 
 /// <summary>
-/// The dialog a device is connected through. In setup the device has already been picked by name, so the dialog must
-/// not ask what it is or what to call it; on the detailed page both stay, but the name no longer has to be invented.
+/// The dialog a device is connected through. A device is chosen by its brand first and then from that brand's devices.
+/// In setup the dialog never asks what to call the device, and once a device is added only how to reach it is left to
+/// change; on the detailed page the name stays, but no longer has to be invented.
 /// </summary>
 public class TemplateValueConfigurationDialogTests : Bunit.TestContext
 {
@@ -54,26 +55,135 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
             .Setup(s => s.SaveAsync(It.IsAny<DtoTemplateValueConfigurationBase>()))
             .Callback<DtoTemplateValueConfigurationBase>(c => _saved = c)
             .ReturnsAsync(new Result<int>(1, null, null));
+        _service
+            .Setup(s => s.GetAsync(7))
+            .ReturnsAsync(new Result<DtoTemplateValueConfigurationBase>(new DtoTemplateValueConfigurationBase
+            {
+                Id = 7,
+                Name = "Garage inverter",
+                GatherType = TemplateValueGatherType.SmaInverterModbus,
+                Configuration = JObject.FromObject(new DtoSmaInverterTemplateValueConfiguration { Host = "10.0.0.2", }),
+            }, null, null));
         Services.AddSingleton(_service.Object);
     }
 
     [Fact]
-    public void ADevicePickedInSetupIsNotAskedForAgain()
+    public void ADeviceAddedInSetupIsChosenByBrandAndThenByDeviceWithoutAName()
     {
-        var provider = OpenFromSetup(TemplateValueGatherType.SmaHybridInverterModbus);
+        var provider = AddFromSetup();
 
-        Assert.Empty(provider.FindComponents<MudSelectExtended<TemplateValueGatherType?>>());
+        Assert.Single(provider.FindComponents<MudSelect<string>>());
+        Assert.Single(provider.FindComponents<MudSelect<TemplateValueGatherType?>>());
         Assert.False(AsksFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)));
-        //What is left is how to reach the device, and it is there straight away rather than after choosing a type.
+    }
+
+    [Fact]
+    public void TheDeviceListWaitsForABrand()
+    {
+        var provider = AddFromSetup();
+
+        Assert.True(DeviceSelect(provider).Instance.Disabled);
+        Assert.Empty(provider.FindComponents<SmaInverterEditForm>());
+    }
+
+    [Fact]
+    public void ChoosingABrandOffersOnlyThatBrandsDevices()
+    {
+        var popovers = Render<MudPopoverProvider>();
+        var provider = AddFromSetup();
+
+        ChooseBrand(provider, "SMA");
+        var deviceSelect = DeviceSelect(provider);
+        provider.InvokeAsync(() => deviceSelect.Instance.OpenMenu()).GetAwaiter().GetResult();
+
+        popovers.WaitForAssertion(() =>
+        {
+            var offered = popovers.FindComponents<MudSelectItem<TemplateValueGatherType?>>()
+                .Select(item => item.Instance.Value)
+                .ToList();
+            Assert.False(deviceSelect.Instance.Disabled);
+            Assert.Equal(TemplateValueGatherTypeVendors.GetTypesOf("SMA").Select(t => (TemplateValueGatherType?)t), offered);
+        });
+        //Offered under the brand, so not repeated in front of every device.
+        Assert.Contains("Hybrid Inverter Modbus", popovers.Markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sma Hybrid Inverter Modbus", popovers.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ABrandWithASingleDeviceTakesItStraightAway()
+    {
+        var provider = AddFromSetup();
+
+        ChooseBrand(provider, "Tesla");
+
+        Assert.Equal(TemplateValueGatherType.TeslaPowerwallFleetApi, DeviceSelect(provider).Instance.Value);
+        Assert.Single(provider.FindComponents<TeslaPowerwallEditForm>());
+    }
+
+    [Fact]
+    public void ABrandWithSeveralDevicesLeavesTheChoiceToTheUser()
+    {
+        var provider = AddFromSetup();
+
+        ChooseBrand(provider, "SMA");
+
+        Assert.Null(DeviceSelect(provider).Instance.Value);
+        Assert.Empty(provider.FindComponents<SmaInverterEditForm>());
+    }
+
+    [Fact]
+    public void ChoosingTheDeviceShowsHowToReachIt()
+    {
+        var provider = AddFromSetup();
+
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
+
+        Assert.Single(provider.FindComponents<SmaInverterEditForm>());
         Assert.True(AsksFor(provider, nameof(DtoSmaInverterTemplateValueConfiguration.Host)));
-        Assert.Contains("connection details", provider.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ChoosingAnotherBrandDropsTheDeviceOfThePreviousOne()
+    {
+        var provider = AddFromSetup();
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
+
+        ChooseBrand(provider, "Fronius");
+
+        Assert.Null(DeviceSelect(provider).Instance.Value);
+        Assert.Empty(provider.FindComponents<SmaInverterEditForm>());
+        Assert.True(SaveButton(provider).HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public void ChoosingTheSameBrandAgainKeepsTheChosenDevice()
+    {
+        var provider = AddFromSetup();
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
+
+        ChooseBrand(provider, "SMA");
+
+        Assert.Equal(TemplateValueGatherType.SmaHybridInverterModbus, DeviceSelect(provider).Instance.Value);
+        Assert.Single(provider.FindComponents<SmaInverterEditForm>());
+    }
+
+    [Fact]
+    public void SavingIsOnlyOfferedOnceADeviceIsChosen()
+    {
+        var provider = AddFromSetup();
+        Assert.True(SaveButton(provider).HasAttribute("disabled"));
+
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
+
+        Assert.False(SaveButton(provider).HasAttribute("disabled"));
     }
 
     [Fact]
     public void ADeviceConnectedInSetupIsNamedAfterItsMakeAndModel()
     {
-        var provider = OpenFromSetup(TemplateValueGatherType.SmaHybridInverterModbus);
+        var provider = AddFromSetup();
 
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
         EnterHostAndSave(provider);
 
         Assert.NotNull(_saved);
@@ -85,30 +195,39 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
     public void ASecondIdenticalDeviceGetsANameThatTellsThemApart()
     {
         _existingDevices = new List<DtoValueConfigurationOverview> { new("SMA Hybrid Inverter Modbus") { Id = 3, }, };
-        var provider = OpenFromSetup(TemplateValueGatherType.SmaHybridInverterModbus);
+        var provider = AddFromSetup();
 
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
         EnterHostAndSave(provider);
 
         Assert.Equal("SMA Hybrid Inverter Modbus 2", _saved?.Name);
     }
 
     [Fact]
-    public void ChangingADeviceInSetupKeepsTheNameItAlreadyHas()
+    public void ChangingADeviceInSetupOnlyAsksHowToReachIt()
     {
-        _service
-            .Setup(s => s.GetAsync(7))
-            .ReturnsAsync(new Result<DtoTemplateValueConfigurationBase>(new DtoTemplateValueConfigurationBase
-            {
-                Id = 7,
-                Name = "Garage inverter",
-                GatherType = TemplateValueGatherType.SmaInverterModbus,
-                Configuration = JObject.FromObject(new DtoSmaInverterTemplateValueConfiguration { Host = "10.0.0.2", }),
-            }, null, null));
-
         var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>
         {
             { x => x.ValueConfigurationId, 7 },
-            { x => x.ShowNameAndType, false },
+            { x => x.ShowName, false },
+            { x => x.ShowTypeSelection, false },
+        });
+
+        Assert.Empty(provider.FindComponents<MudSelect<string>>());
+        Assert.Empty(provider.FindComponents<MudSelect<TemplateValueGatherType?>>());
+        Assert.False(AsksFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)));
+        Assert.True(AsksFor(provider, nameof(DtoSmaInverterTemplateValueConfiguration.Host)));
+        Assert.Contains("connection details", provider.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ChangingADeviceInSetupKeepsTheNameItAlreadyHas()
+    {
+        var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>
+        {
+            { x => x.ValueConfigurationId, 7 },
+            { x => x.ShowName, false },
+            { x => x.ShowTypeSelection, false },
         });
         ClickSave(provider);
 
@@ -119,32 +238,43 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
     }
 
     [Fact]
-    public void TheDetailedPageStillAsksForTheNameAndType()
+    public void TheDetailedPageAsksForTheNameTheBrandAndTheDevice()
     {
         var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>());
 
-        Assert.Single(provider.FindComponents<MudSelectExtended<TemplateValueGatherType?>>());
         Assert.True(AsksFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)));
+        Assert.Single(provider.FindComponents<MudSelect<string>>());
+        Assert.Single(provider.FindComponents<MudSelect<TemplateValueGatherType?>>());
     }
 
     [Fact]
-    public void ChoosingATypeOnTheDetailedPageFillsInAnEmptyName()
+    public void OpeningAConnectedDeviceShowsItsBrandAndDevice()
+    {
+        var provider = Open(new DialogParameters<TemplateValueConfigurationDialog> { { x => x.ValueConfigurationId, 7 }, });
+
+        Assert.Equal("SMA", BrandSelect(provider).Instance.Value);
+        Assert.Equal(TemplateValueGatherType.SmaInverterModbus, DeviceSelect(provider).Instance.Value);
+        Assert.False(DeviceSelect(provider).Instance.Disabled);
+    }
+
+    [Fact]
+    public void ChoosingADeviceOnTheDetailedPageFillsInAnEmptyName()
     {
         var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>());
 
-        ChooseType(provider, TemplateValueGatherType.SmaInverterModbus);
+        ChooseDevice(provider, TemplateValueGatherType.SmaInverterModbus);
         EnterHostAndSave(provider);
 
         Assert.Equal("SMA Inverter Modbus", _saved?.Name);
     }
 
     [Fact]
-    public void AProposedNameFollowsTheTypeWhenTheTypeIsChangedAgain()
+    public void AProposedNameFollowsTheDeviceWhenTheDeviceIsChangedAgain()
     {
         var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>());
 
-        ChooseType(provider, TemplateValueGatherType.SmaInverterModbus);
-        ChooseType(provider, TemplateValueGatherType.SmaHybridInverterModbus);
+        ChooseDevice(provider, TemplateValueGatherType.SmaInverterModbus);
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
         EnterHostAndSave(provider);
 
         Assert.Equal("SMA Hybrid Inverter Modbus", _saved?.Name);
@@ -156,53 +286,66 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
         var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>());
 
         InputFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)).Change("Roof");
-        ChooseType(provider, TemplateValueGatherType.SmaInverterModbus);
+        ChooseDevice(provider, TemplateValueGatherType.SmaInverterModbus);
         EnterHostAndSave(provider);
 
         Assert.Equal("Roof", _saved?.Name);
     }
 
     [Fact]
-    public void ANameTypedAfterAProposalIsKeptWhenTheTypeChanges()
+    public void ANameTypedAfterAProposalIsKeptWhenTheDeviceChanges()
     {
         var provider = Open(new DialogParameters<TemplateValueConfigurationDialog>());
 
-        ChooseType(provider, TemplateValueGatherType.SmaInverterModbus);
+        ChooseDevice(provider, TemplateValueGatherType.SmaInverterModbus);
         InputFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)).Change("Roof");
-        ChooseType(provider, TemplateValueGatherType.SmaHybridInverterModbus);
+        ChooseDevice(provider, TemplateValueGatherType.SmaHybridInverterModbus);
         EnterHostAndSave(provider);
 
         Assert.Equal("Roof", _saved?.Name);
     }
 
     [Fact]
-    public void PickingADeviceInSetupOpensItsConnectionFormRightAway()
+    public void AddingADeviceInSetupStartsFromAButtonAndAsksForTheBrand()
     {
-        //The device used to reach the dialog only as its title, so the form behind it stayed empty until the same
-        //device was chosen a second time from a longer list.
+        //The search field used to keep showing what was typed after the device had been added.
         var provider = Render<MudDialogProvider>();
         var picker = Render<SetupEquipmentSourcePicker>(parameters => parameters
             .Add(p => p.Configurations, new List<DtoValueConfigurationOverview>()));
-        var autocomplete = picker.FindComponent<MudAutocomplete<TemplateValueGatherType?>>();
+        Assert.Empty(picker.FindComponents<MudAutocomplete<TemplateValueGatherType?>>());
 
-        //Not awaited: picking waits for the dialog to be closed, and this test only looks at it while it is open.
-        _ = picker.InvokeAsync(() => autocomplete.Instance.ValueChanged.InvokeAsync(TemplateValueGatherType.SmaHybridInverterModbus));
+        //Not awaited: the click waits for the dialog to be closed, and this test only looks at it while it is open.
+        _ = picker.InvokeAsync(() => ButtonWithText(picker, "Add device").Click());
+
+        provider.WaitForAssertion(() =>
+        {
+            Assert.Single(provider.FindComponents<MudSelect<string>>());
+            Assert.Single(provider.FindComponents<MudSelect<TemplateValueGatherType?>>());
+            Assert.False(AsksFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)));
+            Assert.Contains("Add device", provider.Markup, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void ChangingAConnectedDeviceInSetupDoesNotAskForTheDeviceAgain()
+    {
+        var provider = Render<MudDialogProvider>();
+        var picker = Render<SetupEquipmentSourcePicker>(parameters => parameters
+            .Add(p => p.Configurations, new List<DtoValueConfigurationOverview> { new("Garage inverter") { Id = 7, }, }));
+
+        _ = picker.InvokeAsync(() => ButtonWithText(picker, "Change").Click());
 
         provider.WaitForAssertion(() =>
         {
             Assert.Single(provider.FindComponents<SmaInverterEditForm>());
-            Assert.Empty(provider.FindComponents<MudSelectExtended<TemplateValueGatherType?>>());
+            Assert.Empty(provider.FindComponents<MudSelect<string>>());
+            Assert.Empty(provider.FindComponents<MudSelect<TemplateValueGatherType?>>());
             Assert.False(AsksFor(provider, nameof(DtoTemplateValueConfigurationBase.Name)));
-            Assert.Contains("SMA Hybrid Inverter Modbus", provider.Markup, StringComparison.Ordinal);
         });
     }
 
-    private IRenderedComponent<MudDialogProvider> OpenFromSetup(TemplateValueGatherType type) =>
-        Open(new DialogParameters<TemplateValueConfigurationDialog>
-        {
-            { x => x.PreselectedType, type },
-            { x => x.ShowNameAndType, false },
-        });
+    private IRenderedComponent<MudDialogProvider> AddFromSetup() =>
+        Open(new DialogParameters<TemplateValueConfigurationDialog> { { x => x.ShowName, false }, });
 
     private IRenderedComponent<MudDialogProvider> Open(DialogParameters<TemplateValueConfigurationDialog> parameters)
     {
@@ -214,9 +357,22 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
         return provider;
     }
 
-    private static void ChooseType(IRenderedComponent<MudDialogProvider> provider, TemplateValueGatherType type)
+    private static IRenderedComponent<MudSelect<string>> BrandSelect(IRenderedComponent<MudDialogProvider> provider) =>
+        provider.FindComponent<MudSelect<string>>();
+
+    private static IRenderedComponent<MudSelect<TemplateValueGatherType?>> DeviceSelect(IRenderedComponent<MudDialogProvider> provider) =>
+        provider.FindComponent<MudSelect<TemplateValueGatherType?>>();
+
+    private static void ChooseBrand(IRenderedComponent<MudDialogProvider> provider, string brand)
     {
-        var select = provider.FindComponent<MudSelectExtended<TemplateValueGatherType?>>();
+        var select = BrandSelect(provider);
+        provider.InvokeAsync(() => select.Instance.ValueChanged.InvokeAsync(brand)).GetAwaiter().GetResult();
+    }
+
+    private static void ChooseDevice(IRenderedComponent<MudDialogProvider> provider, TemplateValueGatherType type)
+    {
+        ChooseBrand(provider, TemplateValueGatherTypeVendors.GetVendor(type));
+        var select = DeviceSelect(provider);
         provider.InvokeAsync(() => select.Instance.ValueChanged.InvokeAsync(type)).GetAwaiter().GetResult();
     }
 
@@ -226,11 +382,18 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
         ClickSave(provider);
     }
 
+    private static AngleSharp.Dom.IElement SaveButton(IRenderedComponent<MudDialogProvider> provider) =>
+        provider.FindAll("button").Last(b => b.TextContent.Contains("Save", StringComparison.OrdinalIgnoreCase));
+
     private void ClickSave(IRenderedComponent<MudDialogProvider> provider)
     {
-        provider.FindAll("button").Last(b => b.TextContent.Contains("Save", StringComparison.OrdinalIgnoreCase)).Click();
+        SaveButton(provider).Click();
         provider.WaitForAssertion(() => Assert.NotNull(_saved));
     }
+
+    private static AngleSharp.Dom.IElement ButtonWithText<TComponent>(IRenderedComponent<TComponent> component, string text)
+        where TComponent : Microsoft.AspNetCore.Components.IComponent =>
+        component.FindAll("button").Single(b => b.TextContent.Trim() == text);
 
     private static bool AsksFor(IRenderedComponent<MudDialogProvider> provider, string propertyName) =>
         FindInputs(provider, propertyName).Any();

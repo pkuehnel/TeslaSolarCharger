@@ -148,9 +148,13 @@ public class ValueSourceConfigurationLocalizationRegistry : TextLocalizationRegi
             new TextLocalizationTranslation(LanguageCodes.English, "HTTP Method"),
             new TextLocalizationTranslation(LanguageCodes.German, "HTTP-Methode"));
 
-        Register(TranslationKeys.ValueSourceConfigType,
-            new TextLocalizationTranslation(LanguageCodes.English, "Type"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Typ"));
+        Register(TranslationKeys.ValueSourceConfigVendor,
+            new TextLocalizationTranslation(LanguageCodes.English, "Brand"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Marke"));
+
+        Register(TranslationKeys.ValueSourceConfigModel,
+            new TextLocalizationTranslation(LanguageCodes.English, "Device"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gerät"));
 
         Register(TranslationKeys.ValueSourceConfigConnectionIntro,
             new TextLocalizationTranslation(LanguageCodes.English, "Enter the connection details for this device."),

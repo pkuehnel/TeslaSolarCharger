@@ -355,7 +355,8 @@ public static class TranslationKeys
     public static string ValueSourceConfigValueType => nameof(ValueSourceConfigValueType);
     public static string ValueSourceConfigEndianess => nameof(ValueSourceConfigEndianess);
     public static string ValueSourceConfigHttpMethod => nameof(ValueSourceConfigHttpMethod);
-    public static string ValueSourceConfigType => nameof(ValueSourceConfigType);
+    public static string ValueSourceConfigVendor => nameof(ValueSourceConfigVendor);
+    public static string ValueSourceConfigModel => nameof(ValueSourceConfigModel);
     public static string ValueSourceConfigConnectionIntro => nameof(ValueSourceConfigConnectionIntro);
 
     public static string ValueUsageInverterPower => nameof(ValueUsageInverterPower);
@@ -824,6 +825,8 @@ public static class TranslationKeys
     public static string SetupIssueHomeBatterySourceMissing => nameof(SetupIssueHomeBatterySourceMissing);
     public static string SetupIssueHomeBatteryCapacityUnknown => nameof(SetupIssueHomeBatteryCapacityUnknown);
     public static string SetupIssueHomeBatteryChargingPowerUnknown => nameof(SetupIssueHomeBatteryChargingPowerUnknown);
+    public static string SetupIssueHomeBatteryDischargingPowerUnknown => nameof(SetupIssueHomeBatteryDischargingPowerUnknown);
+    public static string SetupHomeBatteryFactsRequiredHint => nameof(SetupHomeBatteryFactsRequiredHint);
     public static string SetupIssueHomeLocationNotConfirmed => nameof(SetupIssueHomeLocationNotConfirmed);
     public static string SetupIssueGridPriceMissing => nameof(SetupIssueGridPriceMissing);
     public static string SetupIssueCloudConnectionMissing => nameof(SetupIssueCloudConnectionMissing);
@@ -1123,11 +1126,9 @@ public static class TranslationKeys
     // Equipment-first solar and battery setup: picking the device by its name, and saying what can be read.
     public static string SetupSourcePickerTitle => nameof(SetupSourcePickerTitle);
     public static string SetupSourcePickerIntro => nameof(SetupSourcePickerIntro);
-    public static string SetupSourcePickerSearchLabel => nameof(SetupSourcePickerSearchLabel);
-    public static string SetupSourcePickerSearchHelper => nameof(SetupSourcePickerSearchHelper);
+    public static string SetupSourcePickerAddButton => nameof(SetupSourcePickerAddButton);
     public static string SetupSourcePickerConnectedTitle => nameof(SetupSourcePickerConnectedTitle);
     public static string SetupSourcePickerEditButton => nameof(SetupSourcePickerEditButton);
-    public static string SetupSourcePickerEditTitle => nameof(SetupSourcePickerEditTitle);
     public static string SetupSourcePickerRemoveButton => nameof(SetupSourcePickerRemoveButton);
     public static string SetupSourcePickerRemoveError => nameof(SetupSourcePickerRemoveError);
     public static string SetupSourcePickerSaved => nameof(SetupSourcePickerSaved);

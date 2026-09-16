@@ -163,6 +163,14 @@ public class SetupDecisionService(
             status.Issues.Add(issue);
         }
 
+        //Not needed to work out the reserve, so not one of the specification issues above, but a battery is only
+        //described completely with it: discharging the battery into a car relies on it.
+        if (state.Configuration.HomeBatteryDischargingPower is not > 0)
+        {
+            status.Issues.Add(Issue(TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown, SetupStepKey.SolarAndBattery,
+                propertyName: nameof(BaseConfigurationBase.HomeBatteryDischargingPower)));
+        }
+
         //Reported as a step issue and not only as a reason the proposal is pending, because once the user has
         //switched the automatic reserve on themselves there is no proposal left to carry it - and the combination
         //is one the base configuration validator refuses to store.

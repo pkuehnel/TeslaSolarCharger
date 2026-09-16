@@ -198,6 +198,14 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.English, "We need the power in watts your home battery can charge with. You will find it in the battery's data sheet or app."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wir benötigen die Leistung in Watt, mit der Ihr Hausspeicher laden kann. Sie finden sie im Datenblatt oder in der App des Speichers."));
 
+        Register(TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown,
+            new TextLocalizationTranslation(LanguageCodes.English, "We need the power in watts your home battery can discharge with. You will find it in the battery's data sheet or app."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wir benötigen die Leistung in Watt, mit der Ihr Hausspeicher entladen kann. Sie finden sie im Datenblatt oder in der App des Speichers."));
+
+        Register(TranslationKeys.SetupHomeBatteryFactsRequiredHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Fill in your home battery's details to continue:"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tragen Sie die Angaben zu Ihrem Hausspeicher ein, um fortzufahren:"));
+
         Register(TranslationKeys.SetupIssueHomeLocationNotConfirmed,
             new TextLocalizationTranslation(LanguageCodes.English, "Confirm where your cars charge. The preset location on the map is only an example, not your address."),
             new TextLocalizationTranslation(LanguageCodes.German, "Bestätigen Sie, wo Ihre Autos laden. Der voreingestellte Ort auf der Karte ist nur ein Beispiel, nicht Ihre Adresse."));

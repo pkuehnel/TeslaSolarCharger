@@ -10,16 +10,12 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Welche Geräte haben Sie?"));
 
         Register(TranslationKeys.SetupSourcePickerIntro,
-            new TextLocalizationTranslation(LanguageCodes.English, "Start typing the make of your inverter, meter or battery. We work out on our own how to read it."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tippen Sie die Marke Ihres Wechselrichters, Zählers oder Speichers ein. Wie wir ihn auslesen, finden wir selbst heraus."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Add your inverter, meter or battery by choosing its brand and then the device. We work out on our own how to read it."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fügen Sie Ihren Wechselrichter, Zähler oder Speicher hinzu, indem Sie erst die Marke und dann das Gerät auswählen. Wie wir es auslesen, finden wir selbst heraus."));
 
-        Register(TranslationKeys.SetupSourcePickerSearchLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Make and model"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Marke und Modell"));
-
-        Register(TranslationKeys.SetupSourcePickerSearchHelper,
-            new TextLocalizationTranslation(LanguageCodes.English, "For example SMA, Fronius, Huawei, Victron."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zum Beispiel SMA, Fronius, Huawei, Victron."));
+        Register(TranslationKeys.SetupSourcePickerAddButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Add device"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Gerät hinzufügen"));
 
         Register(TranslationKeys.SetupSourcePickerConnectedTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Connected"),
@@ -28,10 +24,6 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupSourcePickerEditButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Change"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ändern"));
-
-        Register(TranslationKeys.SetupSourcePickerEditTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Change this device"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Dieses Gerät ändern"));
 
         Register(TranslationKeys.SetupSourcePickerRemoveButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Remove"),

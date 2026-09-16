@@ -174,16 +174,73 @@ public class SetupDecisionServiceTests
     }
 
     [Fact]
-    public async Task HomeBatteryWithoutSpecifications_AsksForCapacityAndChargingPower()
+    public async Task HomeBatteryWithoutSpecifications_AsksForCapacityChargingAndDischargingPower()
     {
         var state = CompleteState();
         state.HasHomeBattery = true;
 
         var decision = await NewService(FullyCapable()).Evaluate(state);
 
-        var issues = Step(decision, SetupStepKey.SolarAndBattery).Issues.Select(i => i.MessageKey).ToList();
-        Assert.Contains(TranslationKeys.SetupIssueHomeBatteryCapacityUnknown, issues);
-        Assert.Contains(TranslationKeys.SetupIssueHomeBatteryChargingPowerUnknown, issues);
+        var issues = Step(decision, SetupStepKey.SolarAndBattery).Issues;
+        Assert.Contains(issues, i => i.MessageKey == TranslationKeys.SetupIssueHomeBatteryCapacityUnknown
+                                     && i.PropertyName == nameof(BaseConfigurationBase.HomeBatteryUsableEnergy));
+        Assert.Contains(issues, i => i.MessageKey == TranslationKeys.SetupIssueHomeBatteryChargingPowerUnknown
+                                     && i.PropertyName == nameof(BaseConfigurationBase.HomeBatteryChargingPower));
+        Assert.Contains(issues, i => i.MessageKey == TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown
+                                     && i.PropertyName == nameof(BaseConfigurationBase.HomeBatteryDischargingPower));
+        Assert.False(decision.IsConfigurationComplete);
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(0, true)]
+    [InlineData(-1, true)]
+    [InlineData(1, false)]
+    [InlineData(5000, false)]
+    public async Task HomeBatteryDischargingPower_IsRequiredToBePositive(int? dischargingPower, bool isReported)
+    {
+        var state = CompleteState();
+        state.HasHomeBattery = true;
+        state.Configuration.HomeBatteryUsableEnergy = 10;
+        state.Configuration.HomeBatteryChargingPower = 3000;
+        state.Configuration.HomeBatteryDischargingPower = dischargingPower;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        Assert.Equal(isReported, Step(decision, SetupStepKey.SolarAndBattery).Issues
+            .Any(i => i.MessageKey == TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown));
+        Assert.Equal(!isReported, decision.IsConfigurationComplete);
+    }
+
+    [Fact]
+    public async Task NoHomeBattery_DoesNotAskForBatterySpecifications()
+    {
+        var state = CompleteState();
+        state.HasHomeBattery = false;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        var propertyNames = Step(decision, SetupStepKey.SolarAndBattery).Issues.Select(i => i.PropertyName).ToList();
+        Assert.DoesNotContain(nameof(BaseConfigurationBase.HomeBatteryUsableEnergy), propertyNames);
+        Assert.DoesNotContain(nameof(BaseConfigurationBase.HomeBatteryChargingPower), propertyNames);
+        Assert.DoesNotContain(nameof(BaseConfigurationBase.HomeBatteryDischargingPower), propertyNames);
+    }
+
+    [Fact]
+    public async Task MissingDischargingPower_IsNotAReasonForTheAutomaticReserveToWait()
+    {
+        //The reserve is worked out from capacity and charging power only; waiting on anything else would hold it
+        //back for no reason.
+        var state = CompleteState();
+        state.HasHomeBattery = true;
+        state.Configuration.HomeBatteryUsableEnergy = 10;
+        state.Configuration.HomeBatteryChargingPower = 3000;
+        state.Configuration.HomeBatteryDischargingPower = null;
+
+        var decision = await NewService(FullyCapable()).Evaluate(state);
+
+        var proposal = decision.ProposedValues.Single(p => p.PropertyName == nameof(BaseConfigurationBase.DynamicHomeBatteryMinSoc));
+        Assert.DoesNotContain(proposal.PendingReasons, r => r.MessageKey == TranslationKeys.SetupIssueHomeBatteryDischargingPowerUnknown);
     }
 
     [Fact]
