@@ -175,7 +175,6 @@ public class TeslaBleServiceTests : TestBase
 
     public static TheoryData<string, string> CommandsWithoutParameters => new()
     {
-        { nameof(TeslaBleService.OpenChargePortDoor), "charge-port-open" },
         { nameof(TeslaBleService.FlashLights), "flash-lights" },
         { nameof(TeslaBleService.StartCharging), "charging-start" },
         { nameof(TeslaBleService.StopCharging), "charging-stop" },
@@ -205,45 +204,45 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public async Task OpenChargePortDoorUsesTheAdapterPinnedToTheCar()
+    public async Task CommandUsesTheAdapterPinnedToTheCar()
     {
         var handler = SetupContainer(new DtoBleCommandResult { Success = true, }, adapter: "AA:BB:CC:DD:EE:FF");
         var service = Mock.Create<TeslaBleService>();
 
-        await service.OpenChargePortDoor(TestVin);
+        await service.FlashLights(TestVin);
 
         var query = HttpUtility.ParseQueryString(Assert.Single(handler.Requests).Uri.Query);
         Assert.Equal("AA:BB:CC:DD:EE:FF", query[BleApiRoutes.AdapterQueryParam]);
     }
 
     [Fact]
-    public async Task OpenChargePortDoorPassesTheRefusalOfTheCarOn()
+    public async Task CommandPassesTheRefusalOfTheCarOn()
     {
         SetupContainer(new DtoBleCommandResult
         {
             Success = false,
             Outcome = BleCommandOutcome.CarRefused,
-            CarErrorMessage = "charge port door is already open",
+            CarErrorMessage = "is_charging",
         });
         var service = Mock.Create<TeslaBleService>();
 
-        var result = await service.OpenChargePortDoor(TestVin);
+        var result = await service.StartCharging(TestVin);
 
         Assert.False(result.Success);
         Assert.Equal(BleCommandOutcome.CarRefused, result.Outcome);
-        Assert.Equal("charge port door is already open", result.CarErrorMessage);
+        Assert.Equal("is_charging", result.CarErrorMessage);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task OpenChargePortDoorWithoutBleUrlIsAConfigurationError(string? bleApiBaseUrl)
+    public async Task CommandWithoutBleUrlIsAConfigurationError(string? bleApiBaseUrl)
     {
         var handler = SetupContainer(new DtoBleCommandResult { Success = true, }, bleApiBaseUrl: bleApiBaseUrl);
         var service = Mock.Create<TeslaBleService>();
 
-        var result = await service.OpenChargePortDoor(TestVin);
+        var result = await service.FlashLights(TestVin);
 
         Assert.False(result.Success);
         Assert.Equal(ErrorType.TscConfiguration, result.ErrorType);
@@ -251,7 +250,7 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public async Task OpenChargePortDoorOnAFailingContainerIsUnsuccessful()
+    public async Task CommandOnAFailingContainerIsUnsuccessful()
     {
         SetupContainer(new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
@@ -259,19 +258,19 @@ public class TeslaBleServiceTests : TestBase
         }));
         var service = Mock.Create<TeslaBleService>();
 
-        var result = await service.OpenChargePortDoor(TestVin);
+        var result = await service.FlashLights(TestVin);
 
         Assert.False(result.Success);
         Assert.Equal(ErrorType.Unknown, result.ErrorType);
     }
 
     [Fact]
-    public async Task OpenChargePortDoorOnAnUnreachableContainerIsUnsuccessful()
+    public async Task CommandOnAnUnreachableContainerIsUnsuccessful()
     {
         SetupContainer(new CapturingHandler(_ => throw new HttpRequestException("No route to host")));
         var service = Mock.Create<TeslaBleService>();
 
-        var result = await service.OpenChargePortDoor(TestVin);
+        var result = await service.FlashLights(TestVin);
 
         Assert.False(result.Success);
         Assert.Equal(ErrorType.Unknown, result.ErrorType);
@@ -279,7 +278,7 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public async Task OpenChargePortDoorOnAnUnparsableAnswerIsUnsuccessful()
+    public async Task CommandOnAnUnparsableAnswerIsUnsuccessful()
     {
         SetupContainer(new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -287,25 +286,24 @@ public class TeslaBleServiceTests : TestBase
         }));
         var service = Mock.Create<TeslaBleService>();
 
-        var result = await service.OpenChargePortDoor(TestVin);
+        var result = await service.FlashLights(TestVin);
 
         Assert.False(result.Success);
         Assert.Equal(ErrorType.Unknown, result.ErrorType);
     }
 
     [Fact]
-    public async Task OpenChargePortDoorForAnUnknownCarThrows()
+    public async Task CommandForAnUnknownCarThrows()
     {
         var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
         var service = Mock.Create<TeslaBleService>();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.OpenChargePortDoor("UNKNOWNVIN1234567"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.FlashLights("UNKNOWNVIN1234567"));
         Assert.Empty(handler.Requests);
     }
 
     private static Task<DtoBleCommandResult> InvokeCommand(TeslaBleService service, string methodName) => methodName switch
     {
-        nameof(TeslaBleService.OpenChargePortDoor) => service.OpenChargePortDoor(TestVin),
         nameof(TeslaBleService.FlashLights) => service.FlashLights(TestVin),
         nameof(TeslaBleService.StartCharging) => service.StartCharging(TestVin),
         nameof(TeslaBleService.StopCharging) => service.StopCharging(TestVin),

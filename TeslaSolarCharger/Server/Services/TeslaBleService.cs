@@ -229,12 +229,6 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return SendCommandToBle(vin, "flash-lights");
     }
 
-    public Task<DtoBleCommandResult> OpenChargePortDoor(string vin)
-    {
-        logger.LogTrace("{method}({vin})", nameof(OpenChargePortDoor), vin);
-        return SendCommandToBle(vin, "charge-port-open");
-    }
-
     public async Task<DtoBleCommandResult> PairKey(string vin, string apiRole)
     {
         logger.LogTrace("{method}({vin}, {apiRole})", nameof(PairKey), vin, apiRole);
