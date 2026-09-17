@@ -1,4 +1,4 @@
-using LanguageExt;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -8,6 +8,7 @@ using System.Net;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -22,7 +23,6 @@ using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
 using TeslaSolarCharger.SharedBackend.Enums;
-using Error = LanguageExt.Common.Error;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -1328,20 +1328,20 @@ public class TeslaFleetApiService(
         }
     }
 
-    public async Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount()
+    public async Task<Result<List<DtoTesla>>> GetAllCarsFromAccount()
     {
         logger.LogTrace("{method}()", nameof(GetAllCarsFromAccount));
         var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if (accessToken == default)
         {
             logger.LogError("Can not add cars to TSC as no Backend Token was found");
-            return Fin<List<DtoTesla>>.Fail("No Backend token found.");
+            return new(default, "No Backend token found.", null);
         }
         var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
         if (decryptionKey == default)
         {
             logger.LogError("Decryption key not found do not send command");
-            return Fin<List<DtoTesla>>.Fail("No Decryption key found.");
+            return new(default, "No Decryption key found.", null);
         }
         var requestUri = $"FleetApiRequests/GetAllCarsFromAccount?encryptionKey={Uri.EscapeDataString(decryptionKey)}";
         try
@@ -1351,29 +1351,27 @@ public class TeslaFleetApiService(
             if (backendResponse.HasError)
             {
                 logger.LogError("Error while getting all cars from account: {errorMessage}", backendResponse.ErrorMessage);
-                var exception = new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
-                return Fin<List<DtoTesla>>.Fail(Error.New(exception));
+                return new(default, $"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", backendResponse.ProblemDetails);
             }
 
             var teslaBackendResult = backendResponse.Data;
             if (teslaBackendResult == null)
             {
                 logger.LogError("Could not deserialize Solar4CarBackend response body");
-                return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body");
+                return new(default, "Could not deserialize response body", null);
             }
 
             if (!(teslaBackendResult.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices))
             {
                 logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Result: {jsonResult}", teslaBackendResult.StatusCode, teslaBackendResult.JsonResponse);
-                var excpetion = new HttpRequestException($"Requesting {requestUri} returned following statusCode: {teslaBackendResult.StatusCode} Underlaying result: {teslaBackendResult.JsonResponse}", null,
-                    teslaBackendResult.StatusCode);
-                return Fin<List<DtoTesla>>.Fail(Error.New(excpetion));
+                var errorMessage = $"Requesting {requestUri} returned following statusCode: {teslaBackendResult.StatusCode} Underlaying result: {teslaBackendResult.JsonResponse}";
+                return new(default, errorMessage, new ProblemDetails { Detail = errorMessage, Status = (int)teslaBackendResult.StatusCode, });
             }
 
             if(string.IsNullOrWhiteSpace(teslaBackendResult.JsonResponse))
             {
                 logger.LogError("Empty Tesla JSON response body from Solar4Car Backend");
-                return Fin<List<DtoTesla>>.Fail("Empty Tesla JSON response body from Solar4Car Backend");
+                return new(default, "Empty Tesla JSON response body from Solar4Car Backend", null);
             }
 
             var vehicles = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<List<DtoVehicleResult>>>(teslaBackendResult.JsonResponse);
@@ -1381,28 +1379,28 @@ public class TeslaFleetApiService(
             if (vehicles?.Response == null)
             {
                 logger.LogError("Could not deserialize vehicle list response body");
-                return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body");
+                return new(default, "Could not deserialize response body", null);
             }
 
             // Convert TeslaVehicle to DtoTesla
             var dtos = vehicles.Response.Select(v => new DtoTesla { Name = v.DisplayName, Vin = v.Vin }).ToList();
             logger.LogTrace("Found {count} cars in Tesla account", dtos.Count);
-            return Fin<List<DtoTesla>>.Succ(dtos);
+            return new(dtos, null, null);
         }
         catch (HttpRequestException e)
         {
             logger.LogError(e,"An HTTP request error occured");
-            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+            return new(default, e.Message, null);
         }
         catch (JsonException e)
         {
             logger.LogError(e, "Failed to parse JSON response");
-            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+            return new(default, e.Message, null);
         }
         catch (Exception e)
         {
             logger.LogError(e, "An unexpected error occurred");
-            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+            return new(default, e.Message, null);
         }
     }
 

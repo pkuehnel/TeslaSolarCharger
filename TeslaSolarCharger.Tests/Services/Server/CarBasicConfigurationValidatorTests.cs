@@ -1,5 +1,4 @@
 using Autofac;
-using LanguageExt;
 using Moq;
 using PkSoftwareService.Custom.Backend.Ble;
 using System.Collections.Generic;

@@ -3,7 +3,7 @@
 @* One of several answers, each on a card with a radio button. The buttons have to share a group: a radio button on
    its own is never drawn as selected, so the answer showed only in the form below it. *@
 <MudRadioGroup T="T" Value="Value" ValueChanged="ValueChanged" Class="@Class"
-               InputClass="d-flex flex-column align-stretch" InputStyle="gap: 12px;">
+               InputClass="d-flex flex-column align-stretch setup-choice-cards">
     @foreach (var option in Options)
     {
         @* The radio button keeps its own click to itself, so the card only hears clicks beside it. *@

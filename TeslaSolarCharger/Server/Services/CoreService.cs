@@ -1,7 +1,7 @@
-﻿using LanguageExt;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
@@ -242,14 +242,14 @@ public class CoreService : ICoreService
         return _settings.IsStartupCompleted;
     }
 
-    public async Task<Fin<DtoValue<string>>> SendTestTelegramMessage()
+    public async Task<Result<DtoValue<string>>> SendTestTelegramMessage()
     {
         _logger.LogTrace("{method}()", nameof(SendTestTelegramMessage));
         var statusCode = await _telegramService.SendMessage("TeslaSolarCharger test message");
         if (((int)statusCode >= 200) && ((int)statusCode <= 299))
         {
-            return Fin<DtoValue<string>>.Succ(new("Sending message succeeded"));
+            return new(new DtoValue<string>("Sending message succeeded"), null, null);
         }
-        return Fin<DtoValue<string>>.Fail($"Sending error message failed with status code {statusCode}");
+        return new(default, $"Sending error message failed with status code {statusCode}", null);
     }
 }

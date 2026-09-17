@@ -58,6 +58,12 @@ a, .btn-link {
     text-align: right !important;
 }
 
+/*MudRadioGroup renders its option container itself, so SetupChoiceCards can only space the cards with a global class.
+  The gap-3 utility does not work here as Bootstrap redefines it as 1rem.*/
+.setup-choice-cards {
+    gap: 12px;
+}
+
 /*Removes the wilde dot animations in buffered progess bar*/
 .mud-progress-linear.mud-progress-linear-buffer .mud-progress-linear-bar:first-child {
     /* remove the radial‐gradient dots */
