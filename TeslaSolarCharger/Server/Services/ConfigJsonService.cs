@@ -536,30 +536,6 @@ public class ConfigJsonService(
         {
             var dtoCar = carDataItem.Car;
 
-            var latestValues = await teslaSolarChargerContext.CarValueLogs
-                .Where(c => c.CarId == dtoCar.Id
-                            && (c.Type == CarValueType.IsPluggedIn
-                                || c.Type == CarValueType.StateOfCharge
-                                || c.Type == CarValueType.StateOfChargeLimit
-                                || c.Type == CarValueType.ChargerPhases
-                                || c.Type == CarValueType.ChargeAmps
-                                || c.Type == CarValueType.ChargerPilotCurrent
-                                || c.Type == CarValueType.ChargerVoltage
-                                || c.Type == CarValueType.ChargeCurrentRequest
-                                || c.Type == CarValueType.ModuleTempMin
-                                || c.Type == CarValueType.ModuleTempMax
-                                || c.Type == CarValueType.IsCharging
-                                || c.Type == CarValueType.AsleepOrOffline
-                                || c.Type == CarValueType.Latitude
-                                || c.Type == CarValueType.Longitude
-                                || c.Type == CarValueType.LocatedAtHome
-                                || c.Type == CarValueType.LocatedAtWork
-                                || c.Type == CarValueType.LocatedAtFavorite
-                            ))
-                .GroupBy(c => c.Type)
-                .Select(g => g.OrderByDescending(c => c.Timestamp).First())
-                .AsNoTracking()
-                .ToListAsync();
             var fleetTelemetryConfiguration = await teslaSolarChargerContext.Cars
                 .Where(c => c.Id == dtoCar.Id)
                 .Select(c => new FleetTelemetryConfiguration()
@@ -570,8 +546,22 @@ public class ConfigJsonService(
                 })
                 .FirstOrDefaultAsync();
 
-            foreach (var latestValue in latestValues)
+            foreach (var carValueType in CarValueTypesRestoredFromLogs)
             {
+                //Deliberately one query per type instead of a single GroupBy(Type).Select(g => g.OrderByDescending(Timestamp).First()):
+                //EF translates that into ROW_NUMBER() OVER (PARTITION BY Type ...), which makes SQLite read every CarValueLog of
+                //the car. With millions of logs per car this took minutes on every startup, while this query is a single seek on
+                //the (CarId, Type, Timestamp) index.
+                var latestValue = await teslaSolarChargerContext.CarValueLogs
+                    .Where(c => c.CarId == dtoCar.Id && c.Type == carValueType)
+                    .OrderByDescending(c => c.Timestamp)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync();
+                if (latestValue == default)
+                {
+                    continue;
+                }
+
                 var valueBeforeLatestValue = await teslaSolarChargerContext.CarValueLogs
                     .Where(c => c.CarId == dtoCar.Id
                                 && c.Type == latestValue.Type
@@ -632,6 +622,27 @@ public class ConfigJsonService(
         }
         return cars;
     }
+
+    private static readonly CarValueType[] CarValueTypesRestoredFromLogs =
+    [
+        CarValueType.ModuleTempMin,
+        CarValueType.ModuleTempMax,
+        CarValueType.ChargeAmps,
+        CarValueType.ChargeCurrentRequest,
+        CarValueType.IsPluggedIn,
+        CarValueType.IsCharging,
+        CarValueType.ChargerPilotCurrent,
+        CarValueType.Longitude,
+        CarValueType.Latitude,
+        CarValueType.StateOfCharge,
+        CarValueType.StateOfChargeLimit,
+        CarValueType.ChargerPhases,
+        CarValueType.ChargerVoltage,
+        CarValueType.AsleepOrOffline,
+        CarValueType.LocatedAtHome,
+        CarValueType.LocatedAtWork,
+        CarValueType.LocatedAtFavorite,
+    ];
 
     private class FleetTelemetryConfiguration
     {
