@@ -7,11 +7,11 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
     protected override void Configure()
     {
         Register(TranslationKeys.ChargeCostDetailAllChargeCostsButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "All Charge costs"),
+            new TextLocalizationTranslation(LanguageCodes.English, "All Charge Costs"),
             new TextLocalizationTranslation(LanguageCodes.German, "Alle Ladekosten"));
 
         Register(TranslationKeys.ChargeCostDetailTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "ChargePriceDetail"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge Price Details"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladepreisdetails"));
 
         Register(TranslationKeys.ChargeCostDetailIdLabel,
@@ -48,7 +48,7 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
 
         Register(TranslationKeys.ChargeCostDetailTimeBasedPriceHint,
             new TextLocalizationTranslation(LanguageCodes.English, "You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hier kannst du Zeiten mit speziellen Preisen festlegen. Für verbleibende Zeiten ohne Preisangabe wird der oben angegebene Standardnetzpreis verwendet."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Hier können Sie Zeiten mit speziellen Preisen festlegen. Für verbleibende Zeiten ohne Preisangabe wird der oben angegebene Standardnetzpreis verwendet."));
 
         Register(TranslationKeys.ChargeCostDetailPriceLabel,
             new TextLocalizationTranslation(LanguageCodes.English, "Price"),
@@ -68,10 +68,10 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
 
         Register(TranslationKeys.ChargeCostDetailUseSpotPricesHint,
             new TextLocalizationTranslation(LanguageCodes.English, "Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Aktiviere dies, wenn du dynamische Preise basierend auf EPEX Spot DE verwendest (z. B. Tibber oder aWATTar)"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Aktivieren Sie dies, wenn Sie dynamische Preise basierend auf EPEX Spot DE verwenden (z. B. Tibber oder aWATTar)"));
 
         Register(TranslationKeys.ChargeCostDetailAdditionalCostsToSpotPriceLabel,
-            new TextLocalizationTranslation(LanguageCodes.English, "Additional costs to spotprice"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Additional costs to spot price"),
             new TextLocalizationTranslation(LanguageCodes.German, "Zusätzliche Kosten zum Spotpreis"));
 
         Register(TranslationKeys.ChargeCostDetailSurchargeToSpotPriceHint,
@@ -83,8 +83,8 @@ public class ChargeCostDetailPageLocalizationRegistry : TextLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Das Aktualisieren der Ladepreise kann einige Zeit dauern, da die Preise aller bisherigen Ladevorgänge angepasst werden."));
 
         Register(TranslationKeys.ChargeCostDetailSaveError,
-            new TextLocalizationTranslation(LanguageCodes.English, "Charge price is null and can not be saved. Try reloading the page."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladepreis ist leer und kann nicht gespeichert werden. Versuche, die Seite neu zu laden."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Charge price is empty and cannot be saved. Try reloading the page."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladepreis ist leer und kann nicht gespeichert werden. Versuchen Sie, die Seite neu zu laden."));
 
         Register(TranslationKeys.SpotPriceRegionDELU,
             new TextLocalizationTranslation(LanguageCodes.English, "DE-LU - Germany, Luxembourg"),

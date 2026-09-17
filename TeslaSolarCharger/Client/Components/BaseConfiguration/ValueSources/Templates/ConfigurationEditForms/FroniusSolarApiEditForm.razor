@@ -1,0 +1,39 @@
+@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Fronius
+
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+<TemplateEditFormComponentBase TConfiguration="DtoFroniusSolarApiTemplateValueConfiguration"
+                               Configuration="Configuration"
+                               @ref="TemplateEditForm">
+    <ChildContent Context="wrapped">
+        <GenericInput For="() => wrapped.Item.Host"></GenericInput>
+        <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+        @if (wrapped.Item.EnableHomeBatteryControl)
+        {
+            <GenericInput For="() => wrapped.Item.Username"></GenericInput>
+            <GenericInput For="() => wrapped.Item.Password"></GenericInput>
+            <GenericInput For="() => wrapped.Item.UseApiConfigPath"></GenericInput>
+        }
+    </ChildContent>
+</TemplateEditFormComponentBase>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DtoFroniusSolarApiTemplateValueConfiguration? Configuration { get; set; }
+
+    private TemplateEditFormComponentBase<DtoFroniusSolarApiTemplateValueConfiguration>? TemplateEditForm { get; set; }
+
+    public bool Validate()
+    {
+        return TemplateEditForm?.Validate() ?? false;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
+}

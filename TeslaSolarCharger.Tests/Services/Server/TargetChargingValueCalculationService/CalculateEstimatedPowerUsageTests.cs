@@ -2,7 +2,7 @@ using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server.TargetChargingValueCalculationService;
 

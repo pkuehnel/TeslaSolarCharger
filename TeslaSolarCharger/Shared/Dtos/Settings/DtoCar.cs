@@ -79,6 +79,12 @@ public class DtoCar
 
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
+
+    /// <summary>
+    /// Stable id (BD address) of the Bluetooth adapter this car should be reached through. Null means the BLE
+    /// container's default adapter.
+    /// </summary>
+    public string? BleAdapterAddress { get; set; }
     public DtoTimeStampedValue<DateTime?> EarliestHomeArrival { get; set; } = new(DateTimeOffset.MinValue, null);
     public List<DateTime> WakeUpCalls { get; set; } = new List<DateTime>();
     public List<DateTime> VehicleDataCalls { get; set; } = new List<DateTime>();
@@ -88,5 +94,9 @@ public class DtoCar
     public List<DateTime> SetChargingAmpsCall { get; set; } = new List<DateTime>();
     public List<DateTime> OtherCommandCalls { get; set; } = new List<DateTime>();
 
-    public DateTime? LastNonSuccessBleCall { get; set; }
+    /// <summary>
+    /// Last successful Fleet API command that consumed the hourly rate limit budget for cars without a Fleet API license.
+    /// Only kept in memory as the Solar4Car backend enforces the rate limit across restarts.
+    /// </summary>
+    public DateTime? LastCountedFleetApiCommand { get; set; }
 }

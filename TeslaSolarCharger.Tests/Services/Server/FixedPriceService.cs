@@ -4,7 +4,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 

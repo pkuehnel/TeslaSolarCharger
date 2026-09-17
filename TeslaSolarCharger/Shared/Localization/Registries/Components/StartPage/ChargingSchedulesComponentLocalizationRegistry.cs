@@ -20,7 +20,7 @@ public class ChargingSchedulesComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.ChargingSchedulesReasonBattery,
             new TextLocalizationTranslation(LanguageCodes.English, "Discharging home battery"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hausbatterie entladen"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Heimbatterie wird entladen"));
 
         Register(TranslationKeys.ChargingSchedulesReasonGridPrice,
             new TextLocalizationTranslation(LanguageCodes.English, "Cheap grid price"),
@@ -28,7 +28,7 @@ public class ChargingSchedulesComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.ChargingSchedulesReasonBridge,
             new TextLocalizationTranslation(LanguageCodes.English, "Bridge between schedules to reduce charge starts/stops"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Überbrückung zwischen Ladeplänen um Ladestarts/-stopps zu reduzieren"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Überbrückung zwischen Ladeplänen, um Ladestarts/-stopps zu reduzieren"));
 
         Register(TranslationKeys.ChargingSchedulesReasonLatestTime,
             new TextLocalizationTranslation(LanguageCodes.English, "Latest possible time"),
@@ -40,11 +40,11 @@ public class ChargingSchedulesComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.ChargingScheduleHeaderValidFrom,
             new TextLocalizationTranslation(LanguageCodes.English, "Valid From"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gültig Ab"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Gültig ab"));
 
         Register(TranslationKeys.ChargingScheduleHeaderValidTo,
             new TextLocalizationTranslation(LanguageCodes.English, "Valid To"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Gültig Bis"));
+            new TextLocalizationTranslation(LanguageCodes.German, "Gültig bis"));
 
         Register(TranslationKeys.ChargingScheduleHeaderEstimatedChargingPower,
             new TextLocalizationTranslation(LanguageCodes.English, "Estimated Charging Power"),

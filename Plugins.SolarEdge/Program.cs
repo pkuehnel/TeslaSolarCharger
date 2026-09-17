@@ -18,6 +18,7 @@ builder.Services.AddSingleton<SharedValues>();
 builder.Services.AddTransient<ICurrentValuesService, CurrentValuesService>()
     .AddTransient<IDateTimeProvider, DateTimeProvider>()
     ;
+builder.Services.AddHttpClient();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));

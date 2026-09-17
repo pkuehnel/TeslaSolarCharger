@@ -1,0 +1,85 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+@* Only what the car itself dictates. How it should charge - a minimum level, deadlines, which car goes first - starts
+   from defaults and is changed later on the home page, once the user has seen it charge. *@
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarElectricalExplanation)</MudText>
+
+@* The lowest current is not asked here, so the highest cannot be entered below it: the user would be told about a
+   limit they cannot see. *@
+<MudNumericField T="int" Value="Draft.Configuration.MaximumAmpere" ValueChanged="OnMaximumAmpereChanged"
+                 Min="@Math.Max(1, Draft.Configuration.MinimumAmpere)" Max="64"
+                 Label="@T(TranslationKeys.SetupCarMaximumCurrentLabel)"
+                 HelperText="@T(TranslationKeys.SetupCarMaximumCurrentHelper)"
+                 Adornment="Adornment.End" AdornmentText="A"
+                 Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 260px;" />
+
+@if (Draft.Configuration.MaximumAmpere < Draft.Configuration.MinimumAmpere)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3">@T(TranslationKeys.SetupIssueCarCurrentLimitsInvalid)</MudAlert>
+}
+
+<MudSelect T="int" Value="Draft.Configuration.MaximumPhases" ValueChanged="OnPhasesChanged"
+           Label="@T(TranslationKeys.SetupCarPhasesLabel)"
+           HelperText="@T(TranslationKeys.SetupCarPhasesHelper)"
+           Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Style="max-width: 320px;">
+    <MudSelectItem T="int" Value="1">@T(TranslationKeys.SetupCarPhasesSingle)</MudSelectItem>
+    <MudSelectItem T="int" Value="3">@T(TranslationKeys.SetupCarPhasesThree)</MudSelectItem>
+</MudSelect>
+
+<MudNumericField T="int" Value="Draft.Configuration.UsableEnergy" ValueChanged="OnUsableEnergyChanged"
+                 Min="0" Max="500"
+                 Label="@T(TranslationKeys.SetupCarBatterySizeLabel)"
+                 HelperText="@T(TranslationKeys.SetupCarBatterySizeHelper)"
+                 Adornment="Adornment.End" AdornmentText="kWh"
+                 Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 260px;" />
+@if (Draft.Configuration.UsableEnergy <= 5)
+{
+    @* Zero is not a car with no battery, it is a number nobody has told us yet. Say where to find it rather
+       than letting the user guess. *@
+    <MudText Typo="Typo.caption" Class="d-block mt-1">@T(TranslationKeys.SetupCarBatterySizeUnknownHint)</MudText>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
+    [Parameter] public EventCallback OnCompleted { get; set; }
+
+    private async Task OnMaximumAmpereChanged(int value)
+    {
+        Draft.Configuration.MaximumAmpere = value;
+        await SaveDraft();
+    }
+
+    private async Task OnPhasesChanged(int value)
+    {
+        Draft.Configuration.MaximumPhases = value;
+        await SaveDraft();
+    }
+
+    private async Task OnUsableEnergyChanged(int value)
+    {
+        Draft.Configuration.UsableEnergy = value;
+        await SaveDraft();
+    }
+
+    private async Task SaveDraft()
+    {
+        await Context.Save();
+        if (Draft.CarId != null)
+        {
+            await Context.SaveCarDraft(Draft);
+        }
+
+        await Context.RefreshDecision();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

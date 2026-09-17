@@ -7,8 +7,9 @@ using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Localization;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server.ChargingServiceV2;
 
@@ -60,7 +61,7 @@ public class AddNotChargingReasonsTests : TestBase
             reasonHelperMock.Verify(x => x.AddLoadPointSpecificReason(
                 carId,
                 null,
-                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == "Car is not at home")),
+                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == TranslationKeys.NotChargingReasonCarNotAtHome)),
                 Times.Once);
         }
 
@@ -69,7 +70,7 @@ public class AddNotChargingReasonsTests : TestBase
              reasonHelperMock.Verify(x => x.AddLoadPointSpecificReason(
                 carId,
                 null,
-                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == "Car is not plugged in")),
+                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == TranslationKeys.NotChargingReasonCarNotPluggedIn)),
                 Times.Once);
         }
     }
@@ -111,7 +112,7 @@ public class AddNotChargingReasonsTests : TestBase
             reasonHelperMock.Verify(x => x.AddLoadPointSpecificReason(
                 null,
                 connectorId,
-                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == "Charging connector is not plugged in")),
+                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == TranslationKeys.NotChargingReasonConnectorNotPluggedIn)),
                 Times.Once);
         }
     }

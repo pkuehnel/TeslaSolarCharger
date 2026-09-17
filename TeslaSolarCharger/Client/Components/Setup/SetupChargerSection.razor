@@ -1,0 +1,130 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+@if (Draft == null)
+{
+    <MudAlert Severity="Severity.Warning">@T(TranslationKeys.SetupChargerNotFound)</MudAlert>
+    <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary"
+               OnClick="@(() => Context.Navigate(SetupSections.Equipment, null, null))">
+        @T(TranslationKeys.SetupBackToEquipmentButton)
+    </MudButton>
+}
+else
+{
+    <MudText Typo="Typo.h5" GutterBottom="true">@DisplayName</MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-3">@T(StageTitleKey)</MudText>
+
+    @switch (Stage)
+    {
+        case SetupChargerStage.Connect:
+            <SetupChargerConnectStage Draft="Draft" />
+            break;
+        case SetupChargerStage.Settings:
+            <SetupChargerSettingsStage Draft="Draft" />
+            break;
+        case SetupChargerStage.Review:
+            <SetupChargerReviewStage Draft="Draft" />
+            break;
+    }
+
+    <MudDivider Class="my-4" />
+
+    <div class="d-flex justify-space-between align-center flex-wrap" style="gap: 8px;">
+        <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack">
+            @T(Stage == SetupChargerStage.Connect ? TranslationKeys.SetupBackToEquipmentButton : TranslationKeys.GeneralPrev)
+        </MudButton>
+        @if (Stage == SetupChargerStage.Review)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Check"
+                       OnClick="@(() => Context.Navigate(SetupSections.Equipment, null, null))">
+                @T(TranslationKeys.SetupChargerDoneButton)
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.ArrowForward"
+                       OnClick="GoToNextStage"
+                       Disabled="@(Stage == SetupChargerStage.Connect && Draft.ChargingStationId == null)">
+                @T(TranslationKeys.GeneralNext)
+            </MudButton>
+        }
+    </div>
+
+    @if (Stage == SetupChargerStage.Connect && Draft.ChargingStationId == null)
+    {
+        @* There is nothing to configure until the charger has actually reported in, so say why the button waits
+           rather than letting the user click a dead control. *@
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupChargerWaitingBeforeNext)</MudText>
+    }
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public Guid DraftId { get; set; }
+    [Parameter, EditorRequired] public SetupChargerStage Stage { get; set; }
+
+    private static readonly SetupChargerStage[] StageOrder =
+    [
+        SetupChargerStage.Connect, SetupChargerStage.Settings, SetupChargerStage.Review,
+    ];
+
+    private DtoSetupChargerDraft? Draft => Context.State.ChargerDrafts.FirstOrDefault(d => d.DraftId == DraftId);
+
+    private string DisplayName => Draft == null
+        ? string.Empty
+        : !string.IsNullOrWhiteSpace(Draft.DisplayName) ? Draft.DisplayName
+        : !string.IsNullOrWhiteSpace(Draft.ChargepointId) ? Draft.ChargepointId
+        : T(TranslationKeys.SetupEquipmentUnnamedCharger);
+
+    private string StageTitleKey => Stage switch
+    {
+        SetupChargerStage.Connect => TranslationKeys.SetupChargerStageConnectTitle,
+        SetupChargerStage.Settings => TranslationKeys.SetupChargerStageSettingsTitle,
+        _ => TranslationKeys.SetupChargerStageReviewTitle,
+    };
+
+    private async Task GoToNextStage()
+    {
+        var index = Array.IndexOf(StageOrder, Stage);
+        if (index < 0 || index >= StageOrder.Length - 1)
+        {
+            await Context.Navigate(SetupSections.Equipment, null, null);
+            return;
+        }
+
+        await MoveTo(StageOrder[index + 1]);
+    }
+
+    private async Task GoBack()
+    {
+        var index = Array.IndexOf(StageOrder, Stage);
+        if (index <= 0)
+        {
+            await Context.Navigate(SetupSections.Equipment, null, null);
+            return;
+        }
+
+        await MoveTo(StageOrder[index - 1]);
+    }
+
+    private async Task MoveTo(SetupChargerStage stage)
+    {
+        if (Draft != null)
+        {
+            Draft.Stage = stage;
+            await Context.Save();
+        }
+
+        await Context.Navigate(SetupSections.Charger, DraftId, stage.ToString());
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

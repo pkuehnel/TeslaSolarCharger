@@ -1,4 +1,4 @@
-﻿@using Newtonsoft.Json.Linq
+@using Newtonsoft.Json.Linq
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
 
@@ -11,6 +11,15 @@
         <GenericInput For="() => wrapped.Item.Host"></GenericInput>
         <GenericInput For="() => wrapped.Item.Port"></GenericInput>
         <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
+        @if (ShowHomeBatteryControlFields)
+        {
+            <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+            @if (wrapped.Item.EnableHomeBatteryControl)
+            {
+                <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
+                <GenericInput For="() => wrapped.Item.MaxBatteryDischargePowerW"></GenericInput>
+            }
+        }
     </ChildContent>
 </TemplateEditFormComponentBase>
 
@@ -18,6 +27,9 @@
 
     [Parameter, EditorRequired]
     public DtoSmaInverterTemplateValueConfiguration? Configuration { get; set; }
+
+    [Parameter]
+    public bool ShowHomeBatteryControlFields { get; set; }
 
     private TemplateEditFormComponentBase<DtoSmaInverterTemplateValueConfiguration>? TemplateEditForm { get; set; }
 

@@ -1,0 +1,93 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject IChargingStationsService ChargingStationsService
+@inject ITextLocalizationService TextLocalizer
+
+<MudOverlay Visible="@(_deletionProgress != null)" DarkBackground="true" ZIndex="9999">
+    @if (_deletionProgress != null)
+    {
+        <MudPaper Class="pa-6" Style="min-width: 320px; max-width: 90vw;">
+            <MudText Typo="Typo.h6" Class="mb-3">@T(TranslationKeys.ChargingStationDeleteProgressTitle)</MudText>
+            <MudText Typo="Typo.body1" Class="mb-2">@GetDeletionStepText(_deletionProgress.CurrentStep)</MudText>
+            <MudProgressLinear Value="_deletionProgress.Value"
+                               Max="_deletionProgress.MaxValue"
+                               Size="Size.Large"
+                               Striped="true"
+                               Color="Color.Primary" />
+            <MudText Typo="Typo.caption" Class="mt-2">@_deletionProgress.Value / @_deletionProgress.MaxValue</MudText>
+        </MudPaper>
+    }
+</MudOverlay>
+
+@code {
+    private DtoChargingStationDeletionProgress? _deletionProgress;
+
+    /// <summary>
+    /// Kicks off the (server side background) deletion of the charging station and shows a blocking progress
+    /// overlay until the server reports the deletion has finished. Mirrors the car deletion flow so a deletion
+    /// that outlasts the HTTP timeout no longer leaves the UI in an error state.
+    /// </summary>
+    public async Task DeleteAndTrackAsync(int chargingStationId)
+    {
+        _deletionProgress = new DtoChargingStationDeletionProgress
+        {
+            Value = 0, MaxValue = 7, CurrentStep = ChargingStationDeletionStep.ChargingProcesses,
+        };
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await ChargingStationsService.DeleteChargingStation(chargingStationId);
+            await PollDeletionUntilComplete(chargingStationId);
+        }
+        finally
+        {
+            _deletionProgress = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task PollDeletionUntilComplete(int chargingStationId)
+    {
+        // The server sets the progress synchronously before it returns from the delete request, so by the time we
+        // poll here the progress is either still set (deletion running) or already cleared (deletion finished). A
+        // null therefore always means "finished" - there is no window where we could poll before the server has
+        // had a chance to set it, so a fast/no-op delete still clears the overlay. The deadline is only a safety
+        // cap so the overlay can never stay up forever if the server never clears the progress (e.g. the process
+        // crashed mid-delete).
+        var deadline = DateTime.UtcNow.AddHours(1);
+        while (DateTime.UtcNow < deadline)
+        {
+            var progress = await ChargingStationsService.GetChargingStationDeletionProgress(chargingStationId);
+            if (progress == null)
+            {
+                break;
+            }
+
+            _deletionProgress = progress;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+    }
+
+    private string GetDeletionStepText(ChargingStationDeletionStep step) => step switch
+    {
+        ChargingStationDeletionStep.ChargingProcesses => T(TranslationKeys.ChargingStationDeletionStepChargingProcesses),
+        ChargingStationDeletionStep.Transactions => T(TranslationKeys.ChargingStationDeletionStepTransactions),
+        ChargingStationDeletionStep.ConnectorValueLogs => T(TranslationKeys.ChargingStationDeletionStepConnectorValueLogs),
+        ChargingStationDeletionStep.MeterValues => T(TranslationKeys.ChargingStationDeletionStepMeterValues),
+        ChargingStationDeletionStep.ConnectorAssignments => T(TranslationKeys.ChargingStationDeletionStepConnectorAssignments),
+        ChargingStationDeletionStep.Connectors => T(TranslationKeys.ChargingStationDeletionStepConnectors),
+        ChargingStationDeletionStep.ChargingStation => T(TranslationKeys.ChargingStationDeletionStepChargingStation),
+        _ => string.Empty,
+    };
+
+    private string T(string key) =>
+        TextLocalizer.Get<ChargingStationsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

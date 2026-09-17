@@ -13,7 +13,7 @@ public class DtoModbusConfigurationBasePropertyLocalization : PropertyLocalizati
                 "IP address or DNS name of your Modbus device"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Host",
-                "IP-Adresse oder DNS-Name deines Modbus Geräts"));
+                "IP-Adresse oder DNS-Name Ihres Modbus-Geräts"));
         Register(x => x.Port,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Modbus-Port",

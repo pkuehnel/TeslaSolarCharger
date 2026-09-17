@@ -33,23 +33,19 @@ public class MqttResultConfigurationPropertyLocalization : PropertyLocalizationR
             new PropertyLocalizationTranslation(LanguageCodes.German, "Topic", null));
 
         Register(x => x.NodePattern,
-            new PropertyLocalizationTranslation(LanguageCodes.English, "Node Pattern", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "Node Pattern", null));
+            new PropertyLocalizationTranslation(LanguageCodes.English, "Path to value", null),
+            new PropertyLocalizationTranslation(LanguageCodes.German, "Pfad zum Wert", null));
 
         Register(x => x.XmlAttributeHeaderName,
             new PropertyLocalizationTranslation(LanguageCodes.English, "XML Attribute Header Name", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "XML Attribut Header Name", null));
+            new PropertyLocalizationTranslation(LanguageCodes.German, "XML-Attribut Kopfzeilenname", null));
 
         Register(x => x.XmlAttributeHeaderValue,
             new PropertyLocalizationTranslation(LanguageCodes.English, "XML Attribute Header Value", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "XML Attribut Header Wert", null));
+            new PropertyLocalizationTranslation(LanguageCodes.German, "XML-Attribut Kopfzeilenwert", null));
 
         Register(x => x.XmlAttributeValueName,
             new PropertyLocalizationTranslation(LanguageCodes.English, "XML Attribute Value Name", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "XML Attribut Wert Name", null));
-
-        Register(x => x.CorrectionFactor,
-            new PropertyLocalizationTranslation(LanguageCodes.English, "Correction Factor", null),
-            new PropertyLocalizationTranslation(LanguageCodes.German, "Korrekturfaktor", null));
+            new PropertyLocalizationTranslation(LanguageCodes.German, "XML-Attribut Wertname", null));
     }
 }

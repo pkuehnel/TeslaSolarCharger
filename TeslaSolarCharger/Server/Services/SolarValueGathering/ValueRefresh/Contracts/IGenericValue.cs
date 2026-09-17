@@ -50,6 +50,14 @@ public abstract class GenericValueBase<T> : IGenericValue<T>
         }
     }
 
+    /// <summary>
+    /// Forgets <paramref name="valueKey"/> entirely, for a source that no longer delivers it rather than delivering zero.
+    /// </summary>
+    protected void RemoveValue(ValueKey valueKey)
+    {
+        _historicValues.TryRemove(valueKey, out _);
+    }
+
 
     public string? ErrorMessage
     {
@@ -116,14 +124,3 @@ public sealed record SourceValueKey(
     int SourceId,
     ConfigurationType ConfigurationType
 );
-
-
-public enum ConfigurationType
-{
-    RestSolarValue,
-    ModbusSolarValue,
-    MqttSolarValue,
-    CarValue,
-    OcppChargingConnectorValue,
-    TemplateValue = 1000,
-}

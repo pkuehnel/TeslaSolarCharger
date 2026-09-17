@@ -36,6 +36,6 @@ public class ChargeCostsListPageLocalizationRegistry : TextLocalizationRegistry<
 
         Register(TranslationKeys.ChargeCostsListLoading,
             new TextLocalizationTranslation(LanguageCodes.English, "Loading..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Laden..."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Wird geladen..."));
     }
 }

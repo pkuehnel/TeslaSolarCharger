@@ -1,0 +1,65 @@
+@using Newtonsoft.Json.Linq
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
+@using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Generic
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Helper
+
+@implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+<TemplateEditFormComponentBase TConfiguration="DtoGenericModbusTemplateValueConfiguration"
+                               Configuration="ConfigurationWithDefaults"
+                               @ref="TemplateEditForm">
+    <ChildContent Context="wrapped">
+        <GenericInput For="() => wrapped.Item.Host"></GenericInput>
+        <GenericInput For="() => wrapped.Item.Port"></GenericInput>
+        <GenericInput For="() => wrapped.Item.UnitId"></GenericInput>
+        @if (Defaults.SupportsHomeBatteryControl)
+        {
+            <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+            @if (wrapped.Item.EnableHomeBatteryControl)
+            {
+                <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
+                <GenericInput For="() => wrapped.Item.MaxBatteryDischargePowerW"></GenericInput>
+            }
+        }
+    </ChildContent>
+</TemplateEditFormComponentBase>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DtoGenericModbusTemplateValueConfiguration? Configuration { get; set; }
+
+    [Parameter, EditorRequired]
+    public TemplateValueGatherType GatherType { get; set; }
+
+    private TemplateEditFormComponentBase<DtoGenericModbusTemplateValueConfiguration>? TemplateEditForm { get; set; }
+
+    private GenericModbusTemplateDefaults Defaults => GenericModbusTemplateSettings.GetDefaults(GatherType);
+
+    private DtoGenericModbusTemplateValueConfiguration? ConfigurationWithDefaults { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        //Keep the same instance across re-renders so edits are not lost
+        ConfigurationWithDefaults ??= Configuration ?? new DtoGenericModbusTemplateValueConfiguration
+        {
+            Port = Defaults.Port,
+            UnitId = Defaults.UnitId,
+            MaxBatteryChargePowerW = Defaults.DefaultMaxChargePowerW,
+            MaxBatteryDischargePowerW = Defaults.DefaultMaxDischargePowerW,
+        };
+    }
+
+    public bool Validate()
+    {
+        return TemplateEditForm?.Validate() ?? false;
+    }
+
+    public JObject? GetConfiguration()
+    {
+        return TemplateEditForm?.GetConfiguration();
+    }
+
+}

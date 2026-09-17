@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Concurrent;
+using Moq;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Localization;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server.TargetChargingValueCalculationService;
 
@@ -53,6 +57,54 @@ public class GetTargetValueTests : TestBase
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetTargetValue_BlePresenceUncertain_ReturnsNullAndAddsReason()
+    {
+        // Arrange
+        Mock.Mock<IBlePresenceStateService>().Setup(s => s.IsPresenceUncertain(1)).Returns(true);
+        var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
+        var constraintValues = new ConstraintValues
+        {
+            MaxCurrent = 16,
+            MinCurrent = 6,
+            ChargeMode = ChargeModeV2.Auto,
+            IsCharging = true,
+        };
+        var loadPoint = new DtoLoadPointOverview { IsPluggedIn = true, IsHome = true, CarId = 1 };
+
+        // Act
+        var result = sut.GetTargetValue(constraintValues, loadPoint, 1000, false, CurrentFakeDate);
+
+        // Assert: no commands (not even StopCharging) while it is unknown whether the car is still at home.
+        Assert.Null(result);
+        Mock.Mock<INotChargingWithExpectedPowerReasonHelper>().Verify(h => h.AddLoadPointSpecificReason(1, null,
+            It.Is<NotChargingWithExpectedPowerReasonTemplate>(t =>
+                t.LocalizationKey == TranslationKeys.NotChargingReasonBlePresenceUncertain)), Times.Once);
+    }
+
+    [Fact]
+    public void GetTargetValue_BlePresenceUncertainForOtherCar_DoesNotSuspend()
+    {
+        // Arrange
+        Mock.Mock<IBlePresenceStateService>().Setup(s => s.IsPresenceUncertain(2)).Returns(true);
+        var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
+        var constraintValues = new ConstraintValues
+        {
+            MaxCurrent = 16,
+            MinCurrent = 6,
+            ChargeMode = ChargeModeV2.Manual,
+        };
+        var loadPoint = new DtoLoadPointOverview { IsPluggedIn = true, IsHome = true, CarId = 1 };
+
+        // Act
+        var result = sut.GetTargetValue(constraintValues, loadPoint, 1000, false, CurrentFakeDate);
+
+        // Assert: the manual mode null is reached, no suspension reason is added for an unaffected car.
+        Assert.Null(result);
+        Mock.Mock<INotChargingWithExpectedPowerReasonHelper>().Verify(h => h.AddLoadPointSpecificReason(
+            It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<NotChargingWithExpectedPowerReasonTemplate>()), Times.Never);
     }
 
     [Theory]

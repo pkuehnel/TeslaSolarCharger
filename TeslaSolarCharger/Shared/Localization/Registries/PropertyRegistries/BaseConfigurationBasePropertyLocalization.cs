@@ -25,7 +25,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.SkipPowerChangesOnLastAdjustmentNewerThanSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Skip Power Changes On Last Adjustment Newer Than Seconds",
-                "Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power."),
+                "Be cautious when setting values below 25 seconds as this might result in unexpected behaviour as cars or charging stations might take some time to update the power."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Leistungsänderungen überspringen, wenn die letzte Anpassung neuer als Sekunden ist",
                 "Seien Sie vorsichtig bei Werten unter 25 Sekunden, da Fahrzeuge oder Ladestationen möglicherweise Zeit benötigen, um die Leistung anzupassen."));
@@ -73,7 +73,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.PredictSolarPowerGeneration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Predict Solar Power Generation",
-                "If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data."),
+                "If enabled, your home geofence location is transferred to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Solarenergieerzeugung vorhersagen",
                 "Wenn aktiviert, wird Ihr Home-Geofence an die Server von Solar4Car.com sowie an www.visualcrossing.com übertragen. Ihre Positionsdaten werden dabei nie mit anderen Daten verknüpft."));
@@ -89,7 +89,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.ShowEnergyDataOnHome,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Show Energy Data On Home",
-                "This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspery Pi 3. This will be fixed in a future update."),
+                "This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspberry Pi 3. This will be fixed in a future update."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Energiedaten auf der Startseite anzeigen",
                 "Diese Funktion befindet sich in einer frühen Beta-Phase und verhält sich eventuell nicht wie erwartet. Auf Geräten mit geringer Leistung (z. B. Raspberry Pi 3) kann das Laden länger als 30 Sekunden dauern oder fehlschlagen. Dies wird in einem zukünftigen Update behoben."));
@@ -190,6 +190,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Minimaler Ladestand der Heimbatterie",
                 "Legen Sie fest, bis zu welchem Ladestand die Heimbatterie geladen wird, bevor Fahrzeuge mit voller Leistung laden. Leer lassen, wenn keine Heimbatterie vorhanden ist."));
 
+        Register(x => x.HomeBatteryMaxChargeSoc,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Home Battery Max Charge SoC",
+                "When TSC actively forces the home battery to charge, charging stops at this SoC to protect the battery from being overcharged."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Maximaler Lade-Ladestand der Heimbatterie",
+                "Wenn TSC das Laden der Heimbatterie aktiv erzwingt, wird das Laden bei diesem Ladestand gestoppt, um die Batterie vor Überladung zu schützen."));
+
         Register(x => x.HomeBatteryMinDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Min Dynamic Min Soc",
@@ -213,6 +221,38 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Berechnungspuffer für dynamischen Mindest-Ladestand",
                 "Sorgt dafür, dass die Heimbatterie nicht leer wird, selbst wenn Wetterprognosen falsch liegen oder der Energiebedarf höher als erwartet ist."));
+
+        Register(x => x.HoldHomeBatteryChargeSocBuffer,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Hold Home Battery Charge Soc Buffer",
+                "Buffer used when dynamically calculating the Hold Home Battery Charge Soc. If left empty, a well-tested default value is used. Leaving it empty is recommended."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Puffer für dynamischen Halte-Ladestand der Heimbatterie",
+                "Puffer, der bei der dynamischen Berechnung des Halte-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
+
+        Register(x => x.ChargeHomeBatterySocBuffer,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Charge Home Battery Soc Buffer",
+                "Buffer used when dynamically calculating the Charge Home Battery Soc. If left empty, a well-tested default value is used. Leaving it empty is recommended."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Puffer für dynamischen Lade-Ladestand der Heimbatterie",
+                "Puffer, der bei der dynamischen Berechnung des Lade-Ladestands verwendet wird. Wenn leer, wird ein gut getesteter Standardwert verwendet. Es wird empfohlen, das Feld leer zu lassen."));
+
+        Register(x => x.GridPriceBasedHomeBatteryControl,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Grid Price Based Home Battery Control",
+                "Automatically holds the home battery charge or even charges the home battery from the grid when grid prices are low and the battery would not last until solar power can supply the house again. Requires a configured home battery control and grid prices."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Netzpreisbasierte Heimbatteriesteuerung",
+                "Hält automatisch den Ladestand der Heimbatterie oder lädt sie sogar aus dem Netz, wenn die Netzpreise niedrig sind und die Batterie nicht reicht, bis Solarstrom das Haus wieder versorgen kann. Benötigt eine konfigurierte Heimbatteriesteuerung und Netzpreise."));
+
+        Register(x => x.HomeBatteryUsageCostsPerKwh,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Home Battery Usage Costs Per kWh",
+                "Additional costs per kWh taken from the home battery, covering battery wear and charging losses. Used to decide if holding or grid charging the home battery is cheaper than using energy from the battery. Example: with 0.05 and a cheapest grid price of 0.18, energy from the battery is assumed to cost 0.23."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Nutzungskosten der Heimbatterie pro kWh",
+                "Zusätzliche Kosten pro aus der Heimbatterie entnommener kWh für Batterieverschleiß und Ladeverluste. Wird verwendet, um zu entscheiden, ob Halten oder Netzladen der Heimbatterie günstiger ist als Energie aus der Batterie zu nutzen. Beispiel: Bei 0,05 und einem günstigsten Netzpreis von 0,18 werden für Energie aus der Batterie 0,23 angesetzt."));
 
         Register(x => x.ForceFullHomeBatteryBySunset,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -268,7 +308,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "This value is used to reduce the number of charging starts and stops by artificially increasing the cost of short charging sessions. This way, during charge planning, continuous but slightly more expensive charging periods are preferred over cheaper, non-continuous ones. Set this value to 0 to ensure charging always occurs at the lowest-cost times."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Kosten für Ladeschaltungen",
-                "Dieser Wert wird verwendet, um die Anzahl der Lade­starts und -stopps zu reduzieren, indem kurze Ladezeiten durch zusätzliche Kosten künstlich verteuert werden. Dadurch werden bei der Ladeplanung zusammenhängende, etwas teurere Ladezeiten gegenüber günstigeren, aber nicht zusammenhängenden Ladezeiten bevorzugt. Setze diesen Wert auf 0, damit stets zu den günstigsten Zeiten geladen wird."));
+                "Dieser Wert wird verwendet, um die Anzahl der Lade­starts und -stopps zu reduzieren, indem kurze Ladezeiten durch zusätzliche Kosten künstlich verteuert werden. Dadurch werden bei der Ladeplanung zusammenhängende, etwas teurere Ladezeiten gegenüber günstigeren, aber nicht zusammenhängenden Ladezeiten bevorzugt. Setzen Sie diesen Wert auf 0, damit stets zu den günstigsten Zeiten geladen wird."));
 
         Register(x => x.MaxCombinedCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -286,10 +326,58 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Maximale AC-Leistung des Wechselrichters",
                 "Wenn Ihr Hybridwechselrichter mehr DC- als AC-Leistung besitzt, tragen Sie hier die maximale AC-Leistung ein. Dies ist selten erforderlich und kann in den meisten Fällen leer bleiben."));
 
+        Register(x => x.GetVehicleDataViaBle,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Get data via BLE",
+                "When enabled, Teslas with enabled BLE no longer stream data via Fleet Telemetry but are polled via BLE instead. Car presence is detected via BLE, so the car counts as at home as soon as it is in BLE range. The change is applied to a car when its car settings are saved. Does not affect cars with enabled tracking relevant fields."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Daten über BLE abrufen",
+                "Wenn aktiviert, senden Teslas mit aktiviertem BLE keine Daten mehr über Fleet Telemetry, sondern werden über BLE abgefragt. Die Anwesenheit wird über BLE erkannt: Das Fahrzeug gilt als zu Hause, sobald es in BLE-Reichweite ist. Die Änderung wird für ein Fahrzeug übernommen, sobald dessen Fahrzeugeinstellungen gespeichert werden. Fahrzeuge mit aktivierten Tracking-relevanten Feldern sind nicht betroffen."));
+
+        Register(x => x.BleDataRefreshIntervalSeconds,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE data refresh interval (s)",
+                "How often cars whose data is collected via BLE are polled. This runs independently of the charging cycle, so a car that is slow to answer or away can not delay the charging value calculation. Keep this clearly above the beacon scan window below, otherwise a scan for an absent car fills the whole interval. Leave empty to use the default (13 s)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Datenabrufintervall (s)",
+                "Wie oft Fahrzeuge abgefragt werden, deren Daten über BLE erfasst werden. Dies läuft unabhängig vom Ladezyklus, sodass ein langsam antwortendes oder abwesendes Fahrzeug die Berechnung der Ladewerte nicht verzögern kann. Der Wert sollte deutlich über dem Beacon-Suchfenster weiter unten liegen, sonst füllt die Suche nach einem abwesenden Fahrzeug das gesamte Intervall. Leer lassen für den Standardwert (13 s)."));
+
+        Register(x => x.BleSleepWindowMinutes,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE sleep window (min)",
+                "Minutes an idle car whose data is collected via BLE is not polled via the infotainment system so its standby timer can run out and it can fall asleep. Presence detection via BLE keeps running. When the window ends the car is polled once and, if still idle, a new window starts. Leave empty to use the default (13 min). Set to 0 to disable and poll every cycle like before."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Schlaffenster (Min)",
+                "Minuten, in denen ein inaktives Fahrzeug, dessen Daten über BLE abgerufen werden, nicht über das Infotainmentsystem abgefragt wird, damit sein Standby-Timer ablaufen und es einschlafen kann. Die Anwesenheitserkennung über BLE läuft weiter. Nach Ablauf des Fensters wird das Fahrzeug einmal abgefragt und, falls weiterhin inaktiv, startet ein neues Fenster. Leer lassen für den Standardwert (13 Min). 0 deaktiviert die Funktion und fragt wie bisher in jedem Zyklus ab."));
+
+        Register(x => x.BleSleepStabilityMinutes,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE sleep stability (min)",
+                "Minutes the car must stay unchanged (all doors, frunk and trunk closed and unchanged, no occupant, and no change of the plugged in state or charge limit) before a BLE sleep window starts. Also applies after cancelling a sleep attempt. Leave empty to use the default (5 min)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Schlafstabilität (Min)",
+                "Minuten, die das Fahrzeug unverändert bleiben muss (alle Türen, Frunk und Kofferraum geschlossen und unverändert, keine Person im Fahrzeug, keine Änderung des Einsteckzustands oder des Ladelimits), bevor ein BLE-Schlaffenster startet. Gilt auch nach dem Abbrechen eines Schlafversuchs. Leer lassen für den Standardwert (5 Min)."));
+
+        Register(x => x.BlePresenceMaxAgeSeconds,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE presence max age (s)",
+                "How long ago a car may last have been heard and still count as being at home. Both its Bluetooth announcements and every command it answered count, which matters because a Tesla goes completely silent while TeslaSolarCharger is connected to it - the two sources cover exactly the periods the other cannot. Measured on real cars, a parked car is normally heard several times a second, so this value has a lot of headroom; raise it only if cars are reported as out of range while standing at home. Detecting that a car really left takes this time plus a confirmation period of about two and a half minutes. Leave empty to use the default (90 s)."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Anwesenheit maximales Alter (s)",
+                "Wie lange ein Fahrzeug zuletzt gehört worden sein darf, um noch als zu Hause zu gelten. Dabei zählen sowohl seine Bluetooth-Meldungen als auch jeder beantwortete Befehl. Das ist wichtig, weil ein Tesla vollständig verstummt, solange TeslaSolarCharger mit ihm verbunden ist - die beiden Quellen decken also genau die Zeiträume ab, die die jeweils andere nicht abdeckt. An echten Fahrzeugen gemessen wird ein geparktes Fahrzeug normalerweise mehrmals pro Sekunde gehört, dieser Wert hat also viel Reserve; erhöhen Sie ihn nur, wenn Fahrzeuge als außer Reichweite gemeldet werden, obwohl sie zu Hause stehen. Bis erkannt wird, dass ein Fahrzeug wirklich weggefahren ist, vergeht diese Zeit zuzüglich einer Bestätigungszeit von etwa zweieinhalb Minuten. Leer lassen für den Standardwert (90 s)."));
+
+        Register(x => x.UseBleDebug,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "BLE debug logging",
+                "Let the BLE container log its detailed communication with the cars. Only enable while troubleshooting a BLE problem: the logs grow very large. Changing this restarts the worker process of a Bluetooth adapter the next time a car on that adapter is contacted, which briefly interrupts the connection to that car."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "BLE-Debug-Protokollierung",
+                "Lässt den BLE-Container die detaillierte Kommunikation mit den Fahrzeugen protokollieren. Nur zur Fehlersuche aktivieren, da die Protokolle sehr groß werden. Eine Änderung startet den Worker-Prozess eines Bluetooth-Adapters neu, sobald das nächste Fahrzeug auf diesem Adapter kontaktiert wird, wodurch die Verbindung zu diesem Fahrzeug kurz unterbrochen wird."));
+
         Register(x => x.UseTeslaMateIntegration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use TeslaMate Integration",
-                "When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated ever 24 hours."),
+                "When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated every 24 hours."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "TeslaMate-Integration verwenden",
                 "Wenn Sie TeslaMate nutzen, können Sie hier aktivieren, dass die von TSC berechneten Ladekosten in TeslaMate übernommen werden. Hinweis: Die Kosten werden in TeslaMate nur alle 24 Stunden aktualisiert."));
@@ -305,7 +393,7 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.HomeGeofenceRadius,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Radius",
-                "Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended"),
+                "Increase or decrease the radius of the home geofence. Note: Values below 50m are not recommended"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Radius Zuhause",
                 "Erhöhen oder verringern Sie den Radius des Home-Geofences. Hinweis: Werte unter 50 m werden nicht empfohlen."));

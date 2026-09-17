@@ -1,0 +1,785 @@
+@page "/setup"
+@page "/setup/{Section}"
+@page "/setup/{Section}/{DraftId:guid}"
+@page "/setup/{Section}/{DraftId:guid}/{Stage}"
+@implements IDisposable
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.AspNetCore.Components.Routing
+@using TeslaSolarCharger.Client.Components.Setup
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Enums
+@using Newtonsoft.Json
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
+@using TeslaSolarCharger.Shared.SignalRClients
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ISetupService SetupService
+@inject ITextLocalizationService TextLocalizer
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject ISignalRStateService SignalRStateService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject ICarSettingsService CarSettingsService
+@inject IOAuthNotificationService OAuthNotificationService
+@inject IDateTimeProvider DateTimeProvider
+@inject IConstants Constants
+
+<PageTitle>@T(TranslationKeys.SetupAssistantTitle)</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">@T(TranslationKeys.SetupAssistantTitle)</MudText>
+
+    @if (_context == null || _dtoBaseConfiguration == null || _chargePrice == null)
+    {
+        <LoadingSpinnerComponent />
+    }
+    else
+    {
+        <SetupProgressRail CurrentSection="@CurrentSection"
+                           Decision="_context.Decision"
+                           IsAccountReady="@IsAccountReady"
+                           OnSectionSelected="OnRailSectionSelected" />
+
+        <CascadingValue Value="_context">
+            <MudPaper Elevation="0" Class="pa-4">
+                @switch (CurrentSection)
+                {
+                    case SetupSections.Welcome:
+                        <SetupWelcomeSection />
+                        break;
+                    case SetupSections.Account:
+                        <SetupAccountSection IsConnected="_cloudConnected"
+                                             IsLicensed="_baseAppLicensed"
+                                             OnStateChanged="OnAccountStateChanged" />
+                        break;
+                    case SetupSections.Solar:
+                        <SetupSolarSection Configuration="_dtoBaseConfiguration"
+                                           HasPvSystem="_hasPvSystem"
+                                           HasHomeBattery="_hasHomeBattery"
+                                           HasPvSystemChanged="OnHasPvSystemChanged"
+                                           HasHomeBatteryChanged="OnHasHomeBatteryChanged"
+                                           OnExplicitChoice="MarkAsUserEntered" />
+                        break;
+                    case SetupSections.Location:
+                        <SetupLocationSection Configuration="_dtoBaseConfiguration"
+                                              IsConfirmed="@IsHomeLocationConfirmed"
+                                              OnLocationPicked="OnLocationPicked" />
+                        break;
+                    case SetupSections.Prices:
+                        <SetupPricesSection ChargePrice="_chargePrice"
+                                            FixedPrices="_fixedPrices"
+                                            HasPvSystem="@(_hasPvSystem == true)"
+                                            OnChanged="OnPriceAnswersChanged" />
+                        break;
+                    case SetupSections.Equipment:
+                        <SetupEquipmentSection />
+                        break;
+                    case SetupSections.Car:
+                        <SetupCarSection DraftId="@(CurrentDraftId ?? Guid.Empty)" Stage="@CarStage" />
+                        break;
+                    case SetupSections.Charger:
+                        <SetupChargerSection DraftId="@(CurrentDraftId ?? Guid.Empty)" Stage="@ChargerStage" />
+                        break;
+                    case SetupSections.Finish:
+                        <SetupFinishSection DeclinedProposals="@_context.State.DeclinedProposalIds"
+                                            OnProposalToggled="OnProposalToggled" />
+                        break;
+                }
+            </MudPaper>
+        </CascadingValue>
+
+        @* A per device detour carries its own back and forward buttons, because "next" there means the next stage
+           of that device, not the next section of the assistant. *@
+        @if (!SetupSections.IsDeviceSection(CurrentSection))
+        {
+            <div class="d-flex justify-space-between align-center w-100 mt-4 flex-wrap" style="gap: 8px;">
+                <MudButton Disabled="@(SetupSections.Previous(CurrentSection) == null)"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="GoToPreviousSection">
+                    @T(TranslationKeys.GeneralPrev)
+                </MudButton>
+
+                @if (CurrentSection == SetupSections.Finish)
+                {
+                    <div class="d-flex align-center flex-wrap" style="gap: 8px;">
+                        <MudButton Variant="Variant.Outlined" OnClick="SaveWithoutEnabling" Disabled="_isSaving">
+                            @T(TranslationKeys.SetupSaveWithoutEnablingButton)
+                        </MudButton>
+                        @* Finishing switches equipment on. Offering it while something required is still missing
+                           would either fail at the server or, worse, start charging on values nobody supplied. *@
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                                   EndIcon="@Icons.Material.Filled.Check"
+                                   OnClick="FinishSetup" Disabled="@(_isSaving || !CanFinish)">
+                            @T(TranslationKeys.SetupFinishButton)
+                        </MudButton>
+                    </div>
+                }
+                else
+                {
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                               EndIcon="@Icons.Material.Filled.ArrowForward"
+                               Disabled="@IsNextBlocked"
+                               OnClick="GoToNextSection">
+                        @T(TranslationKeys.GeneralNext)
+                    </MudButton>
+                }
+            </div>
+            @if (CurrentSection == SetupSections.Solar && MissingHomeBatteryFacts.Count > 0)
+            {
+                <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupHomeBatteryFactsRequiredHint)</MudText>
+                @foreach (var issue in MissingHomeBatteryFacts)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@T(issue.MessageKey)</MudText>
+                }
+            }
+            @if (CurrentSection == SetupSections.Finish)
+            {
+                @if (!CanFinish)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupFinishBlockedHint)</MudText>
+                }
+                <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupSaveWithoutEnablingHint)</MudText>
+            }
+        }
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string? Section { get; set; }
+    [Parameter] public Guid? DraftId { get; set; }
+    [Parameter] public string? Stage { get; set; }
+
+    private SetupContext? _context;
+    private EditableItem<DtoBaseConfiguration>? _dtoBaseConfiguration;
+    private EditableItem<DtoChargePrice>? _chargePrice;
+    private List<FixedPrice> _fixedPrices = new();
+
+    // Null while unanswered. An unanswered question must not look like a "no", or the readings expected from the
+    // installation would silently leave out equipment the user owns.
+    private bool? _hasPvSystem;
+    private bool? _hasHomeBattery;
+    // Whether the instance is connected to the Solar4Car cloud and the account has a base licence. Both are
+    // required to use TeslaSolarCharger, so the rest of the assistant is gated on them.
+    private bool _cloudConnected;
+    private bool _baseAppLicensed;
+    private bool _isSaving;
+    private bool _isInitialized;
+
+    /// <summary>
+    /// Whether everything the installation depends on is answered. Equipment that is not set up yet does not hold
+    /// finishing back; it stays switched off. The server decides this and reports it; the button only reflects that
+    /// answer, so the two can never disagree.
+    /// </summary>
+    private bool CanFinish => _context?.Decision?.CanFinishSetup == true;
+
+
+    /// <summary>
+    /// Which screen the address names. Read from the address rather than from the route parameters, because moving
+    /// between the stages of one car only changes a value inside the same route and the router does not always
+    /// hand that back as a new parameter set. The parameters are used when the address is not a setup address,
+    /// which is how this page is rendered in tests.
+    /// </summary>
+    private (string Section, Guid? DraftId, string? Stage) Address
+    {
+        get
+        {
+            var segments = new Uri(NavigationManager.Uri).AbsolutePath
+                .Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0 || !string.Equals(segments[0], "setup", StringComparison.OrdinalIgnoreCase))
+            {
+                return (string.IsNullOrWhiteSpace(Section) ? SetupSections.Welcome : Section.ToLowerInvariant(), DraftId, Stage);
+            }
+
+            var section = segments.Length > 1 ? segments[1].ToLowerInvariant() : SetupSections.Welcome;
+            var draftId = segments.Length > 2 && Guid.TryParse(segments[2], out var parsed) ? parsed : (Guid?)null;
+            var stage = segments.Length > 3 ? segments[3] : null;
+            return (section, draftId, stage);
+        }
+    }
+
+    private string CurrentSection => Address.Section;
+
+    private Guid? CurrentDraftId => Address.DraftId;
+
+    private string? CurrentStage => Address.Stage;
+
+    private bool IsAccountReady => _cloudConnected && _baseAppLicensed;
+
+    /// <summary>
+    /// Moving on is held back where the rest of the assistant depends on this screen: without an account nothing can
+    /// be saved, without both equipment answers it is not known which readings the installation needs, and a home
+    /// battery nobody described cannot be planned with.
+    /// </summary>
+    private bool IsNextBlocked => CurrentSection switch
+    {
+        SetupSections.Account => !IsAccountReady,
+        SetupSections.Solar => _hasPvSystem == null || _hasHomeBattery == null || MissingHomeBatteryFacts.Count > 0,
+        _ => false,
+    };
+
+    /// <summary>The battery details that have to be entered before moving on.</summary>
+    private static readonly string[] RequiredHomeBatteryProperties =
+    [
+        nameof(BaseConfigurationBase.HomeBatteryUsableEnergy),
+        nameof(BaseConfigurationBase.HomeBatteryChargingPower),
+        nameof(BaseConfigurationBase.HomeBatteryDischargingPower),
+    ];
+
+    /// <summary>
+    /// Which of the required battery details are still missing, as the server reported them, so this button and the
+    /// server's idea of a complete setup cannot disagree. Readings from a device are deliberately not among them: a
+    /// device may take a while to deliver its first value.
+    /// </summary>
+    private List<DtoSetupIssue> MissingHomeBatteryFacts =>
+        _hasHomeBattery != true
+            ? new List<DtoSetupIssue>()
+            : _context?.Decision?.Steps
+                  .FirstOrDefault(s => s.StepKey == SetupStepKey.SolarAndBattery)
+                  ?.Issues.Where(i => RequiredHomeBatteryProperties.Contains(i.PropertyName))
+                  .ToList()
+              ?? new List<DtoSetupIssue>();
+
+    private SetupCarStage CarStage =>
+        Enum.TryParse<SetupCarStage>(CurrentStage, ignoreCase: true, out var parsed) ? parsed : SetupCarStage.Identify;
+
+    private SetupChargerStage ChargerStage =>
+        Enum.TryParse<SetupChargerStage>(CurrentStage, ignoreCase: true, out var parsed) ? parsed : SetupChargerStage.Connect;
+
+    private bool IsHomeLocationConfirmed
+    {
+        get
+        {
+            if (_context == null || _dtoBaseConfiguration == null)
+            {
+                return false;
+            }
+
+            if (_context.State.ValueSources.TryGetValue(nameof(BaseConfigurationBase.HomeGeofenceLatitude), out var source)
+                && source == SetupValueSource.UserEntered)
+            {
+                return true;
+            }
+
+            var placeholder = new DtoBaseConfiguration();
+            // ReSharper disable CompareOfFloatsByEqualityOperator
+            return _dtoBaseConfiguration.Item.HomeGeofenceLatitude != placeholder.HomeGeofenceLatitude
+                   || _dtoBaseConfiguration.Item.HomeGeofenceLongitude != placeholder.HomeGeofenceLongitude;
+            // ReSharper restore CompareOfFloatsByEqualityOperator
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The server seeds a fresh state from what is already configured, so an existing installation starts from
+        // its real settings instead of from defaults.
+        var state = await SetupService.GetOrCreateSetupState() ?? new DtoSetupState();
+        _dtoBaseConfiguration = new(state.Configuration);
+
+        _context = new SetupContext
+        {
+            State = state,
+            Save = PersistSetupState,
+            RefreshDecision = RefreshDecision,
+            Navigate = NavigateToSection,
+            SaveCarDraft = SaveCarDraft,
+        };
+
+        await InitializeEquipmentAnswers(state);
+
+        if (state.ChargePrice != null)
+        {
+            _chargePrice = new(state.ChargePrice);
+            _fixedPrices = state.FixedPrices;
+        }
+        else
+        {
+            await LoadChargePrice();
+        }
+
+        _cloudConnected = await CloudConnectionCheckService.GetBackendTokenState(true) == TokenState.UpToDate;
+        _baseAppLicensed = _cloudConnected && await CloudConnectionCheckService.IsBaseAppLicensed(true);
+
+        await HandleAccountReturn();
+
+        _isInitialized = true;
+        NavigationManager.LocationChanged += OnLocationChanged;
+        await SyncCurrentStepWithAddress();
+        await RefreshDecision();
+    }
+
+    /// <summary>
+    /// Redraws whenever the address changes. Moving between the stages of one car only changes a value inside the
+    /// same route, and the router does not reliably hand that to this page as a new parameter set: without this the
+    /// address would move on while the screen stayed on the previous stage.
+    /// </summary>
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await SyncCurrentStepWithAddress();
+            StateHasChanged();
+        });
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Browser back and forward change the address without re-initializing the page, so the stored step has to
+        // follow the address rather than the other way round.
+        if (_isInitialized)
+        {
+            await SyncCurrentStepWithAddress();
+        }
+    }
+
+    /// <summary>
+    /// Picks up a return from an external authorization. The address carries which car it belongs to, so the user
+    /// lands back on the task they left rather than at the start of the assistant.
+    /// </summary>
+    private async Task HandleAccountReturn()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        var isTeslaReturn = query.ContainsKey(Constants.QueryParamTeslaConnected);
+        var isSmartCarReturn = query.ContainsKey(Constants.QueryParamSmartCarAdded) || query.ContainsKey(Constants.QueryParamVin);
+
+        await OAuthNotificationService.HandleQueryParameters();
+
+        if (isTeslaReturn)
+        {
+            var addedCars = await CarSettingsService.RefreshTeslaCarsFromAccount();
+            if (addedCars != null)
+            {
+                Snackbar.Add(CarSettingsService.GetAddedTeslasMessage(addedCars.Value), Severity.Success);
+            }
+        }
+
+        if (isTeslaReturn || isSmartCarReturn)
+        {
+            // Either import writes cars straight to the database, so pull them into this setup as drafts. The
+            // server also refreshes the drafts that are already open, because authorizing changes what a car is
+            // connected to and an open draft would otherwise keep - and later save - the old answer.
+            var synced = await SetupService.SyncCarDrafts(_context!.State);
+            if (synced != null)
+            {
+                _context.State.CarDrafts.Clear();
+                _context.State.CarDrafts.AddRange(synced.CarDrafts);
+            }
+
+            // The user is back, so nothing is outstanding any more.
+            _context.State.PendingOperation = null;
+            await PersistSetupState();
+            await RefreshDecision();
+        }
+    }
+
+    /// <summary>
+    /// Fills the solar and battery answers. An answer already stored wins. Otherwise an existing installation is
+    /// answered with yes where its configuration or a connected device shows the equipment is there. Nothing ever
+    /// shows that equipment is missing, so a question without such evidence stays unanswered for the user.
+    /// </summary>
+    private async Task InitializeEquipmentAnswers(DtoSetupState state)
+    {
+        var configuration = state.Configuration;
+        var pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
+
+        var solarIsConfigured = configuration.PredictSolarPowerGeneration
+                                || !string.IsNullOrEmpty(configuration.CurrentPowerToGridUrl)
+                                || !string.IsNullOrEmpty(configuration.CurrentPowerToGridMqttTopic)
+                                || configuration.IsModbusGridUrl
+                                || pvValues?.InverterPower != null;
+        _hasPvSystem = state.HasPvSystem ?? (solarIsConfigured ? true : null);
+
+        var batteryIsConfigured = configuration.HomeBatteryUsableEnergy > 0
+                                  || !string.IsNullOrEmpty(configuration.HomeBatteryPowerUrl)
+                                  || !string.IsNullOrEmpty(configuration.HomeBatteryPowerMqttTopic)
+                                  || pvValues?.HomeBatterySoc != null
+                                  || pvValues?.HomeBatteryPower != null;
+        _hasHomeBattery = state.HasHomeBattery ?? (batteryIsConfigured ? true : null);
+    }
+
+    private async Task LoadChargePrice()
+    {
+        var prices = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoChargePrice>>("api/ChargingCost/GetChargePrices");
+        var latestValid = prices?.Where(p => p.ValidSince <= DateTimeProvider.Now()).OrderByDescending(p => p.ValidSince).FirstOrDefault();
+
+        if (latestValid != null)
+        {
+            _chargePrice = new(latestValid);
+            _fixedPrices = !string.IsNullOrEmpty(latestValid.EnergyProviderConfiguration)
+                ? JsonConvert.DeserializeObject<List<FixedPrice>>(latestValid.EnergyProviderConfiguration) ?? new()
+                : new();
+        }
+        else
+        {
+            // Deliberately without example numbers. A tariff is the one thing nobody can guess for the user, and a
+            // plausible looking price that was never their price makes every charging decision quietly wrong - so
+            // the field starts empty and setup asks for it rather than answering on their behalf.
+            _chargePrice = new(new DtoChargePrice { ValidSince = DateTimeProvider.Now(), });
+        }
+    }
+
+    private async Task SyncCurrentStepWithAddress()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        var stepKey = SetupSections.ToStepKey(CurrentSection);
+        if (stepKey == SetupStepKey.Unknown)
+        {
+            // An address this build does not know must not leave the user on a screen that is not there.
+            await NavigateToSection(SetupSections.Welcome, null, null);
+            return;
+        }
+
+        if (_context.State.CurrentStep == stepKey)
+        {
+            return;
+        }
+
+        _context.State.CurrentStep = stepKey;
+        await PersistSetupState();
+    }
+
+    private async Task NavigateToSection(string section, Guid? draftId, string? stage)
+    {
+        var address = draftId == null
+            ? $"/setup/{section}"
+            : stage == null
+                ? $"/setup/{section}/{draftId}"
+                : $"/setup/{section}/{draftId}/{stage}";
+        NavigationManager.NavigateTo(address);
+        await Task.CompletedTask;
+    }
+
+    private Task OnRailSectionSelected(string section) => NavigateToSection(section, null, null);
+
+    private async Task GoToNextSection()
+    {
+        var next = SetupSections.Next(CurrentSection);
+        if (next == null)
+        {
+            return;
+        }
+
+        // Completing a section is what ticks it off, so a returning user sees what they have already been through.
+        var stepKey = SetupSections.ToStepKey(CurrentSection);
+        if (_context != null && stepKey != SetupStepKey.Unknown && !_context.State.CompletedSteps.Contains(stepKey))
+        {
+            _context.State.CompletedSteps.Add(stepKey);
+            await PersistSetupState();
+        }
+
+        await NavigateToSection(next, null, null);
+        await RefreshDecision();
+    }
+
+    private async Task GoToPreviousSection()
+    {
+        var previous = SetupSections.Previous(CurrentSection);
+        if (previous != null)
+        {
+            await NavigateToSection(previous, null, null);
+        }
+    }
+
+    private async Task OnAccountStateChanged((bool IsConnected, bool IsLicensed) state)
+    {
+        _cloudConnected = state.IsConnected;
+        _baseAppLicensed = state.IsLicensed;
+        await RefreshDecision();
+    }
+
+    private async Task OnHasPvSystemChanged(bool value)
+    {
+        _hasPvSystem = value;
+        await PersistSetupState();
+        await RefreshDecision();
+    }
+
+    private async Task OnHasHomeBatteryChanged(bool value)
+    {
+        _hasHomeBattery = value;
+        await PersistSetupState();
+        await RefreshDecision();
+    }
+
+    private async Task OnPriceAnswersChanged()
+    {
+        await PersistSetupState();
+        await RefreshDecision();
+    }
+
+    private async Task OnLocationPicked()
+    {
+        // Picking a spot on the map is what turns the preset coordinates into a confirmed address.
+        MarkAsUserEntered(nameof(BaseConfigurationBase.HomeGeofenceLatitude));
+        MarkAsUserEntered(nameof(BaseConfigurationBase.HomeGeofenceLongitude));
+        await PersistSetupState();
+        await RefreshDecision();
+    }
+
+    /// <summary>
+    /// Records that a value was decided by the user rather than recommended, and stores it. Recording it only in
+    /// memory would lose the distinction on the next reload, and with it the promise that an explicit choice is
+    /// never replaced by a recommendation.
+    /// </summary>
+    private async Task MarkAsUserEntered(string propertyName)
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        _context.State.ValueSources[propertyName] = SetupValueSource.UserEntered;
+        await PersistSetupState();
+        await RefreshDecision();
+    }
+
+    private async Task OnProposalToggled((string ProposalId, bool IsAccepted) change)
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        if (change.IsAccepted)
+        {
+            _context.State.DeclinedProposalIds.Remove(change.ProposalId);
+        }
+        else if (!_context.State.DeclinedProposalIds.Contains(change.ProposalId))
+        {
+            _context.State.DeclinedProposalIds.Add(change.ProposalId);
+        }
+
+        // Unticking an automation is an answer like any other. Keeping it only in the browser would quietly accept
+        // it again after a reload, which is the opposite of what the user just said.
+        await PersistSetupState();
+    }
+
+    /// <summary>
+    /// Writes the current answers to the server. Called on every meaningful change, so an interruption - a reload,
+    /// an account authorization that navigates away - never costs the user their answers.
+    /// </summary>
+    private async Task PersistSetupState()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        // Only recorded once the user has actually seen the question, so an unanswered question stays unanswered
+        // rather than being silently answered with whatever the switch happened to show.
+        if (_context.State.CurrentStep == SetupStepKey.SolarAndBattery
+            || _context.State.CompletedSteps.Contains(SetupStepKey.SolarAndBattery))
+        {
+            _context.State.HasPvSystem = _hasPvSystem;
+            _context.State.HasHomeBattery = _hasHomeBattery;
+        }
+
+        _context.State.ChargePrice = _chargePrice?.Item;
+        _context.State.FixedPrices = _fixedPrices;
+
+        await SetupService.UpdateSetupState(_context.State);
+    }
+
+    private async Task RefreshDecision()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        _context.Decision = await SetupService.EvaluateSetupState(_context.State);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Gives one car a row of its own, still switched off, so settings and connection tests have something real to
+    /// work with. Returns whether it worked, because the screens that test a connection depend on it.
+    /// </summary>
+    private async Task<bool> SaveCarDraft(DtoSetupCarDraft draft)
+    {
+        if (_context == null)
+        {
+            return false;
+        }
+
+        var result = await SetupService.SaveCarDraft(_context.State, draft.DraftId);
+        if (result == null || !result.IsSuccess)
+        {
+            ReportFailedOperations(result);
+            return false;
+        }
+
+        // The server fills in the id of the row it wrote to; keep the local draft in step with it. The
+        // configuration carries the id as well, and it is that copy which is handed to the runtime car on the next
+        // save - a zero left there renumbers a car that is already running.
+        var saved = await SetupService.GetSetupState();
+        var savedDraft = saved?.FindCarDraft(draft.DraftId);
+        if (savedDraft?.CarId != null)
+        {
+            draft.CarId = savedDraft.CarId;
+            draft.Configuration.Id = savedDraft.CarId.Value;
+        }
+
+        // The server also gives a new car its place in the charging order. Nothing on screen sets it, so the only
+        // way the next save keeps that place is by carrying the number back.
+        if (savedDraft?.Configuration.ChargingPriority > 0)
+        {
+            draft.Configuration.ChargingPriority = savedDraft.Configuration.ChargingPriority;
+        }
+
+        await RefreshDecision();
+        return true;
+    }
+
+    /// <summary>
+    /// Saves everything without switching anything on. The state is deliberately kept, so the user can come back
+    /// and enable charging when they are ready.
+    /// </summary>
+    private async Task SaveWithoutEnabling()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            await AcceptSelectedProposals();
+            var result = await SetupService.ApplyConfiguration(_context.State);
+            await AdoptRecordedProgress();
+            if (result == null || !result.IsSuccess)
+            {
+                ReportFailedOperations(result);
+                return;
+            }
+
+            Snackbar.Add(T(TranslationKeys.SetupSavedWithoutEnablingNotification), Severity.Success);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task FinishSetup()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            await AcceptSelectedProposals();
+            var result = await SetupService.ActivateAndCompleteSetup(_context.State);
+            if (result is not { IsSetupCompleted: true })
+            {
+                // Setup is only over when the server says every required save succeeded. Until then the answers
+                // stay, the record of what did work is taken over, and the user can try again.
+                await AdoptRecordedProgress();
+                ReportFailedOperations(result);
+                return;
+            }
+
+            Snackbar.Add(T(TranslationKeys.SetupSuccessNotification), Severity.Success);
+            NavigationManager.NavigateTo("/", true);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task AcceptSelectedProposals()
+    {
+        if (_context?.Decision == null)
+        {
+            return;
+        }
+
+        var accepted = _context.Decision.ProposedValues
+            .Where(p => !_context.State.DeclinedProposalIds.Contains(SetupFinishSection.ProposalId(p)))
+            .ToList();
+        if (accepted.Count == 0)
+        {
+            return;
+        }
+
+        var updatedState = await SetupService.AcceptProposals(_context.State, accepted);
+        if (updatedState == null)
+        {
+            return;
+        }
+
+        _context = new SetupContext
+        {
+            State = updatedState,
+            Decision = _context.Decision,
+            Save = PersistSetupState,
+            RefreshDecision = RefreshDecision,
+            Navigate = NavigateToSection,
+            SaveCarDraft = SaveCarDraft,
+        };
+        _dtoBaseConfiguration = new(updatedState.Configuration);
+    }
+
+    /// <summary>
+    /// Takes over the record of what the server actually wrote. The server keeps that on its own copy of the state,
+    /// so without this the browser keeps posting a state that claims nothing has been done yet - and a retry after
+    /// a partial failure repeats the steps that already worked.
+    /// </summary>
+    private async Task AdoptRecordedProgress()
+    {
+        if (_context == null)
+        {
+            return;
+        }
+
+        var saved = await SetupService.GetSetupState();
+        if (saved == null)
+        {
+            return;
+        }
+
+        _context.State.CompletedOperations.Clear();
+        _context.State.CompletedOperations.AddRange(saved.CompletedOperations);
+    }
+
+    private void ReportFailedOperations(DtoSetupApplicationResult? result)
+    {
+        Snackbar.Add(T(TranslationKeys.SetupPartialSaveFailure), Severity.Error);
+        foreach (var failedOperation in result?.FailedOperations ?? Enumerable.Empty<DtoSetupOperationResult>())
+        {
+            Snackbar.Add($"{failedOperation.OperationKey}: {failedOperation.ErrorMessage}", Severity.Error);
+        }
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get(key, typeof(SetupPageLocalizationRegistry), typeof(BaseConfigurationPageLocalizationRegistry),
+            typeof(ChargingStationsPageLocalizationRegistry), typeof(CarSettingsPageLocalizationRegistry),
+            typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

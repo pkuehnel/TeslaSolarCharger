@@ -6,5 +6,6 @@ public interface IFleetTelemetryConfigurationService
 {
     Task<DtoGetFleetTelemetryConfiguration> GetFleetTelemetryConfiguration(string vin);
     Task<DtoFleetTelemetryConfigurationResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration);
+    Task<DtoFleetTelemetryConfigurationResult> DeleteFleetTelemetryConfiguration(string vin);
     Task ReconfigureAllCarsIfRequired();
 }

@@ -23,7 +23,7 @@ public class ChargingSchedulesChartComponentLocalizationRegistry : TextLocalizat
             new TextLocalizationTranslation(LanguageCodes.German, "Ø kW"));
 
         Register(TranslationKeys.ChargingSchedulesChartYAxisPrice,
-            new TextLocalizationTranslation(LanguageCodes.English, "Gridprice / kWh"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Grid price / kWh"),
             new TextLocalizationTranslation(LanguageCodes.German, "Netzpreis / kWh"));
     }
 }

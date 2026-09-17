@@ -7,7 +7,7 @@ public class BackendNotificationRefreshJob(ILogger<BackendNotificationRefreshJob
     ITeslaFleetApiService service,
     IBackendApiService backendApiService) : IJob
 {
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
         service.ResetApiRequestCounters();

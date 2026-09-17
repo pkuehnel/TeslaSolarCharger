@@ -34,7 +34,31 @@ public sealed class OcppWebSocketConnectionHandlingService(
     private readonly TimeSpan _clientSideHeartbeatTimeout = TimeSpan.FromSeconds(120);
     private TimeSpan ClientSideHeartbeatConfigured => (_clientSideHeartbeatTimeout / 2) + _sendTimeout;
 
+    /// <summary>
+    /// Bounds one assembled message so a charge point that never sets the end of message flag cannot grow the buffer
+    /// without limit. Far above any real OCPP 1.6 frame: the largest seen in the field is a MeterValues of a few kB.
+    /// </summary>
+    private const int MaxIncomingMessageBytes = 256 * 1024;
+
+    /// <summary>
+    /// How far a meter sample's own timestamp may lag before it is no longer taken as the present state. Charge points
+    /// replay their offline queue after a reconnect, and one measured in the field was running about seven minutes
+    /// behind while interleaving live samples, so the reported power jumped between now and minutes ago.
+    /// </summary>
+    private static readonly TimeSpan MaxMeterValueAge = TimeSpan.FromMinutes(2);
+
     private readonly ConcurrentDictionary<string, DtoOcppWebSocket> _connections = new();
+
+    /// <summary>
+    /// Trailing commas are tolerated deliberately. A charge point in the field replays a truncated MeterValues out of
+    /// its offline queue whose sampled value array ends with one, and refusing the whole frame over that cost the
+    /// connection every time (see <see cref="ProcessOneMessage"/>).
+    /// </summary>
+    private static readonly JsonDocumentOptions JsonDocumentOpts = new()
+    {
+        AllowTrailingCommas = true,
+    };
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -165,6 +189,10 @@ public sealed class OcppWebSocketConnectionHandlingService(
     {
         logger.LogTrace("{method}({chargePointId})", nameof(ReceiveLoopAsync), dto.ChargePointId);
         var buffer = ArrayPool<byte>.Shared.Rent(4 * 1024);
+        //A frame larger than the receive buffer arrives in several reads. Handing each read to the parser on its own
+        //would present it with a fragment, and a fragment cannot be answered, which costs the connection.
+        var messageBuffer = new MemoryStream();
+        var discardingOversizedMessage = false;
 
         var watchdog = new CancellationTokenSource(_clientSideHeartbeatTimeout);
         var linked = CancellationTokenSource.CreateLinkedTokenSource(watchdog.Token);
@@ -188,7 +216,25 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     logger.LogInformation("Received Message Type Close from chargepoint {chargePointId}", dto.ChargePointId);
                     break;
                 }
-                var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                if (discardingOversizedMessage)
+                {
+                    discardingOversizedMessage = !result.EndOfMessage;
+                    continue;
+                }
+                if ((messageBuffer.Length + result.Count) > MaxIncomingMessageBytes)
+                {
+                    logger.LogWarning("Discarding oversized message from {chargePointId}", dto.ChargePointId);
+                    messageBuffer.SetLength(0);
+                    discardingOversizedMessage = !result.EndOfMessage;
+                    continue;
+                }
+                messageBuffer.Write(buffer, 0, result.Count);
+                if (!result.EndOfMessage)
+                {
+                    continue;
+                }
+                var jsonMessage = Encoding.UTF8.GetString(messageBuffer.GetBuffer(), 0, (int)messageBuffer.Length);
+                messageBuffer.SetLength(0);
                 _ = Task.Run(async () =>
                 {
                     try
@@ -218,6 +264,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+            await messageBuffer.DisposeAsync();
             await RemoveWebSocket(dto.ChargePointId);
             dto.LifetimeTsc.TrySetResult(null);
             watchdog.Dispose();
@@ -230,27 +277,57 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
+    /// <summary>
+    /// Handles one complete incoming frame.
+    ///
+    /// Every Call is answered, whatever is wrong with it. A charge point that gets no answer blocks until its own
+    /// message timeout and then drops the connection without a close handshake: measured in the field against a
+    /// charge point that replays a truncated MeterValues out of its offline queue, every session died about fifteen
+    /// seconds after that frame arrived, reconnected, and ran into the same stored frame again.
+    /// </summary>
     private async Task ProcessOneMessage(DtoOcppWebSocket dto, string jsonMessage)
     {
+        //Recovered from the raw text rather than from the parsed frame, so it is available even when parsing is what
+        //failed. A CallError the charge point cannot match to its request does not unblock it.
+        var head = TryRecoverHead(jsonMessage);
+        var recoveredUniqueId = head.UniqueId;
+        //A frame nobody could classify is treated as a Call, because that is the one kind whose sender is blocked
+        //until it hears back. Answers to our own requests carry our id and must never be answered in turn.
+        var frameNeedsAnswer = true;
         try
         {
             logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
-            var doc = JsonDocument.Parse(jsonMessage);
+            JsonDocument doc;
+            try
+            {
+                doc = JsonDocument.Parse(jsonMessage, JsonDocumentOpts);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "Could not parse message from {chargePointId}", dto.ChargePointId);
+                await AnswerUnparseableFrame(dto, head).ConfigureAwait(false);
+                return;
+            }
             var root = doc.RootElement;
-            string? responseString = null;
             // 1) Sanity checks -----------------------------------------------------
             if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 3)
             {
-                responseString = BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
+                await SendCallError(dto, "FormationViolation", "Frame is not a valid OCPP array", recoveredUniqueId).ConfigureAwait(false);
+                return;
+            }
+            if (!root[0].TryGetInt32(out var messageTypeIdInt) || root[1].ValueKind != JsonValueKind.String)
+            {
+                await SendCallError(dto, "FormationViolation", "Frame head is not a message type and an ID", recoveredUniqueId).ConfigureAwait(false);
+                return;
             }
             {
-                var messageTypeIdInt = root[0].GetInt32();
                 var uniqueMessageId = root[1].GetString()!;
+                recoveredUniqueId = uniqueMessageId;
                 if (!TryGetMessageType(messageTypeIdInt, out var messageTypeId))
                 {
-                    responseString = BuildError("FormationViolation", "Message Type ID is undefined", uniqueMessageId, null);
+                    await SendCallError(dto, "FormationViolation", "Message Type ID is undefined", uniqueMessageId).ConfigureAwait(false);
+                    return;
                 }
-                else
                 {
                     switch (messageTypeId)
                     {
@@ -265,6 +342,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                             }
                             break;
                         case MessageTypeId.CallResult:
+                            frameNeedsAnswer = false;
                             if (dto.Pending.TryRemove(uniqueMessageId, out var tcsOk))
                             {
                                 // index 2 holds the payload for CALLRESULT
@@ -273,6 +351,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
                             break;
                         case MessageTypeId.CallError:
+                            frameNeedsAnswer = false;
                             if (dto.Pending.TryRemove(uniqueMessageId, out var tcsErr))
                             {
                                 var code = root[2].GetString();
@@ -288,16 +367,127 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
 
             }
-
-            if (!string.IsNullOrEmpty(responseString))
-            {
-                await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
-            }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Swallowed error within receive loop to keep up WebSocketConnection for {chargePointId}", dto.ChargePointId);
+            if (frameNeedsAnswer)
+            {
+                //Whatever went wrong in here, the charge point is still waiting for its answer. A handler that threw
+                //anything other than an OcppCallErrorException used to leave it waiting until it hung up.
+                await SendCallError(dto, "InternalError", "Message could not be processed", recoveredUniqueId).ConfigureAwait(false);
+            }
         }
+    }
+
+    private async Task SendCallError(DtoOcppWebSocket dto, string code, string description, string? uniqueId)
+    {
+        try
+        {
+            await SendTextAsync(dto.ChargePointId, BuildError(code, description, uniqueId, null),
+                new CancellationTokenSource(_sendTimeout).Token).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not send CallError to {chargePointId}", dto.ChargePointId);
+        }
+    }
+
+    /// <summary>The message id and action of a frame, as far as they could be read without parsing it.</summary>
+    internal sealed record OcppFrameHead(string? UniqueId, string? Action);
+
+    /// <summary>
+    /// Pulls the message id and the action out of a frame that could not be parsed, so the charge point still gets an
+    /// answer it can match to its request. Only the head of an OCPP frame is needed for that -
+    /// [messageTypeId,"uniqueId","action", ... - and that head survives the truncation seen in the field, where the
+    /// damage is at the end of the payload.
+    ///
+    /// The search is bounded to the head so a broken head cannot make some string out of the payload look like an id:
+    /// answering with an id the charge point never sent is no better than not answering at all.
+    /// </summary>
+    internal static OcppFrameHead TryRecoverHead(string rawMessage)
+    {
+        const int headLength = 128;
+        var head = rawMessage.Length <= headLength ? rawMessage : rawMessage[..headLength];
+        var openingBracket = head.IndexOf('[');
+        if (openingBracket < 0)
+        {
+            return new OcppFrameHead(null, null);
+        }
+        var comma = head.IndexOf(',', openingBracket);
+        if (comma < 0)
+        {
+            return new OcppFrameHead(null, null);
+        }
+        var uniqueId = ReadQuoted(head, comma, out var afterUniqueId);
+        if (uniqueId == null)
+        {
+            return new OcppFrameHead(null, null);
+        }
+        //Only a Call carries an action. On an answer the next quoted string is the first key of its payload, and
+        //reading that as the action would eventually acknowledge a frame on the strength of a payload key.
+        var messageTypeId = head[(openingBracket + 1)..comma].Trim();
+        if (messageTypeId != ((int)MessageTypeId.Call).ToString(CultureInfo.InvariantCulture))
+        {
+            return new OcppFrameHead(uniqueId, null);
+        }
+        //The action is only present when the head reaches that far.
+        var actionComma = head.IndexOf(',', afterUniqueId);
+        var action = actionComma < 0 ? null : ReadQuoted(head, actionComma, out _);
+        return new OcppFrameHead(uniqueId, action);
+    }
+
+    private static string? ReadQuoted(string head, int searchFrom, out int afterClosingQuote)
+    {
+        afterClosingQuote = searchFrom;
+        var openingQuote = head.IndexOf('"', searchFrom);
+        if (openingQuote < 0)
+        {
+            return null;
+        }
+        var closingQuote = head.IndexOf('"', openingQuote + 1);
+        if (closingQuote <= (openingQuote + 1))
+        {
+            return null;
+        }
+        afterClosingQuote = closingQuote + 1;
+        return head[(openingQuote + 1)..closingQuote];
+    }
+
+    /// <summary>
+    /// Whether the response to this action is a bare acknowledgement, carrying no decision of ours that the charge
+    /// point acts on. Only those may be answered without having understood the request.
+    /// </summary>
+    private static bool IsAcknowledgementOnly(string? action) =>
+        action is "MeterValues" or "StatusNotification";
+
+    /// <summary>
+    /// Answers a frame that could not be parsed.
+    ///
+    /// A CallError is the correct answer and is what goes out for anything whose response carries a decision - a
+    /// transaction id, an authorisation, a registration status - because inventing one of those would be a lie the
+    /// charge point acts on.
+    ///
+    /// For MeterValues and StatusNotification the response is an empty object: it means "received" and nothing else.
+    /// Those are acknowledged, because a CallError measurably does not get this charge point moving. It has replayed
+    /// the same corrupt stored MeterValues, byte for byte and under the same message id, for hours across every
+    /// session; answering it with a properly addressed CallError changed nothing, and it fell silent and hung up
+    /// about fourteen seconds later exactly as it did when nothing was sent at all. The sample is unreadable either
+    /// way, so acknowledging it costs a measurement that never existed and is the only answer that lets the charge
+    /// point retire the record.
+    /// </summary>
+    private async Task AnswerUnparseableFrame(DtoOcppWebSocket dto, OcppFrameHead head)
+    {
+        if ((head.UniqueId is { } uniqueId) && IsAcknowledgementOnly(head.Action))
+        {
+            logger.LogWarning("Acknowledging an unreadable {action} of {chargePointId} so its queue can move past it",
+                head.Action, dto.ChargePointId);
+            var envelope = new CallResult<object>(uniqueId, new object());
+            await SendTextAsync(dto.ChargePointId, JsonSerializer.Serialize(envelope, JsonOpts),
+                new CancellationTokenSource(_sendTimeout).Token).ConfigureAwait(false);
+            return;
+        }
+        await SendCallError(dto, "FormationViolation", "Frame is not valid JSON", head.UniqueId).ConfigureAwait(false);
     }
 
     public async Task<TResp> SendRequestAsync<TResp>(string chargePointIdentifier,
@@ -405,7 +595,9 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
         catch (OcppCallErrorException ex)
         {
-            return BuildError(ex.ToString(), ex.Description, null, null);
+            //The id has to travel with the error, otherwise the charge point cannot tell which of its requests failed
+            //and keeps waiting for it.
+            return BuildError(ex.ToString(), ex.Description, uniqueMessageId, null);
         }
     }
 
@@ -527,6 +719,20 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
+    /// <summary>
+    /// Zeroes what the meter says is flowing, for a status that means nothing is.
+    ///
+    /// Power and current describe the same thing and have to agree: zeroing the power alone left the last measured
+    /// current standing next to it, so a charge that was stopping got published as zero watts at 4.1 A. The phase
+    /// count is deliberately left alone - it describes how the connector is wired rather than an instantaneous flow,
+    /// which is also why <see cref="SetPhases"/> refuses to update it while the current is low.
+    /// </summary>
+    private static void ClearChargingMeasurements(DtoOcppConnectorState ocppConnectorState, DateTimeOffset timestamp)
+    {
+        ocppConnectorState.ChargingPower.Update(timestamp, 0);
+        ocppConnectorState.ChargingCurrent.Update(timestamp, 0);
+    }
+
     private async Task<DtoOcppConnectorState> GetConnectorStateAsync(int databaseChargePointId, CancellationToken ct = default)
     {
         logger.LogTrace("{method}({chargingConnectorId})", nameof(GetConnectorStateAsync), databaseChargePointId);
@@ -550,13 +756,20 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 ocppConnectorState.IsPluggedIn.Update(timestamp, false);
                 ocppConnectorState.IsCharging.Update(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged.Update(timestamp, null);
-                ocppConnectorState.ChargingPower.Update(timestamp, 0);
+                ClearChargingMeasurements(ocppConnectorState, timestamp);
+                //Unplugging invalidates any pending remote start and any charging profile, so the values TSC believes it
+                //has set are no longer true. Without this reset a last set current that never resulted in a transaction
+                //(e.g. a remote start accepted while nothing was plugged in) would be kept forever, as only a stop
+                //transaction resets it, and the connector would never be started again.
+                //Forced as the last set values carry TSC's clock while the timestamp here comes from the charge point.
+                ocppConnectorState.LastSetCurrent.Update(timestamp, 0, true);
+                ocppConnectorState.LastSetPhases.Update(timestamp, null, true);
                 break;
             case ChargePointStatus.Preparing:
                 ocppConnectorState.IsPluggedIn.Update(timestamp, true);
                 ocppConnectorState.IsCharging.Update(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged.Update(timestamp, null);
-                ocppConnectorState.ChargingPower.Update(timestamp, 0);
+                ClearChargingMeasurements(ocppConnectorState, timestamp);
                 break;
             case ChargePointStatus.Charging:
                 ocppConnectorState.IsPluggedIn.Update(timestamp, true);
@@ -566,18 +779,18 @@ public sealed class OcppWebSocketConnectionHandlingService(
             case ChargePointStatus.SuspendedEVSE:
                 ocppConnectorState.IsPluggedIn.Update(timestamp, true);
                 ocppConnectorState.IsCharging.Update(timestamp, false);
-                ocppConnectorState.ChargingPower.Update(timestamp, 0);
+                ClearChargingMeasurements(ocppConnectorState, timestamp);
                 break;
             case ChargePointStatus.SuspendedEV:
                 ocppConnectorState.IsPluggedIn.Update(timestamp, true);
                 ocppConnectorState.IsCharging.Update(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged.Update(timestamp, true);
-                ocppConnectorState.ChargingPower.Update(timestamp, 0);
+                ClearChargingMeasurements(ocppConnectorState, timestamp);
                 break;
             case ChargePointStatus.Finishing:
                 ocppConnectorState.IsPluggedIn.Update(timestamp, true);
                 ocppConnectorState.IsCharging.Update(timestamp, false);
-                ocppConnectorState.ChargingPower.Update(timestamp, 0);
+                ClearChargingMeasurements(ocppConnectorState, timestamp);
                 break;
             default:
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
@@ -743,6 +956,21 @@ public sealed class OcppWebSocketConnectionHandlingService(
             throw new OcppCallErrorException(CallErrorCode.FormationViolation);
         }
 
+        var latestMeterValue = req.MeterValue.OrderByDescending(m => m.Timestamp).First();
+        //A charge point drains its offline queue after a reconnect, interleaved with live samples. One measured in
+        //the field was about seven minutes behind, so the reported power alternated between now and minutes ago every
+        //few seconds. The per value timestamp guard cannot catch that on its own: a reconnect installs a fresh
+        //connector state whose timestamps start at their minimum, and the first replayed sample is then newer than
+        //nothing and wins. Age is therefore judged against the clock, not against what is cached.
+        //Checked before anything is looked up, because a replayed queue is a lot of samples to answer and discard.
+        var meterValueAge = dateTimeProvider.DateTimeOffSetUtcNow() - new DateTimeOffset(latestMeterValue.Timestamp, TimeSpan.Zero);
+        if (meterValueAge > MaxMeterValueAge)
+        {
+            logger.LogDebug("Ignoring meter value of {chargePointId} from {timestamp} for the current state as it is {age} old",
+                chargePointId, latestMeterValue.Timestamp, meterValueAge);
+            return BuildMeterValuesResponse(uniqueId);
+        }
+
         using var scope = serviceProvider.CreateScope();
         var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var chargingConnectorIds = await scopedContext.OcppChargingStationConnectors
@@ -758,7 +986,6 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     "The connector ID does not exist for charging station.");
             }
         }
-        var latestMeterValue = req.MeterValue.OrderByDescending(m => m.Timestamp).First();
         foreach (var chargingConnectorId in chargingConnectorIds)
         {
             if (!settings.OcppConnectorStates.TryGetValue(chargingConnectorId, out var ocppConnector))
@@ -788,14 +1015,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
             });
         }
 
-        // b) Build the response payload
-        var respPayload = new MeterValuesResponse()
-        {
+        return BuildMeterValuesResponse(uniqueId);
+    }
 
-        };
-
-        // c) Wrap in an envelope and serialize
-        var envelope = new CallResult<MeterValuesResponse>(uniqueId, respPayload);
+    private string BuildMeterValuesResponse(string uniqueId)
+    {
+        var envelope = new CallResult<MeterValuesResponse>(uniqueId, new MeterValuesResponse());
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
@@ -917,8 +1142,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
     private string BuildError(string code, string description,
         string? uniqueId, object? details)
     {
-        var error = new CallError(uniqueId ?? Guid.NewGuid().ToString("N"),
-            code, description, details);
+        //An invented id resolves nothing on the charge point: it keeps waiting for the request it actually sent and
+        //eventually hangs up, which is the same outcome as never answering. The empty string is what OCPP-J
+        //prescribes when the id of the offending frame cannot be determined.
+        //The details field is an object in the spec, never null, and a charge point strict enough to reject our frame
+        //over that would be left waiting by the very message meant to unblock it.
+        var error = new CallError(uniqueId ?? string.Empty,
+            code, description, details ?? new object());
         return JsonSerializer.Serialize(error, JsonOpts);
     }
 

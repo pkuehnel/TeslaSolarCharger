@@ -12,11 +12,11 @@ public class HomePageLocalizationRegistry : TextLocalizationRegistry<HomePageLoc
 
         Register(TranslationKeys.HomePageNoCarsOrStationsHintStart,
             new TextLocalizationTranslation(LanguageCodes.English, "You have not configured any cars or charging stations yet. Go to "),
-            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben noch keine Autos oder Ladestationen konfiguriert. Gehen Sie zu "));
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben noch keine Fahrzeuge oder Ladestationen konfiguriert. Gehen Sie zu "));
 
         Register(TranslationKeys.HomePageNoCarsOrStationsHintMiddle,
             new TextLocalizationTranslation(LanguageCodes.English, " to configure your cars or to "),
-            new TextLocalizationTranslation(LanguageCodes.German, " um Ihre Autos zu konfigurieren oder zu "));
+            new TextLocalizationTranslation(LanguageCodes.German, " um Ihre Fahrzeuge zu konfigurieren, oder zu "));
 
         Register(TranslationKeys.HomePageNoCarsOrStationsHintEnd,
             new TextLocalizationTranslation(LanguageCodes.English, " to configure your charging stations."),

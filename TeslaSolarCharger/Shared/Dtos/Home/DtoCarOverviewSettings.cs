@@ -27,4 +27,15 @@ public class DtoCarOverviewState
     public bool IsCharging { get; set; }
     public bool IsHome { get; set; }
     public bool IsPluggedIn { get; set; }
+    /// <summary>
+    /// BLE sleep window phase of the car, or null if the car is not collecting its data via BLE or the feature is off.
+    /// </summary>
+    public BleSleepPhase? BleSleepPhase { get; set; }
+    /// <summary>Seconds until the next BLE sleep transition (see <see cref="BleSleepPhase"/>), or null.</summary>
+    public int? BleSleepCountdownSeconds { get; set; }
+    /// <summary>
+    /// Whether the car is closed up (doors, frunk, rear trunk) and empty, so a BLE sleep attempt could start right
+    /// away. False means it is blocked by an open closure or an occupant, null means it is not known yet.
+    /// </summary>
+    public bool? BleSleepCarClosedAndEmpty { get; set; }
 }

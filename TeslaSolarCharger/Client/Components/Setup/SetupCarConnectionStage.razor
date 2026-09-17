@@ -1,0 +1,115 @@
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarConnectionIntro)</MudText>
+
+<SetupChoiceCards T="SetupCarConnectionRoute" Options="AvailableRoutes" Value="Draft.ConnectionRoute" ValueChanged="SelectRoute">
+    <ItemTemplate Context="route">
+        <SetupRouteDetails Route="route" EntersBatteryLevelManually="Draft.EntersBatteryLevelManually" />
+    </ItemTemplate>
+</SetupChoiceCards>
+
+@if (Draft.ConnectionRoute == SetupCarConnectionRoute.TeslaBluetooth)
+{
+    <div class="mt-4 p-3 rounded border">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBluetoothReadinessQuestion)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothReadinessExplanation)</MudText>
+        <SetupTwoChoiceButtons Value="Draft.CanPlaceBluetoothDeviceNearCar" ValueChanged="SetReadiness"
+                               TrueLabel="@T(TranslationKeys.SetupCarBluetoothReadinessHaveOne)"
+                               FalseLabel="@T(TranslationKeys.SetupCarBluetoothReadinessNeedOne)" />
+        @if (Draft.CanPlaceBluetoothDeviceNearCar == false)
+        {
+            @* Being physically able to put a device there is not the same as having one, so the difference is
+               carried through instead of being treated as a no. *@
+            <MudAlert Severity="Severity.Info" Class="mt-3">@T(TranslationKeys.SetupCarBluetoothNeedsDeviceHint)</MudAlert>
+        }
+    </div>
+}
+
+@if (Draft.ConnectionRoute == SetupCarConnectionRoute.ChargingStationOnly)
+{
+    <div class="mt-4 p-3 rounded border">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBatteryLevelQuestion)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBatteryLevelExplanation)</MudText>
+        <SetupTwoChoiceButtons Value="Draft.EntersBatteryLevelManually" ValueChanged="SetManualBatteryLevel"
+                               TrueLabel="@T(TranslationKeys.SetupCarBatteryLevelManual)"
+                               FalseLabel="@T(TranslationKeys.SetupCarBatteryLevelEstimated)" />
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupCarBatteryLevelConsequence)</MudText>
+    </div>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
+    [Parameter] public EventCallback OnCompleted { get; set; }
+
+    /// <summary>
+    /// A Tesla can be reached directly, over Bluetooth or over Tesla's own service. Anything else has to be
+    /// controlled by the charging station it is plugged into, so it is offered a different pair of routes.
+    /// </summary>
+    private IEnumerable<SetupCarConnectionRoute> AvailableRoutes => IsTesla
+        ? SetupCarConnectionRoutes.TeslaRoutes
+        : SetupCarConnectionRoutes.OtherCarRoutes;
+
+    private bool IsTesla => Draft.Configuration.CarType == CarType.Tesla
+                            || string.Equals(Draft.Make?.Trim(), "Tesla", StringComparison.OrdinalIgnoreCase);
+
+    private async Task SelectRoute(SetupCarConnectionRoute route)
+    {
+        var previousRoute = Draft.ConnectionRoute;
+        Draft.ConnectionRoute = route;
+        //Only the parts of the configuration this choice actually decides are touched; the user's own numbers stay.
+        switch (route)
+        {
+            case SetupCarConnectionRoute.TeslaBluetooth:
+                Draft.Configuration.CarType = CarType.Tesla;
+                Draft.Configuration.UseBle = true;
+                break;
+            case SetupCarConnectionRoute.TeslaCloud:
+                Draft.Configuration.CarType = CarType.Tesla;
+                Draft.Configuration.UseBle = false;
+                Draft.Configuration.UseFleetTelemetry = true;
+                break;
+            case SetupCarConnectionRoute.SmartCarWithChargingStation:
+            case SetupCarConnectionRoute.ChargingStationOnly:
+                Draft.Configuration.UseBle = false;
+                Draft.Configuration.UseFleetTelemetry = false;
+                break;
+        }
+
+        if (previousRoute != route)
+        {
+            // How the app can tell the car is home follows from how it reaches the car, so a setting that went with
+            // the route just abandoned has to go with it. It is cleared rather than guessed at here: the server
+            // proposes the one that fits the new route, with a reason the user can read.
+            Draft.Configuration.HomeDetectionVia = default;
+            Draft.ValueSources.Remove(nameof(CarBasicConfiguration.HomeDetectionVia));
+        }
+
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
+
+    private async Task SetReadiness(bool hasDevice)
+    {
+        Draft.CanPlaceBluetoothDeviceNearCar = hasDevice;
+        await Context.Save();
+    }
+
+    private async Task SetManualBatteryLevel(bool isManual)
+    {
+        Draft.EntersBatteryLevelManually = isManual;
+        await Context.Save();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

@@ -8,7 +8,7 @@ public class ChargingConnectorDetailsComponentLocalizationRegistry : TextLocaliz
     {
         Register(TranslationKeys.ChargingConnectorDetailsConnectedViaOcpp,
             new TextLocalizationTranslation(LanguageCodes.English, "connected via OCPP"),
-            new TextLocalizationTranslation(LanguageCodes.German, "via OCPP verbunden"));
+            new TextLocalizationTranslation(LanguageCodes.German, "über OCPP verbunden"));
 
         Register(TranslationKeys.ChargingConnectorDetailsPluggedIn,
             new TextLocalizationTranslation(LanguageCodes.English, "plugged in"),

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.SharedBackend.Abstracts;
@@ -30,4 +31,37 @@ public class BleController (IBleService bleService) : ApiBaseController
 
     [HttpGet]
     public Task<DtoBleCommandResult> GetDriveState(string vin) => bleService.GetDriveState(vin);
+
+    [HttpGet]
+    public ActionResult<List<DtoBleContainer>> GetBleContainers() => bleService.GetBleContainers();
+
+    /// <summary>
+    /// Lists the Bluetooth adapters of the BLE container with the given base url so a car can be pinned to one of
+    /// them (e.g. a USB dongle with its own antenna).
+    /// </summary>
+    [HttpGet]
+    public Task<List<DtoBleAdapter>> GetAdapters(string bleApiBaseUrl) => bleService.GetAdapters(bleApiBaseUrl);
+
+    /// <summary>
+    /// Manual presence check for one car, e.g. to see from the UI how long ago its container last heard it.
+    /// </summary>
+    [HttpGet]
+    public Task<DtoBlePresenceResult> Presence(string vin) => bleService.GetPresenceForVin(vin);
+
+    /// <summary>
+    /// Checks whether TSC can control the car via BLE and, if not, what the user has to do about it.
+    /// </summary>
+    [HttpGet]
+    public Task<DtoBleConnectionTestResult> TestConnection(string vin) => bleService.TestConnection(vin);
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadLogs(string bleApiBaseUrl)
+    {
+        var stream = await bleService.DownloadLogs(bleApiBaseUrl);
+        if (stream == default)
+        {
+            return NotFound("Could not download logs from the BLE container. Make sure the BLE URL is configured for a car and the container is reachable and up to date.");
+        }
+        return File(stream, "text/plain", "ble-logs.log");
+    }
 }

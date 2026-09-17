@@ -28,6 +28,11 @@ else
         <ChildContent Context="wrapped">
             <GenericInput For="() => wrapped.Item.EnergySiteId"
                           LongIdDropDownOptions="_energySiteOptions"></GenericInput>
+            <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
+            @if (wrapped.Item.EnableHomeBatteryControl)
+            {
+                <GenericInput For="() => wrapped.Item.NormalModeBackupReservePercent"></GenericInput>
+            }
         </ChildContent>
     </TemplateEditFormComponentBase>
 }

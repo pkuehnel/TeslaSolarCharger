@@ -1,6 +1,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -13,28 +14,30 @@ public class IndexService(
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ILoadPointManagementService loadPointManagementService)
+    ILoadPointManagementService loadPointManagementService,
+    IGenericValueService genericValueService)
     : IIndexService
 {
     public async Task<DtoPvValues> GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
-        int? powerBuffer = configurationWrapper.PowerBuffer();
-        if (settings.InverterPower == null && settings.Overage == null)
+        var sourceValues = genericValueService.GetSourceValues(true);
+        if (configurationWrapper.ShouldUseFakeSolarValues())
         {
-            powerBuffer = null;
+            //Fake values replace every real device instead of adding to it.
+            sourceValues = sourceValues.Where(v => v.ConfigurationType == ConfigurationType.FakeSolarValue).ToList();
         }
         var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var pvValues = new DtoPvValues()
         {
-            GridPower = settings.Overage,
-            InverterPower = settings.InverterPower,
-            HomeBatteryPower = settings.HomeBatteryPower,
-            HomeBatterySoc = settings.HomeBatterySoc,
-            PowerBuffer = powerBuffer,
+            SourceValues = sourceValues,
             CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };
+        //Without solar or grid values there is nothing the buffer could be taken from.
+        pvValues.PowerBuffer = pvValues.InverterPower == null && pvValues.GridPower == null
+            ? null
+            : configurationWrapper.PowerBuffer();
         return pvValues;
     }
 

@@ -1,7 +1,7 @@
 ﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Poppins', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 /*This is needed as MudBlazor somehow overrides default user agent list stype types*/
 ul {
@@ -56,6 +56,12 @@ a, .btn-link {
 
 .text-right {
     text-align: right !important;
+}
+
+/*MudRadioGroup renders its option container itself, so SetupChoiceCards can only space the cards with a global class.
+  The gap-3 utility does not work here as Bootstrap redefines it as 1rem.*/
+.setup-choice-cards {
+    gap: 12px;
 }
 
 /*Removes the wilde dot animations in buffered progess bar*/

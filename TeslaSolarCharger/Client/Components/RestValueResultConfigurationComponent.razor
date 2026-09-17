@@ -8,6 +8,7 @@
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
@@ -27,18 +28,16 @@
                 <div class="d-flex align-items-center">
                     <div class="p-2 flex-grow-1">
                         <div class="p-2">
-                            <MudSelectExtended T="ValueUsage"
-                                               Variant="Variant.Outlined"
-                                               AnchorOrigin="Origin.BottomCenter"
-                                               @bind-Value="@editableItem.Item.UsedFor"
-                                               Label="@T(TranslationKeys.ValueSourceConfigUsedFor)">
-                                <MudSelectItemGroupExtended T="ValueUsage" Text="@T(TranslationKeys.ValueSourceConfigSolar)" Nested="true" InitiallyExpanded="false">
-                                    @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
-                                    {
-                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
-                                    }
-                                </MudSelectItemGroupExtended>
-                            </MudSelectExtended>
+                            <MudSelect T="ValueUsage"
+                                       Class="@Constants.DefaultMargin"
+                                       Variant="Variant.Outlined"
+                                       @bind-Value="@editableItem.Item.UsedFor"
+                                       Label="@T(TranslationKeys.ValueSourceConfigUsedFor)">
+                                @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
+                                {
+                                    <MudSelectItem T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                }
+                            </MudSelect>
                         </div>
                         <div class="row">
                             @if (NodePatternType != NodePatternType.Direct)
@@ -180,6 +179,6 @@
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        TextLocalizer.Get<ValueSourceConfigurationLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
 }

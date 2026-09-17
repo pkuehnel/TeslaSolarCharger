@@ -6,4 +6,5 @@ public enum HomeDetectionVia
     LocatedAtHome,
     LocatedAtWork,
     LocatedAtFavorite,
+    BlePresence,
 }

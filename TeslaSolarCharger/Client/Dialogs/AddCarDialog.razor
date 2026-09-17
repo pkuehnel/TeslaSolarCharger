@@ -1,53 +1,337 @@
+@using MudBlazor
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
 
-@inject HttpClient HttpClient
 @inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
+@inject ISnackbar Snackbar
+@inject ICarSettingsService CarSettingsService
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
-<h3>@T(TranslationKeys.AddCarDialogTitle)</h3>
-
-@if (_fleetApiTokenState == default)
-{
-    <PlaceholderComponent Count="10"></PlaceholderComponent>
-}
-else if (_fleetApiTokenState != TokenState.UpToDate)
-{
-    <MudAlert Severity="Severity.Error"
-              NoIcon="true"
-              ContentAlignment="HorizontalAlignment.Left">
-        <h4>@T(TranslationKeys.AddCarTokenInvalidTitle)</h4>
-        @T(TranslationKeys.AddCarTokenInvalidContent)<MudLink Href="/cloudconnection">@T(TranslationKeys.AddCarCloudConnectionLink)</MudLink>@T(TranslationKeys.CarSettingsGenerateTokenSuffix)
-    </MudAlert>
-}
-else
-{
-
-}
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="mr-3 mb-n1" />
+            @T(TranslationKeys.AddCarDialogTitle)
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div style="min-width: 320px; max-width: 560px;">
+            @if (_step == Step.ChooseType)
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.AddCarChooseTypeHint)</MudText>
+                @foreach (var option in _options)
+                {
+                    <MudPaper Class="pa-3 mb-3" Outlined="true" Style="cursor: pointer;" @onclick="@(() => option.OnClick())">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@option.Icon" Class="mr-3" Size="Size.Large" />
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-center justify-space-between">
+                                    <MudText Typo="Typo.subtitle1">@option.Title</MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="@option.BadgeColor" Variant="Variant.Text">@option.Badge</MudChip>
+                                </div>
+                                <MudText Typo="Typo.body2">@option.Description</MudText>
+                            </div>
+                        </div>
+                    </MudPaper>
+                }
+            }
+            else if (_step == Step.Tesla)
+            {
+                @if (_isAddingTeslas)
+                {
+                    @* The progress is shown in the import button itself, so the content only explains the wait. *@
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarSettingsAddTeslaFromAccountLoading)</MudText>
+                }
+                else if (_addedTeslasCount != null)
+                {
+                    <MudAlert Severity="Severity.Success" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
+                        @CarSettingsService.GetAddedTeslasMessage(_addedTeslasCount.Value)
+                    </MudAlert>
+                }
+                else if (_isLoadingTeslaState)
+                {
+                    <LoadingSpinnerComponent />
+                }
+                else if (_fleetApiTokenState == null)
+                {
+                    @* The token state could not be loaded (e.g. a transient API error). Offer a retry instead of
+                       leaving the step stuck on the loading spinner forever. *@
+                    <MudAlert Severity="Severity.Error" NoIcon="true" ContentAlignment="HorizontalAlignment.Left" Class="mb-3">
+                        @T(TranslationKeys.AddCarTeslaStateLoadError)
+                    </MudAlert>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadTeslaState" Disabled="_isBusy">
+                        @T(TranslationKeys.AddCarRetryButton)
+                    </MudButton>
+                }
+                else if (_fleetApiTokenState == TokenState.MissingPrecondition)
+                {
+                    @* MissingPrecondition means the Solar4Car cloud account is not connected yet, which is a
+                       prerequisite for the Tesla connection. *@
+                    <MudAlert Severity="Severity.Info" NoIcon="true" ContentAlignment="HorizontalAlignment.Left">
+                        @T(TranslationKeys.AddCarTeslaNeedsCloudContent)<MudLink Href="/cloudconnection">@T(TranslationKeys.AddCarCloudConnectionLink)</MudLink>
+                    </MudAlert>
+                }
+                else if (_fleetApiTokenState != TokenState.UpToDate)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.AddCarTeslaConnectHint)</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.AddCarTeslaStepHint)</MudText>
+                }
+            }
+            else if (_step == Step.SmartCar)
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.AddCarSmartCarSearchHint)</MudText>
+                @if (_isLoadingCompatibleVehicles)
+                {
+                    <LoadingSpinnerComponent />
+                }
+                else
+                {
+                    <MudAutocomplete T="DtoSmartCarCompatibleVehicle"
+                                     Label="@T(TranslationKeys.AddCarSmartCarSearchLabel)"
+                                     Variant="Variant.Outlined"
+                                     SearchFunc="SearchCompatibleVehicles"
+                                     ToStringFunc="DisplayVehicle"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     @bind-Value="_selectedVehicle" />
+                    <MudText Typo="Typo.caption" Class="mt-2">@T(TranslationKeys.AddCarSmartCarNotListed)</MudText>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        @if (_step == Step.Tesla && _addedTeslasCount != null)
+        {
+            @* The import is done: the only sensible action left is closing the dialog, which refreshes the car list. *@
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CloseAfterImport">@T(TranslationKeys.GeneralClose)</MudButton>
+        }
+        else
+        {
+            @if (_step != Step.ChooseType)
+            {
+                <MudButton OnClick="GoBack" Disabled="_isBusy">@T(TranslationKeys.AddCarBackButton)</MudButton>
+            }
+            <MudButton OnClick="Cancel" Disabled="_isBusy">@T(TranslationKeys.GeneralCancel)</MudButton>
+            @if (_step == Step.Tesla && _fleetApiTokenState == TokenState.UpToDate)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddTeslasFromAccount" Disabled="_isBusy">
+                    @if (_isAddingTeslas)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">@T(TranslationKeys.GeneralProcessing)</MudText>
+                    }
+                    else
+                    {
+                        <MudText>@T(TranslationKeys.CarSettingsAddTeslaFromAccountButton)</MudText>
+                    }
+                </MudButton>
+            }
+            else if (_step == Step.Tesla && _fleetApiTokenState is not null and not TokenState.MissingPrecondition)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectTeslaAccount" Disabled="_isBusy">
+                    @T(TranslationKeys.AddCarConnectTeslaButton)
+                </MudButton>
+            }
+            else if (_step == Step.SmartCar)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConnectSmartCar" Disabled="_isBusy || _selectedVehicle == null">
+                    @T(TranslationKeys.AddCarSmartCarConnectButton)
+                </MudButton>
+            }
+        }
+    </DialogActions>
+</MudDialog>
 
 @code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
+    /// <summary>
+    /// Relative page (without leading slash) the SmartCar OAuth flow should return to after the browser leaves
+    /// for SmartCar's consent panel, e.g. "CarSettings" or "setup".
+    /// </summary>
+    [Parameter] public string ReturnPage { get; set; } = "CarSettings";
 
+    private enum Step { ChooseType, Tesla, SmartCar }
+
+    private record CarTypeOption(string Icon, string Title, string Description, string Badge, Color BadgeColor, Func<Task> OnClick);
+
+    private Step _step = Step.ChooseType;
     private TokenState? _fleetApiTokenState;
+    private bool _isLoadingTeslaState;
+    private bool _teslaStateLoaded;
+    private bool _isBusy;
+    private bool _isAddingTeslas;
+
+    /// <summary>
+    /// Number of cars the last import added. Not null as soon as the import finished successfully, which switches
+    /// the Tesla step to its result view.
+    /// </summary>
+    private int? _addedTeslasCount;
+
+    private List<DtoSmartCarCompatibleVehicle>? _compatibleVehicles;
+    private bool _isLoadingCompatibleVehicles;
+    private DtoSmartCarCompatibleVehicle? _selectedVehicle;
+
+    private List<CarTypeOption> _options = new();
 
     private string T(string key) =>
         TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await RefreshFleetApiTokenState();
+        _options = new List<CarTypeOption>
+        {
+            new(Icons.Material.Filled.Tune, T(TranslationKeys.AddCarManualOptionTitle),
+                T(TranslationKeys.AddCarManualOptionDescription), T(TranslationKeys.AddCarFreeBadge), Color.Success, ChooseManual),
+            new(Icons.Material.Filled.ElectricCar, T(TranslationKeys.AddCarTeslaOptionTitle),
+                T(TranslationKeys.AddCarTeslaOptionDescription), T(TranslationKeys.AddCarTeslaFreeBadge), Color.Success, ChooseTesla),
+            new(Icons.Material.Filled.Link, T(TranslationKeys.AddCarSmartCarOptionTitle),
+                T(TranslationKeys.AddCarSmartCarOptionDescription), T(TranslationKeys.AddCarLicenseBadge), Color.Warning, ChooseSmartCar),
+        };
     }
 
-    public async Task RefreshFleetApiTokenState()
+    private void Cancel() => MudDialog.Cancel();
+
+    private void GoBack()
     {
-        var value = await HttpClient.GetFromJsonAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
-        if (value != null)
+        _step = Step.ChooseType;
+        _selectedVehicle = null;
+        _addedTeslasCount = null;
+    }
+
+    private Task ChooseManual()
+    {
+        MudDialog.Close(DialogResult.Ok(AddCarResultAction.EditNewManualCar));
+        return Task.CompletedTask;
+    }
+
+    private async Task ChooseTesla()
+    {
+        _step = Step.Tesla;
+        // Only load once on entering the step; a failed load is retried explicitly via the retry button so we
+        // never re-trigger the request on every render.
+        if (!_teslaStateLoaded)
         {
-            _fleetApiTokenState = value.Value;
+            await LoadTeslaState();
         }
+    }
+
+    private async Task LoadTeslaState()
+    {
+        _isLoadingTeslaState = true;
+        // null means the state could not be loaded (the service surfaces the error via snackbar); the UI then
+        // shows an error with a retry button instead of an indefinite spinner.
+        _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+        _teslaStateLoaded = _fleetApiTokenState != null;
+        _isLoadingTeslaState = false;
+    }
+
+    private async Task ChooseSmartCar()
+    {
+        _step = Step.SmartCar;
+        if (_compatibleVehicles == null)
+        {
+            _isLoadingCompatibleVehicles = true;
+            _compatibleVehicles = await CarSettingsService.GetSmartCarCompatibleVehicles() ?? new List<DtoSmartCarCompatibleVehicle>();
+            _isLoadingCompatibleVehicles = false;
+        }
+    }
+
+    private void ConnectTeslaAccount()
+    {
+        // The Tesla OAuth flow needs a full-page redirect, so hand off to the host page which owns the
+        // return URL and the post-return import.
+        MudDialog.Close(DialogResult.Ok(AddCarResultAction.ConnectTesla));
+    }
+
+    private async Task AddTeslasFromAccount()
+    {
+        _isBusy = true;
+        // Importing needs a round trip to the Tesla account and can take several seconds, so show a spinner
+        // instead of only disabling the button, and keep the dialog open afterwards to report the result.
+        _isAddingTeslas = true;
+        var addedCars = await CarSettingsService.RefreshTeslaCarsFromAccount();
+        _isAddingTeslas = false;
+        _isBusy = false;
+        _addedTeslasCount = addedCars;
+    }
+
+    private void CloseAfterImport() => MudDialog.Close(DialogResult.Ok(AddCarResultAction.Refresh));
+
+    private async Task ConnectSmartCar()
+    {
+        if (_selectedVehicle == null)
+        {
+            return;
+        }
+
+        // Connecting opens SmartCar's panel where the user may select several vehicles. Any selected
+        // beyond their available car licenses are booked automatically and billed via Stripe, so get
+        // explicit consent before redirecting.
+        var confirmParameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, T(TranslationKeys.CarSettingsSmartCarBillingConfirmText) },
+            { x => x.ConfirmButtonText, T(TranslationKeys.CarSettingsSmartCarBillingConfirmButton) },
+            { x => x.CancelButtonText, T(TranslationKeys.GeneralCancel) },
+        };
+        var confirmDialog = await DialogService.ShowAsync<ConfirmDialog>(
+            T(TranslationKeys.CarSettingsSmartCarBillingConfirmTitle), confirmParameters);
+        var confirmResult = await confirmDialog.Result;
+        if (confirmResult == null || confirmResult.Canceled)
+        {
+            return;
+        }
+
+        _isBusy = true;
+        // Mark the return URL so the Car Settings page can reliably tell a new-SmartCar OAuth return apart
+        // from any other redirect, instead of inferring it from the absence of a VIN.
+        var baseUrl = NavigationManager.BaseUri + ReturnPage + "?" + Constants.QueryParamSmartCarAdded + "=true";
+        var url = await CarSettingsService.GetSmartCarOAuthRedeemUrlForNewCar(baseUrl);
+        if (string.IsNullOrEmpty(url))
+        {
+            _isBusy = false;
+            Snackbar.Add(T(TranslationKeys.CarSettingsSmartCarUrlMissingError), Severity.Error);
+            return;
+        }
+        // Browser navigates away to SmartCar; the dialog does not need an explicit close.
+        NavigationManager.NavigateTo(url);
+    }
+
+    private Task<IEnumerable<DtoSmartCarCompatibleVehicle>> SearchCompatibleVehicles(string? value, CancellationToken token)
+    {
+        var source = _compatibleVehicles ?? new List<DtoSmartCarCompatibleVehicle>();
+        IEnumerable<DtoSmartCarCompatibleVehicle> result = source;
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            result = source.Where(v =>
+                $"{v.Make} {v.Model}".Contains(value, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(result.OrderBy(v => v.Make).ThenBy(v => v.Model).Take(50).AsEnumerable());
+    }
+
+    private string DisplayVehicle(DtoSmartCarCompatibleVehicle? vehicle)
+    {
+        if (vehicle == null)
+        {
+            return string.Empty;
+        }
+        var years = vehicle.Years is { Count: > 0 }
+            ? vehicle.Years.Min() == vehicle.Years.Max()
+                ? $" ({vehicle.Years.Min()})"
+                : $" ({vehicle.Years.Min()}–{vehicle.Years.Max()})"
+            : string.Empty;
+        return $"{vehicle.Make} {vehicle.Model}{years}";
     }
 }

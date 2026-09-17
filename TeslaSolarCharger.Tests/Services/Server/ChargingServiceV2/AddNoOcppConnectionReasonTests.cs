@@ -10,8 +10,9 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Localization;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server.ChargingServiceV2;
 
@@ -63,7 +64,7 @@ public class AddNoOcppConnectionReasonTests : TestBase
             reasonHelperMock.Verify(h => h.AddLoadPointSpecificReason(
                 null,
                 connectorId,
-                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey.Contains("OCPP connection not established"))),
+                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == TranslationKeys.NotChargingReasonOcppConnectionNotEstablished)),
                 Times.Once);
         }
         else
@@ -109,7 +110,7 @@ public class AddNoOcppConnectionReasonTests : TestBase
         reasonHelperMock.Verify(h => h.AddLoadPointSpecificReason(
             null,
             1,
-            It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey.Contains("OCPP connection not established"))),
+            It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == TranslationKeys.NotChargingReasonOcppConnectionNotEstablished)),
             Times.Once);
 
         // Verify C2: Managed & Has State -> Not Called

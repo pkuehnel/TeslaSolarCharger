@@ -2,80 +2,38 @@
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
-@using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject ITextLocalizationService TextLocalizer
-@inject IConstants Constants
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">
-            <span>
-                <MudIcon Icon="@Icons.Material.Filled.SolarPower" Class="me-1" />
-            </span> @T(TranslationKeys.NavMenuTitle)
-        </a>
-        <button title='@T(TranslationKeys.NavMenuToggleLabel)' class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
-
-<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> @T(TranslationKeys.NavMenuOverview)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="ChargingStations">
-                <span><MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" /></span> @T(TranslationKeys.ChargingStationsTitle)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="CarSettings">
-                <span class="oi oi-wrench" aria-hidden="true"></span> @T(TranslationKeys.CarSettingsTitle)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="ChargePrices">
-                <span><MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="me-1" /></span> @T(TranslationKeys.ChargeCostsListTitle)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="cloudconnection">
-                <span class="oi oi-cloud" aria-hidden="true"></span> @T(TranslationKeys.CloudConnectionTitle)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="BaseConfiguration">
-                <span class="oi oi-cog" aria-hidden="true"></span> @T(TranslationKeys.BaseConfigurationPageTitle)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="support">
-                <span class="oi oi-code" aria-hidden="true"></span> @T(TranslationKeys.SupportPageTitle)
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link px-3" href="backupAndRestore">
-                <span class="oi oi-data-transfer-download" aria-hidden="true"></span> @T(TranslationKeys.NavMenuBackupAndRestore)
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        @T(TranslationKeys.NavMenuOverview)
+    </MudNavLink>
+    <MudNavLink Href="ChargingStations" Icon="@Icons.Material.Outlined.EvStation">
+        @T(TranslationKeys.ChargingStationsTitle)
+    </MudNavLink>
+    <MudNavLink Href="CarSettings" Icon="@Icons.Material.Filled.DirectionsCar">
+        @T(TranslationKeys.CarsTitle)
+    </MudNavLink>
+    <MudNavLink Href="ChargePrices" Icon="@Icons.Material.Outlined.AttachMoney">
+        @T(TranslationKeys.ChargeCostsListTitle)
+    </MudNavLink>
+    <MudNavLink Href="cloudconnection" Icon="@Icons.Material.Filled.Cloud">
+        @T(TranslationKeys.CloudConnectionTitle)
+    </MudNavLink>
+    <MudNavLink Href="BaseConfiguration" Icon="@Icons.Material.Filled.Settings">
+        @T(TranslationKeys.BaseConfigurationPageTitle)
+    </MudNavLink>
+    <MudNavLink Href="support" Icon="@Icons.Material.Filled.Help">
+        @T(TranslationKeys.SupportPageTitle)
+    </MudNavLink>
+    <MudNavLink Href="backupAndRestore" Icon="@Icons.Material.Filled.Backup">
+        @T(TranslationKeys.NavMenuBackupAndRestore)
+    </MudNavLink>
+</MudNavMenu>
 
 @code {
-    private bool _collapseNavMenu = true;
-
-    private string? NavMenuCssClass => _collapseNavMenu ? "collapse" : null;
-
     private string T(string key) =>
         TextLocalizer.Get<NavMenuComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
-
-    private void ToggleNavMenu()
-    {
-        _collapseNavMenu = !_collapseNavMenu;
-    }
 }

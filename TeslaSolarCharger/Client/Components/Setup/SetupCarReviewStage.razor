@@ -1,0 +1,173 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+@inject IChargingStationsService ChargingStationsService
+
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarReviewIntro)</MudText>
+
+<SetupRouteSummary Route="Draft.ConnectionRoute"
+                   EntersBatteryLevelManually="Draft.EntersBatteryLevelManually"
+                   Class="mb-4" />
+
+@if (NeedsChargingStation)
+{
+    <div class="p-3 rounded border mb-4">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarAssignmentTitle)</MudText>
+        @if (_connectors == null)
+        {
+            <PlaceholderComponent Count="1" />
+        }
+        else if (_connectors.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning">@T(TranslationKeys.SetupIssueCarNeedsChargingStation)</MudAlert>
+        }
+        else if (_connectors.Count == 1 && Draft.AssignedChargingConnectorIds.Count == 1)
+        {
+            @* One eligible car, one connector: the assignment is not a question, but it is still shown, because
+               the user has to be able to see what was decided for them. *@
+            <MudText Typo="Typo.body2">@Format(TranslationKeys.SetupCarAssignmentAutomaticFormat, ConnectorName(Draft.AssignedChargingConnectorIds[0]))</MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupCarAssignmentChoose)</MudText>
+            @foreach (var connector in _connectors)
+            {
+                var isAssigned = Draft.AssignedChargingConnectorIds.Contains(connector.Id);
+                <MudCheckBox T="bool" Value="@isAssigned"
+                             ValueChanged="@(value => ToggleAssignment(connector.Id, value))"
+                             Color="Color.Primary" Dense="true"
+                             Label="@connector.Name" />
+            }
+        }
+    </div>
+}
+
+<div class="p-3 rounded border mb-4">
+    <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarReviewStatusTitle)</MudText>
+    @* Configured, switched on and tested are three different things, so they are reported one by one rather than
+       rolled into a single green tick. *@
+    @StatusLine(T(TranslationKeys.SetupCarReviewConfiguration), T(ConfigurationStatusKey))
+    @StatusLine(T(TranslationKeys.SetupCarReviewActivation), T(ActivationStatusKey))
+    @StatusLine(T(TranslationKeys.SetupCarReviewConnectionCheck), T(ConnectionCheckKey))
+</div>
+
+@if (Blockers.Count > 0)
+{
+    <MudAlert Severity="Severity.Warning" ContentAlignment="HorizontalAlignment.Left" Class="mb-4">
+        <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupMissingInformationHeading)</MudText>
+        <ul class="mb-0">
+            @foreach (var blocker in Blockers)
+            {
+                <li>@T(blocker.MessageKey)</li>
+            }
+        </ul>
+    </MudAlert>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
+
+    private List<DtoChargingStationConnector>? _connectors;
+
+    private bool NeedsChargingStation => Draft.ConnectionRoute
+        is SetupCarConnectionRoute.SmartCarWithChargingStation or SetupCarConnectionRoute.ChargingStationOnly;
+
+    private IReadOnlyList<DtoSetupIssue> Blockers => Context.BlockersFor(Draft.DraftId);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!NeedsChargingStation)
+        {
+            return;
+        }
+
+        _connectors = await LoadConnectors();
+        //Exactly one place it could be plugged into and nothing chosen yet: prefill it instead of asking a question
+        //with a single possible answer.
+        if (_connectors is { Count: 1 } && Draft.AssignedChargingConnectorIds.Count == 0)
+        {
+            Draft.AssignedChargingConnectorIds.Add(_connectors[0].Id);
+            await Context.Save();
+            await Context.RefreshDecision();
+        }
+    }
+
+    private async Task<List<DtoChargingStationConnector>> LoadConnectors()
+    {
+        var connectors = new List<DtoChargingStationConnector>();
+        var stations = await ChargingStationsService.GetChargingStations();
+        foreach (var station in stations ?? new List<DtoChargingStation>())
+        {
+            var stationConnectors = await ChargingStationsService.GetChargingStationConnectors(station.Id);
+            if (stationConnectors != null)
+            {
+                connectors.AddRange(stationConnectors);
+            }
+        }
+
+        return connectors;
+    }
+
+    private async Task ToggleAssignment(int connectorId, bool isAssigned)
+    {
+        if (isAssigned)
+        {
+            if (!Draft.AssignedChargingConnectorIds.Contains(connectorId))
+            {
+                Draft.AssignedChargingConnectorIds.Add(connectorId);
+            }
+        }
+        else
+        {
+            Draft.AssignedChargingConnectorIds.Remove(connectorId);
+        }
+
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
+
+    private string ConnectorName(int connectorId) =>
+        _connectors?.FirstOrDefault(c => c.Id == connectorId)?.Name ?? connectorId.ToString();
+
+    private string ConfigurationStatusKey => Context.IsConfigured(Draft.DraftId)
+        ? TranslationKeys.SetupCarReviewConfigurationComplete
+        : TranslationKeys.SetupCarReviewConfigurationIncomplete;
+
+    private string ActivationStatusKey => Context.StatusFor(Draft.DraftId)?.ActivationStatus switch
+    {
+        SetupActivationStatus.Active => TranslationKeys.SetupCarReviewActivationActive,
+        SetupActivationStatus.ReadyForActivation => TranslationKeys.SetupCarReviewActivationReady,
+        //Every car in setup starts when setup finishes, so the only other answer is that it cannot start yet.
+        _ => TranslationKeys.SetupCarReviewActivationBlocked,
+    };
+
+    private string ConnectionCheckKey => Draft.ConnectionCheckState switch
+    {
+        SetupCheckResultState.Succeeded => TranslationKeys.SetupCarReviewCheckSucceeded,
+        SetupCheckResultState.Failed => TranslationKeys.SetupCarReviewCheckFailed,
+        SetupCheckResultState.Pending => TranslationKeys.SetupCarReviewCheckPending,
+        //Never tested is not a failure: the car may simply have been away while this was set up.
+        _ => TranslationKeys.SetupCarReviewCheckNotRun,
+    };
+
+    private RenderFragment StatusLine(string label, string value) =>
+        @<div class="d-flex flex-wrap" style="gap: 6px;">
+            <MudText Typo="Typo.body2" Style="font-weight: bold">@label</MudText>
+            <MudText Typo="Typo.body2">@value</MudText>
+        </div>;
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
+}

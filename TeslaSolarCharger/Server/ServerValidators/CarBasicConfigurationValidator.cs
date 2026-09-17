@@ -9,6 +9,7 @@ namespace TeslaSolarCharger.Server.ServerValidators;
 public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationValidator
 {
     private readonly IBackendApiService _backendApiService;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
 
     public CarBasicConfigurationValidator(IConfigurationWrapper configurationWrapper,
@@ -17,13 +18,14 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
         IBackendApiService backendApiService)
     {
         _backendApiService = backendApiService;
+        _configurationWrapper = configurationWrapper;
         When(x => x.ShouldBeManaged && x.CarType == CarType.Tesla, () =>
         {
             var isTeslaMateDataSource = configurationWrapper.UseTeslaMateIntegration() && !configurationWrapper.GetVehicleDataFromTesla();
             if (isTeslaMateDataSource)
             {
                 RuleFor(x => x.UseFleetTelemetry).Equal(false)
-                    .WithMessage("As TeslaMate is selected as DataSource in BaseConfiguration you can not enable Fleet Telemetry");
+                    .WithMessage("As TeslaMate is selected as data source in the Base Configuration, you cannot enable Fleet Telemetry.");
             }
             RuleFor(x => x.UseBle)
                 .MustAsync(async (_, useBle, context, _) =>
@@ -40,9 +42,19 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                 RuleFor(x => x.IncludeTrackingRelevantFields)
                     .Equal(false)
                     .WithMessage("Tracking relevant fields can only be included if Fleet Telemetry is enabled.");
+                When(x => !IsBleDataCollectionConfigured(x), () =>
+                {
+                    RuleFor(x => x.HomeDetectionVia)
+                        .Equal(HomeDetectionVia.GpsLocation)
+                        .WithMessage("Without Fleet Telemetry only home detection via GPS location is supported.");
+                });
+            });
+
+            When(x => !IsBleDataCollectionConfigured(x), () =>
+            {
                 RuleFor(x => x.HomeDetectionVia)
-                    .Equal(HomeDetectionVia.GpsLocation)
-                    .WithMessage("Without Fleet Telemetry only home detection via GPS location is supported.");
+                    .NotEqual(HomeDetectionVia.BlePresence)
+                    .WithMessage("Home detection via BLE presence is only supported for cars with enabled BLE and disabled tracking relevant fields while Get data via BLE is enabled in the advanced Base Configuration settings.");
             });
 
             When(x => x.UseFleetTelemetry, () =>
@@ -59,7 +71,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                 {
                     RuleFor(x => x.HomeDetectionVia)
                         .NotEqual(HomeDetectionVia.GpsLocation)
-                        .WithMessage("GPS location can not be used for home detection if tracking relevant fields are not enabled.");
+                        .WithMessage("GPS location cannot be used for home detection if tracking relevant fields are not enabled.");
                 });
 
             });
@@ -73,7 +85,8 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     {
                         context.AddFailure("You need a valid Fleet API token to use Fleet Telemetry. Go to BaseConfiguration to Generate a new Fleet API Token.");
                     }
-                    if (fleetTelemetryEnabled != true)
+                    //Cars whose data is collected via BLE do not use Fleet Telemetry, so it must not be forced on for them.
+                    if (fleetTelemetryEnabled != true && !IsBleDataCollectionConfigured(context.InstanceToValidate))
                     {
                         context.AddFailure("Enabling Fleet Telemetry is required and will be autodisabled if your car does not support it");
                     }
@@ -93,8 +106,32 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                         }
                     });
 
+                RuleFor(x => x.BleAdapterAddress)
+                    .CustomAsync(async (bleAdapterAddress, context, _) =>
+                    {
+                        if (string.IsNullOrWhiteSpace(bleAdapterAddress))
+                        {
+                            return;
+                        }
+                        var adapters = await bleService.GetAdapters(context.InstanceToValidate.BleApiBaseUrl);
+                        //An empty list means the container is unreachable or outdated, which the URL rule already
+                        //reports. Only complain when the container answered but does not know this adapter, as
+                        //commands for that car would fail instead of silently using a different radio.
+                        if (adapters.Count > 0 && adapters.All(a => !string.Equals(a.StableId, bleAdapterAddress, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            context.AddFailure($"The selected Bluetooth adapter {bleAdapterAddress} is not available on the BLE container. Choose one of the listed adapters or the container default.");
+                        }
+                    });
+
             });
         });
+    }
+
+    private bool IsBleDataCollectionConfigured(CarBasicConfiguration config)
+    {
+        return _configurationWrapper.GetVehicleDataViaBle()
+               && config.UseBle
+               && !config.IncludeTrackingRelevantFields;
     }
 
     private async Task<bool> GetFleetApiLicenseCachedAsync(ValidationContext<CarBasicConfiguration> context)

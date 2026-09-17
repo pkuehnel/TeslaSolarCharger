@@ -113,7 +113,13 @@ public class DebugService(ILogger<DebugService> logger,
                 Vin = x.Vin,
                 ShouldBeManaged = x.ShouldBeManaged == true,
                 IsAvailableInTeslaAccount = x.IsAvailableInTeslaAccount,
+                CarType = x.CarType,
+                UseBle = x.UseBle,
             }).ConfigureAwait(false);
+        foreach (var car in cars)
+        {
+            car.Value.IsOnline = settings.Cars.FirstOrDefault(c => c.Id == car.Key)?.IsOnline.Value;
+        }
         logger.LogDebug("Found {carCount} cars", cars.Count);
         return cars;
     }

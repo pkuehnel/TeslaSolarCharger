@@ -1,0 +1,204 @@
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using MudExtensions
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
+
+<MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupPricesTitle)</MudText>
+<MudText GutterBottom="true">@T(TranslationKeys.SetupPricesIntro)</MudText>
+
+@* One question decides which form is worth showing. Putting all three on screen at once is how a beginner ends up
+   filling in a market tariff they do not have. *@
+<MudText Typo="Typo.subtitle2" Class="mt-4" GutterBottom="true">@T(TranslationKeys.SetupPricesKindQuestion)</MudText>
+<SetupChoiceCards T="SetupElectricityPriceKind?" Options="KindOptions" Value="Kind" ValueChanged="SelectKind" Class="mb-4">
+    <ItemTemplate>
+        <MudText Typo="Typo.body1">@T(KindLabelKey(context))</MudText>
+        <MudText Typo="Typo.body2">@T(KindHintKey(context))</MudText>
+    </ItemTemplate>
+</SetupChoiceCards>
+
+@if (Kind != null)
+{
+    <div class="p-3 rounded border mb-4">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupPricesGridTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(GridPriceExplanationKey)</MudText>
+        @* Stored as it is typed. A tariff the user entered and lost to a reload is worse than an empty field:
+           they would have no reason to look at it again. *@
+        <GenericInput For="() => ChargePrice.Item.GridPrice"
+                      OnValueChanged="@((decimal? _) => OnChanged.InvokeAsync())"></GenericInput>
+        <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupPricesWhereToFind)</MudText>
+    </div>
+}
+
+@if (Kind == SetupElectricityPriceKind.TimeOfUse)
+{
+    <div class="p-3 rounded border mb-4">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupPricesTimesTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupPricesTimesExplanation)</MudText>
+        @foreach (var fixedPrice in FixedPrices)
+        {
+            <MudPaper Class="pa-3 mt-3" Outlined="true">
+                <FixedPriceComponent FixedPrice="fixedPrice" OnChanged="OnChanged"></FixedPriceComponent>
+                <div class="d-flex align-center">
+                    <div class="flex-grow-1">
+                        <GenericInput For="() => fixedPrice.Value"
+                                      LabelName="@T(TranslationKeys.SetupPricesTimeSlotPriceLabel)"
+                                      OnValueChanged="@((decimal _) => OnChanged.InvokeAsync())"></GenericInput>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                   OnClick="@(() => DeleteFixedPrice(fixedPrice))" />
+                </div>
+            </MudPaper>
+        }
+        <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                                     ButtonText="@T(TranslationKeys.SetupPricesAddTimeSlotButton)"
+                                     OnButtonClicked="AddFixedPrice"></RightAlignedButtonComponent>
+        @if (FixedPrices.Count == 0)
+        {
+            <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupPricesNoTimeSlotsYet)</MudText>
+        }
+    </div>
+}
+
+@if (Kind == SetupElectricityPriceKind.Market)
+{
+    <div class="p-3 rounded border mb-4">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupPricesMarketTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupPricesMarketExplanation)</MudText>
+
+        <MudSelectExtended T="SpotPriceRegion?"
+                           Value="ChargePrice.Item.SpotPriceRegion"
+                           ValueChanged="OnRegionChanged"
+                           Margin="Constants.InputMargin"
+                           Label="@T(TranslationKeys.SetupPricesMarketRegionLabel)"
+                           Variant="Variant.Outlined">
+            <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.DE_LU)" Text="@T(TranslationKeys.SpotPriceRegionDELU)" />
+            <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.AT)" Text="@T(TranslationKeys.SpotPriceRegionAT)" />
+            <MudSelectItemExtended T="SpotPriceRegion?" Value="@(SpotPriceRegion.CH)" Text="@T(TranslationKeys.SpotPriceRegionCH)" />
+        </MudSelectExtended>
+        @if (ChargePrice.Item.SpotPriceRegion == null)
+        {
+            <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupPricesMarketRegionMissing)</MudText>
+        }
+
+        <div class="mt-3">
+            <GenericInput For="() => ChargePrice.Item.SpotPriceSurcharge"
+                          OnValueChanged="@((decimal? _) => OnChanged.InvokeAsync())"></GenericInput>
+            @* The number this field starts with is an example, not the user's contract. Said plainly, because a
+               wrong markup quietly makes every charging decision wrong. *@
+            <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupPricesMarketSurchargeNote)</MudText>
+        </div>
+    </div>
+}
+
+@if (Kind != null && HasPvSystem)
+{
+    <div class="p-3 rounded border">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupPricesSolarTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupPricesSolarExplanation)</MudText>
+        <GenericInput For="() => ChargePrice.Item.SolarPrice"
+                      OnValueChanged="@((decimal? _) => OnChanged.InvokeAsync())"></GenericInput>
+    </div>
+}
+else if (Kind != null)
+{
+    @* Without panels there is nothing exported, so there is no value to put on it. *@
+    <MudText Typo="Typo.body2" Class="italic">@T(TranslationKeys.SetupPricesNoSolarNote)</MudText>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public EditableItem<DtoChargePrice> ChargePrice { get; set; } = default!;
+    [Parameter, EditorRequired] public List<FixedPrice> FixedPrices { get; set; } = new();
+    [Parameter] public bool HasPvSystem { get; set; }
+
+    /// <summary>Raised whenever an answer changed, so the page can persist it.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>
+    /// What the tariff is, asked or read back from what is already stored, so an existing installation does not
+    /// have to answer for something it already has. Shared with the server, which decides on the same reading
+    /// whether to write the periods - the two drifting apart is how an imported tariff lost its periods.
+    /// </summary>
+    private SetupElectricityPriceKind? Kind =>
+        DtoSetupState.ResolveElectricityPriceKind(Context.State.ElectricityPriceKind, ChargePrice.Item, FixedPrices);
+
+    private string GridPriceExplanationKey => Kind switch
+    {
+        SetupElectricityPriceKind.TimeOfUse => TranslationKeys.SetupPricesGridExplanationTimeOfUse,
+        SetupElectricityPriceKind.Market => TranslationKeys.SetupPricesGridExplanationMarket,
+        _ => TranslationKeys.SetupPricesGridExplanationFixed,
+    };
+
+    //Nullable because the question can still be unanswered, which is the one state where no card is selected.
+    private static readonly SetupElectricityPriceKind?[] KindOptions =
+    [
+        SetupElectricityPriceKind.Fixed,
+        SetupElectricityPriceKind.TimeOfUse,
+        SetupElectricityPriceKind.Market,
+    ];
+
+    private static string KindLabelKey(SetupElectricityPriceKind? kind) => kind switch
+    {
+        SetupElectricityPriceKind.TimeOfUse => TranslationKeys.SetupPricesKindTimeOfUse,
+        SetupElectricityPriceKind.Market => TranslationKeys.SetupPricesKindMarket,
+        _ => TranslationKeys.SetupPricesKindFixed,
+    };
+
+    private static string KindHintKey(SetupElectricityPriceKind? kind) => kind switch
+    {
+        SetupElectricityPriceKind.TimeOfUse => TranslationKeys.SetupPricesKindTimeOfUseHint,
+        SetupElectricityPriceKind.Market => TranslationKeys.SetupPricesKindMarketHint,
+        _ => TranslationKeys.SetupPricesKindFixedHint,
+    };
+
+    private async Task SelectKind(SetupElectricityPriceKind? selectedKind)
+    {
+        if (selectedKind is not { } kind)
+        {
+            return;
+        }
+
+        Context.State.ElectricityPriceKind = kind;
+        //Only the parts this choice actually decides are touched; a price already typed in is left alone.
+        ChargePrice.Item.AddSpotPriceToGridPrice = kind == SetupElectricityPriceKind.Market;
+        if (kind != SetupElectricityPriceKind.TimeOfUse)
+        {
+            FixedPrices.Clear();
+        }
+
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task OnRegionChanged(SpotPriceRegion? region)
+    {
+        ChargePrice.Item.SpotPriceRegion = region;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task AddFixedPrice()
+    {
+        FixedPrices.Add(new FixedPrice());
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task DeleteFixedPrice(FixedPrice fixedPrice)
+    {
+        FixedPrices.Remove(fixedPrice);
+        await OnChanged.InvokeAsync();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry),
+            typeof(ChargeCostDetailPageLocalizationRegistry))
+        ?? key;
+}

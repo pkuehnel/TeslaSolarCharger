@@ -17,7 +17,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace TeslaSolarCharger.Tests.Services.Server.ChargingServiceV2;
 
@@ -314,6 +314,74 @@ public class SetChargingPowerOfOccpConnectorForCarManagedLoadpointTests : TestBa
             null,
             false,
             false,
+            false
+        };
+
+        // Scenario 10: No target current at all, which is what a stop produces. The connector must be left alone:
+        // the lifted >= used to read the missing target as "the connector is below target", so TSC opened the wallbox
+        // to its maximum and started it on the very tick it told the car to stop.
+        yield return new object[]
+        {
+            "No target current, connector left alone",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 6 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = null, StopCharging = true, }
+            },
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = new DtoTimeStampedValue<bool>(currentDate, true),
+            },
+            true,
+            new OcppChargingStationConnector("test6") { Id = 6, MaxCurrent = 16, ConnectedPhasesCount = 3 },
+            currentDate,
+            null,
+            null,
+            true,
+            false,
+            false
+        };
+
+        // Scenario 11: No target values at all is the same case.
+        yield return new object[]
+        {
+            "No target values, connector left alone",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 7 }),
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = new DtoTimeStampedValue<bool>(currentDate, true),
+            },
+            true,
+            new OcppChargingStationConnector("test7") { Id = 7, MaxCurrent = 16, ConnectedPhasesCount = 3 },
+            currentDate,
+            null,
+            null,
+            true,
+            false,
+            false
+        };
+
+        // Scenario 12: A connector TSC has never set has to be opened up, so a missing last set current still counts
+        // as too low.
+        yield return new object[]
+        {
+            "Never set current is opened up",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 8 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = 10 }
+            },
+            new DtoOcppConnectorState
+            {
+                IsCharging = new DtoTimeStampedValue<bool>(currentDate, false),
+            },
+            true,
+            new OcppChargingStationConnector("test8") { Id = 8, MaxCurrent = 16, ConnectedPhasesCount = 3, AutoSwitchBetween1And3PhasesEnabled = false },
+            currentDate,
+            true, // StartCharging success
+            null,
+            true,
+            true,
             false
         };
     }

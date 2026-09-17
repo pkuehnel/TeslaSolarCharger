@@ -8,32 +8,32 @@ public class ChargingStationConnectorPropertyLocalization : PropertyLocalization
     {
         Register(x => x.ShouldBeManaged,
             new PropertyLocalizationTranslation(LanguageCodes.English,
-                "Show connector on homepage",
-                "Note: This auto reenables as soon as the charging connector is connected. To permanently disable a charging connector remove the OCPP configuration in your Wallbox."),
+                "Show connector on home page",
+                "Note: This is automatically re-enabled as soon as the charging connector is connected. To permanently disable a charging connector, remove the OCPP configuration in your charging station."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
-                "Stecker auf der Startseite anzeigen",
-                "Hinweis: Diese Option wird automatisch wieder aktiviert, sobald der Ladeanschluss verbunden ist. Um einen Anschluss dauerhaft zu deaktivieren, entfernen Sie die OCPP-Konfiguration in Ihrer Wallbox."));
+                "Ladeanschluss auf der Startseite anzeigen",
+                "Hinweis: Diese Option wird automatisch wieder aktiviert, sobald der Ladeanschluss verbunden ist. Um einen Ladeanschluss dauerhaft zu deaktivieren, entfernen Sie die OCPP-Konfiguration in Ihrer Ladestation."));
 
         Register(x => x.AutoSwitchBetween1And3PhasesEnabled,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Auto switch between 1 and 3 phases",
-                "When enabled the charger can automatically switch between a 1 and 3 phase charge. Note: Most of the chargers do not support this and some cars might get a hardware damage if enabled, so enable with care."),
+                "When enabled, the charging station can automatically switch between a 1- and 3-phase charge. Note: Most of the chargers do not support this and some cars might get a hardware damage if enabled, so enable with care."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Automatisch zwischen 1 und 3 Phasen wechseln",
-                "Wenn aktiviert, kann die Wallbox automatisch zwischen ein- und dreiphasigem Laden wechseln. Hinweis: Die meisten Ladegeräte unterstützen das nicht und manche Fahrzeuge könnten Schaden nehmen – daher nur mit Vorsicht aktivieren."));
+                "Wenn aktiviert, kann die Ladestation automatisch zwischen ein- und dreiphasigem Laden wechseln. Hinweis: Die meisten Ladestationen unterstützen das nicht und manche Fahrzeuge könnten Schaden nehmen – daher nur mit Vorsicht aktivieren."));
 
         Register(x => x.PhaseSwitchCoolDownTimeSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Phase Switch Cool Down Time Seconds",
-                "Some chargers or cars need additional time after switch off to start charging with a different number of phases. To delay a charge start after a phase switch set a value in seconds here."),
+                "Some charging stations or cars need additional time after switch off to start charging with a different number of phases. To delay a charge start after a phase switch set a value in seconds here."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Abkühlzeit für Phasenwechsel in Sekunden",
-                "Einige Ladegeräte oder Fahrzeuge benötigen nach dem Abschalten zusätzliche Zeit, um mit einer anderen Phasenanzahl zu laden. Verzögern Sie den Ladebeginn nach einem Phasenwechsel, indem Sie hier einen Wert in Sekunden eintragen."));
+                "Einige Ladestationen oder Fahrzeuge benötigen nach dem Abschalten zusätzliche Zeit, um mit einer anderen Phasenanzahl zu laden. Verzögern Sie den Ladebeginn nach einem Phasenwechsel, indem Sie hier einen Wert in Sekunden eintragen."));
 
         Register(x => x.MinCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Min Current",
-                "The minimum current that the charging point is allowed to use. Charging will never be slower than this current. Note: This value does not have any influence on when charging stops completly, you will find more details on \"Switch Off Current\". Recommended Value: 6."),
+                "The minimum current that the charging point is allowed to use. Charging will never be slower than this current. Note: This value does not have any influence on when charging stops completely, you will find more details on \"Switch Off Current\". Recommended Value: 6."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Minimaler Strom",
                 "Der minimale Strom, den der Ladepunkt nutzen darf. Das Laden wird niemals langsamer als dieser Wert. Hinweis: Dieser Wert beeinflusst nicht, wann der Ladevorgang vollständig stoppt – mehr dazu unter ‚Abschaltstrom‘. Empfohlener Wert: 6."));
@@ -57,10 +57,10 @@ public class ChargingStationConnectorPropertyLocalization : PropertyLocalization
         Register(x => x.MaxCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Max Current",
-                "The maximum current that the charging point is allowed to use. Charging will be limited to this value even if more current is available. Recommended Value: The maximum current permitted by the circuit breaker, wiring, and wallbox. If you're unsure about this value, please contact a qualified electrician."),
+                "The maximum current that the charging point is allowed to use. Charging will be limited to this value even if more current is available. Recommended Value: The maximum current permitted by the circuit breaker, wiring, and charging station. If you're unsure about this value, please contact a qualified electrician."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Maximaler Strom",
-                "Der maximale Strom, den der Ladepunkt verwenden darf. Der Ladevorgang wird auf diesen Wert begrenzt, selbst wenn mehr Strom verfügbar ist. Empfohlener Wert: Der maximal zulässige Strom von Sicherung, Verkabelung und Wallbox. Bei Unsicherheit bitte einen qualifizierten Elektriker kontaktieren."));
+                "Der maximale Strom, den der Ladepunkt verwenden darf. Der Ladevorgang wird auf diesen Wert begrenzt, selbst wenn mehr Strom verfügbar ist. Empfohlener Wert: Der maximal zulässige Strom von Sicherung, Verkabelung und Ladestation. Bei Unsicherheit bitte einen qualifizierten Elektriker kontaktieren."));
 
         Register(x => x.ConnectedPhasesCount,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -68,7 +68,7 @@ public class ChargingStationConnectorPropertyLocalization : PropertyLocalization
                 "Number of connected phases on your charging station. If you're unsure about this value, please contact a qualified electrician. Note: Do not enter the number of phases the car can handle, just the number of phases the charging connector is connected to!"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Anzahl angeschlossener Phasen",
-                "Anzahl der an Ihrer Wallbox angeschlossenen Phasen. Wenn Sie unsicher sind, fragen Sie bitte einen qualifizierten Elektriker. Hinweis: Tragen Sie nicht die Anzahl der Phasen ein, die das Fahrzeug verarbeiten kann, sondern nur die Phasen, mit denen der Ladeanschluss verbunden ist!"));
+                "Anzahl der an Ihrer Ladestation angeschlossenen Phasen. Wenn Sie unsicher sind, fragen Sie bitte einen qualifizierten Elektriker. Hinweis: Tragen Sie nicht die Anzahl der Phasen ein, die das Fahrzeug verarbeiten kann, sondern nur die Phasen, mit denen der Ladeanschluss verbunden ist!"));
 
         Register(x => x.ChargingPriority,
             new PropertyLocalizationTranslation(LanguageCodes.English,

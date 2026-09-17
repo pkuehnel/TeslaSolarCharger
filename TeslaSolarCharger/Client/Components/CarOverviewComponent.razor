@@ -1,0 +1,91 @@
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject ITextLocalizationService TextLocalizer
+@inject IConstants Constants
+
+<MudCard Class="h-100">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">@Car.Item.Name</MudText>
+            @if (IsPendingSmartCar)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Sync">@T(TranslationKeys.CarOverviewSmartCarConnecting)</MudChip>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Car.Item.Vin</MudText>
+            }
+            @if (ShowTeslaTokenWarning)
+            {
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="Color.Warning"
+                         Icon="@Icons.Material.Filled.WarningAmber"
+                         OnClick="@(() => OnReconnectTeslaRequested.InvokeAsync())">
+                    @T(TranslationKeys.CarOverviewTeslaTokenExpired)
+                </MudChip>
+            }
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Variant="Variant.Outlined" OnClick="OnEditRequested" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Outlined" OnClick="OnDeleteRequested" />
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewManaged):</b> @(Car.Item.ShouldBeManaged ? T(TranslationKeys.CarOverviewYes) : T(TranslationKeys.CarOverviewNo))</MudText>
+            @if (Car.Item.ShouldBeManaged)
+            {
+                <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewAmpere):</b> @Car.Item.MinimumAmpere A - @Car.Item.MaximumAmpere A</MudText>
+                <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewPriority):</b> @Car.Item.ChargingPriority</MudText>
+                <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewType):</b> @Car.Item.CarType</MudText>
+                @if (Car.Item.CarType == CarType.Tesla)
+                {
+                    <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewBluetooth):</b> @(Car.Item.UseBle ? T(TranslationKeys.CarOverviewEnabled) : T(TranslationKeys.CarOverviewDisabled))</MudText>
+                    <MudText Typo="Typo.body2"><b>@T(TranslationKeys.CarOverviewDetection):</b> @GetHomeDetectionViaName(Car.Item.HomeDetectionVia)</MudText>
+                }
+            }
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public EditableItem<CarBasicConfiguration> Car { get; set; } = default!;
+    [Parameter] public EventCallback OnEditRequested { get; set; }
+    [Parameter] public EventCallback OnDeleteRequested { get; set; }
+    // The global Tesla Fleet API token state (one token per Tesla account). Used to flag Tesla cars whose
+    // connection needs (re)establishing. Null while unknown.
+    [Parameter] public TokenState? FleetApiTokenState { get; set; }
+    [Parameter] public EventCallback OnReconnectTeslaRequested { get; set; }
+
+    // A SmartCar car whose VIN has not arrived yet (placeholder) is still being set up.
+    private bool IsPendingSmartCar => Car.Item.CarType == CarType.SmartCar && string.IsNullOrEmpty(Car.Item.Vin);
+
+    // Show a reconnect prompt on Tesla cars when the (global) Fleet API token is missing or no longer valid.
+    private bool ShowTeslaTokenWarning =>
+        Car.Item.CarType == CarType.Tesla
+        && FleetApiTokenState is not null and not TokenState.UpToDate;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarSettingsPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string GetHomeDetectionViaName(HomeDetectionVia homeDetectionVia)
+    {
+        return homeDetectionVia switch
+        {
+            HomeDetectionVia.GpsLocation => T(TranslationKeys.HomeDetectionViaGpsLocation),
+            HomeDetectionVia.LocatedAtHome => T(TranslationKeys.HomeDetectionViaLocatedAtHome),
+            HomeDetectionVia.LocatedAtWork => T(TranslationKeys.HomeDetectionViaLocatedAtWork),
+            HomeDetectionVia.LocatedAtFavorite => T(TranslationKeys.HomeDetectionViaLocatedAtFavorite),
+            _ => homeDetectionVia.ToString(),
+        };
+    }
+}

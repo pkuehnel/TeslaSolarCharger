@@ -27,7 +27,7 @@ public class GenericValueConfigurationComponentLocalizationRegistry : TextLocali
             new TextLocalizationTranslation(LanguageCodes.German, "Löschen"));
 
         Register(TranslationKeys.GenericValueConfigurationAddNewSource,
-            new TextLocalizationTranslation(LanguageCodes.English, "Add new {0} source"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Neue {0}-Quelle hinzufügen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Add new source"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Neue Quelle hinzufügen"));
     }
 }

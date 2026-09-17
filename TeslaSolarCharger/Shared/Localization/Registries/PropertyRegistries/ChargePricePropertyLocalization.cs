@@ -44,7 +44,7 @@ public class ChargePricePropertyLocalization : PropertyLocalizationRegistry<DtoC
                 "Enable this to add the market spot price of your region to the grid price."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Spotpreise verwenden",
-                "Aktiviere dies, um den Spotmarktpreis deiner Region zum Netzpreis hinzuzufügen."));
+                "Aktivieren Sie dies, um den Spotmarktpreis Ihrer Region zum Netzpreis hinzuzufügen."));
 
         Register(x => x.SpotPriceRegion,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -60,7 +60,7 @@ public class ChargePricePropertyLocalization : PropertyLocalizationRegistry<DtoC
                 "Percentage that is added to the raw spot price (e.g. provider fee or taxes), e.g. 19% in Germany."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Zusätzliche Kosten zum Spotpreis",
-                "Prozentsatz, der zum Spotpreis hinzugerechnet wird (z. B. Anbietergebühr oder Steuern), z.B. 19% in Deutschland."));
+                "Prozentsatz, der zum Spotpreis hinzugerechnet wird (z. B. Anbietergebühr oder Steuern), z. B. 19 % in Deutschland."));
     }
 }
 

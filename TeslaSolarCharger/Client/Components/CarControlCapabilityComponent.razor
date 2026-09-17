@@ -1,0 +1,53 @@
+@using TeslaSolarCharger.Client.Components.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+
+@* The same route descriptions the setup assistant offers as answers, here as an overview. Keeping one set of words
+   means a user who compares the two pages never reads two different stories about the same connection. *@
+<MudExpansionPanels Class="@Class">
+    <MudExpansionPanel Text="@T(TranslationKeys.CarControlCapabilityTitle)" @bind-Expanded="_expanded">
+        <MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.CarControlCapabilityIntro)</MudText>
+        @RouteGroup(T(TranslationKeys.CarControlCapabilityGroupTeslas), SetupCarConnectionRoutes.TeslaRoutes, "car-routes-tesla")
+        @RouteGroup(T(TranslationKeys.CarControlCapabilityGroupOtherCars), SetupCarConnectionRoutes.OtherCarRoutes, "car-routes-other mt-6")
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>
+    /// Whether the overview starts open. Read once, so a user who closed it is not overruled when the car list
+    /// around it reloads.
+    /// </summary>
+    [Parameter] public bool InitiallyExpanded { get; set; }
+
+    private bool _expanded;
+
+    protected override void OnInitialized()
+    {
+        _expanded = InitiallyExpanded;
+    }
+
+    private RenderFragment RouteGroup(string title, IEnumerable<SetupCarConnectionRoute> routes, string groupClass) =>
+        @<div class="@groupClass">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: bold" GutterBottom="true">@title</MudText>
+            <MudGrid>
+                @foreach (var route in routes)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Outlined="true" Class="pa-3 h-100">
+                            <SetupRouteDetails Route="route" ShowSubscriptionLink="true" />
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>;
+
+    private string T(string key) =>
+        TextLocalizer.Get<CarControlCapabilityComponentLocalizationRegistry>(key)
+        ?? key;
+}

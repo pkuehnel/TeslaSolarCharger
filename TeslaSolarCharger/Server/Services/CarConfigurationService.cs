@@ -14,7 +14,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
     IConfigurationWrapper configurationWrapper,
     ITeslaMateDbContextWrapper teslaMateDbContextWrapper) : ICarConfigurationService
 {
-    public async Task AddAllMissingCarsFromTeslaAccount()
+    public async Task<int> AddAllMissingCarsFromTeslaAccount()
     {
         logger.LogTrace("{method}()", nameof(AddAllMissingCarsFromTeslaAccount));
         var teslaMateCars = new List<Model.Entities.TeslaMate.Car>();
@@ -24,19 +24,13 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             teslaMateCars = await teslaMateContext.Cars.ToListAsync();
         }
         var teslaAccountCarsResult = await teslaFleetApiService.GetAllCarsFromAccount().ConfigureAwait(false);
-        var teslaAccountCars = teslaAccountCarsResult.Match(
-            Succ: dtosList => dtosList,
-            Fail: error =>
-            {
-                logger.LogError("Could not get new cars from Tesla account.");
-                if (error.IsExceptional)
-                {
-                    throw error.ToException();
-                }
-
-                throw new Exception(error.Message);
-            }// or any default value or throw an exception
-        );
+        //A missing car list must never be treated as an empty account, as that would mark every Tesla as unavailable below.
+        if (teslaAccountCarsResult.HasError || teslaAccountCarsResult.Data == default)
+        {
+            logger.LogError("Could not get new cars from Tesla account: {errorMessage}", teslaAccountCarsResult.ErrorMessage);
+            throw new Exception(teslaAccountCarsResult.ErrorMessage ?? "Could not get new cars from Tesla account.");
+        }
+        var teslaAccountCars = teslaAccountCarsResult.Data;
 
         var teslaSolarChargerCars = await teslaSolarChargerContext.Cars.ToListAsync();
         var highestChargingPriority = 0;
@@ -57,6 +51,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 .FirstOrDefault(c => string.Equals(c.Vin, teslaSolarChargerCar.Vin, StringComparison.CurrentCultureIgnoreCase))?.Id;
         }
         await teslaSolarChargerContext.SaveChangesAsync();
+        var addedCarsCount = 0;
         foreach (var teslaAccountCar in teslaAccountCars)
         {
             var teslaSolarChargerCar = teslaSolarChargerCars.FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase));
@@ -89,6 +84,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             };
             teslaSolarChargerContext.Cars.Add(teslaSolarChargerCar);
             await teslaSolarChargerContext.SaveChangesAsync();
+            addedCarsCount++;
         }
 
         foreach (var teslaSolarChargerCar in teslaSolarChargerCars)
@@ -98,8 +94,15 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 logger.LogInformation("Car with VIN {vin} is not available in Tesla account anymore.", teslaSolarChargerCar.Vin);
                 teslaSolarChargerCar.IsAvailableInTeslaAccount = false;
                 teslaSolarChargerCar.ShouldBeManaged = false;
+                //An unmanaged car must not stay in any charging connector's allowed cars as it can not be unselected in the UI anymore.
+                var staleAllowedCars = await teslaSolarChargerContext.ChargingStationConnectorAllowedCars
+                    .Where(ac => ac.CarId == teslaSolarChargerCar.Id)
+                    .ToListAsync();
+                teslaSolarChargerContext.ChargingStationConnectorAllowedCars.RemoveRange(staleAllowedCars);
                 await teslaSolarChargerContext.SaveChangesAsync();
             }
         }
+
+        return addedCarsCount;
     }
 }

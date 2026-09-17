@@ -23,15 +23,19 @@ public class IssueKeys : IIssueKeys
     public string UnsignedCommand => "UnsignedCommand";
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
     public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
-    public string UsingFleetApiAsBleFallback => "UsingFleetApiAsBleFallback";
     public string BleVersionCompatibility => "BleVersionCompatibility";
     public string NoBackendApiToken => "NoBackendApiToken";
     public string BackendTokenNotRefreshable => "BackendTokenNotRefreshable";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
     public string BaseAppNotLicensed => "BaseAppNotLicensed";
     public string FleetApiNotLicensed => "FleetApiNotLicensed";
+    public string FleetApiCommandRateLimited => "FleetApiCommandRateLimited";
     public string FleetTelemetryNotConnected => "FleetTelemetryNotConnected";
     public string FleetTelemetryConfigurationError => "FleetTelemetryConfigurationError";
+    public string FleetTelemetryConfigurationDeletionError => "FleetTelemetryConfigurationDeletionError";
+    public string BleDataCollectionError => "BleDataCollectionError";
+    public string BleAdapterNotFound => "BleAdapterNotFound";
+    public string BleRadioSilence => "BleRadioSilence";
     public string MultipleCarsMatchChargingConnector => "MultipleCarsMatchChargingConnector";
 }
 

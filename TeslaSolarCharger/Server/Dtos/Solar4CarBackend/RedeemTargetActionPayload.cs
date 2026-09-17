@@ -19,3 +19,15 @@ public class RedeemTargetActionPayloadTeslaAuthentication : RedeemTargetActionPa
 
     public string EncryptionKey { get; set; }
 }
+
+public class RedeemTargetActionPayloadSmartCarAuthentication : RedeemTargetActionPayload
+{
+    public RedeemTargetActionPayloadSmartCarAuthentication(string localRedirectUrl, string? vin) : base(localRedirectUrl)
+    {
+        Vin = vin;
+    }
+
+    // Null when adding a new SmartCar via the wizard (vehicle is picked in SmartCar's panel),
+    // non-null when connecting an already-added car to a specific VIN.
+    public string? Vin { get; set; }
+}

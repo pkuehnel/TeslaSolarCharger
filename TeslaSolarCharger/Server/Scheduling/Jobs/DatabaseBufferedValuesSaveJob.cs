@@ -14,10 +14,10 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
     IAppStateNotifier appStateNotifier,
     IDateTimeProvider dateTimeProvider) : IJob
 {
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}()", nameof(Execute));
-        await ExecuteWithoutContext(context.CancellationToken);
+        await ExecuteWithoutContext(cancellationToken);
     }
 
     public async Task ExecuteWithoutContext(CancellationToken cancellationToken)

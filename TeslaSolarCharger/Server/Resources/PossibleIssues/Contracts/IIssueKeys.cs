@@ -20,7 +20,6 @@ public interface IIssueKeys
     string UnsignedCommand { get; }
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }
-    string UsingFleetApiAsBleFallback { get; }
     string BleVersionCompatibility { get; }
     string NoBackendApiToken { get; }
     string FleetApiTokenExpired { get; }
@@ -28,7 +27,12 @@ public interface IIssueKeys
     string BackendTokenNotRefreshable { get; }
     string BaseAppNotLicensed { get; }
     string FleetApiNotLicensed { get; }
+    string FleetApiCommandRateLimited { get; }
     string FleetTelemetryNotConnected { get; }
     string FleetTelemetryConfigurationError { get; }
+    string FleetTelemetryConfigurationDeletionError { get; }
+    string BleDataCollectionError { get; }
+    string BleAdapterNotFound { get; }
+    string BleRadioSilence { get; }
     string MultipleCarsMatchChargingConnector { get; }
 }

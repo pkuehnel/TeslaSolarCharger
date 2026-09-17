@@ -18,60 +18,78 @@
 
 <PageTitle>@T(TranslationKeys.HomePageTitle)</PageTitle>
 
-<MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
 
-<BackendInformationDisplayComponent></BackendInformationDisplayComponent>
-<SignalRConnectionStateComponent />
-<LoggedErrorsComponent></LoggedErrorsComponent>
+    <MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
 
-<PowerFlowComponent></PowerFlowComponent>
-<PowerBufferComponent></PowerBufferComponent>
-@if (_showEnergyData != false)
-{
-    <EnergyPredictionComponent></EnergyPredictionComponent>
-}
+    <BackendInformationDisplayComponent></BackendInformationDisplayComponent>
+    <SignalRConnectionStateComponent />
+    <LoggedErrorsComponent></LoggedErrorsComponent>
 
-@if (_loadPoints == default)
-{
-    <PlaceholderComponent Count="1" Height="200px"></PlaceholderComponent>
-}
-else
-{
-    foreach (var loadPoint in _loadPoints)
+    <PowerFlowComponent></PowerFlowComponent>
+    <PowerBufferComponent></PowerBufferComponent>
+    @if (_showEnergyData != false)
     {
-        <LoadpointComponent LoadPoint="@loadPoint"></LoadpointComponent>
+        <EnergyPredictionComponent></EnergyPredictionComponent>
     }
 
-    if (_loadPoints.Count < 1)
+    @if (_loadPoints == default)
     {
-        <MudAlert Severity="Severity.Info" Class="mb-3">
-            <MudText Typo="Typo.body2">
-                @T(TranslationKeys.HomePageNoCarsOrStationsHintStart)
-                @(" ")
-                <MudLink Href="CarSettings">@T(TranslationKeys.CarSettingsTitle)</MudLink>
-                @(" ")
-                @T(TranslationKeys.HomePageNoCarsOrStationsHintMiddle)
-                @(" ")
-                <MudLink Href="ChargingStations">@T(TranslationKeys.ChargingStationsTitle)</MudLink>
-                @(" ")
-                @T(TranslationKeys.HomePageNoCarsOrStationsHintEnd)
-            </MudText>
-        </MudAlert>
+        <PlaceholderComponent Count="1" Height="200px"></PlaceholderComponent>
     }
-}
+    else
+    {
+        foreach (var loadPoint in _loadPoints)
+        {
+            <LoadpointComponent LoadPoint="@loadPoint"></LoadpointComponent>
+        }
 
+        if (_loadPoints.Count < 1)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                <MudText Typo="Typo.body2">
+                    @T(TranslationKeys.HomePageNoCarsOrStationsHintStart)
+                    @(" ")
+                    <MudLink Href="CarSettings">@T(TranslationKeys.CarsTitle)</MudLink>
+                    @(" ")
+                    @T(TranslationKeys.HomePageNoCarsOrStationsHintMiddle)
+                    @(" ")
+                    <MudLink Href="ChargingStations">@T(TranslationKeys.ChargingStationsTitle)</MudLink>
+                    @(" ")
+                    @T(TranslationKeys.HomePageNoCarsOrStationsHintEnd)
+                </MudText>
+            </MudAlert>
+        }
+    }
 
-<div style="text-align:center">
-    @T(TranslationKeys.HomePageReferralLinkText) <a href="https://ts.la/patrick63887" target="_blank">https://ts.la/patrick63887</a>
-</div>
+    @* ---------- Support the project ---------- *@
+    <MudCard Elevation="2" Class="s4c-hover-card my-6">
+        <MudCardContent>
+            <div class="d-flex align-center flex-column flex-sm-row gap-4 text-center text-sm-start">
+                <div class="feature-badge flex-none">
+                    <MudIcon Icon="@Icons.Material.Filled.Favorite" />
+                </div>
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @T(TranslationKeys.HomePageReferralLinkText)
+                    </MudText>
+                    <div class="d-flex flex-wrap gap-3 align-center justify-center justify-sm-start">
+                        <MudButton Href="https://ts.la/patrick63887" Target="_blank" Class="cta-button"
+                                   StartIcon="@Icons.Material.Filled.DirectionsCar" DropShadow="false">
+                            ts.la/patrick63887
+                        </MudButton>
+                        <form action="https://www.paypal.com/donate" method="post" target="_blank" class="ma-0">
+                            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
+                            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T(TranslationKeys.HomePagePaypalTitle)' alt='@T(TranslationKeys.HomePagePaypalAltText)' />
+                            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
 
-<form action="https://www.paypal.com/donate" method="post" target="_blank">
-    <div style="text-align:center">
-        <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
-        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title='@T(TranslationKeys.HomePagePaypalTitle)' alt='@T(TranslationKeys.HomePaypalAltText)' />
-        <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
-    </div>
-</form>
+</MudContainer>
 
 @code {
     private bool? _showEnergyData;
@@ -110,7 +128,7 @@ else
     }
 
     private string T(string key) =>
-        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        TextLocalizer.Get<HomePageLocalizationRegistry>(key, typeof(CarSettingsPageLocalizationRegistry), typeof(ChargingStationsPageLocalizationRegistry), typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
     public void Dispose()

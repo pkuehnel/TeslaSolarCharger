@@ -8,4 +8,5 @@ public enum CarValueSource
     TeslaMate,
     Manual,
     LinkedCharger,
+    Ble,
 }

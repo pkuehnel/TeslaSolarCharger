@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 

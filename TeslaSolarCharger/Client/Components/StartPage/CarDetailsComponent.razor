@@ -16,7 +16,6 @@
 @inject ISnackbar Snackbar
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<CarDetailsComponent> Logger
-@inject IJavaScriptWrapper JavaScriptWrapper
 @inject ITextLocalizationService TextLocalizer
 
 @if (CarSettings == default || CarState == default)
@@ -28,17 +27,28 @@ else
     <div>
         <CustomIcon IconName="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@CarSettings.Name</span>
-        @if (CarState.IsOnline != default)
-        {
-            <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText='@T(TranslationKeys.CarDetailsConnectedToServer)'></CustomIcon>
-        }
+        @* The online state is intentionally not displayed here anymore: for BLE data collection cars offline only
+           means out of BLE range, which would be confusing. The online state is still visible on the Support page. *@
         @if (CarSettings.CarType != CarType.Manual)
         {
             <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText='@T(TranslationKeys.CarDetailsAtHome)'></CustomIcon>
         }
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText='@T(TranslationKeys.CarDetailsPluggedIn)'></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText='@T(TranslationKeys.CarDetailsCharging)'></CustomIcon>
+        @if (CarState.BleSleepPhase != default)
+        {
+            <CustomIcon IconName="@Icons.Material.Outlined.Bedtime" IsCrossedOut="@(CarState.BleSleepPhase != BleSleepPhase.Asleep)" TooltipText='@T(TranslationKeys.CarDetailsSleepAsleep)'></CustomIcon>
+        }
     </div>
+    @if (CarId != default && CarState.BleSleepPhase != default && CarState.BleSleepPhase != BleSleepPhase.Asleep)
+    {
+        <div class="my-1">
+            <BleSleepStatusComponent CarId="CarId.Value"
+                                     Phase="CarState.BleSleepPhase.Value"
+                                     CountdownSeconds="CarState.BleSleepCountdownSeconds"
+                                     CarClosedAndEmpty="CarState.BleSleepCarClosedAndEmpty" />
+        </div>
+    }
     @if (CarSettings.CarType == CarType.Tesla)
     {
         <FleetApiTestComponent CarId="CarId" />
@@ -58,18 +68,19 @@ else
                                     BufferLabelSuffix="@T(TranslationKeys.UnitPercent)">
         </ProgressWithLabelComponent>
     }
-    @if (CarSettings.CarType == CarType.Manual)
+    @if (CarSettings.CarType != CarType.Tesla)
     {
         if (CarState.Soc == default)
         {
             <MudAlert Severity="Severity.Warning" Class="my-3">
-                @T(TranslationKeys.CarDetailsManualSocWarning)
+                @T(CarSettings.CarType == CarType.Manual ? TranslationKeys.CarDetailsManualSocWarning : TranslationKeys.CarDetailsNoSocOnNotManualCarWarning)
             </MudAlert>
         }
         <GenericInput T="int?"
                       For="() => ManualSocToSet"
                       LabelName='@T(TranslationKeys.CarDetailsStateOfChargeLabel)'
                       PostfixText="@T(TranslationKeys.UnitPercent)"
+                      HelperText='@T(TranslationKeys.CarDetailsManualSocHelperText)'
                       OnValueChanged="SetManualSoc" />
     }
     <div>
@@ -80,11 +91,7 @@ else
                               LabelName='@T(TranslationKeys.CarDetailsChargeModeLabel)'
                               OnValueChanged="ChargeModeUpdated" />
             </div>
-            <div class="me-2 flex-grow-0">
-                <MudIconButton Icon="@Icons.Material.Outlined.Info"
-                               Color="Color.Primary"
-                               OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
-            </div>
+            <InfoButtonComponent Title="@T(TranslationKeys.GeneralExplanation)" Text="@T(TranslationKeys.CarDetailsChargeModeExplanation)" />
         </div>
 
         @if (CarSettings.ChargeMode == ChargeModeV2.Auto)

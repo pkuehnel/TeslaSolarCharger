@@ -1,0 +1,98 @@
+@using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+@inject IDialogService DialogService
+@inject ITemplateValueConfigurationService TemplateValueConfigurationService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupSourcePickerTitle)</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupSourcePickerIntro)</MudText>
+
+@if (Configurations.Count > 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-3" Style="font-weight: bold">@T(TranslationKeys.SetupSourcePickerConnectedTitle)</MudText>
+    @foreach (var configuration in Configurations)
+    {
+        <div class="d-flex align-center flex-wrap py-1" style="gap: 8px;">
+            <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Class="flex-grow-1">@configuration.Heading</MudText>
+            <MudButton Size="Size.Small" Variant="Variant.Text"
+                       OnClick="@(() => OpenConfiguration(configuration.Id, configuration.Heading))">
+                @T(TranslationKeys.SetupSourcePickerEditButton)
+            </MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                       OnClick="@(() => DeleteConfiguration(configuration.Id))">
+                @T(TranslationKeys.SetupSourcePickerRemoveButton)
+            </MudButton>
+        </div>
+    }
+}
+
+@* Asked by brand and device, not by the protocol it happens to speak. Which of Modbus, REST or MQTT is involved is
+   the app's problem once the device is known. A button rather than a search field, because a search field kept
+   showing the last search after the device was added. *@
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="mt-2"
+           OnClick="@(() => OpenConfiguration(null, T(TranslationKeys.SetupSourcePickerAddButton)))">
+    @T(TranslationKeys.SetupSourcePickerAddButton)
+</MudButton>
+
+<MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupSourcePickerNotListedHint)</MudText>
+
+@code {
+    [Parameter, EditorRequired] public List<DtoValueConfigurationOverview> Configurations { get; set; } = new();
+
+    /// <summary>Raised after anything was added, changed or removed, so the readings can be re-read.</summary>
+    [Parameter] public EventCallback OnConfigurationsChanged { get; set; }
+
+    /// <summary>
+    /// Opens the same editor the detailed configuration page uses. Reused rather than rebuilt: these forms carry
+    /// each device's own quirks, and a second set would drift away from them.
+    /// </summary>
+    private async Task OpenConfiguration(int? id, string title)
+    {
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            BackdropClick = true,
+        };
+        //What a device is called is only a label for the list above, so it is never asked for here. Which device it
+        //is is asked when adding one; once it is added, only how to reach it is left to change.
+        var parameters = new DialogParameters<TemplateValueConfigurationDialog>
+        {
+            { x => x.ValueConfigurationId, id },
+            { x => x.ShowName, false },
+            { x => x.ShowTypeSelection, id == null },
+        };
+        var dialog = await DialogService.ShowAsync<TemplateValueConfigurationDialog>(title, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add(T(TranslationKeys.SetupSourcePickerSaved), Severity.Success);
+        }
+
+        await OnConfigurationsChanged.InvokeAsync();
+    }
+
+    private async Task DeleteConfiguration(int id)
+    {
+        var result = await TemplateValueConfigurationService.DeleteAsync(id);
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? T(TranslationKeys.SetupSourcePickerRemoveError), Severity.Error);
+            return;
+        }
+
+        await OnConfigurationsChanged.InvokeAsync();
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

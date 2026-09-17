@@ -1,0 +1,29 @@
+@typeparam T
+
+@* One of several answers, each on a card with a radio button. The buttons have to share a group: a radio button on
+   its own is never drawn as selected, so the answer showed only in the form below it. *@
+<MudRadioGroup T="T" Value="Value" ValueChanged="ValueChanged" Class="@Class"
+               InputClass="d-flex flex-column align-stretch setup-choice-cards">
+    @foreach (var option in Options)
+    {
+        @* The radio button keeps its own click to itself, so the card only hears clicks beside it. *@
+        <MudPaper Outlined="true" Class="pa-3" Style="cursor: pointer;" @onclick="@(() => ValueChanged.InvokeAsync(option))">
+            <div class="d-flex align-start" style="gap: 12px;">
+                <MudRadio T="T" Value="option" Color="Color.Primary" Dense="true" />
+                <div class="flex-grow-1">
+                    @ItemTemplate(option)
+                </div>
+            </div>
+        </MudPaper>
+    }
+</MudRadioGroup>
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<T> Options { get; set; } = [];
+
+    /// <summary>The answer given so far. A value that is none of the options leaves every card unselected.</summary>
+    [Parameter] public T Value { get; set; } = default!;
+    [Parameter] public EventCallback<T> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public RenderFragment<T> ItemTemplate { get; set; } = default!;
+    [Parameter] public string? Class { get; set; }
+}

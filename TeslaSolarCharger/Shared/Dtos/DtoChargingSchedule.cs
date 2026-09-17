@@ -21,6 +21,12 @@ public class DtoChargingSchedule : ValidFromToBase
     public int? OcppChargingConnectorId { get; set; }
     public int TargetMinPower { get; set; }
     public int? TargetHomeBatteryPower { get; set; }
+    /// <summary>
+    /// Part of <see cref="TargetHomeBatteryPower"/> that is expected to reach the car. The rest of the home battery
+    /// discharge power is consumed by the house, so energy planning must not credit it to the car. Falls back to
+    /// <see cref="TargetHomeBatteryPower"/> when not set.
+    /// </summary>
+    public int? EstimatedHomeBatteryPowerForCar { get; set; }
     public int EstimatedSolarPower { get; set; }
     //Needs to be public for ValidFromToSplitter which clones properties
     // ReSharper disable once MemberCanBePrivate.Global
@@ -34,8 +40,9 @@ public class DtoChargingSchedule : ValidFromToBase
     {
         get
         {
+            var homeBatteryPowerForCar = EstimatedHomeBatteryPowerForCar ?? TargetHomeBatteryPower ?? 0;
             //next line only required because MathMax does not accept more than 2 parameters
-            var estimatedNotRequiredPower = Math.Max(EstimatedSolarPower, TargetHomeBatteryPower ?? 0);
+            var estimatedNotRequiredPower = Math.Max(EstimatedSolarPower, homeBatteryPowerForCar);
             var estimatedPower = Math.Max(TargetMinPower, estimatedNotRequiredPower);
             return Math.Min(MaxPossiblePower, estimatedPower);
         }

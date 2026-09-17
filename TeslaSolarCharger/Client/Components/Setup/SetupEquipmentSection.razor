@@ -1,0 +1,360 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Contracts
+
+@implements IDisposable
+
+@inject ITextLocalizationService TextLocalizer
+@inject ICarSettingsService CarSettingsService
+@inject IChargingStationsService ChargingStationsService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject ISetupService SetupService
+@inject NavigationManager NavigationManager
+@inject IDateTimeProvider DateTimeProvider
+@inject IConstants Constants
+@inject ISnackbar Snackbar
+
+
+    <MudText Typo="Typo.h5" GutterBottom="true">@T(TranslationKeys.SetupEquipmentTitle)</MudText>
+    <MudText GutterBottom="true">@T(TranslationKeys.SetupEquipmentDescription)</MudText>
+
+    <MudText Typo="Typo.h6" Class="mt-6" GutterBottom="true">@T(TranslationKeys.SetupEquipmentCarsHeading)</MudText>
+
+    @if (Context.State.CarDrafts.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="italic mb-3">@T(TranslationKeys.SetupEquipmentNoCars)</MudText>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var draft in Context.State.CarDrafts)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-3 h-100">
+                        <div class="d-flex align-center justify-space-between">
+                            <MudText Typo="Typo.subtitle1">@DisplayName(draft)</MudText>
+                            @StatusChip(draft)
+                        </div>
+                        <MudText Typo="Typo.body2" Class="mt-1">@T(SetupCarConnectionRoutes.NameKey(draft.ConnectionRoute))</MudText>
+                        @foreach (var blocker in Context.BlockersFor(draft.DraftId))
+                        {
+                            <MudText Typo="Typo.caption" Class="d-block">@T(blocker.MessageKey)</MudText>
+                        }
+                        <div class="mt-3 d-flex flex-wrap" style="gap: 8px;">
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="@(() => ContinueCar(draft))">
+                                @T(Context.IsConfigured(draft.DraftId) ? TranslationKeys.SetupEquipmentReviewCarButton : TranslationKeys.SetupEquipmentContinueCarButton)
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                       OnClick="@(() => RemoveDraft(draft))">
+                                @T(TranslationKeys.SetupEquipmentRemoveCarButton)
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    <div class="mt-3 d-flex flex-wrap" style="gap: 8px;">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="AddCar">
+            @T(TranslationKeys.SetupEquipmentAddCarButton)
+        </MudButton>
+        @if (_fleetApiTokenState == TokenState.UpToDate)
+        {
+            @* Importing brings the account's cars in switched off. Nothing has to be deleted afterwards: a car that
+               is not set up simply stays inactive. *@
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudDownload"
+                       OnClick="ImportTeslas" Disabled="_isImporting">
+                @T(TranslationKeys.SetupEquipmentImportTeslasButton)
+            </MudButton>
+        }
+        else if (_fleetApiTokenState is not null and not TokenState.MissingPrecondition)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
+                       OnClick="ConnectTeslaAccount">
+                @T(TranslationKeys.SetupEquipmentConnectTeslaButton)
+            </MudButton>
+        }
+    </div>
+    @if (_isImporting)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupEquipmentImportingTeslas)</MudText>
+    }
+
+    <MudDivider Class="my-6" />
+
+    <MudText Typo="Typo.h6" GutterBottom="true">@T(TranslationKeys.SetupEquipmentChargersHeading)</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupEquipmentChargersDescription)</MudText>
+
+    @if (Context.State.ChargerDrafts.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="italic mb-3">@T(TranslationKeys.SetupEquipmentNoChargers)</MudText>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var draft in Context.State.ChargerDrafts)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-3 h-100">
+                        <div class="d-flex align-center justify-space-between">
+                            <MudText Typo="Typo.subtitle1">@ChargerDisplayName(draft)</MudText>
+                            @ChargerStatusChip(draft)
+                        </div>
+                        <div class="mt-3 d-flex flex-wrap" style="gap: 8px;">
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="@(() => ContinueCharger(draft))">
+                                @T(TranslationKeys.SetupEquipmentContinueChargerButton)
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                       OnClick="@(() => RemoveChargerDraft(draft))">
+                                @T(TranslationKeys.SetupEquipmentRemoveChargerButton)
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    <div class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="AddCharger">
+            @T(TranslationKeys.SetupEquipmentAddChargerButton)
+        </MudButton>
+    </div>
+
+    @if (Context.State.CarDrafts.Count == 0 && Context.State.ChargerDrafts.Count == 0)
+    {
+        @* A charger only installation and "I have nothing yet" are both supported outcomes, so neither is a dead
+           end here. *@
+        <MudText Typo="Typo.body2" Class="mt-4 italic">@T(TranslationKeys.SetupEquipmentAddLaterHint)</MudText>
+    }
+
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+
+    private TokenState? _fleetApiTokenState;
+    private bool _isImporting;
+    private List<DtoChargingStation>? _connectedStations;
+    private CancellationTokenSource? _stationPollCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+        await RefreshStations();
+        _stationPollCts = new CancellationTokenSource();
+        _ = PollStations(_stationPollCts.Token);
+    }
+
+    /// <summary>
+    /// A charging station appears by connecting itself, so the list has to keep looking while the user is on this
+    /// screen. Only here: on every other screen the poll would be wasted requests.
+    /// </summary>
+    private async Task PollStations(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(3000, cancellationToken);
+                await RefreshStations();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch
+            {
+                /* Ignore errors in the background loop; the next tick tries again. */
+            }
+        }
+    }
+
+    private async Task RefreshStations()
+    {
+        _connectedStations = await ChargingStationsService.GetChargingStations();
+        await BindChargerDraftsToConnectedStations();
+    }
+
+    /// <summary>
+    /// Ties a charger draft to the station that just reported in under the chargepoint id the user was given, so
+    /// the draft stops being a plan and starts being a device.
+    /// </summary>
+    private async Task BindChargerDraftsToConnectedStations()
+    {
+        if (_connectedStations == null)
+        {
+            return;
+        }
+
+        var changed = false;
+        foreach (var draft in Context.State.ChargerDrafts.Where(d => d.ChargingStationId == null && !string.IsNullOrWhiteSpace(d.ChargepointId)))
+        {
+            var station = _connectedStations.FirstOrDefault(s =>
+                string.Equals(s.ChargepointId, draft.ChargepointId, StringComparison.OrdinalIgnoreCase));
+            if (station == null)
+            {
+                continue;
+            }
+
+            draft.ChargingStationId = station.Id;
+            var connectors = await ChargingStationsService.GetChargingStationConnectors(station.Id);
+            //One connector is the normal case and needs no question; several are picked on the charger's own screen.
+            draft.ConnectorId = connectors is { Count: 1 } ? connectors[0].Id : draft.ConnectorId;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await Context.Save();
+            await Context.RefreshDecision();
+        }
+    }
+
+    private async Task AddCar()
+    {
+        var draft = new DtoSetupCarDraft();
+        Context.State.CarDrafts.Add(draft);
+        await Context.Save();
+        await Context.Navigate(SetupSections.Car, draft.DraftId, SetupCarStage.Identify.ToString());
+    }
+
+    private async Task AddCharger()
+    {
+        var draft = new DtoSetupChargerDraft();
+        Context.State.ChargerDrafts.Add(draft);
+        await Context.Save();
+        await Context.Navigate(SetupSections.Charger, draft.DraftId, SetupChargerStage.Connect.ToString());
+    }
+
+    private Task ContinueCar(DtoSetupCarDraft draft) =>
+        Context.Navigate(SetupSections.Car, draft.DraftId, draft.Stage.ToString());
+
+    private Task ContinueCharger(DtoSetupChargerDraft draft) =>
+        Context.Navigate(SetupSections.Charger, draft.DraftId, draft.Stage.ToString());
+
+    /// <summary>
+    /// Takes a car out of this setup. The car itself is left alone: it is neither switched on nor off, and deleting
+    /// someone's car with its whole charging history is not something a wizard should do behind a small button.
+    /// A car that already has a row is remembered, so reading the car list again does not bring it back.
+    /// </summary>
+    private async Task RemoveDraft(DtoSetupCarDraft draft)
+    {
+        Context.State.CarDrafts.Remove(draft);
+        if (draft.CarId != null && !Context.State.RemovedCarIds.Contains(draft.CarId.Value))
+        {
+            Context.State.RemovedCarIds.Add(draft.CarId.Value);
+        }
+
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
+
+    private async Task RemoveChargerDraft(DtoSetupChargerDraft draft)
+    {
+        Context.State.ChargerDrafts.Remove(draft);
+        await Context.Save();
+        await Context.RefreshDecision();
+    }
+
+    private async Task ImportTeslas()
+    {
+        _isImporting = true;
+        StateHasChanged();
+        var addedCars = await CarSettingsService.RefreshTeslaCarsFromAccount();
+        if (addedCars != null)
+        {
+            Snackbar.Add(CarSettingsService.GetAddedTeslasMessage(addedCars.Value), Severity.Success);
+            // The import writes cars straight to the database, so pull them into this setup as drafts.
+            var synced = await SetupService.SyncCarDrafts(Context.State);
+            if (synced != null)
+            {
+                Context.State.CarDrafts.Clear();
+                Context.State.CarDrafts.AddRange(synced.CarDrafts);
+            }
+            await Context.RefreshDecision();
+        }
+        _isImporting = false;
+    }
+
+    private async Task ConnectTeslaAccount()
+    {
+        var backendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
+        if (backendTokenState != TokenState.UpToDate)
+        {
+            Snackbar.Add(T(TranslationKeys.SetupIssueCloudConnectionMissing), Severity.Error);
+            return;
+        }
+
+        // Come back to this very screen, marked so the return imports the account's cars straight away.
+        var returnUrl = $"{NavigationManager.BaseUri}setup/{SetupSections.Equipment}?{Constants.QueryParamTeslaConnected}=true";
+        var url = await CloudConnectionCheckService.GetRedeemUrlIncludingCookieAuthCode(returnUrl);
+        if (string.IsNullOrEmpty(url))
+        {
+            Snackbar.Add(T(TranslationKeys.SetupEquipmentTeslaConnectUrlError), Severity.Error);
+            return;
+        }
+
+        // Note what the user is leaving for, so the assistant can say what is outstanding if they come back some
+        // other way than by following the return address.
+        Context.State.PendingOperation = new DtoSetupPendingOperation
+        {
+            StepKey = SetupStepKey.CarsAndCharging,
+            OperationName = "TeslaOAuth",
+            StartedAt = DateTimeProvider.DateTimeOffSetNow(),
+        };
+        await Context.Save();
+
+        NavigationManager.NavigateTo(url);
+    }
+
+    private string DisplayName(DtoSetupCarDraft draft) => draft.GetDisplayName() ?? T(TranslationKeys.SetupEquipmentUnnamedCar);
+
+    private string ChargerDisplayName(DtoSetupChargerDraft draft) =>
+        !string.IsNullOrWhiteSpace(draft.DisplayName) ? draft.DisplayName
+        : !string.IsNullOrWhiteSpace(draft.ChargepointId) ? draft.ChargepointId
+        : T(TranslationKeys.SetupEquipmentUnnamedCharger);
+
+    private RenderFragment StatusChip(DtoSetupCarDraft draft)
+    {
+        var status = Context.StatusFor(draft.DraftId);
+        var (labelKey, color) = status?.ActivationStatus switch
+        {
+            SetupActivationStatus.Active => (TranslationKeys.SetupStatusActive, Color.Success),
+            SetupActivationStatus.ReadyForActivation => (TranslationKeys.SetupStatusReady, Color.Info),
+            //Every car in setup is switched on when it finishes, so anything else still needs something from the user.
+            _ => (TranslationKeys.SetupStatusNeedsAttention, Color.Warning),
+        };
+        return @<MudChip T="string" Size="Size.Small" Color="@color" Variant="Variant.Text">@T(labelKey)</MudChip>;
+    }
+
+    private RenderFragment ChargerStatusChip(DtoSetupChargerDraft draft)
+    {
+        var isConnected = draft.ChargingStationId != null;
+        return @<MudChip T="string" Size="Size.Small" Color="@(isConnected ? Color.Success : Color.Warning)" Variant="Variant.Text">
+                   @T(isConnected ? TranslationKeys.SetupStatusChargerConnected : TranslationKeys.SetupStatusChargerWaiting)
+               </MudChip>;
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    public void Dispose()
+    {
+        _stationPollCts?.Cancel();
+        _stationPollCts?.Dispose();
+    }
+}

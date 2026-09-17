@@ -1,11 +1,12 @@
-﻿using LanguageExt;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -29,6 +30,7 @@ public class CoreService : ICoreService
     private readonly ITelegramService _telegramService;
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
+    private readonly IHomeBatteryModeService _homeBatteryModeService;
 
     public CoreService(ILogger<CoreService> logger, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
@@ -36,7 +38,8 @@ public class CoreService : ICoreService
         IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
         IConstants constants, ITelegramService telegramService,
         ILoadPointManagementService loadPointManagementService,
-        IPowerToControlCalculationService powerToControlCalculationService)
+        IPowerToControlCalculationService powerToControlCalculationService,
+        IHomeBatteryModeService homeBatteryModeService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -52,6 +55,7 @@ public class CoreService : ICoreService
         _telegramService = telegramService;
         _loadPointManagementService = loadPointManagementService;
         _powerToControlCalculationService = powerToControlCalculationService;
+        _homeBatteryModeService = homeBatteryModeService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -187,6 +191,7 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(KillAllServices));
         await StopJobs().ConfigureAwait(false);
+        await _homeBatteryModeService.RestoreNormalModeAsync().ConfigureAwait(false);
         await DisconnectMqttServices().ConfigureAwait(false);
         await _configJsonService.CacheCarStates().ConfigureAwait(false);
     }
@@ -237,14 +242,14 @@ public class CoreService : ICoreService
         return _settings.IsStartupCompleted;
     }
 
-    public async Task<Fin<DtoValue<string>>> SendTestTelegramMessage()
+    public async Task<Result<DtoValue<string>>> SendTestTelegramMessage()
     {
         _logger.LogTrace("{method}()", nameof(SendTestTelegramMessage));
         var statusCode = await _telegramService.SendMessage("TeslaSolarCharger test message");
         if (((int)statusCode >= 200) && ((int)statusCode <= 299))
         {
-            return Fin<DtoValue<string>>.Succ(new("Sending message succeeded"));
+            return new(new DtoValue<string>("Sending message succeeded"), null, null);
         }
-        return Fin<DtoValue<string>>.Fail($"Sending error message failed with status code {statusCode}");
+        return new(default, $"Sending error message failed with status code {statusCode}", null);
     }
 }

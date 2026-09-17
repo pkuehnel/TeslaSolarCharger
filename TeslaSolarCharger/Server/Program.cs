@@ -27,6 +27,8 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 
@@ -59,6 +61,10 @@ builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>(
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
+//Registered one by one rather than by scanning the shared assembly: that assembly also holds the base class of the
+//server's own car validator, and registering it would let the weaker base rules win over the server's.
+builder.Services.AddScoped<IValidator<DtoBaseConfiguration>, BaseConfigurationValidator>();
+builder.Services.AddScoped<IValidator<DtoChargePrice>, DtoChargePriceValidator>();
 
 var maxFileSize = (long)1024 * 1024 * 1024 * 50; // 50GB
 builder.Services.Configure<KestrelServerOptions>(options =>
@@ -112,7 +118,6 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 
-//Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
 _ = DoStartupStuff(app, logger, configurationWrapper);
@@ -193,6 +198,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
         }
         //Do nothing before these lines as database is restored or created here.
+        var stratupScopedConfigurationWrapper = startupScope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
+        var configFileDirectory = stratupScopedConfigurationWrapper.ConfigFileDirectory();
+        if (!Directory.Exists(configFileDirectory))
+        {
+            Directory.CreateDirectory(configFileDirectory);
+        }
         var baseConfigurationService = startupScope.ServiceProvider.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
         var teslaSolarChargerContext = startupScope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
@@ -355,24 +366,18 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         await backendApiService.RefreshBackendTokenIfNeeded().ConfigureAwait(false);
         var fleetApiService = startupScope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
-        await fleetApiService.RefreshFleetApiTokenIfNeeded().ConfigureAwait(false);
+        await fleetApiService.RefreshFleetApiTokenIfRequired().ConfigureAwait(false);
 
-        var carConfigurationService = startupScope.ServiceProvider.GetRequiredService<ICarConfigurationService>();
         if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
-            try
-            {
-                await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore this error as this could result in never taking the first token
-            }
+            // Cars are no longer auto-discovered from the Tesla account on startup. Users add cars
+            // explicitly via the "Add" wizard on the Car Settings page (which calls
+            // ICarConfigurationService.AddAllMissingCarsFromTeslaAccount for the Tesla path).
         }
 
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
-        await configJsonService.AddCarsToSettings().ConfigureAwait(false);
+        await configJsonService.AddCarsToSettings(null).ConfigureAwait(false);
 
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();
@@ -395,11 +400,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
-        var decimalValueHandlingServices = startupScope.ServiceProvider.GetServices<IDecimalValueHandlingService>();
-        foreach (var decimalValueHandlingService in decimalValueHandlingServices)
-        {
-            await decimalValueHandlingService.RecreateValues(null).ConfigureAwait(false);
-        }
+        var genericValueService = startupScope.ServiceProvider.GetRequiredService<IGenericValueService>();
+        await genericValueService.RecreateValues(null).ConfigureAwait(false);
 
         var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)

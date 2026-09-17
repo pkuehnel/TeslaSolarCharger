@@ -4,8 +4,6 @@ using MQTTnet.Adapter;
 using MQTTnet.Diagnostics.Logger;
 using MQTTnet.Implementations;
 using Quartz;
-using Quartz.Impl;
-using Quartz.Spi;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
@@ -23,8 +21,12 @@ using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl;
+using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt;
@@ -33,8 +35,13 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericModbus;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.GenericRest;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.SunSpec;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.SunSpec.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Infrastructure.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Fronius;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Kostal;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Sma;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Template.ValueSetupServices.Solax;
@@ -70,8 +77,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
-            .AddTransient<BackendTokenRefreshJob>()
-            .AddTransient<FleetApiTokenRefreshJob>()
+            .AddTransient<TokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<BackendNotificationRefreshJob>()
@@ -84,11 +90,11 @@ public static class ServiceCollectionExtensions
             .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
+            .AddTransient<HomeBatteryModeJob>()
             .AddTransient<RefreshableValuesRefreshJob>()
             .AddTransient<ManualCarsDataClearingJob>()
-            .AddTransient<JobFactory>()
-            .AddTransient<IJobFactory, JobFactory>()
-            .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
+            .AddTransient<BleDataRefreshJob>()
+            .AddJobScheduler()
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
             .AddTransient<ITelegramService, TelegramService>()
@@ -127,13 +133,23 @@ public static class ServiceCollectionExtensions
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
+            .AddTransient<IFleetApiRateLimitService, FleetApiRateLimitService>()
             .AddTransient<ITokenHelper, TokenHelper>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
+            .AddTransient<ISetupStateService, SetupStateService>()
+            .AddTransient<ISetupStateMigrator, SetupStateMigrator>()
+            .AddTransient<ISetupCapabilityProbe, SetupCapabilityProbe>()
+            .AddTransient<ISetupDecisionService, SetupDecisionService>()
+            .AddTransient<ISetupApplicationService, SetupApplicationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()
             .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddTransient<IBleService, TeslaBleService>()
+            .AddTransient<IBleVehicleDataService, BleVehicleDataService>()
+            .AddSingleton<IBleReadCoordinator, BleReadCoordinator>()
+            .AddSingleton<IBleSleepWindowService, BleSleepWindowService>()
+            .AddSingleton<IBlePresenceStateService, BlePresenceStateService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()
@@ -169,6 +185,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IChargerValueLogService, ChargerValueLogService>()
             .AddTransient<ICarValueEstimationService, CarValueEstimationService>()
             .AddTransient<IMqttClientSetupService, MqttClientSetupService>()
+            .AddTransient<ISmartCarApiService, SmartCarApiService>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
@@ -193,6 +210,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<IGenericValueService, GenericValueService>()
             .AddSingleton<RefreshableValueHandlingService>()
             .AddSingleton<AutoRefreshingValueHandlingService>()
+            .AddSingleton<FakeSolarValueHandlingService>()
+            .AddSingleton<IFakeSolarValueHandlingService>(sp => sp.GetRequiredService<FakeSolarValueHandlingService>())
 
             .AddTransient<ITemplateValueConfigurationService, TemplateValueConfigurationService>()
             .AddTransient<ITemplateValueConfigurationFactory, TemplateValueConfigurationFactory>()
@@ -205,12 +224,30 @@ public static class ServiceCollectionExtensions
             .AddTransient<IRefreshableValueSetupService, SolaxSetupService>()
             .AddTransient<IRefreshableValueSetupService, TeslaPowerwallSetupService>()
             .AddTransient<IRefreshableValueSetupService, KostalHybridInverterSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericModbusTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericJsonRestTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, GenericSunSpecTemplateValueSetupService>()
+            .AddTransient<IRefreshableValueSetupService, FroniusSolarApiSetupService>()
+            //Needs to be singleton so the discovered SunSpec model layout is cached across refreshes
+            .AddSingleton<ISunSpecClient, SunSpecClient>()
+
+            //Needs to be singleton as it tracks the mode currently applied to the home battery devices
+            .AddSingleton<IHomeBatteryModeService, HomeBatteryModeService>()
+            .AddTransient<IHomeBatteryScheduleService, HomeBatteryScheduleService>()
+            .AddTransient<IHomeBatteryModeSetupService, SmaHybridInverterHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, KostalHybridInverterHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, TeslaPowerwallHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericModbusHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericJsonRestHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, GenericSunSpecHomeBatteryModeService>()
+            .AddTransient<IHomeBatteryModeSetupService, FroniusSolarApiHomeBatteryModeService>()
 
             .AddTransient<IAutoRefreshingValueSetupService, MqttClientSetupService>()
             .AddTransient<IAutoRefreshingValueSetupService, SmaEnergyMeterSetupService>()
 
             .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<AutoRefreshingValueHandlingService>())
             .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<RefreshableValueHandlingService>())
+            .AddTransient<IDecimalValueHandlingService>(sp => sp.GetRequiredService<FakeSolarValueHandlingService>())
 
             .AddHostedService<DatabaseValueBufferFlushService>()
             .AddSharedBackendDependencies();
@@ -221,7 +258,27 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(StaticConstants.HttpClientNameDefaultTimeout, client =>
         {
         });
+        //Per call timeouts are set via CancellationTokenSource, this is only a backstop.
+        services.AddHttpClient(StaticConstants.HttpClientNameBle, client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(120);
+            })
+            //A BLE container that dropped off the network - a Raspberry Pi whose WiFi de-associated is the usual case -
+            //answers no SYN at all, and .NET waits for a connection without a limit by default. Every call to that
+            //container would then burn its full per call budget in the connection pool instead of failing while the
+            //next scheduled poll can still succeed. A handshake on a LAN takes milliseconds, so five seconds is
+            //generous even for a busy Raspberry Pi Zero.
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                ConnectTimeout = TimeSpan.FromSeconds(5),
+            });
         services.AddHttpClient();
         return services;
     }
+
+    /// <summary>
+    /// Quartz's default job factory resolves every job execution from its own dependency injection scope.
+    /// </summary>
+    public static IServiceCollection AddJobScheduler(this IServiceCollection services) =>
+        services.AddQuartz(JobManager.SchedulerName, _ => { });
 }

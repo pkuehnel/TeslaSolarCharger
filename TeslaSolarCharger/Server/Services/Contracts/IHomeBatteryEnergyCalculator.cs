@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos;
+﻿using TeslaSolarCharger.Server.Dtos.HomeBatteryControl;
+using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -6,6 +7,12 @@ public interface IHomeBatteryEnergyCalculator
 {
     Task RefreshHomeBatteryMinSoc(CancellationToken cancellationToken);
     Task<int?> GetHomeBatteryMinSocAtTime(DateTimeOffset targetTime, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the predicted energy surpluses from <paramref name="targetTime"/> until after the next solar self
+    /// sufficiency time, or null when sun events can not be calculated.
+    /// </summary>
+    Task<DtoHomeBatterySurplusPrediction?> GetSurplusPrediction(DateTimeOffset targetTime, CancellationToken cancellationToken);
 
     /// <summary>
     /// Estimates the home battery state of charge at a future time based on predicted energy surpluses.

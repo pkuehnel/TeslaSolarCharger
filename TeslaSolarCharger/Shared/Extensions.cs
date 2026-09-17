@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -175,5 +176,20 @@ public static class Extensions
     {
         var code = (int)statusCode;
         return code >= 200 && code <= 299;
+    }
+
+    /// <summary>
+    /// Adds up <paramref name="values"/> into one value stamped with the newest of their timestamps, or null when there
+    /// are none, so a device that delivered nothing is not mistaken for one reading zero.
+    /// </summary>
+    public static DtoTimeStampedValue<decimal>? SumWithNewestTimestamp(this IEnumerable<DtoTimeStampedValue<decimal>> values)
+    {
+        var valueList = values.ToList();
+        if (valueList.Count == 0)
+        {
+            return null;
+        }
+
+        return new(valueList.Max(v => v.Timestamp), valueList.Sum(v => v.Value));
     }
 }

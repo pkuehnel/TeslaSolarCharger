@@ -33,7 +33,7 @@ public class ChargingCostService(
         }
         var convertedChargingProcesses = await teslaSolarChargerContext.ChargingProcesses
             .Where(c => c.OldHandledChargeId != null)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
         var gcCounter = 0;
         foreach (var convertedChargingProcess in convertedChargingProcesses)
         {
@@ -55,7 +55,7 @@ public class ChargingCostService(
         var handledCharges = await teslaSolarChargerContext.HandledCharges
             .Include(h => h.PowerDistributions)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
         gcCounter = 0;
         foreach (var handledCharge in handledCharges)
         {
@@ -86,7 +86,7 @@ public class ChargingCostService(
             newChargingProcess.ChargingDetails = chargingDetails;
             try
             {
-                await SaveNewChargingProcess(newChargingProcess);
+                await SaveNewChargingProcess(newChargingProcess).ConfigureAwait(false);
                 if (gcCounter++ % 20 == 0)
                 {
                     logger.LogInformation("Converted {counter} charging processes...", gcCounter);
@@ -196,7 +196,7 @@ public class ChargingCostService(
             var chargingDetails = await scopedTscContext.ChargingDetails
                 .Where(cd => cd.ChargingProcessId == convertedChargingProcess.Id)
                 .ToListAsync().ConfigureAwait(false);
-            logger.LogDebug("Fix solar power share for charging processe {chargingProcessId}", convertedChargingProcess.Id);
+            logger.LogDebug("Fix solar power share for charging process {chargingProcessId}", convertedChargingProcess.Id);
             foreach (var chargingDetail in chargingDetails)
             {
                 if (chargingDetail.SolarPower < 0)
@@ -235,13 +235,13 @@ public class ChargingCostService(
             spotPriceRegion = SpotPriceRegion.AT;
         }
         var chargePrices = await teslaSolarChargerContext.ChargePrices
-            .Where(cp => cp.SpotPriceRegion == default)
+            .Where(cp => cp.SpotPriceRegion == null)
             .ToListAsync().ConfigureAwait(false);
         foreach (var chargePrice in chargePrices)
         {
             chargePrice.SpotPriceRegion = spotPriceRegion;
         }
-        await teslaSolarChargerContext.SaveChangesAsync();
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task DeleteChargePriceById(int id)

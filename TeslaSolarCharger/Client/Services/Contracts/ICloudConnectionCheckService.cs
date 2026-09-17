@@ -6,6 +6,7 @@ public interface ICloudConnectionCheckService
 {
     Task<TokenState> GetBackendTokenState(bool useCache);
     Task<string?> GetBackendTokenUserName();
+    Task<bool> IsBaseAppLicensed(bool useCache);
     Task<TokenState> GetFleetApiTokenState(bool useCache);
     Task<string?> GetRedeemUrlIncludingCookieAuthCode(string baseUrl);
 }

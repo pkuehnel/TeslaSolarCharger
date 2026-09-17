@@ -7,9 +7,10 @@
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
-<h1>@T(TranslationKeys.ChargeCostsListTitle)</h1>
 
-<button class="btn btn-primary" @onclick="NavigateToNew">@T(TranslationKeys.ChargeCostsListNewButton)</button>
+<PageTitle>@T(TranslationKeys.ChargeCostsListTitle)</PageTitle>
+
+<h1>@T(TranslationKeys.ChargeCostsListTitle)</h1>
 
 @if (_chargePrices == null)
 {
@@ -17,41 +18,49 @@
 }
 else
 {
-    <table class="table table-hover">
-        <thead>
-        <tr>
-            <th scope="col">@T(TranslationKeys.ChargeCostsListIdHeader)</th>
-            <th scope="col">@T(TranslationKeys.ChargeCostsListValidSinceHeader)</th>
-            <th scope="col">@T(TranslationKeys.ChargeCostsListSolarPriceHeader)</th>
-            <th scope="col">@T(TranslationKeys.ChargeCostsListGridPriceHeader)</th>
-            <th scope="col">@T(TranslationKeys.ChargeCostsListDeleteHeader)</th>
-        </tr>
-        </thead>
-        <tbody>
-            @foreach (var chargePrice in _chargePrices)
-        {
-            <tr>
-                <td><a href="/ChargePrice/detail/@chargePrice.Id">@chargePrice.Id</a></td>
-                <td>@chargePrice.ValidSince</td>
-                    <td>@(chargePrice.SolarPrice != null ? ((decimal)chargePrice.SolarPrice).ToString("0.00") : "")</td>
-                    <td>@(chargePrice.GridPrice != null ? ((decimal)chargePrice.GridPrice).ToString("0.00") : "")</td>
-                <td>
-                    <button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))">
-                        @if (_deletingChargePriceIds.Any(i => i == chargePrice.Id))
-                        {
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span class="sr-only">@T(TranslationKeys.ChargeCostsListLoading)</span>
-                        }
-                        else
-                        {
-                            <span class="oi oi-trash" aria-hidden="true"></span>
-                        }
-                    </button>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <RightAlignedButtonComponent ButtonText="@T(TranslationKeys.ChargeCostsListNewButton)"
+                                 StartIcon="@Icons.Material.Filled.Add"
+                                 OnButtonClicked="NavigateToNew"></RightAlignedButtonComponent>
+
+    <MudDataGrid Items="_chargePrices" Hover="true" Dense="true" Striped="true">
+        <Columns>
+            <PropertyColumn Property="x => x.Id"
+                            Title="@T(TranslationKeys.ChargeCostsListIdHeader)">
+                <CellTemplate>
+                    <MudLink Href="@($"/ChargePrice/detail/{context.Item.Id}")">@context.Item.Id</MudLink>
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.ValidSince"
+                            Title="@T(TranslationKeys.ChargeCostsListValidSinceHeader)"></PropertyColumn>
+            <PropertyColumn Property="x => x.SolarPrice"
+                            Title="@T(TranslationKeys.ChargeCostsListSolarPriceHeader)">
+                <CellTemplate>
+                    @(context.Item.SolarPrice != null ? ((decimal)context.Item.SolarPrice).ToString("0.00") : "")
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.GridPrice"
+                            Title="@T(TranslationKeys.ChargeCostsListGridPriceHeader)">
+                <CellTemplate>
+                    @(context.Item.GridPrice != null ? ((decimal)context.Item.GridPrice).ToString("0.00") : "")
+                </CellTemplate>
+            </PropertyColumn>
+            <TemplateColumn Title="@T(TranslationKeys.ChargeCostsListDeleteHeader)" Sortable="false">
+                <CellTemplate>
+                    @if (_deletingChargePriceIds.Any(i => i == context.Item.Id))
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Error" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Variant="Variant.Outlined"
+                                       OnClick="@(() => Delete(context.Item.Id))" />
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
 }
 
 @code {

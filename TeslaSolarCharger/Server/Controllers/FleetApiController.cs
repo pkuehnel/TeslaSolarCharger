@@ -15,13 +15,6 @@ public class FleetApiController(
     public Task<DtoValue<TokenState>> FleetApiTokenState(bool useCache) => fleetApiService.GetFleetApiTokenState(useCache);
 
     [HttpGet]
-    public async Task<IActionResult> GetRedeemUrlIncludingCookieAuthCode(string baseUrl)
-    {
-        var result = await backendApiService.GetTeslaOAuthRedeemUrlIncludingCookieAuthCode(baseUrl);
-        return Ok(result);
-    }
-
-    [HttpGet]
     public async Task<IActionResult> GetFleetApiState(int carId)
     {
         var result = await fleetApiService.GetFleetApiState(carId);

@@ -1,0 +1,176 @@
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@implements IDisposable
+
+@inject ITextLocalizationService TextLocalizer
+@inject IJavaScriptWrapper JavaScriptWrapper
+@inject IChargingStationsService ChargingStationsService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupChargerConnectIntro)</MudText>
+
+@* No brand list and no model specific instructions: the app has no maintained knowledge of individual wallboxes,
+   and inventing steps for someone's hardware is worse than describing what to look for. *@
+<MudAlert Severity="Severity.Normal" Class="mb-4" ContentAlignment="HorizontalAlignment.Left">
+    <MudText Typo="Typo.subtitle2" Style="font-weight: bold">@T(TranslationKeys.SetupChargerWhereToLookTitle)</MudText>
+    <MudText Typo="Typo.body2">@T(TranslationKeys.SetupChargerWhereToLookBody)</MudText>
+</MudAlert>
+
+<MudTextField T="string" Value="@Draft.DisplayName" ValueChanged="OnDisplayNameChanged"
+              Label="@T(TranslationKeys.SetupChargerNameLabel)"
+              HelperText="@T(TranslationKeys.SetupChargerNameHelper)"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+<MudTextField T="string" Value="@Draft.ChargepointId" ValueChanged="OnChargepointIdChanged"
+              Label="@T(TranslationKeys.SetupChargerChargepointIdLabel)"
+              HelperText="@T(TranslationKeys.SetupChargerChargepointIdHelper)"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+<MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupChargerAddressTitle)</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.SetupChargerAddressExplanation)</MudText>
+
+<div class="d-flex align-center flex-wrap mb-1" style="gap: 8px;">
+    <MudTextField T="string" Value="@ConnectionAddress" ReadOnly="true"
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy"
+               OnClick="CopyAddress" Disabled="@string.IsNullOrWhiteSpace(Draft.ChargepointId)">
+        @T(TranslationKeys.SetupChargerCopyAddressButton)
+    </MudButton>
+</div>
+@* The address is built from the address this page was opened on, which is right for a normal installation and
+   wrong behind a reverse proxy - so it is shown as editable text rather than presented as certain. *@
+<MudText Typo="Typo.caption" Class="d-block mb-4">@T(TranslationKeys.SetupChargerAddressProxyNote)</MudText>
+
+@if (Draft.ChargingStationId != null)
+{
+    <MudAlert Severity="Severity.Success">@Format(TranslationKeys.SetupChargerConnectedFormat, Draft.ChargepointId)</MudAlert>
+}
+else if (string.IsNullOrWhiteSpace(Draft.ChargepointId))
+{
+    <MudText Typo="Typo.body2" Class="italic">@T(TranslationKeys.SetupChargerEnterIdFirst)</MudText>
+}
+else
+{
+    <div class="d-flex align-center" style="gap: 12px;">
+        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupChargerWaitingForConnection)</MudText>
+    </div>
+    <MudText Typo="Typo.caption" Class="d-block mt-2">@T(TranslationKeys.SetupChargerWaitingHint)</MudText>
+}
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupChargerDraft Draft { get; set; } = default!;
+
+    private CancellationTokenSource? _pollCts;
+
+    /// <summary>
+    /// The address to type into the charger, built from the address this page was opened on. That is the app's own
+    /// address seen from the user's network, which is what the charger has to reach too.
+    /// </summary>
+    private string ConnectionAddress
+    {
+        get
+        {
+            var uri = new Uri(NavigationManager.BaseUri);
+            var scheme = string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
+            var chargepointId = string.IsNullOrWhiteSpace(Draft.ChargepointId)
+                ? T(TranslationKeys.SetupChargerAddressIdPlaceholder)
+                : Draft.ChargepointId;
+            return $"{scheme}://{uri.Authority}/api/Ocpp/{chargepointId}";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _pollCts = new CancellationTokenSource();
+        _ = PollForConnection(_pollCts.Token);
+    }
+
+    /// <summary>
+    /// A charger announces itself; there is nothing to press. So the screen keeps looking while the user is on it
+    /// and says so, instead of asking them to come back and check.
+    /// </summary>
+    private async Task PollForConnection(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(3000, cancellationToken);
+                if (Draft.ChargingStationId != null || string.IsNullOrWhiteSpace(Draft.ChargepointId))
+                {
+                    continue;
+                }
+
+                var stations = await ChargingStationsService.GetChargingStations();
+                var station = stations?.FirstOrDefault(s =>
+                    string.Equals(s.ChargepointId, Draft.ChargepointId, StringComparison.OrdinalIgnoreCase));
+                if (station == null)
+                {
+                    continue;
+                }
+
+                Draft.ChargingStationId = station.Id;
+                var connectors = await ChargingStationsService.GetChargingStationConnectors(station.Id);
+                //A single connector is the normal case and needs no question; several are named on the next screen.
+                if (connectors is { Count: 1 })
+                {
+                    Draft.ConnectorId = connectors[0].Id;
+                }
+
+                await Context.Save();
+                await Context.RefreshDecision();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch
+            {
+                /* Ignore errors in the background loop; the next tick tries again. */
+            }
+        }
+    }
+
+    private async Task OnDisplayNameChanged(string? value)
+    {
+        Draft.DisplayName = value;
+        await Context.Save();
+    }
+
+    private async Task OnChargepointIdChanged(string? value)
+    {
+        //Whitespace or a slash in the id would silently produce an address the charger cannot use.
+        Draft.ChargepointId = value?.Trim().Replace("/", string.Empty);
+        await Context.Save();
+    }
+
+    private async Task CopyAddress()
+    {
+        await JavaScriptWrapper.CopyStringToClipboard(ConnectionAddress);
+        Snackbar.Add(T(TranslationKeys.SetupChargerAddressCopied), Severity.Success);
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
+
+    public void Dispose()
+    {
+        _pollCts?.Cancel();
+        _pollCts?.Dispose();
+    }
+}

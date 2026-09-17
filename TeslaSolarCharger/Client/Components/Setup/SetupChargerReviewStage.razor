@@ -1,0 +1,95 @@
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+@using TeslaSolarCharger.Shared.Dtos.Setup
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Pages
+
+@inject ITextLocalizationService TextLocalizer
+@inject IChargingStationsService ChargingStationsService
+
+<MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupChargerReviewIntro)</MudText>
+
+<div class="p-3 rounded border mb-4">
+    <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupChargerReviewCarsTitle)</MudText>
+    @if (AssignedCars.Count == 0)
+    {
+        @* A charger with nobody assigned is a legitimate outcome - it can be set up before the car arrives - so it
+           is stated rather than treated as a mistake. *@
+        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupChargerReviewNoCars)</MudText>
+    }
+    else
+    {
+        <ul class="mb-0">
+            @foreach (var car in AssignedCars)
+            {
+                <li>@CarName(car)</li>
+            }
+        </ul>
+    }
+
+    @if (Draft.AllowGuestCars)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">@T(TranslationKeys.SetupChargerReviewGuestsAllowed)</MudText>
+        @* Which car a guest plugged in cannot be told from the charger alone, so what that means is spelled out. *@
+        <MudText Typo="Typo.caption" Class="d-block">@T(TranslationKeys.SetupChargerReviewGuestIdentificationNote)</MudText>
+    }
+</div>
+
+<div class="p-3 rounded border">
+    <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupChargerReviewConnectorsTitle)</MudText>
+    @if (_connectors == null)
+    {
+        <PlaceholderComponent Count="1" />
+    }
+    else if (_connectors.Count == 0)
+    {
+        <MudText Typo="Typo.body2">@T(TranslationKeys.SetupIssueChargingStationNotConnected)</MudText>
+    }
+    else
+    {
+        <ul class="mb-0">
+            @foreach (var connector in _connectors)
+            {
+                <li>@Format(TranslationKeys.SetupChargerReviewConnectorFormat, connector.Name, connector.MaxCurrent, connector.ConnectedPhasesCount)</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [CascadingParameter] public SetupContext Context { get; set; } = default!;
+    [Parameter, EditorRequired] public DtoSetupChargerDraft Draft { get; set; } = default!;
+
+    private List<DtoChargingStationConnector>? _connectors;
+
+    /// <summary>
+    /// Read from the cars rather than kept on the charger: a car picks the connectors it may use, so this side is
+    /// only ever a view of that and the two cannot drift apart.
+    /// </summary>
+    private List<DtoSetupCarDraft> AssignedCars => Context.State.CarDrafts
+        .Where(c => c.AssignedChargingConnectorIds.Any(id => _connectors?.Any(connector => connector.Id == id) == true))
+        .ToList();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Draft.ChargingStationId == null)
+        {
+            _connectors = new List<DtoChargingStationConnector>();
+            return;
+        }
+
+        _connectors = await ChargingStationsService.GetChargingStationConnectors(Draft.ChargingStationId.Value)
+                      ?? new List<DtoChargingStationConnector>();
+    }
+
+    private string CarName(DtoSetupCarDraft draft) => draft.GetDisplayName() ?? T(TranslationKeys.SetupEquipmentUnnamedCar);
+
+    private string T(string key) =>
+        TextLocalizer.Get<SetupPageLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(key), arguments);
+}

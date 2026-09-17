@@ -11,7 +11,7 @@ public class BackupComponentLocalizationRegistry : TextLocalizationRegistry<Back
             new TextLocalizationTranslation(LanguageCodes.German, "Sichern und Wiederherstellen"));
 
         Register(TranslationKeys.BackupRestoreInfoText,
-            new TextLocalizationTranslation(LanguageCodes.English, "During the backup or restore process all TSC actions will be stopped and started again after the Backup"),
+            new TextLocalizationTranslation(LanguageCodes.English, "During the backup or restore process all TSC actions will be stopped and started again after the backup"),
             new TextLocalizationTranslation(LanguageCodes.German, "Während des Sicherungs- oder Wiederherstellungsvorgangs werden alle TSC-Aktionen gestoppt und nach der Sicherung wieder gestartet"));
 
         Register(TranslationKeys.BackupSectionTitle,
@@ -20,7 +20,7 @@ public class BackupComponentLocalizationRegistry : TextLocalizationRegistry<Back
 
         Register(TranslationKeys.BackupWarning,
             new TextLocalizationTranslation(LanguageCodes.English, "Note: The backup contains private information like password for your database, possibly access codes to your solar system, latest known location of your car(s),... Do not share the file in public."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Die Sicherung enthält private Informationen wie das Passwort für Ihre Datenbank, möglicherweise Zugangscodes zu Ihrer Solaranlage, den letzten bekannten Standort Ihres Autos usw. Geben Sie die Datei nicht öffentlich weiter."));
+            new TextLocalizationTranslation(LanguageCodes.German, "Hinweis: Die Sicherung enthält private Informationen wie das Passwort für Ihre Datenbank, möglicherweise Zugangscodes zu Ihrer Solaranlage, den letzten bekannten Standort Ihrer Fahrzeuge usw. Geben Sie die Datei nicht öffentlich weiter."));
 
         Register(TranslationKeys.BackupProcessingMessage,
             new TextLocalizationTranslation(LanguageCodes.English, "Backup creation might take a few minutes, please wait..."),

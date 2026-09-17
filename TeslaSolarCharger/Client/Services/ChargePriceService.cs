@@ -1,4 +1,5 @@
 ﻿using MudBlazor;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared;
@@ -34,7 +35,7 @@ public class ChargePriceService : IChargePriceService
         return result.Data;
     }
 
-    public async Task UpdateChargePrice(DtoChargePrice chargePrice)
+    public async Task<Result<object?>> UpdateChargePrice(DtoChargePrice chargePrice)
     {
         _logger.LogTrace("{method}({@chargePrice})", nameof(UpdateChargePrice), chargePrice);
         var result = await _httpClientHelper.SendPostRequestAsync<object?>("api/ChargingCost/UpdateChargePrice", chargePrice);
@@ -46,6 +47,10 @@ public class ChargePriceService : IChargePriceService
         {
             _snackbar.Add("Charge price updated successfully", Severity.Success);
         }
+
+        //The snackbar tells the user, the result tells the caller. A caller that reports its own success - the
+        //setup assistant above all - must be able to see that this failed.
+        return result;
     }
 
     public async Task<DtoProgress?> GetChargePriceUpdateProgress()

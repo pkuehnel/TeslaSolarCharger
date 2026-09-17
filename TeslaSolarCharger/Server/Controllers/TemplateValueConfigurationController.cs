@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contrac
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Controllers;
 

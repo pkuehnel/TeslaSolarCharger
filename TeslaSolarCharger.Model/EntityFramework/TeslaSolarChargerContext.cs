@@ -186,6 +186,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasIndex(c => c.Vin)
             .IsUnique();
 
+        modelBuilder.Entity<Car>()
+            .HasIndex(c => c.SmartCarVehicleId)
+            .IsUnique();
+
         modelBuilder.Entity<RestValueConfigurationHeader>()
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
