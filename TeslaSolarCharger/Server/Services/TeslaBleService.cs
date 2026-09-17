@@ -35,16 +35,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
 
     private HttpClient CreateBleClient() => httpClientFactory.CreateClient(StaticConstants.HttpClientNameBle);
 
-    public async Task<DtoBleCommandResult> StartCharging(string vin)
+    public Task<DtoBleCommandResult> StartCharging(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(StartCharging), vin);
-        var request = new DtoBleRequest
-        {
-            Vin = vin,
-            CommandName = "charging-start",
-        };
-        var result = await SendCommandToBle(request).ConfigureAwait(false);
-        return result;
+        return SendCommandToBle(vin, "charging-start");
     }
 
     public async Task<DtoBleCommandResult> WakeUpCar(string vin)
@@ -87,16 +81,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleCommandResult> GetBodyControllerState(string vin)
+    public Task<DtoBleCommandResult> GetBodyControllerState(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(GetBodyControllerState), vin);
-        var request = new DtoBleRequest
-        {
-            Vin = vin,
-            CommandName = "body-controller-state",
-        };
-        var result = await SendCommandToBle(request).ConfigureAwait(false);
-        return result;
+        return SendCommandToBle(vin, "body-controller-state");
     }
 
     public async Task<DtoBleConnectionTestResult> TestConnection(string vin)
@@ -205,15 +193,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return isAwake ? BleConnectionTestResultType.Unknown : BleConnectionTestResultType.CarAsleep;
     }
 
-    public async Task<DtoBleCommandResult> StopCharging(string vin)
+    public Task<DtoBleCommandResult> StopCharging(string vin)
     {
-        var request = new DtoBleRequest
-        {
-            Vin = vin,
-            CommandName = "charging-stop",
-        };
-        var result = await SendCommandToBle(request).ConfigureAwait(false);
-        return result;
+        logger.LogTrace("{method}({vin})", nameof(StopCharging), vin);
+        return SendCommandToBle(vin, "charging-stop");
     }
 
     public async Task<DtoBleCommandResult> SetAmp(string vin, int amps)
@@ -240,15 +223,16 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleCommandResult> FlashLights(string vin)
+    public Task<DtoBleCommandResult> FlashLights(string vin)
     {
-        var request = new DtoBleRequest
-        {
-            Vin = vin,
-            CommandName = "flash-lights",
-        };
-        var result = await SendCommandToBle(request).ConfigureAwait(false);
-        return result;
+        logger.LogTrace("{method}({vin})", nameof(FlashLights), vin);
+        return SendCommandToBle(vin, "flash-lights");
+    }
+
+    public Task<DtoBleCommandResult> OpenChargePortDoor(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(OpenChargePortDoor), vin);
+        return SendCommandToBle(vin, "charge-port-open");
     }
 
     public async Task<DtoBleCommandResult> PairKey(string vin, string apiRole)
@@ -566,6 +550,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return null;
         }
     }
+
+    /// <summary>
+    /// Sends a command that needs nothing but the car, e.g. starting to charge or flashing the lights.
+    /// </summary>
+    private Task<DtoBleCommandResult> SendCommandToBle(string vin, string commandName) =>
+        SendCommandToBle(new DtoBleRequest { Vin = vin, CommandName = commandName, });
 
     private async Task<DtoBleCommandResult> SendCommandToBle(DtoBleRequest request)
     {
