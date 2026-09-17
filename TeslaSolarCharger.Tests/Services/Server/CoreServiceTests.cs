@@ -19,7 +19,9 @@ public class CoreServiceTests(ITestOutputHelper outputHelper) : TestBase(outputH
 
         var result = await service.SendTestTelegramMessage();
 
-        Assert.Equal("Sending message succeeded", FinAssert.Succ(result).Value);
+        Assert.False(result.HasError);
+        Assert.Equal("Sending message succeeded", result.Data?.Value);
+        Assert.Null(result.ProblemDetails);
     }
 
     [Theory]
@@ -27,15 +29,16 @@ public class CoreServiceTests(ITestOutputHelper outputHelper) : TestBase(outputH
     [InlineData(HttpStatusCode.MultipleChoices)]
     [InlineData(HttpStatusCode.BadRequest)]
     [InlineData(HttpStatusCode.InternalServerError)]
-    public async Task SendTestTelegramMessage_NonSuccessStatusCode_ReturnsExpectedError(HttpStatusCode statusCode)
+    public async Task SendTestTelegramMessage_NonSuccessStatusCode_ReturnsError(HttpStatusCode statusCode)
     {
         Mock.Mock<ITelegramService>().Setup(t => t.SendMessage("TeslaSolarCharger test message")).ReturnsAsync(statusCode);
         var service = Mock.Create<TeslaSolarCharger.Server.Services.CoreService>();
 
         var result = await service.SendTestTelegramMessage();
 
-        var error = FinAssert.Fail(result);
-        Assert.False(error.IsExceptional);
-        Assert.Equal($"Sending error message failed with status code {statusCode}", error.Message);
+        Assert.True(result.HasError);
+        Assert.Equal($"Sending error message failed with status code {statusCode}", result.ErrorMessage);
+        Assert.Null(result.Data);
+        Assert.Null(result.ProblemDetails);
     }
 }

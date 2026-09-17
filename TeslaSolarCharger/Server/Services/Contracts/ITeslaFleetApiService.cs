@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+﻿using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Shared.Dtos;
@@ -20,7 +20,7 @@ public interface ITeslaFleetApiService
     Task RefreshFleetApiRequestsAreAllowed();
 
     void ResetApiRequestCounters();
-    Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount();
+    Task<Result<List<DtoTesla>>> GetAllCarsFromAccount();
     Task RefreshFleetApiTokenIfRequired();
     Task<DtoBackendApiTeslaResponse> GetAllProductsFromTeslaAccount();
     Task<DtoBackendApiTeslaResponse> GetEnergyLiveStatus(string energySiteId);

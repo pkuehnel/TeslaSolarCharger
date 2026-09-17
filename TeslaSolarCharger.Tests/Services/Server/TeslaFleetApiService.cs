@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http;
@@ -10,6 +12,7 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using Xunit;
 
@@ -21,6 +24,7 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 {
     private const string AccessToken = "backendAccessToken";
     private const string EncryptionKey = "encryption+key";
+    private static readonly string ExpectedRequestUri = $"FleetApiRequests/GetAllCarsFromAccount?encryptionKey={Uri.EscapeDataString(EncryptionKey)}";
 
     [Theory]
     [InlineData(28155, "Retry in 28155 seconds")]
@@ -35,48 +39,48 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
     }
 
     [Fact]
-    public async Task GetAllCarsFromAccount_NoBackendToken_ReturnsExpectedError()
+    public async Task GetAllCarsFromAccount_NoBackendToken_ReturnsError()
     {
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaFleetApiService>();
 
         var result = await service.GetAllCarsFromAccount();
 
-        var error = FinAssert.Fail(result);
-        Assert.False(error.IsExceptional);
-        Assert.Equal("No Backend token found.", error.Message);
+        AssertErrorWithoutProblemDetails(result, "No Backend token found.");
         VerifyBackendNotCalled();
     }
 
     [Fact]
-    public async Task GetAllCarsFromAccount_NoDecryptionKey_ReturnsExpectedError()
+    public async Task GetAllCarsFromAccount_NoDecryptionKey_ReturnsError()
     {
         await AddBackendToken();
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaFleetApiService>();
 
         var result = await service.GetAllCarsFromAccount();
 
-        var error = FinAssert.Fail(result);
-        Assert.False(error.IsExceptional);
-        Assert.Equal("No Decryption key found.", error.Message);
+        AssertErrorWithoutProblemDetails(result, "No Decryption key found.");
         VerifyBackendNotCalled();
     }
 
-    [Fact]
-    public async Task GetAllCarsFromAccount_BackendReturnsError_ReturnsHttpRequestException()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetAllCarsFromAccount_BackendReturnsError_ReturnsErrorWithBackendProblemDetails(bool backendSentProblemDetails)
     {
         await AddBackendTokenAndEncryptionKey();
-        SetupBackendResponse(new(null, "Backend down", null));
+        var backendProblemDetails = backendSentProblemDetails ? new ProblemDetails { Detail = "Backend down", Status = 502, } : null;
+        SetupBackendResponse(new(null, "Backend down", backendProblemDetails));
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaFleetApiService>();
 
         var result = await service.GetAllCarsFromAccount();
 
-        var exception = Assert.IsType<HttpRequestException>(FinAssert.Exceptional(result), exactMatch: false);
-        Assert.Contains("Backend down", exception.Message);
-        Assert.Null(exception.StatusCode);
+        Assert.True(result.HasError);
+        Assert.Null(result.Data);
+        Assert.Equal($"Requesting {ExpectedRequestUri} returned following error: Backend down", result.ErrorMessage);
+        Assert.Same(backendProblemDetails, result.ProblemDetails);
     }
 
     [Fact]
-    public async Task GetAllCarsFromAccount_BackendReturnsNoData_ReturnsExpectedError()
+    public async Task GetAllCarsFromAccount_BackendReturnsNoData_ReturnsError()
     {
         await AddBackendTokenAndEncryptionKey();
         SetupBackendResponse(new(null, null, null));
@@ -84,9 +88,7 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
         var result = await service.GetAllCarsFromAccount();
 
-        var error = FinAssert.Fail(result);
-        Assert.False(error.IsExceptional);
-        Assert.Equal("Could not deserialize response body", error.Message);
+        AssertErrorWithoutProblemDetails(result, "Could not deserialize response body");
     }
 
     [Theory]
@@ -94,7 +96,7 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.TooManyRequests)]
     [InlineData((HttpStatusCode)199)]
-    public async Task GetAllCarsFromAccount_TeslaReturnsNonSuccessStatusCode_ReturnsHttpRequestExceptionWithStatusCode(HttpStatusCode statusCode)
+    public async Task GetAllCarsFromAccount_TeslaReturnsNonSuccessStatusCode_ReturnsErrorWithTeslaStatusCode(HttpStatusCode statusCode)
     {
         await AddBackendTokenAndEncryptionKey();
         SetupBackendResponse(new(new() { StatusCode = statusCode, JsonResponse = "{\"error\":\"denied\"}", }, null, null));
@@ -102,16 +104,19 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
         var result = await service.GetAllCarsFromAccount();
 
-        var exception = Assert.IsType<HttpRequestException>(FinAssert.Exceptional(result), exactMatch: false);
-        Assert.Equal(statusCode, exception.StatusCode);
-        Assert.Contains("{\"error\":\"denied\"}", exception.Message);
+        Assert.True(result.HasError);
+        Assert.Null(result.Data);
+        Assert.Equal($"Requesting {ExpectedRequestUri} returned following statusCode: {statusCode} Underlaying result: {{\"error\":\"denied\"}}", result.ErrorMessage);
+        Assert.NotNull(result.ProblemDetails);
+        Assert.Equal((int)statusCode, result.ProblemDetails.Status);
+        Assert.Equal(result.ErrorMessage, result.ProblemDetails.Detail);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task GetAllCarsFromAccount_TeslaReturnsEmptyBody_ReturnsExpectedError(string? jsonResponse)
+    public async Task GetAllCarsFromAccount_TeslaReturnsEmptyBody_ReturnsError(string? jsonResponse)
     {
         await AddBackendTokenAndEncryptionKey();
         SetupBackendResponse(new(new() { StatusCode = HttpStatusCode.OK, JsonResponse = jsonResponse, }, null, null));
@@ -119,15 +124,13 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
         var result = await service.GetAllCarsFromAccount();
 
-        var error = FinAssert.Fail(result);
-        Assert.False(error.IsExceptional);
-        Assert.Equal("Empty Tesla JSON response body from Solar4Car Backend", error.Message);
+        AssertErrorWithoutProblemDetails(result, "Empty Tesla JSON response body from Solar4Car Backend");
     }
 
     [Theory]
     [InlineData("{}")]
     [InlineData("{\"response\":null}")]
-    public async Task GetAllCarsFromAccount_TeslaReturnsNoVehicleList_ReturnsExpectedError(string jsonResponse)
+    public async Task GetAllCarsFromAccount_TeslaReturnsNoVehicleList_ReturnsError(string jsonResponse)
     {
         await AddBackendTokenAndEncryptionKey();
         SetupBackendResponse(new(new() { StatusCode = HttpStatusCode.OK, JsonResponse = jsonResponse, }, null, null));
@@ -135,37 +138,35 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
         var result = await service.GetAllCarsFromAccount();
 
-        var error = FinAssert.Fail(result);
-        Assert.False(error.IsExceptional);
-        Assert.Equal("Could not deserialize response body", error.Message);
+        AssertErrorWithoutProblemDetails(result, "Could not deserialize response body");
     }
 
     [Fact]
-    public async Task GetAllCarsFromAccount_TeslaReturnsInvalidJson_ReturnsJsonException()
+    public async Task GetAllCarsFromAccount_TeslaReturnsInvalidJson_ReturnsParserMessage()
     {
         await AddBackendTokenAndEncryptionKey();
-        SetupBackendResponse(new(new() { StatusCode = HttpStatusCode.OK, JsonResponse = "{not json", }, null, null));
+        const string invalidJson = "{not json";
+        SetupBackendResponse(new(new() { StatusCode = HttpStatusCode.OK, JsonResponse = invalidJson, }, null, null));
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaFleetApiService>();
 
         var result = await service.GetAllCarsFromAccount();
 
-        Assert.IsType<JsonException>(FinAssert.Exceptional(result), exactMatch: false);
+        var parserException = Assert.ThrowsAny<JsonException>(() => JsonConvert.DeserializeObject<DtoGenericTeslaResponse<List<DtoVehicleResult>>>(invalidJson));
+        AssertErrorWithoutProblemDetails(result, parserException.Message);
     }
 
     [Fact]
-    public async Task GetAllCarsFromAccount_BackendThrows_ReturnsException()
+    public async Task GetAllCarsFromAccount_BackendThrows_ReturnsExceptionMessage()
     {
         await AddBackendTokenAndEncryptionKey();
-        var thrownException = new HttpRequestException("Connection refused");
         Mock.Mock<IBackendApiService>()
             .Setup(b => b.SendRequestToBackend<DtoBackendApiTeslaResponse>(It.IsAny<HttpMethod>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<object?>()))
-            .ThrowsAsync(thrownException);
+            .ThrowsAsync(new HttpRequestException("Connection refused"));
         var service = Mock.Create<TeslaSolarCharger.Server.Services.TeslaFleetApiService>();
 
         var result = await service.GetAllCarsFromAccount();
 
-        var exception = Assert.IsType<HttpRequestException>(FinAssert.Exceptional(result), exactMatch: false);
-        Assert.Same(thrownException, exception);
+        AssertErrorWithoutProblemDetails(result, "Connection refused");
     }
 
     [Theory]
@@ -180,8 +181,10 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
         var result = await service.GetAllCarsFromAccount();
 
-        var cars = FinAssert.Succ(result);
-        Assert.Collection(cars,
+        Assert.False(result.HasError);
+        Assert.Null(result.ProblemDetails);
+        Assert.NotNull(result.Data);
+        Assert.Collection(result.Data,
             car =>
             {
                 Assert.Equal("VIN1", car.Vin);
@@ -203,7 +206,17 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
         var result = await service.GetAllCarsFromAccount();
 
-        Assert.Empty(FinAssert.Succ(result));
+        Assert.False(result.HasError);
+        Assert.NotNull(result.Data);
+        Assert.Empty(result.Data);
+    }
+
+    private static void AssertErrorWithoutProblemDetails(Result<List<DtoTesla>> result, string expectedErrorMessage)
+    {
+        Assert.True(result.HasError);
+        Assert.Equal(expectedErrorMessage, result.ErrorMessage);
+        Assert.Null(result.Data);
+        Assert.Null(result.ProblemDetails);
     }
 
     private async Task AddBackendToken()
@@ -221,9 +234,8 @@ public class TeslaFleetApiService(ITestOutputHelper outputHelper) : TestBase(out
 
     private void SetupBackendResponse(Result<DtoBackendApiTeslaResponse> response)
     {
-        var expectedRequestUri = $"FleetApiRequests/GetAllCarsFromAccount?encryptionKey={Uri.EscapeDataString(EncryptionKey)}";
         Mock.Mock<IBackendApiService>()
-            .Setup(b => b.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Get, AccessToken, expectedRequestUri, null))
+            .Setup(b => b.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Get, AccessToken, ExpectedRequestUri, null))
             .ReturnsAsync(response);
     }
 

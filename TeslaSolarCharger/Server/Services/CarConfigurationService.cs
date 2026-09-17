@@ -24,19 +24,13 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             teslaMateCars = await teslaMateContext.Cars.ToListAsync();
         }
         var teslaAccountCarsResult = await teslaFleetApiService.GetAllCarsFromAccount().ConfigureAwait(false);
-        var teslaAccountCars = teslaAccountCarsResult.Match(
-            Succ: dtosList => dtosList,
-            Fail: error =>
-            {
-                logger.LogError("Could not get new cars from Tesla account.");
-                if (error.IsExceptional)
-                {
-                    throw error.ToException();
-                }
-
-                throw new Exception(error.Message);
-            }// or any default value or throw an exception
-        );
+        //A missing car list must never be treated as an empty account, as that would mark every Tesla as unavailable below.
+        if (teslaAccountCarsResult.HasError || teslaAccountCarsResult.Data == default)
+        {
+            logger.LogError("Could not get new cars from Tesla account: {errorMessage}", teslaAccountCarsResult.ErrorMessage);
+            throw new Exception(teslaAccountCarsResult.ErrorMessage ?? "Could not get new cars from Tesla account.");
+        }
+        var teslaAccountCars = teslaAccountCarsResult.Data;
 
         var teslaSolarChargerCars = await teslaSolarChargerContext.Cars.ToListAsync();
         var highestChargingPriority = 0;
