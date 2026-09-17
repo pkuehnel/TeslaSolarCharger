@@ -11,11 +11,6 @@ public interface IBleService
     Task<DtoBleCommandResult> StopCharging(string vin);
     Task<DtoBleCommandResult> SetAmp(string vin, int amps);
     Task<DtoBleCommandResult> FlashLights(string vin);
-
-    /// <summary>
-    /// Opens the charge port door. Like the charging commands it is executed by the infotainment system.
-    /// </summary>
-    Task<DtoBleCommandResult> OpenChargePortDoor(string vin);
     Task<DtoBleCommandResult> PairKey(string vin, string role);
     Task<DtoBleCommandResult> WakeUpCar(string vin);
     Task CheckBleApiVersionCompatibilities();

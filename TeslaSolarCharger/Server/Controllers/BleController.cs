@@ -24,9 +24,6 @@ public class BleController (IBleService bleService) : ApiBaseController
     public Task<DtoBleCommandResult> FlashLights(string vin) => bleService.FlashLights(vin);
 
     [HttpGet]
-    public Task<DtoBleCommandResult> OpenChargePortDoor(string vin) => bleService.OpenChargePortDoor(vin);
-
-    [HttpGet]
     public Task<DtoBleCommandResult> WakeUp(string vin) => bleService.WakeUpCar(vin);
 
     [HttpGet]
