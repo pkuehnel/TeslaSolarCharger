@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -17,10 +18,11 @@ public class NewVersionCheckService : INewVersionCheckService
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IVersionHelper _versionHelper;
 
     public NewVersionCheckService(ILogger<NewVersionCheckService> logger, ICoreService coreService, ISettings settings,
         IBackendApiService backendApiService, IErrorHandlingService errorHandlingService, IIssueKeys issueKeys,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory, IVersionHelper versionHelper)
     {
         _logger = logger;
         _coreService = coreService;
@@ -29,6 +31,7 @@ public class NewVersionCheckService : INewVersionCheckService
         _errorHandlingService = errorHandlingService;
         _issueKeys = issueKeys;
         _httpClientFactory = httpClientFactory;
+        _versionHelper = versionHelper;
     }
 
     public async Task CheckForNewVersion()
@@ -36,23 +39,11 @@ public class NewVersionCheckService : INewVersionCheckService
         _logger.LogTrace("{method}()", nameof(CheckForNewVersion));
         var currentVersion = await _coreService.GetCurrentVersion().ConfigureAwait(false);
         var versionRecommendation = await _backendApiService.PostInstallationInformation("CheckForNewVersion").ConfigureAwait(false);
-        var couldParseLocalVersion = Version.TryParse(currentVersion, out var localVersion);
-        if (!couldParseLocalVersion)
+        var localVersion = _versionHelper.ParseComparableVersion(currentVersion);
+        if (localVersion == default)
         {
-            if (string.IsNullOrEmpty(currentVersion))
-            {
-                _logger.LogError("Could not get local version");
-                return;
-            }
-            var splittedVersionString= currentVersion.Split("-")[0];
-            couldParseLocalVersion = Version.TryParse(splittedVersionString, out localVersion);
-            if(!couldParseLocalVersion || localVersion == default)
-            {
-                _logger.LogError("Could not parse local version {currentVersion}", currentVersion);
-                return;
-            }
-            var buildToUse = localVersion.Build > 0 ? localVersion.Build - 1 : 0;
-            localVersion = new(localVersion.Major, localVersion.Minor, buildToUse);
+            _logger.LogError("Could not parse local version {currentVersion}", currentVersion);
+            return;
         }
         var minimumVersion = Version.Parse(versionRecommendation.MinimumVersion);
         if (localVersion < minimumVersion)

@@ -33,6 +33,7 @@ public class BleVehicleDataService(
     IBlePresenceStateService blePresenceStateService,
     IBleReadCoordinator bleReadCoordinator,
     IBleSleepWindowService bleSleepWindowService,
+    IBleAccessGateService bleAccessGateService,
     IIssueKeys issueKeys) : IBleVehicleDataService
 {
     private static readonly TimeSpan RadioSilenceWarningDuration = TimeSpan.FromHours(24);
@@ -368,6 +369,24 @@ public class BleVehicleDataService(
         //Persist the presence right away in case the body controller read afterwards fails.
         UpdateHomePresence(car, true, timestamp);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        if (bleAccessGateService.IsPairingInProgress(car.BleApiBaseUrl))
+        {
+            //Adding a key owns that container's adapter, so reading now could only time out - and it would take the
+            //radio away from the pairing the user is standing at their car for.
+            logger.LogDebug("Skipping the BLE read of car {vin} while a key is being added on its container", vin);
+            return;
+        }
+        if (bleAccessGateService.IsKeyRejected(car.Id))
+        {
+            //The car answers every request with the same rejection, and the poll runs every few seconds: asking
+            //anyway fills the radio and the error list with the same answer instead of the one thing the user has to
+            //do about it.
+            logger.LogDebug("Skipping the BLE read of car {vin}: the car rejects TSC's key", vin);
+            await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshPresentCarData),
+                $"Error while getting vehicle data via BLE for car {vin}", BleAccessGateService.KeyNotPairedMessage,
+                issueKeys.BleDataCollectionError, vin, null).ConfigureAwait(false);
+            return;
+        }
         var bodyControllerStateResult = await bleService.GetBodyControllerState(vin).ConfigureAwait(false);
         timestamp = dateTimeProvider.UtcNow();
         if (!bodyControllerStateResult.Success)

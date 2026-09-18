@@ -83,9 +83,6 @@ public class Constants : IConstants
     public int RefreshableValuesRefreshIntervalSeconds => 1;
     public int SolarPowerSurplusPredictionIntervalHours => 1;
 
-    public int DefaultHoldHomeBatteryChargeSocBuffer => 0;
-    public int DefaultChargeHomeBatterySocBuffer => -25;
-
     public string QueryParamSuccess => "success";
     public string QueryParamMessage => "message";
     public string QueryParamWarning => "warning";

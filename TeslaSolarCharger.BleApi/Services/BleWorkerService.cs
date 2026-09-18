@@ -977,14 +977,15 @@ public class BleWorkerService : IBleWorkerService, IDisposable
     /// The streak after one command outcome.
     ///
     /// Only a car that was heard and still could not be reached counts. Anything the car answered clears the streak,
-    /// whatever it answered - a refusal proves the link as well as a success does. Everything else leaves the streak
-    /// alone: a car that is not being heard says nothing about the radio, and outcomes that never got as far as the
-    /// link say nothing either.
+    /// whatever it answered - a refusal or a rejected key proves the link as well as a success does. Everything else
+    /// leaves the streak alone: a car that is not being heard says nothing about the radio, and outcomes that never
+    /// got as far as the link say nothing either.
     /// </summary>
     public static int NextUnreachableStreak(int currentStreak, BleCommandOutcome? outcome, bool heardRecently) =>
         outcome switch
         {
-            BleCommandOutcome.Ok or BleCommandOutcome.CarRefused or BleCommandOutcome.CarAsleep => 0,
+            BleCommandOutcome.Ok or BleCommandOutcome.CarRefused or BleCommandOutcome.CarAsleep
+                or BleCommandOutcome.KeyNotPaired => 0,
             BleCommandOutcome.LinkFailed when heardRecently => currentStreak + 1,
             _ => currentStreak,
         };

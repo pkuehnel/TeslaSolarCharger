@@ -150,6 +150,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IBleReadCoordinator, BleReadCoordinator>()
             .AddSingleton<IBleSleepWindowService, BleSleepWindowService>()
             .AddSingleton<IBlePresenceStateService, BlePresenceStateService>()
+            .AddSingleton<IBleAccessGateService, BleAccessGateService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()

@@ -329,10 +329,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.GetVehicleDataViaBle,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Get data via BLE",
-                "When enabled, Teslas with enabled BLE no longer stream data via Fleet Telemetry but are polled via BLE instead. Car presence is detected via BLE, so the car counts as at home as soon as it is in BLE range. The change is applied to a car when its car settings are saved. Does not affect cars with enabled tracking relevant fields."),
+                "When enabled, Teslas with enabled BLE no longer stream data via Fleet Telemetry but are polled via BLE instead. Car presence is detected via BLE, so the car counts as at home as soon as it is in BLE range. The change is applied to a car when its car settings are saved. Does not affect cars with enabled tracking relevant fields. Leave undecided to use the default (enabled)."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Daten über BLE abrufen",
-                "Wenn aktiviert, senden Teslas mit aktiviertem BLE keine Daten mehr über Fleet Telemetry, sondern werden über BLE abgefragt. Die Anwesenheit wird über BLE erkannt: Das Fahrzeug gilt als zu Hause, sobald es in BLE-Reichweite ist. Die Änderung wird für ein Fahrzeug übernommen, sobald dessen Fahrzeugeinstellungen gespeichert werden. Fahrzeuge mit aktivierten Tracking-relevanten Feldern sind nicht betroffen."));
+                "Wenn aktiviert, senden Teslas mit aktiviertem BLE keine Daten mehr über Fleet Telemetry, sondern werden über BLE abgefragt. Die Anwesenheit wird über BLE erkannt: Das Fahrzeug gilt als zu Hause, sobald es in BLE-Reichweite ist. Die Änderung wird für ein Fahrzeug übernommen, sobald dessen Fahrzeugeinstellungen gespeichert werden. Fahrzeuge mit aktivierten Tracking-relevanten Feldern sind nicht betroffen. Unentschieden lassen für den Standardwert (aktiviert)."));
 
         Register(x => x.BleDataRefreshIntervalSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,

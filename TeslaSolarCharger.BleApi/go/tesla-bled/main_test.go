@@ -105,6 +105,34 @@ func TestClassifyExecuteErrorDefaultIsLinkFailedWithSanitizedText(t *testing.T) 
 	}
 }
 
+// A car that rejects the command because TeslaSolarCharger's key is not on its whitelist must never look like a link
+// problem: the server tells the user to add the key on this outcome, and it stopped doing so when the rejection was
+// reported as linkFailed.
+func TestClassifyExecuteErrorKeyNotPairedIsItsOwnOutcome(t *testing.T) {
+	outcome, text, carError := classifyExecuteError(fmt.Errorf("wrapped: %w", protocol.ErrKeyNotPaired))
+	if outcome != outcomeKeyNotPaired {
+		t.Fatalf("expected keyNotPaired, got %s", outcome)
+	}
+	if carError != "" {
+		t.Fatalf("expected no car error, got %q", carError)
+	}
+	if !strings.Contains(text, "paired") {
+		t.Fatalf("expected the car's reason to survive, got %q", text)
+	}
+}
+
+func TestLinkFailureOutcome(t *testing.T) {
+	if outcome := linkFailureOutcome(fmt.Errorf("failed to start infotainment session: %w", protocol.ErrKeyNotPaired)); outcome != outcomeKeyNotPaired {
+		t.Fatalf("expected keyNotPaired for a wrapped rejection, got %s", outcome)
+	}
+	if outcome := linkFailureOutcome(errors.New("failed to connect: context deadline exceeded")); outcome != outcomeLinkFailed {
+		t.Fatalf("expected linkFailed for a radio problem, got %s", outcome)
+	}
+	if outcome := linkFailureOutcome(nil); outcome != outcomeLinkFailed {
+		t.Fatalf("expected linkFailed without an error, got %s", outcome)
+	}
+}
+
 func TestSanitizeErrorTextNeverContainsBeaconOrDeadline(t *testing.T) {
 	text := sanitizeErrorText("ble: failed to scan beacon Beacon: context deadline exceeded")
 	if strings.Contains(strings.ToLower(text), "beacon") {

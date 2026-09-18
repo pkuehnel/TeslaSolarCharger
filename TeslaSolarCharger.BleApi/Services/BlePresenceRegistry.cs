@@ -236,9 +236,10 @@ public class BlePresenceRegistry : IBlePresenceRegistry
 
     public void NoteCommandOutcome(string adapterKey, string vin, BleCommandOutcome? outcome, DateTimeOffset at)
     {
-        //Ok, a refusal and "asleep" all mean the car answered us, which is stronger evidence than any advertisement.
-        //Everything else says nothing about presence.
-        if (outcome is not (BleCommandOutcome.Ok or BleCommandOutcome.CarRefused or BleCommandOutcome.CarAsleep))
+        //Ok, a refusal, "asleep" and a rejected key all mean the car answered us, which is stronger evidence than any
+        //advertisement. Everything else says nothing about presence.
+        if (outcome is not (BleCommandOutcome.Ok or BleCommandOutcome.CarRefused or BleCommandOutcome.CarAsleep
+            or BleCommandOutcome.KeyNotPaired))
         {
             return;
         }

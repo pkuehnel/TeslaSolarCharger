@@ -35,4 +35,17 @@ public static class ConfigurationDefaults
     /// this, putting the away transition at about four minutes of true silence.
     /// </summary>
     public const int BlePresenceMaxAgeSeconds = 90;
+
+    /// <summary>
+    /// Percentage points added to the dynamically calculated state of charge above which the home battery is held
+    /// rather than discharged. Zero holds at exactly the calculated level.
+    /// </summary>
+    public const int HoldHomeBatteryChargeSocBuffer = 0;
+
+    /// <summary>
+    /// Percentage points added to the dynamically calculated state of charge above which the home battery is charged
+    /// from the grid. Negative on purpose: charging from the grid is only worth it well below the level that merely
+    /// needs holding.
+    /// </summary>
+    public const int ChargeHomeBatterySocBuffer = -25;
 }
