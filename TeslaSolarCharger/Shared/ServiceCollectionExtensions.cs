@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IStringHelper, StringHelper>()
             .AddTransient<IConstants, Constants>()
             .AddTransient<IValidFromToHelper, ValidFromToHelper>()
+            .AddTransient<IVersionHelper, VersionHelper>()
             .AddSingleton<IPropertyLocalizationService, PropertyLocalizationService>()
             .AddSingleton<IPropertyLocalizationRegistry, BaseConfigurationBasePropertyLocalization>()
             .AddSingleton<IPropertyLocalizationRegistry, CarBasicConfigurationPropertyLocalization>()
