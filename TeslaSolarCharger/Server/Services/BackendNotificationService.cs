@@ -3,24 +3,21 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class BackendNotificationService (ILogger<BackendNotificationService> logger,
     ITeslaSolarChargerContext context,
     IDateTimeProvider dateTimeProvider,
-    IBackendApiService backendApiService) : IBackendNotificationService
+    IBackendApiService backendApiService,
+    IVersionHelper versionHelper) : IBackendNotificationService
 {
     public async Task<List<DtoBackendNotification>> GetRelevantBackendNotifications()
     {
         logger.LogTrace("{method}()", nameof(GetRelevantBackendNotifications));
         var currentDate = dateTimeProvider.UtcNow();
         var versionString = await backendApiService.GetCurrentVersion();
-        Version? version = null;
-        if (Version.TryParse(versionString, out var parsedVersion))
-        {
-            version = parsedVersion;
-        }
         var notAcknoledgedDbNotifications = await context.BackendNotifications
             .Where(n => !n.IsConfirmed)
             .AsNoTracking()
@@ -36,21 +33,7 @@ public class BackendNotificationService (ILogger<BackendNotificationService> log
             {
                 continue;
             }
-            Version? notificationFromVersion = null;
-            if (Version.TryParse(versionString, out var parsedFromVersion))
-            {
-                notificationFromVersion = parsedFromVersion;
-            }
-            if (notificationFromVersion > version)
-            {
-                continue;
-            }
-            Version? notificationToVersion = null;
-            if (Version.TryParse(versionString, out var parsedToVersion))
-            {
-                notificationToVersion = parsedToVersion;
-            }
-            if (notificationToVersion < version)
+            if (!versionHelper.IsVersionInRange(versionString, dbNotification.ValidFromVersion, dbNotification.ValidToVersion))
             {
                 continue;
             }
