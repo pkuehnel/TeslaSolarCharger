@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Ble;
@@ -384,6 +385,41 @@ public class TeslaBleServiceTests : TestBase
         Assert.Equal(BleConnectionTestResultType.KeyNotPaired, result.ResultType);
         Assert.Contains("paired", result.ErrorDetails);
         Assert.Single(handler.Requests);
+    }
+
+    /// <summary>
+    /// The test reads what the scheduled poll reads, so a successful one ends the poll's open complaint right away.
+    /// Leaving it to the next poll meant the user still saw "the car rejected TSC's key" after a test that had just
+    /// proven the opposite.
+    /// </summary>
+    [Fact]
+    public async Task SuccessfulConnectionTestResolvesTheOpenDataCollectionError()
+    {
+        SetupContainer(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.TestConnection(TestVin);
+
+        Assert.Equal(BleConnectionTestResultType.Success, result.ResultType);
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleErrorResolved(
+            Mock.Create<IIssueKeys>().BleDataCollectionError, TestVin), Times.Once);
+    }
+
+    [Fact]
+    public async Task FailedConnectionTestLeavesTheDataCollectionErrorAlone()
+    {
+        SetupContainer(new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.KeyNotPaired,
+            ResultMessage = "vehicle rejected request: your public key has not been paired with the vehicle",
+        });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.TestConnection(TestVin);
+
+        Assert.Equal(BleConnectionTestResultType.KeyNotPaired, result.ResultType);
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleErrorResolved(It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
     /// <summary>

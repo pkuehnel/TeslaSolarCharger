@@ -106,6 +106,13 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var chargeStateVerdict = ClassifyChargeState(chargeStateResult);
         if (chargeStateVerdict != default)
         {
+            if (chargeStateVerdict == BleConnectionTestResultType.Success)
+            {
+                //The test just read the same value the scheduled poll reads, so whatever the poll last complained
+                //about is over. Waiting for the next poll to say so left the user looking at an error the test had
+                //visibly disproven a moment earlier.
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
+            }
             return new DtoBleConnectionTestResult
             {
                 ResultType = chargeStateVerdict.Value,
