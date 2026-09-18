@@ -197,6 +197,8 @@ public class BlePresenceRegistryTests
     [InlineData(BleCommandOutcome.Ok)]
     [InlineData(BleCommandOutcome.CarRefused)]
     [InlineData(BleCommandOutcome.CarAsleep)]
+    //A car that rejects TSC's key is unmistakably there: it answered.
+    [InlineData(BleCommandOutcome.KeyNotPaired)]
     public void EveryOutcomeThatProvesTheCarAnsweredCountsAsPresence(BleCommandOutcome outcome)
     {
         var registry = Observing(Start);

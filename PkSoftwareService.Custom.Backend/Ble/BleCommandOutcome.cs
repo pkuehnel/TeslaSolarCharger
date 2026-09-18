@@ -52,4 +52,10 @@ public enum BleCommandOutcome
     /// never a silent fallback to a different radio.
     /// </summary>
     AdapterNotFound = 9,
+    /// <summary>
+    /// The car answered but rejected us because TeslaSolarCharger's public key is not on its whitelist. Proves the
+    /// car is present and the radio works; only adding the key helps. Must never be confused with
+    /// <see cref="LinkFailed"/>, which is what a missing key used to look like.
+    /// </summary>
+    KeyNotPaired = 10,
 }

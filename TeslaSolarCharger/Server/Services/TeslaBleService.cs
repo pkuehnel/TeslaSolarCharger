@@ -23,7 +23,8 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     IErrorHandlingService errorHandlingService,
     IIssueKeys issueKeys,
     IHttpClientFactory httpClientFactory,
-    IConfigurationWrapper configurationWrapper) : IBleService
+    IConfigurationWrapper configurationWrapper,
+    IBleAccessGateService bleAccessGateService) : IBleService
 {
     //Pairing stops the worker of the target adapter, waits for the adapter ownership guard and then runs
     //tesla-control, so it needs more headroom than a normal command but must not hang forever.
@@ -91,6 +92,13 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     public async Task<DtoBleConnectionTestResult> TestConnection(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(TestConnection), vin);
+        //The user asked for a verdict about this car, so it has to be asked even if it rejected the key before: the
+        //key may well be the thing that was just fixed.
+        var testedCar = FindCarByVin(vin);
+        if (testedCar != default)
+        {
+            bleAccessGateService.ClearKeyRejection(testedCar.Id);
+        }
         //Reading the charge state needs everything BLE control needs: the car in range, a paired key and an awake
         //infotainment system. Every failure is narrowed down afterwards so the user gets told what to do.
         var chargeStateResult = await GetChargeState(vin).ConfigureAwait(false);
@@ -98,6 +106,13 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var chargeStateVerdict = ClassifyChargeState(chargeStateResult);
         if (chargeStateVerdict != default)
         {
+            if (chargeStateVerdict == BleConnectionTestResultType.Success)
+            {
+                //The test just read the same value the scheduled poll reads, so whatever the poll last complained
+                //about is over. Waiting for the next poll to say so left the user looking at an error the test had
+                //visibly disproven a moment earlier.
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleDataCollectionError, vin).ConfigureAwait(false);
+            }
             return new DtoBleConnectionTestResult
             {
                 ResultType = chargeStateVerdict.Value,
@@ -143,8 +158,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         return chargeStateResult.Outcome switch
         {
-            //The car answered the body controller, so it is in range and the key works. Only the infotainment
-            //system is asleep, which is not an error at all.
+            //The car itself rejected the command because TSC's key is not on its whitelist. That is the car's own
+            //verdict, so nothing has to be narrowed down any further.
+            BleCommandOutcome.KeyNotPaired => BleConnectionTestResultType.KeyNotPaired,
+            //The car answered the body controller, so it is in range. Only the infotainment system is asleep, which
+            //is not an error at all.
             BleCommandOutcome.CarAsleep => BleConnectionTestResultType.CarAsleep,
             //Local problems: the car was never asked, so nothing about it can be concluded.
             BleCommandOutcome.AdapterNotFound => BleConnectionTestResultType.ContainerProblem,
@@ -178,19 +196,26 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
 
     /// <summary>
     /// Final result for a car the container hears but whose charge state could not be read.
+    ///
+    /// The body controller answers without any key at all, so it can only tell a car that is there from one that is
+    /// not, and an awake car from a sleeping one. It says nothing whatsoever about TSC's key, which is why a missing
+    /// key has to come from the car's own rejection instead.
     /// </summary>
     internal static BleConnectionTestResultType ClassifyBodyControllerState(DtoBleCommandResult bodyControllerStateResult,
         bool isAwake)
     {
         if (!bodyControllerStateResult.Success)
         {
-            //A car that does not even answer its body controller either left in the meantime or, far more likely,
-            //never got TSC's key.
-            return bodyControllerStateResult.Outcome == BleCommandOutcome.CarAbsent
-                ? BleConnectionTestResultType.CarNotFound
-                : BleConnectionTestResultType.KeyNotPaired;
+            return bodyControllerStateResult.Outcome switch
+            {
+                //The car rejected the unauthenticated read as well, so the key is missing beyond doubt.
+                BleCommandOutcome.KeyNotPaired => BleConnectionTestResultType.KeyNotPaired,
+                //A car that does not answer its body controller at all left in the meantime.
+                BleCommandOutcome.CarAbsent => BleConnectionTestResultType.CarNotFound,
+                _ => BleConnectionTestResultType.Unknown,
+            };
         }
-        //The key works: either the car is asleep or something transient went wrong.
+        //The car is there and answers; whether it is asleep is all that can be concluded from that.
         return isAwake ? BleConnectionTestResultType.Unknown : BleConnectionTestResultType.CarAsleep;
     }
 
@@ -254,6 +279,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         logger.LogTrace("Ble Url: {bleUrl}", url);
         var client = CreateBleClient();
         using var cancellationTokenSource = new CancellationTokenSource(PairKeyTimeout);
+        //Pairing takes the container's Bluetooth adapter for itself, so the scheduled reads of every car on that
+        //container are held back until it is done. They would only time out and, worse, steal the radio from the
+        //pairing that the user is standing at their car for.
+        using var pairing = bleAccessGateService.BeginPairing(FindCarByVin(vin)?.BleApiBaseUrl);
         try
         {
             var response = await client.GetAsync(url, cancellationTokenSource.Token).ConfigureAwait(false);
@@ -268,8 +297,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 };
             }
             var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
-            // Success is unknown as the response is not known but display success false so result message is displayed in UI
-            commandResult.Success = false;
+            //Success means the request reached the car, not that the key is on its whitelist: that only happens once
+            //the user taps a key card on the center console and confirms the request on the car's touchscreen.
+            //Overwriting it with false told every user that pairing had failed while the car was waiting for exactly
+            //those two steps.
             return commandResult;
         }
         catch (Exception ex)
@@ -566,6 +597,22 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 ErrorType = ErrorType.TscConfiguration,
             };
         }
+        //The url exists, so the car does too.
+        var car = FindCarByVin(request.Vin)!;
+        if (bleAccessGateService.IsKeyRejected(car.Id))
+        {
+            //Answering from what the car already said costs no radio time and no Fleet API fallback delay. The
+            //command is reported as failed with the car's own reason, so a charging command falls back as it would
+            //have after the rejection anyway.
+            logger.LogDebug("Not sending {command} to car {vin}: the car rejects TSC's key", request.CommandName, request.Vin);
+            return new DtoBleCommandResult()
+            {
+                Success = false,
+                Outcome = BleCommandOutcome.KeyNotPaired,
+                ResultMessage = BleAccessGateService.KeyNotPairedMessage,
+                ErrorType = ErrorType.TeslaControl,
+            };
+        }
         bleBaseUrl += BleApiRoutes.ExecuteCommand;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add(BleApiRoutes.VinQueryParam, request.Vin);
@@ -595,6 +642,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 throw new InvalidOperationException();
             }
             var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
+            bleAccessGateService.RegisterCommandResult(car.Id, commandResult);
             return commandResult;
         }
         catch (Exception ex)

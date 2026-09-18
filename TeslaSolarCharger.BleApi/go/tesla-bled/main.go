@@ -65,6 +65,7 @@ const (
 	outcomeLinkFailed         = "linkFailed"
 	outcomeCarAsleep          = "carAsleep"
 	outcomeCarRefused         = "carRefused"
+	outcomeKeyNotPaired       = "keyNotPaired"
 	outcomeAdapterUnavailable = "adapterUnavailable"
 	outcomeInvalidRequest     = "invalidRequest"
 )
@@ -434,7 +435,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool) (int64, bo
 		_, car, err := d.config.Connect(ctx)
 		if err != nil {
 			return time.Since(start).Milliseconds(), false, &classifiedFailure{
-				Outcome:     outcomeLinkFailed,
+				Outcome:     linkFailureOutcome(err),
 				Phase:       phaseConnect,
 				Message:     sanitizeErrorText(fmt.Sprintf("failed to connect: %s", err)),
 				AdapterDead: ble.IsAdapterError(err),
@@ -455,7 +456,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool) (int64, bo
 		if err != nil {
 			connectMs += time.Since(start).Milliseconds()
 			return connectMs, reconnected, &classifiedFailure{
-				Outcome:  outcomeLinkFailed,
+				Outcome:  linkFailureOutcome(err),
 				Phase:    phaseSession,
 				Message:  sanitizeErrorText(fmt.Sprintf("failed to read body controller state: %s", err)),
 				DeadLink: isDeadConnection(err),
@@ -477,7 +478,7 @@ func (d *daemon) ensureConnection(vin string, needsInfotainment bool) (int64, bo
 		if err := d.car.StartSession(ctx, []universal.Domain{protocol.DomainInfotainment}); err != nil {
 			connectMs += time.Since(start).Milliseconds()
 			return connectMs, reconnected, &classifiedFailure{
-				Outcome:  outcomeLinkFailed,
+				Outcome:  linkFailureOutcome(err),
 				Phase:    phaseSession,
 				Message:  sanitizeErrorText(fmt.Sprintf("failed to start infotainment session: %s", err)),
 				DeadLink: isDeadConnection(err),
@@ -565,7 +566,19 @@ func classifyExecuteError(err error) (outcome string, text string, carError stri
 	if errors.As(err, &vcsecNominal) {
 		return outcomeCarRefused, sanitizeErrorText(err.Error()), stripRefusalPrefix(vcsecNominal.Error())
 	}
-	return outcomeLinkFailed, sanitizeErrorText(err.Error()), ""
+	return linkFailureOutcome(err), sanitizeErrorText(err.Error()), ""
+}
+
+// linkFailureOutcome tells a car that rejected us because TeslaSolarCharger's key is not on its whitelist apart from
+// an actual link problem. The car answered, so nothing is wrong with the radio or the connection: the only thing that
+// helps is adding the key, and only a typed outcome gets that message to the user. Measured on a real car, the
+// rejection surfaces on the command itself (the handshake still succeeds), but it is classified at every failure site
+// because the car may reject the session just as well.
+func linkFailureOutcome(err error) string {
+	if errors.Is(err, protocol.ErrKeyNotPaired) {
+		return outcomeKeyNotPaired
+	}
+	return outcomeLinkFailed
 }
 
 // stripRefusalPrefix reduces a refusal message to the reason the car gave, matching what TeslaSolarCharger's

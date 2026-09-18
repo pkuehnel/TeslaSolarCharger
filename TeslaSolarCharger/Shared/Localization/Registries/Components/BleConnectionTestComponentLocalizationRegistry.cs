@@ -18,11 +18,13 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
             new TextLocalizationTranslation(LanguageCodes.German,
                 "Der BLE-Container hat das Fahrzeug nicht gehört. Stellen Sie sicher, dass das Fahrzeug in Reichweite der Antenne des Containers steht, und testen Sie erneut."));
 
+        //Deliberately says nothing about the key: the request that a sleeping car still answers needs no key at all,
+        //so there is no evidence either way while the car sleeps.
         Register(TranslationKeys.BleTestCarAsleep,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "The car is in range and TSC's key works, but the car is asleep. Open a door to wake it up and test again."),
+                "The car is in range but asleep. Open a door to wake it up and test again."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Das Fahrzeug ist in Reichweite und der Schlüssel von TSC funktioniert, aber das Fahrzeug schläft. Öffnen Sie eine Tür, um es aufzuwecken, und testen Sie erneut."));
+                "Das Fahrzeug ist in Reichweite, schläft aber. Öffnen Sie eine Tür, um es aufzuwecken, und testen Sie erneut."));
 
         Register(TranslationKeys.BleTestKeyNotPaired,
             new TextLocalizationTranslation(LanguageCodes.English,
@@ -38,9 +40,9 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.BleTestUnknown,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "The car is in range and TSC's key works, but the request failed. Please test again."),
+                "The car is in range but the request failed. Please test again."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Das Fahrzeug ist in Reichweite und der Schlüssel von TSC funktioniert, die Anfrage ist aber fehlgeschlagen. Bitte testen Sie erneut."));
+                "Das Fahrzeug ist in Reichweite, die Anfrage ist aber fehlgeschlagen. Bitte testen Sie erneut."));
 
         Register(TranslationKeys.BleTestAgainButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Test again"),
@@ -54,23 +56,31 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
             new TextLocalizationTranslation(LanguageCodes.English, "Add TSC's key to the car"),
             new TextLocalizationTranslation(LanguageCodes.German, "Schlüssel von TSC im Fahrzeug hinterlegen"));
 
+        //Two steps, and both are easy to miss: the card tap alone does not add the key, the message on the car's
+        //screen has to be confirmed as well.
         Register(TranslationKeys.BleTestPairKeyHint,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "Go to the car and wake it up, e.g. by opening a door. After clicking the button, confirm the new key within 30 seconds by holding one of your key cards against the center console."),
+                "Go to the car and wake it up, e.g. by opening a door. After clicking the button you have 30 seconds to hold one of your key cards against the center console. The car then shows a request on its touchscreen that you have to confirm."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Gehen Sie zum Fahrzeug und wecken Sie es auf, zum Beispiel durch das Öffnen einer Tür. Bestätigen Sie den neuen Schlüssel nach dem Klick auf die Schaltfläche innerhalb von 30 Sekunden, indem Sie eine Ihrer Schlüsselkarten an die Mittelkonsole halten."));
+                "Gehen Sie zum Fahrzeug und wecken Sie es auf, zum Beispiel durch das Öffnen einer Tür. Nach dem Klick auf die Schaltfläche haben Sie 30 Sekunden Zeit, eine Ihrer Schlüsselkarten an die Mittelkonsole zu halten. Danach zeigt das Fahrzeug auf dem Touchscreen eine Anfrage an, die Sie bestätigen müssen."));
 
         Register(TranslationKeys.BleTestPairKeyButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add key"),
             new TextLocalizationTranslation(LanguageCodes.German, "Schlüssel hinzufügen"));
 
+        //Only the request is being sent here; the car waits for the key card on its own time, so this may not
+        //pretend to be waiting for the user's tap.
         Register(TranslationKeys.BleTestPairing,
-            new TextLocalizationTranslation(LanguageCodes.English, "Waiting for the confirmation in the car..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Warten auf die Bestätigung im Fahrzeug..."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Sending the request to the car..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Anfrage wird an das Fahrzeug gesendet..."));
 
+        //The car only gets the key once the user tapped a key card AND confirmed the request on the car's screen, so
+        //this may neither claim the key was added nor stop after the tap.
         Register(TranslationKeys.BleTestPairKeySuccess,
-            new TextLocalizationTranslation(LanguageCodes.English, "The key was added. Test the connection again."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Schlüssel wurde hinzugefügt. Testen Sie die Verbindung erneut."));
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "The request was sent to the car. Now do this in the car: 1. Hold one of your key cards against the center console. 2. Confirm the request the car then shows on its touchscreen. After that, test the connection again."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Die Anfrage wurde an das Fahrzeug gesendet. Gehen Sie jetzt im Fahrzeug so vor: 1. Halten Sie eine Ihrer Schlüsselkarten an die Mittelkonsole. 2. Bestätigen Sie die Anfrage, die das Fahrzeug daraufhin auf dem Touchscreen anzeigt. Testen Sie anschließend die Verbindung erneut."));
 
         Register(TranslationKeys.BleTestPairKeyError,
             new TextLocalizationTranslation(LanguageCodes.English, "Could not add the key: {0}"),

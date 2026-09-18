@@ -11,6 +11,11 @@ public interface IBleService
     Task<DtoBleCommandResult> StopCharging(string vin);
     Task<DtoBleCommandResult> SetAmp(string vin, int amps);
     Task<DtoBleCommandResult> FlashLights(string vin);
+    /// <summary>
+    /// Sends an add key request to the car. Success only means the request reached the car: the key is added when the
+    /// user taps a key card on the center console and confirms the request the car then shows on its touchscreen,
+    /// neither of which any BLE answer reports.
+    /// </summary>
     Task<DtoBleCommandResult> PairKey(string vin, string role);
     Task<DtoBleCommandResult> WakeUpCar(string vin);
     Task CheckBleApiVersionCompatibilities();

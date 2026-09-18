@@ -41,11 +41,15 @@ public class BleConnectWatchdogTests
         Assert.Equal(3, BleWorkerService.NextUnreachableStreak(3, BleCommandOutcome.LinkFailed, heardRecently: false));
     }
 
-    /// <summary>Anything the car answered proves the link, so it clears the streak - a refusal as much as a success.</summary>
+    /// <summary>
+    /// Anything the car answered proves the link, so it clears the streak - a refusal as much as a success, and a car
+    /// that rejects TSC's key answers just as clearly. Restarting the worker over a missing key would never help.
+    /// </summary>
     [Theory]
     [InlineData(BleCommandOutcome.Ok)]
     [InlineData(BleCommandOutcome.CarRefused)]
     [InlineData(BleCommandOutcome.CarAsleep)]
+    [InlineData(BleCommandOutcome.KeyNotPaired)]
     public void AnAnswerFromTheCarClearsTheStreak(BleCommandOutcome outcome)
     {
         Assert.Equal(0, BleWorkerService.NextUnreachableStreak(4, outcome, heardRecently: true));

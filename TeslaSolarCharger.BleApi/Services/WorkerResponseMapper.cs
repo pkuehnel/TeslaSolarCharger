@@ -39,6 +39,7 @@ public static class WorkerResponseMapper
         "linkFailed" => BleCommandOutcome.LinkFailed,
         "carAsleep" => BleCommandOutcome.CarAsleep,
         "carRefused" => BleCommandOutcome.CarRefused,
+        "keyNotPaired" => BleCommandOutcome.KeyNotPaired,
         "adapterUnavailable" => BleCommandOutcome.AdapterUnavailable,
         "invalidRequest" => BleCommandOutcome.InvalidRequest,
         _ => BleCommandOutcome.WorkerError,
