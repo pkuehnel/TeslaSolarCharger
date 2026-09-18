@@ -246,6 +246,10 @@ public class TeslaBleServiceTests : TestBase
 
         Assert.False(result.Success);
         Assert.Equal(ErrorType.TscConfiguration, result.ErrorType);
+        //The url is a per car setting, so sending the user to the base configuration would send them looking for a
+        //setting that is not there.
+        Assert.Contains("car", result.ResultMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("base configuration", result.ResultMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(handler.Requests);
     }
 
@@ -293,12 +297,82 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public async Task CommandForAnUnknownCarThrows()
+    public async Task CommandForAnUnknownCarIsAConfigurationErrorNamingTheVin()
+    {
+        //A VIN TSC does not know used to throw out of the service, which reached the user as a bare
+        //"Sequence contains no matching element" and told them nothing about what to do.
+        var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.FlashLights("UNKNOWNVIN1234567");
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorType.TscConfiguration, result.ErrorType);
+        Assert.Contains("UNKNOWNVIN1234567", result.ResultMessage);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task ConnectionTestForAnUnknownCarIsReportedAsContainerProblemInsteadOfThrowing()
     {
         var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
         var service = Mock.Create<TeslaBleService>();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.FlashLights("UNKNOWNVIN1234567"));
+        var result = await service.TestConnection("UNKNOWNVIN1234567");
+
+        //Not Success, and nothing is asked of the container: the car is not known, so there is nothing to ask.
+        Assert.NotEqual(BleConnectionTestResultType.Success, result.ResultType);
+        Assert.Contains("UNKNOWNVIN1234567", result.ErrorDetails);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task PairKeyForAnUnknownCarIsAConfigurationErrorNamingTheVin()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.PairKey("UNKNOWNVIN1234567", "charging_manager");
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorType.TscConfiguration, result.ErrorType);
+        Assert.Contains("UNKNOWNVIN1234567", result.ResultMessage);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task CommandForACarWhoseVinIsSpelledDifferentlyStillReachesIt()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.FlashLights(TestVin.ToLowerInvariant());
+
+        Assert.True(result.Success);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task PresenceForAnUnknownCarNamesTheVin()
+    {
+        SetupContainer(new DtoBleCommandResult { Success = true, });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.GetPresenceForVin("UNKNOWNVIN1234567");
+
+        Assert.Contains("UNKNOWNVIN1234567", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task SetAmpForAnUnknownCarIsAConfigurationErrorInsteadOfThrowing()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.SetAmp("UNKNOWNVIN1234567", 8);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorType.TscConfiguration, result.ErrorType);
         Assert.Empty(handler.Requests);
     }
 

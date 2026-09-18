@@ -44,7 +44,9 @@
                     <div class="@(_testFleetApiAccess ? "mt-4" : "")">
                         <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditBleTestTitle)</MudText>
                         <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarEditBleTestHint)</MudText>
-                        <BleConnectionTestComponent Vin="Car.Item.Vin" AutoTest="true" />
+                        @* The @ is what makes this the car's VIN: without it Razor passes the literal text of a
+                           string parameter, and the test asked the container about a car called "Car.Item.Vin". *@
+                        <BleConnectionTestComponent Vin="@Car.Item.Vin" AutoTest="true" />
                     </div>
                 }
             }
