@@ -385,8 +385,9 @@ public class TeslaBleServiceTests : TestBase
     }
 
     /// <summary>
-    /// Pairing only sends the request; the key is added when the user taps a key card on the center console. The
-    /// answer used to be overwritten with "not successful", so every successful request was reported as a failure.
+    /// Pairing only sends the request; the key is added when the user taps a key card on the center console and
+    /// confirms the request on the car's touchscreen. The answer used to be overwritten with "not successful", so
+    /// every successful request was reported as a failure.
     /// </summary>
     [Fact]
     public async Task PairKeyReportsASentRequestAsSuccess()

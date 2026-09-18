@@ -279,8 +279,9 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             }
             var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
             //Success means the request reached the car, not that the key is on its whitelist: that only happens once
-            //the user taps a key card on the center console. Overwriting it with false told every user that pairing
-            //had failed while the car was waiting for exactly that tap.
+            //the user taps a key card on the center console and confirms the request on the car's touchscreen.
+            //Overwriting it with false told every user that pairing had failed while the car was waiting for exactly
+            //those two steps.
             return commandResult;
         }
         catch (Exception ex)
