@@ -9,7 +9,6 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
@@ -19,8 +18,7 @@ public class ConfigurationWrapper(
     IConfiguration configuration,
     INodePatternTypeHelper nodePatternTypeHelper,
     IDateTimeProvider dateTimeProvider,
-    ISettings settings,
-    IConstants constants)
+    ISettings settings)
     : IConfigurationWrapper
 {
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
@@ -197,9 +195,12 @@ public class ConfigurationWrapper(
     public TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan()
     {
         var value = GetBaseConfiguration().SkipPowerChangesOnLastAdjustmentNewerThanSeconds;
+        //Zero or negative would let every cycle readjust the charging power, so a stored value like that is replaced
+        //by a safe interval. This is a guard against an unusable value, not the default of a fresh configuration -
+        //that one is BaseConfigurationBase.SkipPowerChangesOnLastAdjustmentNewerThanSeconds.
         if (value <= 0)
         {
-            value = 30; // Default to 60 seconds if not set
+            value = 30;
         }
         return TimeSpan.FromSeconds(value);
     }
@@ -676,13 +677,13 @@ public class ConfigurationWrapper(
     public int HoldHomeBatteryChargeSocBufferInPercent()
     {
         var stored = GetBaseConfiguration().HoldHomeBatteryChargeSocBuffer;
-        return stored ?? constants.DefaultHoldHomeBatteryChargeSocBuffer;
+        return stored ?? ConfigurationDefaults.HoldHomeBatteryChargeSocBuffer;
     }
 
     public int ChargeHomeBatterySocBufferInPercent()
     {
         var stored = GetBaseConfiguration().ChargeHomeBatterySocBuffer;
-        return stored ?? constants.DefaultChargeHomeBatterySocBuffer;
+        return stored ?? ConfigurationDefaults.ChargeHomeBatterySocBuffer;
     }
 
     public bool GridPriceBasedHomeBatteryControl()
