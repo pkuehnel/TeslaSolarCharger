@@ -263,6 +263,50 @@ public class BleVehicleDataServiceTests : TestBase
         Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
     }
 
+    /// <summary>
+    /// The poll used to connect to a car that rejects TSC's key every few seconds forever, which filled the radio
+    /// and the error list while the one thing that would fix it - adding the key - was never named.
+    /// </summary>
+    [Fact]
+    public async Task CarThatRejectsTheKeyIsNotAskedAndTheUserIsToldToAddIt()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupPresence(present: true);
+        Mock.Mock<IBleAccessGateService>().Setup(g => g.IsKeyRejected(dtoCar.Id)).Returns(true);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+        //The beacon still proves the car is at home, that costs no radio time.
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.Is<string>(m => m.Contains("key", StringComparison.OrdinalIgnoreCase)),
+            Mock.Create<IIssueKeys>().BleDataCollectionError, TestVin, It.IsAny<string?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// Adding a key takes the container's adapter for itself. A read sent meanwhile can only time out, and it takes
+    /// the radio away from the pairing the user is standing at their car for.
+    /// </summary>
+    [Fact]
+    public async Task CarIsNotReadWhileAKeyIsBeingAddedOnItsContainer()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupPresence(present: true);
+        Mock.Mock<IBleAccessGateService>().Setup(g => g.IsPairingInProgress(It.IsAny<string?>())).Returns(true);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
+        //Nothing is wrong here, so the pause must not look like a problem in the error list.
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+    }
+
     [Fact]
     public async Task ConfirmedAwayCarIsSetNotAtHomeOfflineAndChargingValuesAreReset()
     {

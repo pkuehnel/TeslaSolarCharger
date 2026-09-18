@@ -1,3 +1,4 @@
+using Moq;
 using Newtonsoft.Json;
 using PkSoftwareService.Custom.Backend.Ble;
 using System;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -424,6 +426,78 @@ public class TeslaBleServiceTests : TestBase
 
         Assert.False(result.Success);
         Assert.Contains("failed to connect", result.ResultMessage);
+    }
+
+    /// <summary>
+    /// A car that rejects TSC's key rejects every request the same way, and the data poll repeats every few seconds
+    /// on a radio all cars share. Asking anyway is what made pairing and the connection test time out.
+    /// </summary>
+    [Fact]
+    public async Task CommandForACarThatRejectsTheKeyNeverReachesTheContainer()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult { Success = true, });
+        Mock.Mock<IBleAccessGateService>().Setup(g => g.IsKeyRejected(It.IsAny<int>())).Returns(true);
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.FlashLights(TestVin);
+
+        Assert.False(result.Success);
+        //The car's own verdict, so a charging command falls back to the Fleet API exactly as it would have after the
+        //rejection itself.
+        Assert.Equal(BleCommandOutcome.KeyNotPaired, result.Outcome);
+        Assert.Contains("key", result.ResultMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task CommandResultIsFedBackToTheAccessGate()
+    {
+        SetupContainer(new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.KeyNotPaired,
+            ResultMessage = "vehicle rejected request: your public key has not been paired with the vehicle",
+        });
+        var service = Mock.Create<TeslaBleService>();
+
+        await service.FlashLights(TestVin);
+
+        Mock.Mock<IBleAccessGateService>().Verify(g => g.RegisterCommandResult(It.IsAny<int>(),
+            It.Is<DtoBleCommandResult>(r => r.Outcome == BleCommandOutcome.KeyNotPaired)), Times.Once);
+    }
+
+    /// <summary>
+    /// The user asking for a connection test expects the car to be asked, not the remembered rejection to be handed
+    /// back - the key they just added is exactly what changes the answer.
+    /// </summary>
+    [Fact]
+    public async Task ConnectionTestAsksTheCarEvenAfterAKeyRejection()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, });
+        var service = Mock.Create<TeslaBleService>();
+
+        await service.TestConnection(TestVin);
+
+        Mock.Mock<IBleAccessGateService>().Verify(g => g.ClearKeyRejection(It.IsAny<int>()), Times.Once);
+        Assert.NotEmpty(handler.Requests);
+    }
+
+    /// <summary>
+    /// Pairing owns the container's Bluetooth adapter, so the scheduled reads have to be held back for its duration
+    /// or they only time out - and take the radio away from the pairing itself.
+    /// </summary>
+    [Fact]
+    public async Task PairKeyPausesTheContainerWhileItRuns()
+    {
+        var pairingScope = new Mock<IDisposable>();
+        Mock.Mock<IBleAccessGateService>().Setup(g => g.BeginPairing(It.IsAny<string?>())).Returns(pairingScope.Object);
+        SetupContainer(new DtoBleCommandResult { Success = true, });
+        var service = Mock.Create<TeslaBleService>();
+
+        await service.PairKey(TestVin, "charging_manager");
+
+        Mock.Mock<IBleAccessGateService>().Verify(g => g.BeginPairing("http://ble-container:7210"), Times.Once);
+        pairingScope.Verify(s => s.Dispose(), Times.Once);
     }
 
     [Fact]
