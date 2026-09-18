@@ -63,6 +63,22 @@ public class TeslaBleServiceTests : TestBase
         Assert.Equal(BleConnectionTestResultType.CarAsleep, result);
     }
 
+    /// <summary>
+    /// The car's own rejection is the only proof that TSC's key is missing, and it used to be thrown away: reported as
+    /// a link failure it ended up as "the key works, please test again" while the car said the opposite.
+    /// </summary>
+    [Fact]
+    public void CarRejectingTheKeyNeedsNoFurtherChecks()
+    {
+        var result = TeslaBleService.ClassifyChargeState(new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.KeyNotPaired,
+        });
+
+        Assert.Equal(BleConnectionTestResultType.KeyNotPaired, result);
+    }
+
     [Theory]
     [InlineData(BleCommandOutcome.CarAbsent)]
     [InlineData(BleCommandOutcome.LinkFailed)]
@@ -129,18 +145,37 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public void PresentCarWithoutBodyControllerAnswerMeansMissingKey()
+    public void PresentCarRejectingTheBodyControllerReadMeansMissingKey()
     {
         var bodyControllerState = new DtoBleCommandResult
         {
             Success = false,
-            Outcome = BleCommandOutcome.LinkFailed,
-            ResultMessage = "failed to connect: vehicle rejected request: your public key has not been paired with the vehicle",
+            Outcome = BleCommandOutcome.KeyNotPaired,
+            ResultMessage = "vehicle rejected request: your public key has not been paired with the vehicle",
         };
 
         var result = TeslaBleService.ClassifyBodyControllerState(bodyControllerState, isAwake: false);
 
         Assert.Equal(BleConnectionTestResultType.KeyNotPaired, result);
+    }
+
+    /// <summary>
+    /// The body controller answers without any key, so its failure is a link problem and blaming the key would send
+    /// the user pairing a key that is already there.
+    /// </summary>
+    [Fact]
+    public void BodyControllerFailingOnTheLinkIsNotBlamedOnTheKey()
+    {
+        var bodyControllerState = new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.LinkFailed,
+            ResultMessage = "failed to read body controller state: the car hung up",
+        };
+
+        var result = TeslaBleService.ClassifyBodyControllerState(bodyControllerState, isAwake: false);
+
+        Assert.Equal(BleConnectionTestResultType.Unknown, result);
     }
 
     [Fact]
@@ -154,7 +189,7 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public void AnsweringBodyControllerOfASleepingCarMeansTheKeyWorks()
+    public void AnsweringBodyControllerOfASleepingCarMeansAsleep()
     {
         var bodyControllerState = new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, };
 
@@ -164,7 +199,7 @@ public class TeslaBleServiceTests : TestBase
     }
 
     [Fact]
-    public void AwakeCarWithWorkingKeyButFailedChargeStateStaysUnknown()
+    public void AwakeCarWithFailedChargeStateStaysUnknown()
     {
         var bodyControllerState = new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, };
 
@@ -324,6 +359,70 @@ public class TeslaBleServiceTests : TestBase
         Assert.NotEqual(BleConnectionTestResultType.Success, result.ResultType);
         Assert.Contains("UNKNOWNVIN1234567", result.ErrorDetails);
         Assert.Empty(handler.Requests);
+    }
+
+    /// <summary>
+    /// Measured on a real car: the charge state is rejected with the car's "public key has not been paired" message.
+    /// That is the whole answer, so the test must not ask anything else and must not end up claiming the key works.
+    /// </summary>
+    [Fact]
+    public async Task ConnectionTestReportsTheCarsKeyRejectionWithoutAskingAnythingElse()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.KeyNotPaired,
+            Phase = BleCommandPhase.Command,
+            ResultMessage = "vehicle rejected request: your public key has not been paired with the vehicle",
+        });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.TestConnection(TestVin);
+
+        Assert.Equal(BleConnectionTestResultType.KeyNotPaired, result.ResultType);
+        Assert.Contains("paired", result.ErrorDetails);
+        Assert.Single(handler.Requests);
+    }
+
+    /// <summary>
+    /// Pairing only sends the request; the key is added when the user taps a key card on the center console. The
+    /// answer used to be overwritten with "not successful", so every successful request was reported as a failure.
+    /// </summary>
+    [Fact]
+    public async Task PairKeyReportsASentRequestAsSuccess()
+    {
+        var handler = SetupContainer(new DtoBleCommandResult
+        {
+            Success = true,
+            ResultMessage = $"Sent add-key request to {TestVin}. Confirm by tapping NFC card on center console.",
+        });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.PairKey(TestVin, "charging_manager");
+
+        Assert.True(result.Success);
+        Assert.Contains("Confirm by tapping NFC card", result.ResultMessage);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("http://ble-container:7210/api/" + BleApiRoutes.PairCar, request.Uri.GetLeftPart(UriPartial.Path));
+        var query = HttpUtility.ParseQueryString(request.Uri.Query);
+        Assert.Equal(TestVin, query[BleApiRoutes.VinQueryParam]);
+        Assert.Equal("charging_manager", query[BleApiRoutes.ApiRoleQueryParam]);
+    }
+
+    [Fact]
+    public async Task PairKeyPassesAFailedRequestOn()
+    {
+        SetupContainer(new DtoBleCommandResult
+        {
+            Success = false,
+            ResultMessage = "failed to connect: context deadline exceeded",
+        });
+        var service = Mock.Create<TeslaBleService>();
+
+        var result = await service.PairKey(TestVin, "charging_manager");
+
+        Assert.False(result.Success);
+        Assert.Contains("failed to connect", result.ResultMessage);
     }
 
     [Fact]

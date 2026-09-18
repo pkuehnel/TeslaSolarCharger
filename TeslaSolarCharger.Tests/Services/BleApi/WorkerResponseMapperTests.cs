@@ -17,6 +17,7 @@ public class WorkerResponseMapperTests
     [InlineData("linkFailed", BleCommandOutcome.LinkFailed)]
     [InlineData("carAsleep", BleCommandOutcome.CarAsleep)]
     [InlineData("carRefused", BleCommandOutcome.CarRefused)]
+    [InlineData("keyNotPaired", BleCommandOutcome.KeyNotPaired)]
     [InlineData("adapterUnavailable", BleCommandOutcome.AdapterUnavailable)]
     [InlineData("invalidRequest", BleCommandOutcome.InvalidRequest)]
     public void MapsEveryOutcomeTheWorkerCanSend(string workerOutcome, BleCommandOutcome expected)

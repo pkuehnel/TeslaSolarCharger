@@ -143,8 +143,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         return chargeStateResult.Outcome switch
         {
-            //The car answered the body controller, so it is in range and the key works. Only the infotainment
-            //system is asleep, which is not an error at all.
+            //The car itself rejected the command because TSC's key is not on its whitelist. That is the car's own
+            //verdict, so nothing has to be narrowed down any further.
+            BleCommandOutcome.KeyNotPaired => BleConnectionTestResultType.KeyNotPaired,
+            //The car answered the body controller, so it is in range. Only the infotainment system is asleep, which
+            //is not an error at all.
             BleCommandOutcome.CarAsleep => BleConnectionTestResultType.CarAsleep,
             //Local problems: the car was never asked, so nothing about it can be concluded.
             BleCommandOutcome.AdapterNotFound => BleConnectionTestResultType.ContainerProblem,
@@ -178,19 +181,26 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
 
     /// <summary>
     /// Final result for a car the container hears but whose charge state could not be read.
+    ///
+    /// The body controller answers without any key at all, so it can only tell a car that is there from one that is
+    /// not, and an awake car from a sleeping one. It says nothing whatsoever about TSC's key, which is why a missing
+    /// key has to come from the car's own rejection instead.
     /// </summary>
     internal static BleConnectionTestResultType ClassifyBodyControllerState(DtoBleCommandResult bodyControllerStateResult,
         bool isAwake)
     {
         if (!bodyControllerStateResult.Success)
         {
-            //A car that does not even answer its body controller either left in the meantime or, far more likely,
-            //never got TSC's key.
-            return bodyControllerStateResult.Outcome == BleCommandOutcome.CarAbsent
-                ? BleConnectionTestResultType.CarNotFound
-                : BleConnectionTestResultType.KeyNotPaired;
+            return bodyControllerStateResult.Outcome switch
+            {
+                //The car rejected the unauthenticated read as well, so the key is missing beyond doubt.
+                BleCommandOutcome.KeyNotPaired => BleConnectionTestResultType.KeyNotPaired,
+                //A car that does not answer its body controller at all left in the meantime.
+                BleCommandOutcome.CarAbsent => BleConnectionTestResultType.CarNotFound,
+                _ => BleConnectionTestResultType.Unknown,
+            };
         }
-        //The key works: either the car is asleep or something transient went wrong.
+        //The car is there and answers; whether it is asleep is all that can be concluded from that.
         return isAwake ? BleConnectionTestResultType.Unknown : BleConnectionTestResultType.CarAsleep;
     }
 
@@ -268,8 +278,9 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 };
             }
             var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
-            // Success is unknown as the response is not known but display success false so result message is displayed in UI
-            commandResult.Success = false;
+            //Success means the request reached the car, not that the key is on its whitelist: that only happens once
+            //the user taps a key card on the center console. Overwriting it with false told every user that pairing
+            //had failed while the car was waiting for exactly that tap.
             return commandResult;
         }
         catch (Exception ex)

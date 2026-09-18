@@ -18,11 +18,13 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
             new TextLocalizationTranslation(LanguageCodes.German,
                 "Der BLE-Container hat das Fahrzeug nicht gehört. Stellen Sie sicher, dass das Fahrzeug in Reichweite der Antenne des Containers steht, und testen Sie erneut."));
 
+        //Deliberately says nothing about the key: the request that a sleeping car still answers needs no key at all,
+        //so there is no evidence either way while the car sleeps.
         Register(TranslationKeys.BleTestCarAsleep,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "The car is in range and TSC's key works, but the car is asleep. Open a door to wake it up and test again."),
+                "The car is in range but asleep. Open a door to wake it up and test again."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Das Fahrzeug ist in Reichweite und der Schlüssel von TSC funktioniert, aber das Fahrzeug schläft. Öffnen Sie eine Tür, um es aufzuwecken, und testen Sie erneut."));
+                "Das Fahrzeug ist in Reichweite, schläft aber. Öffnen Sie eine Tür, um es aufzuwecken, und testen Sie erneut."));
 
         Register(TranslationKeys.BleTestKeyNotPaired,
             new TextLocalizationTranslation(LanguageCodes.English,
@@ -38,9 +40,9 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.BleTestUnknown,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "The car is in range and TSC's key works, but the request failed. Please test again."),
+                "The car is in range but the request failed. Please test again."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Das Fahrzeug ist in Reichweite und der Schlüssel von TSC funktioniert, die Anfrage ist aber fehlgeschlagen. Bitte testen Sie erneut."));
+                "Das Fahrzeug ist in Reichweite, die Anfrage ist aber fehlgeschlagen. Bitte testen Sie erneut."));
 
         Register(TranslationKeys.BleTestAgainButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Test again"),
@@ -68,9 +70,12 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting for the confirmation in the car..."),
             new TextLocalizationTranslation(LanguageCodes.German, "Warten auf die Bestätigung im Fahrzeug..."));
 
+        //The car only gets the key once the user taps a key card, so this may not claim the key was added.
         Register(TranslationKeys.BleTestPairKeySuccess,
-            new TextLocalizationTranslation(LanguageCodes.English, "The key was added. Test the connection again."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Schlüssel wurde hinzugefügt. Testen Sie die Verbindung erneut."));
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "The request was sent to the car. Hold one of your key cards against the center console to confirm it, then test the connection again."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Die Anfrage wurde an das Fahrzeug gesendet. Halten Sie eine Ihrer Schlüsselkarten an die Mittelkonsole, um sie zu bestätigen, und testen Sie danach die Verbindung erneut."));
 
         Register(TranslationKeys.BleTestPairKeyError,
             new TextLocalizationTranslation(LanguageCodes.English, "Could not add the key: {0}"),
