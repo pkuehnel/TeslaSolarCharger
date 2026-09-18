@@ -10,6 +10,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources;
 using VehicleSleepStatus = VCSEC.VehicleSleepStatus_E;
@@ -202,8 +203,9 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     public async Task<DtoBleCommandResult> SetAmp(string vin, int amps)
     {
         logger.LogTrace("{method}({vin}, {amps})", nameof(SetAmp), vin, amps);
-        var car = settings.Cars.First(c => c.Vin == vin);
-        var initialRequestedCurrent = car.ChargerRequestedCurrent.Value;
+        //An unknown car has no current to compare against, so no second send is needed; the command itself reports
+        //the unknown VIN.
+        var initialRequestedCurrent = FindCarByVin(vin)?.ChargerRequestedCurrent.Value;
         var request = new DtoBleRequest
         {
             Vin = vin,
@@ -232,12 +234,12 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     public async Task<DtoBleCommandResult> PairKey(string vin, string apiRole)
     {
         logger.LogTrace("{method}({vin}, {apiRole})", nameof(PairKey), vin, apiRole);
-        var bleBaseUrl = GetBleBaseUrl(vin);
+        var bleBaseUrl = GetBleBaseUrl(vin, out var bleBaseUrlError);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
             return new()
             {
-                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ResultMessage = bleBaseUrlError,
                 ErrorType = ErrorType.TscConfiguration,
                 Success = false,
             };
@@ -292,7 +294,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             return new DtoBlePresenceResult
             {
-                ErrorMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ErrorMessage = MissingBleUrlMessage,
             };
         }
         var queryString = HttpUtility.ParseQueryString(string.Empty);
@@ -346,10 +348,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     public Task<DtoBlePresenceResult> GetPresenceForVin(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(GetPresenceForVin), vin);
-        var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
+        var car = FindCarByVin(vin);
         if (car == default)
         {
-            return Task.FromResult(new DtoBlePresenceResult { ErrorMessage = $"No car with VIN {vin} is known." });
+            return Task.FromResult(new DtoBlePresenceResult { ErrorMessage = UnknownCarMessage(vin) });
         }
         return GetPresence(car.BleApiBaseUrl, car.BleAdapterAddress, new List<string> { vin }, null);
     }
@@ -554,13 +556,13 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     private async Task<DtoBleCommandResult> SendCommandToBle(DtoBleRequest request)
     {
         logger.LogTrace("{method}({@request})", nameof(SendCommandToBle), request);
-        var bleBaseUrl = GetBleBaseUrl(request.Vin);
+        var bleBaseUrl = GetBleBaseUrl(request.Vin, out var bleBaseUrlError);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
             return new DtoBleCommandResult()
             {
                 Success = false,
-                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ResultMessage = bleBaseUrlError,
                 ErrorType = ErrorType.TscConfiguration,
             };
         }
@@ -608,10 +610,37 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         
     }
 
-    private string? GetBleBaseUrl(string vin)
+    /// <summary>
+    /// The car with the given VIN as TSC knows it, or null when no such car is configured. Compared case
+    /// insensitively, like everywhere else a VIN is matched, so a differently spelled VIN still finds its car.
+    /// </summary>
+    private DtoCar? FindCarByVin(string vin) =>
+        settings.Cars.FirstOrDefault(c => string.Equals(c.Vin, vin, StringComparison.OrdinalIgnoreCase));
+
+    private static string UnknownCarMessage(string vin) => $"No car with VIN {vin} is known to TSC.";
+
+    //The BLE url belongs to the car, not to the base configuration: it says which BLE container is near that car.
+    //Sending the user to the base configuration made them look for a setting that is not there.
+    private const string MissingBleUrlMessage = "BLE Base URL is not set. Set a BLE URL in the car's settings.";
+
+    /// <summary>
+    /// Base url of the BLE container that serves the given car. Null when the car is unknown or has no BLE url
+    /// configured; <paramref name="errorMessage"/> then says which of the two it is, as the two need different
+    /// things done about them.
+    /// </summary>
+    private string? GetBleBaseUrl(string vin, out string? errorMessage)
     {
-        var car = settings.Cars.First(c => c.Vin == vin);
-        return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+        var car = FindCarByVin(vin);
+        if (car == default)
+        {
+            errorMessage = UnknownCarMessage(vin);
+            return null;
+        }
+        var baseUrl = GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+        errorMessage = string.IsNullOrWhiteSpace(baseUrl)
+            ? MissingBleUrlMessage
+            : null;
+        return baseUrl;
     }
 
     /// <summary>
@@ -620,7 +649,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     /// </summary>
     private void AddAdapterQueryParameter(System.Collections.Specialized.NameValueCollection queryString, string vin)
     {
-        var adapter = settings.Cars.FirstOrDefault(c => c.Vin == vin)?.BleAdapterAddress;
+        var adapter = FindCarByVin(vin)?.BleAdapterAddress;
         if (!string.IsNullOrWhiteSpace(adapter))
         {
             queryString.Add(BleApiRoutes.AdapterQueryParam, adapter);
