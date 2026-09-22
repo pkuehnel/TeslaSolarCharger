@@ -199,6 +199,13 @@ public class ChargingScheduleService : IChargingScheduleService
                 _logger.LogTrace("Predicted solar power generation is not used for charging schedules for target {@target}.", nextTarget);
             }
 
+            if (nextTarget.TargetSoc != default && homeBatteryEnergyToCharge > minimumEnergyToCharge)
+            {
+                //With a target SoC the home battery only supports reaching it, so do not plan more discharge energy than the car still needs
+                _logger.LogTrace("Capping home battery energy to charge from {homeBatteryEnergyToCharge}Wh to the remaining energy for the target SoC of {minimumEnergyToCharge}Wh", homeBatteryEnergyToCharge, minimumEnergyToCharge);
+                homeBatteryEnergyToCharge = minimumEnergyToCharge;
+            }
+
             if (nextTarget.DischargeHomeBatteryToMinSoc && homeBatteryEnergyToCharge > 0)
             {
                 var homeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower();
@@ -237,7 +244,7 @@ public class ChargingScheduleService : IChargingScheduleService
                                 _logger.LogTrace("Added home battery discharge schedule. AddedEnergy={addedEnergy}Wh; Remaining homeBatteryEnergyToCharge before subtract={remainingEnergy}", addedEnergy, homeBatteryEnergyToCharge);
                                 homeBatteryEnergyToCharge -= addedEnergy;
                                 minimumEnergyToCharge -= addedEnergy;
-                                //As we want to discharge the complete home battery to min soc if DischargeHomeBatteryToMinSoc is set, we do not break here when minimumEnergyToCharge <= 0
+                                //Without a target SoC the complete home battery should be discharged to min soc, so we do not break here when minimumEnergyToCharge <= 0
                                 if (addedEnergy < 1)
                                 {
                                     _logger.LogTrace("Breaking home battery discharge planning as the time window until the target is fully scheduled. Remaining homeBatteryEnergyToCharge={remainingEnergy}", homeBatteryEnergyToCharge);
