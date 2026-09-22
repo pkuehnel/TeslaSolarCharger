@@ -200,7 +200,9 @@ If you only want to charge based on Spot Price, you are done now.
 
 Besides HTTP on port 7190, TSC is available via HTTPS on port 7191: `https://your-ip-address:7191`. Use HTTPS especially on iPhone, iPad and Mac: from version 27 on, Safari runs TSC up to ten times slower over plain HTTP.
 
-TSC creates its own certificate for HTTPS and adds every host name and IP address it is opened with. For your browser to trust it without a warning, install TSC's certificate on each device once: open `Base Configuration`, click `Download certificate` and follow the steps for your device shown below the button. When TSC is opened via HTTP, the home page shows the same download button and a link to the secure address.
+TSC creates its own certificate for HTTPS and adds every host name and IP address it is opened with. For your browser to trust it without a warning, install TSC's certificate on each device once: open `Base Configuration`, click `Download certificate` and follow the steps for your device shown below the button.
+
+On iPhone, iPad and Mac, where the slowdown occurs, the home page additionally shows the download button and a link to the secure address as long as TSC is opened via HTTP. You can close that hint, then it stays hidden on that device.
 
 - With `network_mode: host`, as in the docker-compose files above, nothing else is needed. If your container uses `ports:` instead, add `- 7191:7191`.
 - To use another port, set the environment variable `HttpsPort`, e.g. `- HttpsPort=8443`. `HttpsPort=0` switches HTTPS off. If `ASPNETCORE_URLS` already contains an `https://` URL, TSC uses its certificates for that one instead.

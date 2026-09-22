@@ -31,6 +31,7 @@ namespace TeslaSolarCharger.Tests.Components;
 public class HttpsComponentsTests : Bunit.TestContext
 {
     private readonly Mock<IHttpClientHelper> _httpClientHelper = new();
+    private readonly Mock<IJavaScriptWrapper> _javaScriptWrapper = new();
 
     private static readonly DtoHttpsInformation Enabled = new()
     {
@@ -49,6 +50,10 @@ public class HttpsComponentsTests : Bunit.TestContext
         Services.AddMudExtensions();
         Services.AddSharedDependencies();
         Services.AddSingleton(_httpClientHelper.Object);
+        //A browser that is slowed down without HTTPS and has not dismissed the hint yet
+        _javaScriptWrapper.Setup(j => j.IsWebKitBrowser()).ReturnsAsync(true);
+        _javaScriptWrapper.Setup(j => j.ReadFromLocalStorage(It.IsAny<string>())).ReturnsAsync((string?)null);
+        Services.AddSingleton(_javaScriptWrapper.Object);
     }
 
     private void AnswerHttpsInformation(DtoHttpsInformation? information, string? errorMessage = null)
@@ -128,6 +133,49 @@ public class HttpsComponentsTests : Bunit.TestContext
 
         Assert.Empty(Render<HttpsHintComponent>().Markup.Trim());
         _httpClientHelper.Verify(h => h.SendGetRequestAsync<DtoHttpsInformation>(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void TheHintIsHiddenOnBrowsersThatAreNotSlowedDown()
+    {
+        AnswerHttpsInformation(Enabled);
+        _javaScriptWrapper.Setup(j => j.IsWebKitBrowser()).ReturnsAsync(false);
+
+        Assert.Empty(Render<HttpsHintComponent>().Markup.Trim());
+        _httpClientHelper.Verify(h => h.SendGetRequestAsync<DtoHttpsInformation>(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void TheHintIsHiddenAfterItWasDismissedOnThisDevice()
+    {
+        AnswerHttpsInformation(Enabled);
+        _javaScriptWrapper.Setup(j => j.ReadFromLocalStorage(HttpsHintComponent.DismissedStorageKey)).ReturnsAsync("true");
+
+        Assert.Empty(Render<HttpsHintComponent>().Markup.Trim());
+        _httpClientHelper.Verify(h => h.SendGetRequestAsync<DtoHttpsInformation>(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void ClosingTheHintHidesItAndRemembersThat()
+    {
+        AnswerHttpsInformation(Enabled);
+        var hint = Render<HttpsHintComponent>();
+
+        hint.FindComponents<MudIconButton>().Single().Find("button").Click();
+
+        Assert.Empty(hint.Markup.Trim());
+        _javaScriptWrapper.Verify(j => j.SaveToLocalStorage(HttpsHintComponent.DismissedStorageKey, "true"), Times.Once);
+    }
+
+    [Fact]
+    public void TheSectionIgnoresTheBrowserAndTheDismissal()
+    {
+        //The base configuration is where users look for the certificate on purpose
+        AnswerHttpsInformation(Enabled);
+        _javaScriptWrapper.Setup(j => j.IsWebKitBrowser()).ReturnsAsync(false);
+        _javaScriptWrapper.Setup(j => j.ReadFromLocalStorage(HttpsHintComponent.DismissedStorageKey)).ReturnsAsync("true");
+
+        Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), Render<HttpsConfigurationComponent>().Markup);
     }
 
     [Fact]

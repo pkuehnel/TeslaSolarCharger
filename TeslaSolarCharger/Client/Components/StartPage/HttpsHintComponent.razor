@@ -9,11 +9,13 @@
 
 @inject NavigationManager NavigationManager
 @inject IHttpClientHelper HttpClientHelper
+@inject IJavaScriptWrapper JavaScriptWrapper
 @inject ITextLocalizationService TextLocalizer
 
 @if (_httpsInformation is { IsEnabled: true, })
 {
-    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-3">
+    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="Dismiss">
         <MudText Typo="Typo.h6">@T(TranslationKeys.HttpsHintTitle)</MudText>
         <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
         <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
@@ -22,12 +24,24 @@
 }
 
 @code {
+    public const string DismissedStorageKey = "httpsHintDismissed";
+    private const string DismissedValue = "true";
+
     private DtoHttpsInformation? _httpsInformation;
 
     protected override async Task OnInitializedAsync()
     {
-        //Over HTTPS there is nothing to point to, so there is no need to ask the server
+        //Over HTTPS there is nothing to point to, so there is no need to ask anything
         if (HttpsUrlHelper.IsSecure(new Uri(NavigationManager.Uri)))
+        {
+            return;
+        }
+        //Only WebKit browsers are slowed down without HTTPS, so nobody else is bothered with the hint
+        if (!await JavaScriptWrapper.IsWebKitBrowser())
+        {
+            return;
+        }
+        if (string.Equals(await JavaScriptWrapper.ReadFromLocalStorage(DismissedStorageKey), DismissedValue, StringComparison.Ordinal))
         {
             return;
         }
@@ -36,6 +50,16 @@
         {
             _httpsInformation = result.Data;
         }
+    }
+
+    /// <summary>
+    /// Hides the hint on this device and browser until its local storage is cleared. The certificate stays available
+    /// in the base configuration.
+    /// </summary>
+    private async Task Dismiss()
+    {
+        _httpsInformation = default;
+        await JavaScriptWrapper.SaveToLocalStorage(DismissedStorageKey, DismissedValue);
     }
 
     private string T(string key) =>
