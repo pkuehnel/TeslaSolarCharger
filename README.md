@@ -16,6 +16,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current.
   - [Setting up TeslaSolarCharger](#Setting-up-TeslaSolarCharger)
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
+    - [HTTPS](#https)
     - [Install and setup BLE API](#install-and-setup-ble-api)
 - [Setting up solar power values](#setting-up-solar-power-values)
   - [Templates](#templates)
@@ -194,6 +195,17 @@ volumes:
 You can change all of these settings later at any time via the menu (`Cloud Connection`, `Base Configuration`, `Car Settings`, …).
 
 If you only want to charge based on Spot Price, you are done now.
+
+#### HTTPS
+
+Besides HTTP on port 7190, TSC is available via HTTPS on port 7191: `https://your-ip-address:7191`. Use HTTPS especially on iPhone, iPad and Mac: from version 27 on, Safari runs TSC up to ten times slower over plain HTTP.
+
+TSC creates its own certificate for HTTPS and adds every host name and IP address it is opened with. For your browser to trust it without a warning, install TSC's certificate on each device once: open `Base Configuration`, click `Download certificate` and follow the steps for your device shown below the button. When TSC is opened via HTTP, the home page shows the same download button and a link to the secure address.
+
+- With `network_mode: host`, as in the docker-compose files above, nothing else is needed. If your container uses `ports:` instead, add `- 7191:7191`.
+- To use another port, set the environment variable `HttpsPort`, e.g. `- HttpsPort=8443`. `HttpsPort=0` switches HTTPS off. If `ASPNETCORE_URLS` already contains an `https://` URL, TSC uses its certificates for that one instead.
+- Browsers do not tell TSC the IP address they were opened with. If TSC runs in a Docker bridge network, enter the host's IP address under `Base Configuration` > `Additional host names and IP addresses`.
+- The certificate's private key is not part of TSC backups. After restoring a backup on a new device, install the newly created certificate on your devices again.
 
 #### Install and setup BLE API
 To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car. Even if it is working when being a few meters away or in different rooms, I can guarantee you, that you will have issues sooner or later. The device needs to be in one room with the car without any walls between them.

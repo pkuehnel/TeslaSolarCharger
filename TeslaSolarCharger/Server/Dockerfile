@@ -4,6 +4,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
 EXPOSE 80
+EXPOSE 7191
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-amd64 AS build
 ARG MINVERVERSIONOVERRIDE

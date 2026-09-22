@@ -1,0 +1,44 @@
+@using TeslaSolarCharger.Client.Components.Https
+@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Https
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject NavigationManager NavigationManager
+@inject IHttpClientHelper HttpClientHelper
+@inject ITextLocalizationService TextLocalizer
+
+@if (_httpsInformation is { IsEnabled: true, })
+{
+    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-3">
+        <MudText Typo="Typo.h6">@T(TranslationKeys.HttpsHintTitle)</MudText>
+        <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
+        <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
+        <HttpsInstallInstructionsComponent Class="mt-2" />
+    </MudAlert>
+}
+
+@code {
+    private DtoHttpsInformation? _httpsInformation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Over HTTPS there is nothing to point to, so there is no need to ask the server
+        if (HttpsUrlHelper.IsSecure(new Uri(NavigationManager.Uri)))
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoHttpsInformation>(HttpsUrlHelper.HttpsInformationPath);
+        if (!result.HasError)
+        {
+            _httpsInformation = result.Data;
+        }
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HttpsComponentsLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

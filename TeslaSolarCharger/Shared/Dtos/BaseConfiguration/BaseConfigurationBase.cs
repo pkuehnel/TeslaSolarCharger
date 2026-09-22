@@ -169,6 +169,11 @@ public class BaseConfigurationBase
     [Postfix("m")]
     public int HomeGeofenceRadius { get; set; } = 50;
     public decimal ChargingSwitchCosts { get; set; } = 0.05M;
+    /// <summary>
+    /// Host names and IP addresses the HTTPS certificate is additionally issued for, one per line. Only needed for
+    /// names TSC cannot see itself, e.g. the host's IP address when TSC runs in a Docker bridge network.
+    /// </summary>
+    public string? HttpsAdditionalHostNames { get; set; }
 
     public bool IsFirstRun { get; set; }
     public FrontendConfiguration? FrontendConfiguration { get; set; }
