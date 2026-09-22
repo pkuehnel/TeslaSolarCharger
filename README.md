@@ -96,7 +96,8 @@ services:
     network_mode: host
     environment:
       - TZ=Europe/Berlin ##You can change your Timezone here
-      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
+#      - ASPNETCORE_URLS=http://+:7190 ##Optional: change the HTTP port here
+#      - HttpsPort=7443 ##Optional: change the HTTPS port here, 0 switches HTTPS off
     volumes:
       - teslasolarcharger-configs:/app/configs
 
@@ -150,7 +151,8 @@ services:
     network_mode: host
     environment:
       - TZ=Europe/Berlin ##You can change your Timezone here
-      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
+#      - ASPNETCORE_URLS=http://+:7190 ##Optional: change the HTTP port here
+#      - HttpsPort=7443 ##Optional: change the HTTPS port here, 0 switches HTTPS off
     volumes:
       - teslasolarcharger-configs:/app/configs
   
@@ -198,14 +200,14 @@ If you only want to charge based on Spot Price, you are done now.
 
 #### HTTPS
 
-Besides HTTP on port 7190, TSC is available via HTTPS on port 7191: `https://your-ip-address:7191`. Use HTTPS especially on iPhone, iPad and Mac: from version 27 on, Safari runs TSC up to ten times slower over plain HTTP.
+Besides HTTP on port 7190, TSC is available via HTTPS on port 7443: `https://your-ip-address:7443`. Use HTTPS especially on iPhone, iPad and Mac: from version 27 on, Safari runs TSC up to ten times slower over plain HTTP.
 
 TSC creates its own certificate for HTTPS and adds every host name and IP address it is opened with. For your browser to trust it without a warning, install TSC's certificate on each device once: open `Base Configuration`, click `Download certificate` and follow the steps for your device shown below the button.
 
 On iPhone, iPad and Mac, where the slowdown occurs, the home page additionally shows the download button and a link to the secure address as long as TSC is opened via HTTP. You can close that hint, then it stays hidden on that device.
 
-- With `network_mode: host`, as in the docker-compose files above, nothing else is needed and HTTPS works after a `docker compose pull` and `docker compose up -d`. If your container uses `ports:` instead, add `- 7191:7191`; until then TSC says so on the home page and in the base configuration instead of offering an address that cannot be reached.
-- To use another port, set the environment variable `HttpsPort`, e.g. `- HttpsPort=8443`. `HttpsPort=0` switches HTTPS off. If `ASPNETCORE_URLS` already contains an `https://` URL, TSC uses its certificates for that one instead.
+- With `network_mode: host`, as in the docker-compose files above, nothing else is needed and HTTPS works after a `docker compose pull` and `docker compose up -d`. If your container uses `ports:` instead, add `- 7443:7443`; until then TSC says so on the home page and in the base configuration instead of offering an address that cannot be reached.
+- To use other ports, remove the `#` in front of the `ASPNETCORE_URLS` (HTTP) or `HttpsPort` (HTTPS) line in your docker-compose.yml, change the port and run `docker compose up -d`, e.g. `- HttpsPort=8443`. `HttpsPort=0` switches HTTPS off. If `ASPNETCORE_URLS` already contains an `https://` URL, TSC uses its certificates for that one instead.
 - TSC learns the host names and addresses you use from your browser's requests. `Base Configuration` > `Additional host names and IP addresses` is only needed for names it never sees, e.g. one you use exclusively over HTTPS before ever opening it over HTTP.
 - The certificate's private key is not part of TSC backups. After restoring a backup on a new device, install the newly created certificate on your devices again.
 
@@ -260,7 +262,8 @@ services:
     network_mode: host
     environment:
       - TZ=Europe/Berlin ##You can change your Timezone here
-      - ASPNETCORE_URLS=http://+:7190 ##You can change the port here if needed
+#      - ASPNETCORE_URLS=http://+:7190 ##Optional: change the HTTP port here
+#      - HttpsPort=7443 ##Optional: change the HTTPS port here, 0 switches HTTPS off
     volumes:
       - teslasolarcharger-configs:/app/configs
   

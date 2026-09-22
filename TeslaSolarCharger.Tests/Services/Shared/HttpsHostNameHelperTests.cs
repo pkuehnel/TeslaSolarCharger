@@ -103,7 +103,7 @@ public class HttpsHostNameHelperTests
     [InlineData("123")]
     [InlineData("256.1.1.1")]
     [InlineData("https://tsc.lan")]
-    [InlineData("tsc.lan:7191")]
+    [InlineData("tsc.lan:7443")]
     [InlineData("Upper.lan")]
     public void IsValidHostName_RejectsEverythingElse(string hostName)
     {

@@ -117,7 +117,7 @@ public partial class HttpsCertificateService(
     }
 
     /// <summary>
-    /// The port of the first HTTPS address, e.g. 7191 of "https://[::]:7191".
+    /// The port of the first HTTPS address, e.g. 7443 of "https://[::]:7443".
     /// </summary>
     public static int? GetHttpsPort(IEnumerable<string> serverAddresses)
     {

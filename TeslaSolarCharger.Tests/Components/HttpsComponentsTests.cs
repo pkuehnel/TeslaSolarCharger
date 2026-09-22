@@ -37,7 +37,7 @@ public class HttpsComponentsTests : Bunit.TestContext
     {
         IsEnabled = true,
         Reachability = HttpsReachability.Reachable,
-        Port = 7191,
+        Port = 7443,
         CoveredNames = ["127.0.0.1", "localhost", "primary-pc",],
         RootCertificateName = "Solar4Car local HTTPS root 2026-09-22 12:00",
         RootCertificateSha256Fingerprint = "AB:CD",
@@ -83,7 +83,7 @@ public class HttpsComponentsTests : Bunit.TestContext
         Assert.Contains(T(TranslationKeys.HttpsHintTitle), hint.Markup);
         Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), hint.Markup);
         var secureAddress = hint.FindComponents<MudButton>().Single(b => b.Instance.Href != default);
-        Assert.Equal("https://localhost:7191/", secureAddress.Instance.Href);
+        Assert.Equal("https://localhost:7443/", secureAddress.Instance.Href);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class HttpsComponentsTests : Bunit.TestContext
 
         var hint = Render<HttpsHintComponent>();
 
-        Assert.Equal("https://localhost:7191/Home?tab=2", hint.FindComponents<MudButton>().Single(b => b.Instance.Href != default).Instance.Href);
+        Assert.Equal("https://localhost:7443/Home?tab=2", hint.FindComponents<MudButton>().Single(b => b.Instance.Href != default).Instance.Href);
     }
 
     [Fact]
@@ -183,11 +183,11 @@ public class HttpsComponentsTests : Bunit.TestContext
     public void TheHintExplainsHowToPublishTheHttpsPortInsteadOfOfferingADeadLink()
     {
         //A Docker port mapping that forwards only the HTTP port
-        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7191, Reachability = HttpsReachability.PortNotPublished, });
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7443, Reachability = HttpsReachability.PortNotPublished, });
 
         var hint = Render<HttpsHintComponent>();
 
-        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7191), hint.Markup);
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7443), hint.Markup);
         Assert.DoesNotContain(T(TranslationKeys.HttpsDownloadCertificateButton), hint.Markup);
         Assert.Empty(hint.FindComponents<MudButton>());
     }
@@ -195,11 +195,11 @@ public class HttpsComponentsTests : Bunit.TestContext
     [Fact]
     public void TheSectionExplainsHowToPublishTheHttpsPort()
     {
-        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7191, Reachability = HttpsReachability.PortNotPublished, });
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7443, Reachability = HttpsReachability.PortNotPublished, });
 
         var section = Render<HttpsConfigurationComponent>();
 
-        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7191), section.Markup);
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7443), section.Markup);
         //The certificate stays available, it is needed once the port is published
         Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), section.Markup);
         Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
@@ -212,7 +212,7 @@ public class HttpsComponentsTests : Bunit.TestContext
 
         var section = Render<HttpsConfigurationComponent>();
 
-        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsEnabledStatus), 7191), section.Markup);
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsEnabledStatus), 7443), section.Markup);
         Assert.Contains("127.0.0.1, localhost, primary-pc", section.Markup);
         Assert.Contains(Enabled.RootCertificateName!, section.Markup);
         Assert.Contains("AB:CD", section.Markup);

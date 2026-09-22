@@ -11,7 +11,7 @@ namespace TeslaSolarCharger.Tests.Services.Server.Https;
 
 public class HttpsCertificateServiceTests : HttpsCertificateTestBase
 {
-    private static readonly string[] HttpsAddresses = ["http://[::]:7190", "https://[::]:7191",];
+    private static readonly string[] HttpsAddresses = ["http://[::]:7190", "https://[::]:7443",];
 
     [Fact]
     public void GetServerCertificate_CoversTheLocalAndTheConfiguredNames()
@@ -285,7 +285,7 @@ public class HttpsCertificateServiceTests : HttpsCertificateTestBase
     }
 
     [Theory]
-    [InlineData(7191, "http://[::]:7190", "https://[::]:7191")]
+    [InlineData(7443, "http://[::]:7190", "https://[::]:7443")]
     [InlineData(5001, "https://localhost:5001/")]
     [InlineData(8443, "HTTPS://0.0.0.0:8443")]
     [InlineData(null, "http://[::]:7190")]
@@ -301,10 +301,10 @@ public class HttpsCertificateServiceTests : HttpsCertificateTestBase
         var service = CreateService();
         var root = GetRoot(service);
 
-        var information = service.GetHttpsInformation(["http://[::]:7190", "https://[::]:7191",], null);
+        var information = service.GetHttpsInformation(["http://[::]:7190", "https://[::]:7443",], null);
 
         Assert.True(information.IsEnabled);
-        Assert.Equal(7191, information.Port);
+        Assert.Equal(7443, information.Port);
         Assert.Equal(LocalNames.Order(StringComparer.Ordinal), information.CoveredNames);
         Assert.Equal(root.GetNameInfo(X509NameType.SimpleName, false), information.RootCertificateName);
         Assert.Matches("^([0-9A-F]{2}:){31}[0-9A-F]{2}$", information.RootCertificateSha256Fingerprint);

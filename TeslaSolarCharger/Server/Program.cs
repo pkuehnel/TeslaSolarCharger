@@ -74,13 +74,10 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 });
 
 //Safari/WebKit 27 runs JavaScript and WebAssembly without JIT on plain HTTP sites, which makes the app about ten times
-//slower (#2866), so TSC also listens for HTTPS with its own certificates.
+//slower (#2866), so TSC also listens for HTTPS with its own certificates. Without ASPNETCORE_URLS it uses port 7190.
 var httpsUrlDecision = HttpsUrlConfigurator.Decide(configurationManager["urls"], configurationManager.GetValue<int>("HttpsPort"),
     HttpsUrlConfigurator.IsTcpPortAvailable);
-if (httpsUrlDecision.Outcome == HttpsUrlOutcome.Added)
-{
-    builder.WebHost.UseUrls(httpsUrlDecision.Urls!);
-}
+builder.WebHost.UseUrls(httpsUrlDecision.Urls);
 builder.WebHost.ConfigureKestrel(options => options.UseTscHttpsCertificates());
 
 builder.Services.Configure<FormOptions>(options =>

@@ -49,16 +49,16 @@ public class HttpsControllerTests
     {
         var addresses = new ServerAddressesFeature();
         addresses.Addresses.Add("http://[::]:7190");
-        addresses.Addresses.Add("https://[::]:7191");
+        addresses.Addresses.Add("https://[::]:7443");
         _serverFeatures.Set<IServerAddressesFeature>(addresses);
-        var information = new DtoHttpsInformation { IsEnabled = true, Port = 7191, };
+        var information = new DtoHttpsInformation { IsEnabled = true, Port = 7443, };
         _httpsCertificateService.Setup(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>(), It.IsAny<string?>())).Returns(information);
 
         var result = CreateController().GetHttpsInformation();
 
         Assert.Same(information, result);
         _httpsCertificateService.Verify(s => s.GetHttpsInformation(It.Is<IEnumerable<string>>(a =>
-            string.Join(";", a) == "http://[::]:7190;https://[::]:7191"), It.IsAny<string?>()));
+            string.Join(";", a) == "http://[::]:7190;https://[::]:7443"), It.IsAny<string?>()));
     }
 
     [Fact]

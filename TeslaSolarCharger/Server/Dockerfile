@@ -4,7 +4,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
 EXPOSE 80
-EXPOSE 7191
+EXPOSE 7190
+EXPOSE 7443
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-amd64 AS build
 ARG MINVERVERSIONOVERRIDE
@@ -26,6 +27,5 @@ RUN dotnet publish "TeslaSolarCharger.Server.csproj" -c Release -o /app/publish
 FROM base AS final
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:80;http://+:7190
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "TeslaSolarCharger.Server.dll"]

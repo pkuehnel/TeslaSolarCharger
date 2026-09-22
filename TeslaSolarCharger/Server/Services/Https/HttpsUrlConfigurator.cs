@@ -9,48 +9,70 @@ public enum HttpsUrlOutcome
     Added,
     AlreadyConfigured,
     Disabled,
-    NoUrlsConfigured,
     PortUnavailable,
 }
 
-public record HttpsUrlDecision(HttpsUrlOutcome Outcome, string? Urls, int Port);
+/// <param name="Urls">The URLs to listen on, separated by semicolons.</param>
+/// <param name="UsesDefaultUrls">Whether no URLs are configured, so TSC listens on its default ones.</param>
+public record HttpsUrlDecision(HttpsUrlOutcome Outcome, string Urls, int Port, bool UsesDefaultUrls);
 
 /// <summary>
-/// Decides whether TSC adds an HTTPS endpoint to the URLs it listens on (ASPNETCORE_URLS), before the web host starts.
+/// Decides the URLs TSC listens on (ASPNETCORE_URLS or TSC's defaults) and whether it adds an HTTPS endpoint to them,
+/// before the web host starts.
 /// </summary>
 public static partial class HttpsUrlConfigurator
 {
+    public const int DefaultHttpPort = 7190;
+    //docker-compose files from before November 2025 forward a host port to port 80 of the container
+    public const int LegacyHttpPort = 80;
+
     /// <param name="configuredUrls">The configured URLs, separated by semicolons.</param>
     /// <param name="httpsPort">The port to add HTTPS on, 0 or less disables it.</param>
     /// <param name="isPortAvailable">Whether nothing else listens on a port yet.</param>
     public static HttpsUrlDecision Decide(string? configuredUrls, int httpsPort, Func<int, bool> isPortAvailable)
     {
+        var urls = (configuredUrls ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var usesDefaultUrls = urls.Length == 0;
+        if (usesDefaultUrls)
+        {
+            urls = GetDefaultUrls(isPortAvailable);
+        }
+        HttpsUrlDecision Result(HttpsUrlOutcome outcome, IEnumerable<string> resultUrls) =>
+            new(outcome, string.Join(';', resultUrls), httpsPort, usesDefaultUrls);
+
         if (httpsPort <= 0)
         {
-            return new(HttpsUrlOutcome.Disabled, configuredUrls, httpsPort);
+            return Result(HttpsUrlOutcome.Disabled, urls);
         }
-        if (string.IsNullOrWhiteSpace(configuredUrls))
-        {
-            return new(HttpsUrlOutcome.NoUrlsConfigured, configuredUrls, httpsPort);
-        }
-        var urls = configuredUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (urls.Any(url => url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
         {
-            return new(HttpsUrlOutcome.AlreadyConfigured, configuredUrls, httpsPort);
+            return Result(HttpsUrlOutcome.AlreadyConfigured, urls);
         }
-        //The configured URLs are not bound yet, so a port they use still looks available
+        //The URLs are not bound yet, so a port they use still looks available
         if (urls.Any(url => GetPort(url) == httpsPort) || !isPortAvailable(httpsPort))
         {
-            return new(HttpsUrlOutcome.PortUnavailable, configuredUrls, httpsPort);
+            return Result(HttpsUrlOutcome.PortUnavailable, urls);
         }
-        return new(HttpsUrlOutcome.Added, string.Join(';', urls.Append($"https://+:{httpsPort}")), httpsPort);
+        return Result(HttpsUrlOutcome.Added, urls.Append($"https://+:{httpsPort}"));
     }
+
+    /// <summary>
+    /// Port 7190, plus port 80 for old docker-compose files as long as nothing else uses it, so a busy port 80 never
+    /// keeps TSC from starting.
+    /// </summary>
+    private static string[] GetDefaultUrls(Func<int, bool> isPortAvailable) => isPortAvailable(LegacyHttpPort)
+        ? [$"http://+:{DefaultHttpPort}", $"http://+:{LegacyHttpPort}",]
+        : [$"http://+:{DefaultHttpPort}",];
 
     /// <summary>
     /// The decision is made before logging is set up, so it is logged afterwards.
     /// </summary>
     public static void LogDecision(ILogger logger, HttpsUrlDecision decision)
     {
+        if (decision.UsesDefaultUrls)
+        {
+            logger.LogInformation("No URLs are configured in ASPNETCORE_URLS, so TSC listens on {urls}", decision.Urls);
+        }
         switch (decision.Outcome)
         {
             case HttpsUrlOutcome.Added:
@@ -61,9 +83,6 @@ public static partial class HttpsUrlConfigurator
                 break;
             case HttpsUrlOutcome.Disabled:
                 logger.LogInformation("HTTPS is disabled, as HttpsPort is {port}", decision.Port);
-                break;
-            case HttpsUrlOutcome.NoUrlsConfigured:
-                logger.LogInformation("No URLs are configured in ASPNETCORE_URLS, so no HTTPS endpoint is added");
                 break;
             case HttpsUrlOutcome.PortUnavailable:
                 logger.LogWarning("HTTPS port {port} is already in use, so TSC is only available via HTTP. Set the environment variable HttpsPort to a free port.", decision.Port);
