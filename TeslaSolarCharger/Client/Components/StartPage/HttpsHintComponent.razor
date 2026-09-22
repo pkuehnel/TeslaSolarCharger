@@ -1,0 +1,79 @@
+@using System.Globalization
+@using TeslaSolarCharger.Client.Components.Https
+@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Https
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject NavigationManager NavigationManager
+@inject IHttpClientHelper HttpClientHelper
+@inject IJavaScriptWrapper JavaScriptWrapper
+@inject ITextLocalizationService TextLocalizer
+
+@if (_httpsInformation is { IsEnabled: true, })
+{
+    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="Dismiss">
+        <MudText Typo="Typo.h6">@T(TranslationKeys.HttpsHintTitle)</MudText>
+        @if (_httpsInformation.Reachability == HttpsReachability.PortNotPublished)
+        {
+            @*Offering the certificate would lead nowhere before the port is published*@
+            <MudText Typo="Typo.body2">
+                @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), _httpsInformation.Port)
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
+            <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
+            <HttpsInstallInstructionsComponent Class="mt-2" />
+        }
+    </MudAlert>
+}
+
+@code {
+    public const string DismissedStorageKey = "httpsHintDismissed";
+    private const string DismissedValue = "true";
+
+    private DtoHttpsInformation? _httpsInformation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Over HTTPS there is nothing to point to, so there is no need to ask anything
+        if (HttpsUrlHelper.IsSecure(new Uri(NavigationManager.Uri)))
+        {
+            return;
+        }
+        //Only WebKit browsers are slowed down without HTTPS, so nobody else is bothered with the hint
+        if (!await JavaScriptWrapper.IsWebKitBrowser())
+        {
+            return;
+        }
+        if (string.Equals(await JavaScriptWrapper.ReadFromLocalStorage(DismissedStorageKey), DismissedValue, StringComparison.Ordinal))
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoHttpsInformation>(HttpsUrlHelper.HttpsInformationPath);
+        if (!result.HasError)
+        {
+            _httpsInformation = result.Data;
+        }
+    }
+
+    /// <summary>
+    /// Hides the hint on this device and browser until its local storage is cleared. The certificate stays available
+    /// in the base configuration.
+    /// </summary>
+    private async Task Dismiss()
+    {
+        _httpsInformation = default;
+        await JavaScriptWrapper.SaveToLocalStorage(DismissedStorageKey, DismissedValue);
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HttpsComponentsLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

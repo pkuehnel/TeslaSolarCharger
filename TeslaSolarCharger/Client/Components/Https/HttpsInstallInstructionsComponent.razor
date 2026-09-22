@@ -1,0 +1,38 @@
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject ITextLocalizationService TextLocalizer
+
+<MudExpansionPanels Class="@Class" Elevation="0" Outlined="true">
+    <MudExpansionPanel Text="@T(TranslationKeys.HttpsInstallInstructionsTitle)">
+        @foreach (var (titleKey, stepsKey) in Instructions)
+        {
+            <MudText Typo="Typo.subtitle2">@T(titleKey)</MudText>
+            <ol class="mb-3">
+                @foreach (var step in T(stepsKey).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    <li>@step</li>
+                }
+            </ol>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter]
+    public string? Class { get; set; }
+
+    private static readonly (string TitleKey, string StepsKey)[] Instructions =
+    [
+        (TranslationKeys.HttpsInstallIosTitle, TranslationKeys.HttpsInstallIosSteps),
+        (TranslationKeys.HttpsInstallAndroidTitle, TranslationKeys.HttpsInstallAndroidSteps),
+        (TranslationKeys.HttpsInstallWindowsTitle, TranslationKeys.HttpsInstallWindowsSteps),
+        (TranslationKeys.HttpsInstallMacTitle, TranslationKeys.HttpsInstallMacSteps),
+    ];
+
+    private string T(string key) =>
+        TextLocalizer.Get<HttpsComponentsLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}
