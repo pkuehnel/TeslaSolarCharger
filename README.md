@@ -204,9 +204,9 @@ TSC creates its own certificate for HTTPS and adds every host name and IP addres
 
 On iPhone, iPad and Mac, where the slowdown occurs, the home page additionally shows the download button and a link to the secure address as long as TSC is opened via HTTP. You can close that hint, then it stays hidden on that device.
 
-- With `network_mode: host`, as in the docker-compose files above, nothing else is needed. If your container uses `ports:` instead, add `- 7191:7191`.
+- With `network_mode: host`, as in the docker-compose files above, nothing else is needed and HTTPS works after a `docker compose pull` and `docker compose up -d`. If your container uses `ports:` instead, add `- 7191:7191`; until then TSC says so on the home page and in the base configuration instead of offering an address that cannot be reached.
 - To use another port, set the environment variable `HttpsPort`, e.g. `- HttpsPort=8443`. `HttpsPort=0` switches HTTPS off. If `ASPNETCORE_URLS` already contains an `https://` URL, TSC uses its certificates for that one instead.
-- Browsers do not tell TSC the IP address they were opened with. If TSC runs in a Docker bridge network, enter the host's IP address under `Base Configuration` > `Additional host names and IP addresses`.
+- TSC learns the host names and addresses you use from your browser's requests. `Base Configuration` > `Additional host names and IP addresses` is only needed for names it never sees, e.g. one you use exclusively over HTTPS before ever opening it over HTTP.
 - The certificate's private key is not part of TSC backups. After restoring a backup on a new device, install the newly created certificate on your devices again.
 
 #### Install and setup BLE API

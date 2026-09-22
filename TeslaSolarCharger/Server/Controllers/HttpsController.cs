@@ -24,5 +24,6 @@ public class HttpsController(IHttpsCertificateService httpsCertificateService, I
 
     [HttpGet]
     public DtoHttpsInformation GetHttpsInformation() =>
-        httpsCertificateService.GetHttpsInformation(server.Features.Get<IServerAddressesFeature>()?.Addresses ?? []);
+        httpsCertificateService.GetHttpsInformation(server.Features.Get<IServerAddressesFeature>()?.Addresses ?? [],
+            Request.Host.Host);
 }

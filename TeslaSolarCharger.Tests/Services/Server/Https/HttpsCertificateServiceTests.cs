@@ -4,12 +4,15 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using TeslaSolarCharger.Server.Services.Https;
+using TeslaSolarCharger.Shared.Dtos.Https;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server.Https;
 
 public class HttpsCertificateServiceTests : HttpsCertificateTestBase
 {
+    private static readonly string[] HttpsAddresses = ["http://[::]:7190", "https://[::]:7191",];
+
     [Fact]
     public void GetServerCertificate_CoversTheLocalAndTheConfiguredNames()
     {
@@ -298,7 +301,7 @@ public class HttpsCertificateServiceTests : HttpsCertificateTestBase
         var service = CreateService();
         var root = GetRoot(service);
 
-        var information = service.GetHttpsInformation(["http://[::]:7190", "https://[::]:7191",]);
+        var information = service.GetHttpsInformation(["http://[::]:7190", "https://[::]:7191",], null);
 
         Assert.True(information.IsEnabled);
         Assert.Equal(7191, information.Port);
@@ -311,11 +314,54 @@ public class HttpsCertificateServiceTests : HttpsCertificateTestBase
     [Fact]
     public void GetHttpsInformation_IsDisabledWithoutHttpsAddress()
     {
-        var information = CreateService().GetHttpsInformation(["http://[::]:7190",]);
+        var information = CreateService().GetHttpsInformation(["http://[::]:7190",], null);
 
         Assert.False(information.IsEnabled);
         Assert.Null(information.Port);
         //The certificate can be installed anyway, e.g. before HTTPS is switched on
         Assert.NotNull(information.RootCertificateSha256Fingerprint);
+    }
+
+    [Fact]
+    public void GetHttpsInformation_AddsTheHostTheBrowserUsedToTheCertificate()
+    {
+        //Over plain HTTP this is the only way to learn the address, a browser sends none in a TLS handshake for IPs
+        var service = CreateService();
+
+        var information = service.GetHttpsInformation(HttpsAddresses, "TSC.Fritz.Box");
+
+        Assert.Contains("tsc.fritz.box", information.CoveredNames);
+        Assert.True(service.GetServerCertificate(null, null).MatchesHostname("tsc.fritz.box"));
+    }
+
+    [Theory]
+    //The browser talks to TSC directly, so it reaches the HTTPS port the same way
+    [InlineData("192.168.178.93", HttpsReachability.Reachable)]
+    [InlineData("primary-pc", HttpsReachability.Reachable)]
+    [InlineData("localhost", HttpsReachability.Reachable)]
+    //A Docker port mapping forwards the HTTP port, the container itself has another address
+    [InlineData("192.168.178.20", HttpsReachability.PortNotPublished)]
+    //Nothing to go by
+    [InlineData(null, HttpsReachability.Unknown)]
+    public void GetHttpsInformation_TellsWhetherTheHttpsPortIsReachable(string? requestHost, HttpsReachability expected)
+    {
+        Assert.Equal(expected, CreateService().GetHttpsInformation(HttpsAddresses, requestHost).Reachability);
+    }
+
+    [Fact]
+    public void GetHttpsInformation_ResolvesTheHostToDecideOnReachability()
+    {
+        ResolvedAddresses["tsc.fritz.box"] = ["192.168.178.93",];
+        ResolvedAddresses["docker-host.fritz.box"] = ["192.168.178.20",];
+        var service = CreateService();
+
+        Assert.Equal(HttpsReachability.Reachable, service.GetHttpsInformation(HttpsAddresses, "tsc.fritz.box").Reachability);
+        Assert.Equal(HttpsReachability.PortNotPublished, service.GetHttpsInformation(HttpsAddresses, "docker-host.fritz.box").Reachability);
+    }
+
+    [Fact]
+    public void GetHttpsInformation_DoesNotGuessWhenTheHostCannotBeResolved()
+    {
+        Assert.Equal(HttpsReachability.Unknown, CreateService().GetHttpsInformation(HttpsAddresses, "unknown.lan").Reachability);
     }
 }

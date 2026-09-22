@@ -20,7 +20,13 @@
 }
 else
 {
-    @if (_httpsInformation.IsEnabled)
+    @if (_httpsInformation is { IsEnabled: true, Reachability: HttpsReachability.PortNotPublished, })
+    {
+        <MudAlert Severity="Severity.Warning" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
+            @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), _httpsInformation.Port)
+        </MudAlert>
+    }
+    else if (_httpsInformation.IsEnabled)
     {
         <MudAlert Severity="Severity.Success" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
             @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsEnabledStatus), _httpsInformation.Port)

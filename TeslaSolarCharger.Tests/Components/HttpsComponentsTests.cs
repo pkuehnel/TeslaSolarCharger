@@ -36,6 +36,7 @@ public class HttpsComponentsTests : Bunit.TestContext
     private static readonly DtoHttpsInformation Enabled = new()
     {
         IsEnabled = true,
+        Reachability = HttpsReachability.Reachable,
         Port = 7191,
         CoveredNames = ["127.0.0.1", "localhost", "primary-pc",],
         RootCertificateName = "Solar4Car local HTTPS root 2026-09-22 12:00",
@@ -176,6 +177,32 @@ public class HttpsComponentsTests : Bunit.TestContext
         _javaScriptWrapper.Setup(j => j.ReadFromLocalStorage(HttpsHintComponent.DismissedStorageKey)).ReturnsAsync("true");
 
         Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), Render<HttpsConfigurationComponent>().Markup);
+    }
+
+    [Fact]
+    public void TheHintExplainsHowToPublishTheHttpsPortInsteadOfOfferingADeadLink()
+    {
+        //A Docker port mapping that forwards only the HTTP port
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7191, Reachability = HttpsReachability.PortNotPublished, });
+
+        var hint = Render<HttpsHintComponent>();
+
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7191), hint.Markup);
+        Assert.DoesNotContain(T(TranslationKeys.HttpsDownloadCertificateButton), hint.Markup);
+        Assert.Empty(hint.FindComponents<MudButton>());
+    }
+
+    [Fact]
+    public void TheSectionExplainsHowToPublishTheHttpsPort()
+    {
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7191, Reachability = HttpsReachability.PortNotPublished, });
+
+        var section = Render<HttpsConfigurationComponent>();
+
+        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7191), section.Markup);
+        //The certificate stays available, it is needed once the port is published
+        Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), section.Markup);
+        Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
     }
 
     [Fact]

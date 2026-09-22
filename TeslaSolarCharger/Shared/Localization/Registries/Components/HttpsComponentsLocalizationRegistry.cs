@@ -56,6 +56,10 @@ public class HttpsComponentsLocalizationRegistry : TextLocalizationRegistry<Http
             new TextLocalizationTranslation(LanguageCodes.English, "Valid until:"),
             new TextLocalizationTranslation(LanguageCodes.German, "Gültig bis:"));
 
+        Register(TranslationKeys.HttpsPortNotPublishedHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar4Car listens for HTTPS on port {0}, but your Docker container does not publish that port, so browsers cannot reach it. Add \"- {0}:{0}\" to the ports section of your docker-compose.yml, or use \"network_mode: host\" as in the current example file, and restart the container."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car nimmt HTTPS auf Port {0} entgegen, aber Ihr Docker-Container veröffentlicht diesen Port nicht, sodass Browser ihn nicht erreichen. Ergänzen Sie „- {0}:{0}“ im ports-Abschnitt Ihrer docker-compose.yml oder verwenden Sie „network_mode: host“ wie in der aktuellen Beispieldatei, und starten Sie den Container neu."));
+
         Register(TranslationKeys.HttpsInstallInstructionsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "How to install the certificate"),
             new TextLocalizationTranslation(LanguageCodes.German, "So installieren Sie das Zertifikat"));

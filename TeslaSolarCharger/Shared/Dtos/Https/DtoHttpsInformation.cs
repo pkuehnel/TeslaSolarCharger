@@ -8,6 +8,10 @@ public class DtoHttpsInformation
     public bool IsEnabled { get; set; }
     public int? Port { get; set; }
     /// <summary>
+    /// Whether the browser can reach the HTTPS port at the address it is using right now.
+    /// </summary>
+    public HttpsReachability Reachability { get; set; }
+    /// <summary>
     /// Host names and IP addresses the current certificate is valid for.
     /// </summary>
     public List<string> CoveredNames { get; set; } = new();

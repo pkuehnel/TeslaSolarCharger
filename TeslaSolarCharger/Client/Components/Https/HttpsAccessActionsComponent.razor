@@ -34,14 +34,17 @@
     public string? Class { get; set; }
 
     /// <summary>
-    /// Only while the page is open without HTTPS and HTTPS is available.
+    /// Only while the page is open without HTTPS, HTTPS is available and the browser can reach its port.
     /// </summary>
     private Uri? SecureUri
     {
         get
         {
             var currentUri = new Uri(NavigationManager.Uri);
-            if (HttpsUrlHelper.IsSecure(currentUri) || !HttpsInformation.IsEnabled || HttpsInformation.Port == default)
+            if (HttpsUrlHelper.IsSecure(currentUri)
+                || !HttpsInformation.IsEnabled
+                || HttpsInformation.Port == default
+                || HttpsInformation.Reachability == HttpsReachability.PortNotPublished)
             {
                 return default;
             }

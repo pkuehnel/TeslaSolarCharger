@@ -69,23 +69,51 @@ public partial class HttpsCertificateService(
         }
     }
 
-    public DtoHttpsInformation GetHttpsInformation(IEnumerable<string> serverAddresses)
+    public DtoHttpsInformation GetHttpsInformation(IEnumerable<string> serverAddresses, string? requestHost)
     {
         var port = GetHttpsPort(serverAddresses);
+        var normalizedRequestHost = string.IsNullOrWhiteSpace(requestHost) ? default : HttpsHostNameHelper.Normalize(requestHost);
         lock (_lock)
         {
-            EnsureServerCertificate(null);
+            EnsureServerCertificate(normalizedRequestHost);
             var root = _root!;
             return new DtoHttpsInformation
             {
                 IsEnabled = port != default,
                 Port = port,
+                Reachability = GetReachability(normalizedRequestHost),
                 CoveredNames = _serverNames.Order(StringComparer.Ordinal).ToList(),
                 RootCertificateName = root.GetNameInfo(X509NameType.SimpleName, false),
                 RootCertificateSha256Fingerprint = string.Join(":", SHA256.HashData(root.RawData).Select(b => b.ToString("X2"))),
                 RootCertificateValidUntil = ValidUntil(root),
             };
         }
+    }
+
+    /// <summary>
+    /// Whether the browser talks to TSC directly, so that the HTTPS port is reachable the same way, or through
+    /// something that forwards only the HTTP port, typically a Docker port mapping. Must be called inside the lock,
+    /// as it reads the local names.
+    /// </summary>
+    private HttpsReachability GetReachability(string? normalizedRequestHost)
+    {
+        if (normalizedRequestHost == default)
+        {
+            return HttpsReachability.Unknown;
+        }
+        var localNames = GetLocalNames(GetCurrentTime());
+        if (localNames.Contains(normalizedRequestHost, StringComparer.Ordinal))
+        {
+            return HttpsReachability.Reachable;
+        }
+        var resolvedAddresses = localNetworkNameProvider.ResolveAddresses(normalizedRequestHost);
+        if (resolvedAddresses.Count == 0)
+        {
+            return HttpsReachability.Unknown;
+        }
+        return resolvedAddresses.Any(address => localNames.Contains(address, StringComparer.Ordinal))
+            ? HttpsReachability.Reachable
+            : HttpsReachability.PortNotPublished;
     }
 
     /// <summary>

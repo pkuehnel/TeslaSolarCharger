@@ -9,6 +9,7 @@ using Moq;
 using TeslaSolarCharger.Server.Services.Https;
 using TeslaSolarCharger.Server.Services.Https.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Helper;
 
 namespace TeslaSolarCharger.Tests.Services.Server.Https;
 
@@ -24,6 +25,12 @@ public abstract class HttpsCertificateTestBase : IDisposable
     protected List<string> LocalNames = ["localhost", "127.0.0.1", "primary-pc", "192.168.178.93",];
     protected List<string> ConfiguredNames = [];
 
+    /// <summary>
+    /// What a host name resolves to. Names that are not listed resolve to themselves if they are IP addresses, and to
+    /// nothing otherwise, like a name no DNS server knows.
+    /// </summary>
+    protected readonly Dictionary<string, List<string>> ResolvedAddresses = new(StringComparer.Ordinal);
+
     protected HttpsCertificateService CreateService()
     {
         var configurationWrapper = new Mock<IConfigurationWrapper>();
@@ -31,6 +38,14 @@ public abstract class HttpsCertificateTestBase : IDisposable
         configurationWrapper.Setup(c => c.HttpsAdditionalHostNames()).Returns(() => ConfiguredNames.ToList());
         var localNetworkNameProvider = new Mock<ILocalNetworkNameProvider>();
         localNetworkNameProvider.Setup(p => p.GetLocalHostNamesAndAddresses()).Returns(() => LocalNames.ToList());
+        localNetworkNameProvider.Setup(p => p.ResolveAddresses(It.IsAny<string>())).Returns((string hostName) =>
+        {
+            if (ResolvedAddresses.TryGetValue(hostName, out var addresses))
+            {
+                return addresses;
+            }
+            return HttpsHostNameHelper.TryParseIpAddress(hostName, out var ipAddress) ? [ipAddress.ToString(),] : [];
+        });
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.Setup(d => d.DateTimeOffSetUtcNow()).Returns(() => Now);
         return new HttpsCertificateService(NullLogger<HttpsCertificateService>.Instance, configurationWrapper.Object,

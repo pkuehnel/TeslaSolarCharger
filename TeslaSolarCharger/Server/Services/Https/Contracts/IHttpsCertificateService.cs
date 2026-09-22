@@ -19,5 +19,10 @@ public interface IHttpsCertificateService
     byte[] GetRootCertificateDer();
 
     /// <param name="serverAddresses">The addresses Kestrel listens on, the HTTPS port is read from them.</param>
-    DtoHttpsInformation GetHttpsInformation(IEnumerable<string> serverAddresses);
+    /// <param name="requestHost">
+    /// The host the browser used, without port. Over plain HTTP this is the only way to learn it, as browsers send no
+    /// host name in a TLS handshake for IP addresses. It is added to the certificate and tells whether the browser
+    /// reaches TSC directly.
+    /// </param>
+    DtoHttpsInformation GetHttpsInformation(IEnumerable<string> serverAddresses, string? requestHost);
 }

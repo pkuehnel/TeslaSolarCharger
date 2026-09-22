@@ -43,4 +43,23 @@ public class LocalNetworkNameProvider(ILogger<LocalNetworkNameProvider> logger) 
             .Distinct(StringComparer.Ordinal)
             .ToList();
     }
+
+    public List<string> ResolveAddresses(string hostName)
+    {
+        if (HttpsHostNameHelper.TryParseIpAddress(hostName, out var ipAddress))
+        {
+            return [ipAddress.ToString(),];
+        }
+        try
+        {
+            return Dns.GetHostAddresses(hostName)
+                .Select(address => HttpsHostNameHelper.NormalizeIpAddress(address).ToString())
+                .ToList();
+        }
+        catch (Exception ex) when (ex is SocketException or ArgumentException)
+        {
+            logger.LogDebug(ex, "Could not resolve {hostName}", hostName);
+            return [];
+        }
+    }
 }

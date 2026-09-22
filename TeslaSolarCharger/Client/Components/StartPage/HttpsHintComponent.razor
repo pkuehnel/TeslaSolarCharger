@@ -1,3 +1,4 @@
+@using System.Globalization
 @using TeslaSolarCharger.Client.Components.Https
 @using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Helper.Contracts
@@ -17,9 +18,19 @@
     <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-3"
               ShowCloseIcon="true" CloseIconClicked="Dismiss">
         <MudText Typo="Typo.h6">@T(TranslationKeys.HttpsHintTitle)</MudText>
-        <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
-        <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
-        <HttpsInstallInstructionsComponent Class="mt-2" />
+        @if (_httpsInformation.Reachability == HttpsReachability.PortNotPublished)
+        {
+            @*Offering the certificate would lead nowhere before the port is published*@
+            <MudText Typo="Typo.body2">
+                @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), _httpsInformation.Port)
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
+            <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
+            <HttpsInstallInstructionsComponent Class="mt-2" />
+        }
     </MudAlert>
 }
 

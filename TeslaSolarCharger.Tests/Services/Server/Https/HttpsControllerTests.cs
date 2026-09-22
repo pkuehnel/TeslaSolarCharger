@@ -52,22 +52,34 @@ public class HttpsControllerTests
         addresses.Addresses.Add("https://[::]:7191");
         _serverFeatures.Set<IServerAddressesFeature>(addresses);
         var information = new DtoHttpsInformation { IsEnabled = true, Port = 7191, };
-        _httpsCertificateService.Setup(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>())).Returns(information);
+        _httpsCertificateService.Setup(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>(), It.IsAny<string?>())).Returns(information);
 
         var result = CreateController().GetHttpsInformation();
 
         Assert.Same(information, result);
         _httpsCertificateService.Verify(s => s.GetHttpsInformation(It.Is<IEnumerable<string>>(a =>
-            string.Join(";", a) == "http://[::]:7190;https://[::]:7191")));
+            string.Join(";", a) == "http://[::]:7190;https://[::]:7191"), It.IsAny<string?>()));
     }
 
     [Fact]
     public void GetHttpsInformation_WorksWithoutAddressFeature()
     {
-        _httpsCertificateService.Setup(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>())).Returns(new DtoHttpsInformation());
+        _httpsCertificateService.Setup(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>(), It.IsAny<string?>())).Returns(new DtoHttpsInformation());
 
         CreateController().GetHttpsInformation();
 
-        _httpsCertificateService.Verify(s => s.GetHttpsInformation(It.Is<IEnumerable<string>>(a => !a.GetEnumerator().MoveNext())));
+        _httpsCertificateService.Verify(s => s.GetHttpsInformation(It.Is<IEnumerable<string>>(a => !a.GetEnumerator().MoveNext()), It.IsAny<string?>()));
+    }
+
+    [Fact]
+    public void GetHttpsInformation_PassesTheHostTheBrowserUsedWithoutPort()
+    {
+        _httpsCertificateService.Setup(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>(), It.IsAny<string?>())).Returns(new DtoHttpsInformation());
+        var controller = CreateController();
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("192.168.178.93", 7190);
+
+        controller.GetHttpsInformation();
+
+        _httpsCertificateService.Verify(s => s.GetHttpsInformation(It.IsAny<IEnumerable<string>>(), "192.168.178.93"));
     }
 }

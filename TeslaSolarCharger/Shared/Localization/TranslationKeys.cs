@@ -1244,4 +1244,5 @@ public static class TranslationKeys
     public static string HttpsInstallWindowsSteps => nameof(HttpsInstallWindowsSteps);
     public static string HttpsInstallMacTitle => nameof(HttpsInstallMacTitle);
     public static string HttpsInstallMacSteps => nameof(HttpsInstallMacSteps);
+    public static string HttpsPortNotPublishedHint => nameof(HttpsPortNotPublishedHint);
 }
