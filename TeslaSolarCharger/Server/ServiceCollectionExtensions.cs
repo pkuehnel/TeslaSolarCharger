@@ -25,6 +25,8 @@ using TeslaSolarCharger.Server.Services.HomeBatteryControl;
 using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
+using TeslaSolarCharger.Server.Services.Https;
+using TeslaSolarCharger.Server.Services.Https.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus;
@@ -101,6 +103,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ISettings, Settings>()
             .AddSingleton<IInMemoryValues, InMemoryValues>()
             .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
+            .AddSingleton<IHttpsCertificateService, HttpsCertificateService>()
+            .AddSingleton<ILocalNetworkNameProvider, LocalNetworkNameProvider>()
             .AddTransient<IMqttNetLogger, MqttNetNullLogger>()
             .AddTransient<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
             .AddTransient<IMqttClient, MqttClient>()

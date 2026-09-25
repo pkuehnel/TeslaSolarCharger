@@ -23,6 +23,7 @@ using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.Https;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Shared;
@@ -72,6 +73,13 @@ builder.Services.Configure<KestrelServerOptions>(options =>
     options.Limits.MaxRequestBodySize = maxFileSize;
 });
 
+//Safari/WebKit 27 runs JavaScript and WebAssembly without JIT on plain HTTP sites, which makes the app about ten times
+//slower (#2866), so TSC also listens for HTTPS with its own certificates. Without ASPNETCORE_URLS it uses port 7190.
+var httpsUrlDecision = HttpsUrlConfigurator.Decide(configurationManager["urls"], configurationManager.GetValue<int>("HttpsPort"),
+    HttpsUrlConfigurator.IsTcpPortAvailable);
+builder.WebHost.UseUrls(httpsUrlDecision.Urls);
+builder.WebHost.ConfigureKestrel(options => options.UseTscHttpsCertificates());
+
 builder.Services.Configure<FormOptions>(options =>
 {
     options.ValueLengthLimit = int.MaxValue;
@@ -120,6 +128,7 @@ Log.Logger = new LoggerConfiguration()
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
+HttpsUrlConfigurator.LogDecision(logger, httpsUrlDecision);
 _ = DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.

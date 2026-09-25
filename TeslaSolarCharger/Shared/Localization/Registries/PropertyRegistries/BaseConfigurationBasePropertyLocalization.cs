@@ -166,6 +166,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
                 "Mosquitto-Servername",
                 null));
 
+        Register(x => x.HttpsAdditionalHostNames,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Additional host names and IP addresses",
+                "One per line. Solar4Car adds the names and addresses it is opened with to its certificate automatically. Only add names it cannot see itself, e.g. the host's IP address when Solar4Car runs in a Docker bridge network."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Zusätzliche Hostnamen und IP-Adressen",
+                "Einer pro Zeile. Solar4Car nimmt die Namen und Adressen, unter denen es geöffnet wird, automatisch in sein Zertifikat auf. Tragen Sie nur Namen ein, die es nicht selbst sieht, z. B. die IP-Adresse des Hosts, wenn Solar4Car in einem Docker-Bridge-Netzwerk läuft."));
+
         Register(x => x.MqttClientIdPrefix,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "MQTT Client ID Prefix",

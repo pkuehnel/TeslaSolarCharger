@@ -9,6 +9,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
@@ -117,6 +118,22 @@ public class ConfigurationWrapper(
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
         return path;
+    }
+
+    public string HttpsCertificateDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "HttpsCertificateDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
+    public List<string> HttpsAdditionalHostNames()
+    {
+        return HttpsHostNameHelper.SplitHostNames(GetBaseConfiguration().HttpsAdditionalHostNames)
+            .Where(HttpsHostNameHelper.IsValidHostName)
+            .ToList();
     }
 
     public string LogFilesDirectory()

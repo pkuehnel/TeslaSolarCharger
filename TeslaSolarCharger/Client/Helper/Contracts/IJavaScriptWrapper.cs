@@ -7,6 +7,13 @@ public interface IJavaScriptWrapper
     Task<bool> ScrollToElementById(string elementId);
     Task OpenUrlInNewTab(string url);
     Task<bool> IsIosDevice();
+
+    /// <summary>
+    /// Whether the browser runs on WebKit: every browser on iOS and iPadOS, and Safari on macOS. Those are the ones
+    /// that run the app much slower without HTTPS.
+    /// </summary>
+    /// <returns>False if the browser cannot be asked</returns>
+    Task<bool> IsWebKitBrowser();
     Task<string> GetTimeZoneId();
     Task CopyStringToClipboard(string inputString);
 
