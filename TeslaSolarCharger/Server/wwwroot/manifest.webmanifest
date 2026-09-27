@@ -4,6 +4,9 @@
   "description": "Solar4Car – charge your car with your own solar power (formerly TeslaSolarCharger).",
   "start_url": "./",
   "display": "standalone",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "background_color": "#FFFFFF",
   "theme_color": "#1F9D57",
   "prefer_related_applications": false,
