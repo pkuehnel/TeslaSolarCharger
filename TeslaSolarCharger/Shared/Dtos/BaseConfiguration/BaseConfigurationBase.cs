@@ -54,6 +54,7 @@ public class BaseConfigurationBase
     public int MinutesUntilSwitchOff { get; set; } = 5;
     [Required]
     [Postfix("W")]
+    [AllowNegativeValues]
     public int PowerBuffer { get; set; } = 0;
     public bool AllowPowerBufferChangeOnHome { get; set; }
     public bool PredictSolarPowerGeneration { get; set; }
@@ -104,11 +105,14 @@ public class BaseConfigurationBase
     [Postfix("%")]
     public int HomeBatteryMaxDynamicMinSoc { get; set; } = 95;
     [Postfix("%")]
+    [AllowNegativeValues]
     public int DynamicMinSocCalculationBuffer { get; set; } = 50;
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
     [Postfix("%")]
+    [AllowNegativeValues]
     public int? HoldHomeBatteryChargeSocBuffer { get; set; }
     [Postfix("%")]
+    [AllowNegativeValues]
     public int? ChargeHomeBatterySocBuffer { get; set; }
     public bool GridPriceBasedHomeBatteryControl { get; set; }
     public decimal HomeBatteryUsageCostsPerKwh { get; set; } = 0.05M;

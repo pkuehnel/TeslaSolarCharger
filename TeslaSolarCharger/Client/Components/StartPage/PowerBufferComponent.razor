@@ -1,4 +1,5 @@
-﻿@using TeslaSolarCharger.Shared.Dtos
+﻿@using TeslaSolarCharger.Shared.Attributes
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
@@ -25,6 +26,7 @@
         TextLocalizer.Get<PowerBufferComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
         ?? key;
 
+    [AllowNegativeValues]
     private int? PowerBuffer { get; set; }
     private int? _lastSavedPowerBuffer;
     private bool _displayValue;
