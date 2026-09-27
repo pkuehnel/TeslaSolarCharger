@@ -1,0 +1,62 @@
+@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Shared.Dtos.Https
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject NavigationManager NavigationManager
+@inject ITextLocalizationService TextLocalizer
+
+<div class="d-flex flex-wrap gap-2 @Class">
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Download"
+               OnClick="DownloadRootCertificate">
+        @T(TranslationKeys.HttpsDownloadCertificateButton)
+    </MudButton>
+    @if (SecureUri != default)
+    {
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Lock"
+                   Href="@SecureUri.ToString()">
+            @T(TranslationKeys.HttpsOpenSecureAddressButton)
+        </MudButton>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DtoHttpsInformation HttpsInformation { get; set; } = default!;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>
+    /// Only while the page is open without HTTPS, HTTPS is available and the browser can reach its port.
+    /// </summary>
+    private Uri? SecureUri
+    {
+        get
+        {
+            var currentUri = new Uri(NavigationManager.Uri);
+            if (HttpsUrlHelper.IsSecure(currentUri)
+                || !HttpsInformation.IsEnabled
+                || HttpsInformation.Port == default
+                || HttpsInformation.Reachability == HttpsReachability.PortNotPublished)
+            {
+                return default;
+            }
+            return HttpsUrlHelper.ToHttpsUri(currentUri, HttpsInformation.Port.Value);
+        }
+    }
+
+    //A full page request, as the router would otherwise treat the API path as a page. The certificate is served
+    //inline, so the browser downloads it or offers to install it and the current page stays.
+    private void DownloadRootCertificate() => NavigationManager.NavigateTo(HttpsUrlHelper.RootCertificatePath, forceLoad: true);
+
+    private string T(string key) =>
+        TextLocalizer.Get<HttpsComponentsLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

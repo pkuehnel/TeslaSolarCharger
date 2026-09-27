@@ -38,6 +38,22 @@ function detectDevice() {
     return "Other";
 }
 
+//Every browser on iOS and iPadOS runs on WebKit, as does Safari on macOS. Only those run the app about ten times
+//slower without HTTPS (issue #2866); Chrome and Firefox on macOS and everything on Windows, Linux and Android do not.
+function isWebKitBrowser() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        return true;
+    }
+    const isMac = /Macintosh|Mac OS X/.test(userAgent);
+    //An iPad reports itself as a Mac, its touch screen tells it apart
+    if (isMac && navigator.maxTouchPoints > 1) {
+        return true;
+    }
+    //Chrome, Edge, Opera and Firefox on macOS carry Safari in their user agent as well, but their own name too
+    return isMac && /Safari\//.test(userAgent) && !/Chrome|Chromium|Edg\/|OPR\/|Firefox/.test(userAgent);
+}
+
 function getTimeZone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }

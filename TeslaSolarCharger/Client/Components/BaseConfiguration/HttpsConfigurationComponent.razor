@@ -1,0 +1,68 @@
+@using System.Globalization
+@using TeslaSolarCharger.Client.Components.Https
+@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Https
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ITextLocalizationService TextLocalizer
+
+<h3>@T(TranslationKeys.HttpsSectionTitle)</h3>
+<MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.HttpsSectionDescription)</MudText>
+
+@if (_httpsInformation == default)
+{
+    <PlaceholderComponent Count="1" Height="100px" />
+}
+else
+{
+    @if (_httpsInformation is { IsEnabled: true, Reachability: HttpsReachability.PortNotPublished, })
+    {
+        <MudAlert Severity="Severity.Warning" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
+            @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), _httpsInformation.Port)
+        </MudAlert>
+    }
+    else if (_httpsInformation.IsEnabled)
+    {
+        <MudAlert Severity="Severity.Success" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
+            @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsEnabledStatus), _httpsInformation.Port)
+        </MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
+            @T(TranslationKeys.HttpsDisabledStatus)
+        </MudAlert>
+    }
+    <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" />
+    <HttpsInstallInstructionsComponent Class="my-2" />
+    <MudText Typo="Typo.body2">
+        @T(TranslationKeys.HttpsCoveredNamesLabel) @string.Join(", ", _httpsInformation.CoveredNames)
+    </MudText>
+    <MudText Typo="Typo.body2">
+        @T(TranslationKeys.HttpsRootCertificateLabel) @_httpsInformation.RootCertificateName
+    </MudText>
+    <MudText Typo="Typo.body2">
+        @T(TranslationKeys.HttpsValidUntilLabel) @_httpsInformation.RootCertificateValidUntil?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture)
+    </MudText>
+    <MudText Typo="Typo.body2" Style="word-break: break-all;">
+        @T(TranslationKeys.HttpsFingerprintLabel) @_httpsInformation.RootCertificateSha256Fingerprint
+    </MudText>
+}
+
+@code {
+    private DtoHttpsInformation? _httpsInformation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpsInformation = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoHttpsInformation>(HttpsUrlHelper.HttpsInformationPath);
+    }
+
+    private string T(string key) =>
+        TextLocalizer.Get<HttpsComponentsLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+}

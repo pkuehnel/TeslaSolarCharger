@@ -91,6 +91,16 @@ public interface IConfigurationWrapper
     string GetAwattarBaseUrl();
     string RestoreTempDirectory();
     string ConfigFileDirectory();
+    /// <summary>
+    /// Where the HTTPS root and server certificates are kept. Inside the config directory, but not part of backups,
+    /// as a backup must not contain the root's private key.
+    /// </summary>
+    string HttpsCertificateDirectory();
+    /// <summary>
+    /// The valid entries of <see cref="Dtos.BaseConfiguration.BaseConfigurationBase.HttpsAdditionalHostNames"/>,
+    /// normalized.
+    /// </summary>
+    List<string> HttpsAdditionalHostNames();
     string AutoBackupsZipDirectory();
     bool LogLocationData();
     bool GetVehicleDataFromTesla();

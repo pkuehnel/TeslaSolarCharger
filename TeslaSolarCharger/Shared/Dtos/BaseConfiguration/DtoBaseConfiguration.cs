@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
@@ -88,5 +89,16 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
             .NotEmpty()
             .Must((model, value) => (value * minimumSwitchOnAndOffToSkipInterval) >= model.SkipPowerChangesOnLastAdjustmentNewerThanSeconds)
             .WithMessage("Time until switch on needs to be at least twice as high as Skip Power changes interval.");
+
+        RuleFor(x => x.HttpsAdditionalHostNames)
+            .Must(value => GetInvalidHttpsHostNames(value).Count == 0)
+            .WithMessage(x => $"Not a host name or IP address: {string.Join(", ", GetInvalidHttpsHostNames(x.HttpsAdditionalHostNames))}");
+
+        RuleFor(x => x.HttpsAdditionalHostNames)
+            .Must(value => HttpsHostNameHelper.SplitHostNames(value).Count <= HttpsHostNameHelper.MaxConfiguredHostNames)
+            .WithMessage($"Enter at most {HttpsHostNameHelper.MaxConfiguredHostNames} host names or IP addresses.");
     }
+
+    private static List<string> GetInvalidHttpsHostNames(string? hostNames) =>
+        HttpsHostNameHelper.SplitHostNames(hostNames).Where(hostName => !HttpsHostNameHelper.IsValidHostName(hostName)).ToList();
 }

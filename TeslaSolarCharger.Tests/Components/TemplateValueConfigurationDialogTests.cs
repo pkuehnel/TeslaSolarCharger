@@ -49,6 +49,7 @@ public class TemplateValueConfigurationDialogTests : Bunit.TestContext
         //The same validators the app registers, so saving is refused here exactly when it would be refused there.
         Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>(ServiceLifetime.Singleton);
         Services.AddSingleton(Mock.Of<IHttpClientHelper>());
+        Services.AddSingleton(Mock.Of<IJavaScriptWrapper>());
 
         _service.Setup(s => s.GetOverviews()).ReturnsAsync(() => _existingDevices);
         _service

@@ -1222,4 +1222,27 @@ public static class TranslationKeys
     public static string ChargingStationOverviewNotSupported => nameof(ChargingStationOverviewNotSupported);
 
     public static string ChargingStationEditConnectors => nameof(ChargingStationEditConnectors);
+
+    public static string HttpsHintTitle => nameof(HttpsHintTitle);
+    public static string HttpsHintText => nameof(HttpsHintText);
+    public static string HttpsDownloadCertificateButton => nameof(HttpsDownloadCertificateButton);
+    public static string HttpsOpenSecureAddressButton => nameof(HttpsOpenSecureAddressButton);
+    public static string HttpsSectionTitle => nameof(HttpsSectionTitle);
+    public static string HttpsSectionDescription => nameof(HttpsSectionDescription);
+    public static string HttpsEnabledStatus => nameof(HttpsEnabledStatus);
+    public static string HttpsDisabledStatus => nameof(HttpsDisabledStatus);
+    public static string HttpsCoveredNamesLabel => nameof(HttpsCoveredNamesLabel);
+    public static string HttpsRootCertificateLabel => nameof(HttpsRootCertificateLabel);
+    public static string HttpsFingerprintLabel => nameof(HttpsFingerprintLabel);
+    public static string HttpsValidUntilLabel => nameof(HttpsValidUntilLabel);
+    public static string HttpsInstallInstructionsTitle => nameof(HttpsInstallInstructionsTitle);
+    public static string HttpsInstallIosTitle => nameof(HttpsInstallIosTitle);
+    public static string HttpsInstallIosSteps => nameof(HttpsInstallIosSteps);
+    public static string HttpsInstallAndroidTitle => nameof(HttpsInstallAndroidTitle);
+    public static string HttpsInstallAndroidSteps => nameof(HttpsInstallAndroidSteps);
+    public static string HttpsInstallWindowsTitle => nameof(HttpsInstallWindowsTitle);
+    public static string HttpsInstallWindowsSteps => nameof(HttpsInstallWindowsSteps);
+    public static string HttpsInstallMacTitle => nameof(HttpsInstallMacTitle);
+    public static string HttpsInstallMacSteps => nameof(HttpsInstallMacSteps);
+    public static string HttpsPortNotPublishedHint => nameof(HttpsPortNotPublishedHint);
 }

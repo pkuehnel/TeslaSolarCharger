@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
 @using MudExtensions
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
@@ -16,6 +17,7 @@
 @inject IStringHelper StringHelper
 @inject IPropertyLocalizationService PropertyLocalizationService
 @inject ITextLocalizationService TextLocalizer
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @typeparam T
 
@@ -431,6 +433,8 @@
 
 
     private bool? _isReadOnlyParameter;
+    private bool _allowsNegativeValues;
+    private bool? _isIosDevice;
 
     private IDictionary<string, object> NumericFieldAttributes()
     {
@@ -440,6 +444,12 @@
         {
             attributes["Error"] = ShouldBeInErrorState.Value;
             attributes["ErrorText"] = ErrorMessage ?? string.Empty;
+        }
+
+        //The numeric keypad of iPhones has no minus key, so negative values could not be typed there
+        if (_allowsNegativeValues && _isIosDevice == true)
+        {
+            attributes["InputMode"] = InputMode.text;
         }
 
         return attributes;
@@ -885,6 +895,7 @@
         LabelName ??= displayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
 
         IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
+        _allowsNegativeValues = propertyInfo.GetCustomAttributes<AllowNegativeValuesAttribute>(false).Any();
         if (IsReadOnlyParameter == true)
         {
             IsReadOnly = true;
@@ -938,6 +949,15 @@
             Adornment = Adornment.None;
         }
         StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        //Only fields that need the minus key ask the browser, and each of them only once
+        if (_allowsNegativeValues && _isIosDevice == null)
+        {
+            _isIosDevice = await JavaScriptWrapper.IsIosDevice();
+        }
     }
 
     private string GetIntMultiSelectionText(List<int> selectedValues)

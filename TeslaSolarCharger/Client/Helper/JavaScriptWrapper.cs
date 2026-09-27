@@ -65,6 +65,18 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime, ISnackbar snackbar) : IJava
         }
     }
 
+    public async Task<bool> IsWebKitBrowser()
+    {
+        try
+        {
+            return await jsRuntime.InvokeAsync<bool>("isWebKitBrowser");
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     public async Task<string> GetTimeZoneId()
     {
         var timeZone = await jsRuntime.InvokeAsync<string>("getTimeZone");

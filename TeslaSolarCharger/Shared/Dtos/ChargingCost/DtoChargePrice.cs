@@ -18,6 +18,7 @@ public class DtoChargePrice
     public bool AddSpotPriceToGridPrice { get; set; }
     public SpotPriceRegion? SpotPriceRegion { get; set; }
     [Postfix("%")]
+    [AllowNegativeValues]
     public decimal? SpotPriceSurcharge { get; set; } = 19;
 }
 

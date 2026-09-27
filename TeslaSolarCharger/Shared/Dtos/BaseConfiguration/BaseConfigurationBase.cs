@@ -54,6 +54,7 @@ public class BaseConfigurationBase
     public int MinutesUntilSwitchOff { get; set; } = 5;
     [Required]
     [Postfix("W")]
+    [AllowNegativeValues]
     public int PowerBuffer { get; set; } = 0;
     public bool AllowPowerBufferChangeOnHome { get; set; }
     public bool PredictSolarPowerGeneration { get; set; }
@@ -104,11 +105,14 @@ public class BaseConfigurationBase
     [Postfix("%")]
     public int HomeBatteryMaxDynamicMinSoc { get; set; } = 95;
     [Postfix("%")]
+    [AllowNegativeValues]
     public int DynamicMinSocCalculationBuffer { get; set; } = 50;
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
     [Postfix("%")]
+    [AllowNegativeValues]
     public int? HoldHomeBatteryChargeSocBuffer { get; set; }
     [Postfix("%")]
+    [AllowNegativeValues]
     public int? ChargeHomeBatterySocBuffer { get; set; }
     public bool GridPriceBasedHomeBatteryControl { get; set; }
     public decimal HomeBatteryUsageCostsPerKwh { get; set; } = 0.05M;
@@ -169,6 +173,11 @@ public class BaseConfigurationBase
     [Postfix("m")]
     public int HomeGeofenceRadius { get; set; } = 50;
     public decimal ChargingSwitchCosts { get; set; } = 0.05M;
+    /// <summary>
+    /// Host names and IP addresses the HTTPS certificate is additionally issued for, one per line. Only needed for
+    /// names TSC cannot see itself, e.g. the host's IP address when TSC runs in a Docker bridge network.
+    /// </summary>
+    public string? HttpsAdditionalHostNames { get; set; }
 
     public bool IsFirstRun { get; set; }
     public FrontendConfiguration? FrontendConfiguration { get; set; }
