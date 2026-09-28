@@ -47,6 +47,7 @@ public class TeslaFleetApiService(
 {
     private const string IsChargingErrorMessage = "is_charging";
     private const string IsNotChargingErrorMessage = "not_charging";
+    internal const string WakeUpThrottledError = "WakeUpThrottled";
 
     private DtoFleetApiRequest ChargeStartRequest => new()
     {
@@ -75,7 +76,7 @@ public class TeslaFleetApiService(
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
-    private DtoFleetApiRequest WakeUpRequest => new()
+    internal DtoFleetApiRequest WakeUpRequest => new()
     {
         RequestUrl = constants.WakeUpRequestUrl,
         NeedsProxy = false,
@@ -737,7 +738,7 @@ public class TeslaFleetApiService(
         await WakeUpCar(carId, isFleetApiTest).ConfigureAwait(false);
     }
 
-    private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null, bool isFleetApiTest = false) where T : class
+    internal async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null, bool isFleetApiTest = false) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {intParam})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, intParam);
         var fleetTelemetryEnabled = await teslaSolarChargerContext.Cars
@@ -858,7 +859,7 @@ public class TeslaFleetApiService(
             if (lastWakeUp != default && lastWakeUp > dateTimeProvider.UtcNow().AddMinutes(-30))
             {
                 logger.LogDebug("Do not send wake up command as last wake up was at {lastWakeUp}", lastWakeUp);
-                return new() { Error = "WakeUpThrottled", ErrorDescription = $"No wake up command was sent because the last wake up was at {lastWakeUp:o} (less than 30 minutes ago).", };
+                return new() { Error = WakeUpThrottledError, ErrorDescription = $"No wake up command was sent because the last wake up was at {lastWakeUp:o} (less than 30 minutes ago).", };
             }
         }
 
@@ -885,6 +886,16 @@ public class TeslaFleetApiService(
         {
             if (backendResult.ProblemDetails?.Status == (int)HttpStatusCode.TooManyRequests)
             {
+                if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
+                {
+                    //The backend rejects a wake up with the same status for two reasons: the hourly command limit of cars
+                    //without Fleet API license and its own wake up throttle. The latter counts every attempt of the last 29
+                    //minutes, including attempts Tesla did not accept and attempts from before a TSC restart, so the local
+                    //throttle above can not mirror it. Treating it as the hourly limit blocked all commands for almost an
+                    //hour. If the hourly limit is the reason, the next command is rejected, too, and blocks them then.
+                    logger.LogWarning("Backend rejected wake up for car {vin} as rate limited: {errorMessage}", car.Vin, backendResult.ErrorMessage);
+                    return new() { Error = WakeUpThrottledError, ErrorDescription = backendResult.ErrorMessage, };
+                }
                 fleetApiRateLimitService.RecordRateLimited(car);
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                     $"Fleet API commands rate limited for car {car.Vin}",
