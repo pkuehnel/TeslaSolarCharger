@@ -36,6 +36,7 @@ public interface IConstants
     string SetChargingAmpsRequestUrl { get; }
     string SetChargeLimitRequestUrl { get; }
     string WakeUpRequestUrl { get; }
+    string FleetApiTestRequestUrl { get; }
     string VehicleRequestUrl { get; }
     string VehicleDataRequestUrl { get; }
     string TeslaTokenEncryptionKeyKey { get; }

@@ -14,6 +14,11 @@ public interface IBackendApiService
     Task GetToken(DtoBackendLogin login);
     Task RefreshBackendTokenIfNeeded();
     Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content);
+    /// <summary>
+    /// For requests that take longer than the default timeout of backend requests.
+    /// </summary>
+    Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content, TimeSpan timeout);
+    Task<Result<DtoFleetApiCommandBudget>> GetFleetApiCommandBudget(string vin);
     Task<Result<bool?>> IsBaseAppLicensed(bool useCache);
     Task<bool> IsFleetApiLicensed(string vin, bool useCache);
     Task<DtoValue<string>> GetSmartCarOAuthRedeemUrlIncludingCookieAuthCode(string baseUrl, string? vin);

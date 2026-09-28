@@ -95,8 +95,9 @@ public class DtoCar
     public List<DateTime> OtherCommandCalls { get; set; } = new List<DateTime>();
 
     /// <summary>
-    /// Last successful Fleet API command that consumed the hourly rate limit budget for cars without a Fleet API license.
-    /// Only kept in memory as the Solar4Car backend enforces the rate limit across restarts.
+    /// Until when the Solar4Car backend's command budget blocks rate limited Fleet API commands, wake ups and Fleet API access
+    /// tests of this car, as known from the last budget request. Only blocks are remembered, as they can only end early when
+    /// a license is bought, while anything allowed can be used up by the next command.
     /// </summary>
-    public DateTime? LastCountedFleetApiCommand { get; set; }
+    public DtoFleetApiBudgetBlocks FleetApiBudgetBlocks { get; set; } = new();
 }
