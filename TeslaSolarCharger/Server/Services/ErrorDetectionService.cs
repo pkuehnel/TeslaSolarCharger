@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -148,7 +149,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             //Resolved here and not only after a successful Fleet API command, as the rate limit is also irrelevant again when BLE
             //works again, the car needs no commands at all or a Fleet API license was bought. In all those cases no Fleet API
             //command is sent that could resolve the issue.
-            if (fleetApiRateLimitService.GetNextAllowedUtc(car) == default)
+            if (!fleetApiRateLimitService.IsKnownToBeBlocked(car, FleetApiBudgetKind.Commands))
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiCommandRateLimited, car.Vin);
             }
