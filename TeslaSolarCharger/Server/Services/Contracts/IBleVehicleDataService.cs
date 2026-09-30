@@ -1,4 +1,4 @@
-using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Server.Dtos.Ble;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -18,9 +18,9 @@ public interface IBleVehicleDataService
     Task RefreshSingleCarData(int carId);
 
     /// <summary>
-    /// Refreshes the cars that share one container and adapter. Part of the interface only so
-    /// <see cref="RefreshBleCarData"/> can run every further group on an instance from its own DI scope, and with it
-    /// its own DbContext, in parallel. Never throws.
+    /// Refreshes, one after the other, the configured groups that use one radio, from the presence answers already
+    /// fetched for them. Part of the interface only so <see cref="RefreshBleCarData"/> can run every further radio on
+    /// an instance from its own DI scope, and with it its own DbContext, in parallel. Never throws.
     /// </summary>
-    Task RefreshGroupSafely(string? host, string? adapter, List<DtoCar> cars);
+    Task RefreshRadioGroupSafely(List<DtoBleGroupPresence> groups);
 }
