@@ -55,12 +55,30 @@
     private bool _isLoadingBleAdapters;
     private bool _isSavingCar;
     private DtoSetupCarCapabilities? _capabilities;
+    private TokenState? _fleetApiTokenState;
+    private bool _isFleetApiTokenStateLoaded;
+    private bool _showFleetApiFallback;
+    private Guid? _shownDraftId;
+
+    private bool IsTeslaAccountMissing => _fleetApiTokenState is not null and not TokenState.UpToDate;
 
     protected override async Task OnParametersSetAsync()
     {
+        if (_shownDraftId != Draft.DraftId)
+        {
+            // Asking for the fallback was a choice about one car, not about every car shown here afterwards.
+            _shownDraftId = Draft.DraftId;
+            _showFleetApiFallback = false;
+        }
+
         if (Draft.ConnectionRoute == SetupCarConnectionRoute.TeslaBluetooth)
         {
             await LoadBleAdapters();
+            if (!_isFleetApiTokenStateLoaded)
+            {
+                _isFleetApiTokenStateLoaded = true;
+                _fleetApiTokenState = await CarSettingsService.GetFleetApiTokenState();
+            }
         }
 
         if (Draft.CarId != null)
@@ -136,6 +154,47 @@
                         <BleConnectionTestComponent Vin="@Draft.Configuration.Vin" AutoTest="true"
                                                     OnTested="RecordConnectionCheck" />
                     }
+                }
+            }
+
+            @if (Draft.CarId != null)
+            {
+                @RenderFleetApiFallback()
+            }
+        </div>;
+
+    /// <summary>
+    /// Bluetooth controls the car, the Tesla cloud only steps in when Bluetooth cannot reach it. So the key for it is
+    /// offered, not required, and nothing is tested before the user asks for it: the Bluetooth test above may be
+    /// talking to the car at the same moment. Its outcome is not the Bluetooth connection check either, so it is
+    /// not recorded as one.
+    /// </summary>
+    private RenderFragment RenderFleetApiFallback() =>
+        @<div class="mt-4 p-3 rounded border">
+            <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.SetupCarBluetoothFallbackTitle)</MudText>
+            @if (_showFleetApiFallback || _capabilities?.FleetApiState == TeslaCarFleetApiState.Ok)
+            {
+                <FleetApiTestComponent CarId="Draft.CarId" AutoTest="true" IsOptional="true" />
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.SetupCarBluetoothFallbackExplanation)</MudText>
+                @if (IsTeslaAccountMissing)
+                {
+                    @* Without the account there is nothing to test the key with, and the test would only report a
+                       failure that has nothing to do with the car. *@
+                    <MudAlert Severity="Severity.Info" Class="mb-3">@T(TranslationKeys.SetupIssueTeslaAccountNotConnected)</MudAlert>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="@(() => Context.Navigate(SetupSections.Equipment, null, null))">
+                        @T(TranslationKeys.SetupBackToEquipmentButton)
+                    </MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Cloud"
+                               OnClick="@(() => _showFleetApiFallback = true)">
+                        @T(TranslationKeys.SetupCarBluetoothFallbackButton)
+                    </MudButton>
                 }
             }
         </div>;
