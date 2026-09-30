@@ -7,8 +7,8 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
     protected override void Configure()
     {
         Register(TranslationKeys.NotChargingReasonOcppConnectionNotEstablished,
-            new TextLocalizationTranslation(LanguageCodes.English, "OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."),
-            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Verbindung nicht hergestellt. Nach einem Neustart von TSC oder der Ladestation kann es bis zu 5 Minuten dauern, bis die Ladestation wieder verbunden ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "OCPP connection not established. After a Solar4Car or charger reboot it can take up to 5 minutes until the charger is connected again."),
+            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Verbindung nicht hergestellt. Nach einem Neustart von Solar4Car oder der Ladestation kann es bis zu 5 Minuten dauern, bis die Ladestation wieder verbunden ist."));
 
         Register(TranslationKeys.NotChargingReasonCarNotAtHome,
             new TextLocalizationTranslation(LanguageCodes.English, "Car is not at home"),

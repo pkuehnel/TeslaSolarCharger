@@ -245,7 +245,7 @@ public class CoreService : ICoreService
     public async Task<Result<DtoValue<string>>> SendTestTelegramMessage()
     {
         _logger.LogTrace("{method}()", nameof(SendTestTelegramMessage));
-        var statusCode = await _telegramService.SendMessage("TeslaSolarCharger test message");
+        var statusCode = await _telegramService.SendMessage("Solar4Car test message");
         if (((int)statusCode >= 200) && ((int)statusCode <= 299))
         {
             return new(new DtoValue<string>("Sending message succeeded"), null, null);

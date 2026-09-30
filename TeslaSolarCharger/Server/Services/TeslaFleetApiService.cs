@@ -835,7 +835,7 @@ public class TeslaFleetApiService(
 
 
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
-                $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
+                $"Sending command to tesla via BLE did not succeed. Tesla cloud URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
                 issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
             logger.LogWarning("BLE command {command} for car {vin} did not succeed, using Fleet API as fallback.", fleetApiRequest.RequestUrl, car.Vin);
         }
@@ -848,12 +848,12 @@ public class TeslaFleetApiService(
             && !isFleetApiLicensed
             && (!car.UseBle || !IsRateLimitedWithoutCarLicense(fleetApiRequest)))
         {
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
-                "Can not send Fleet API commands to car as Fleet API is not licensed",
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"No Car License for car {car.Vin}",
+                "Can not send commands via the Tesla cloud as the car has no Car License",
                 issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
 
             logger.LogError("Can not send Fleet API commands to car {vin} as car is not licensed", car.Vin);
-            return new() { Error = "FleetApiNotLicensed", ErrorDescription = "Fleet API is not licensed for this car, so no command was sent.", };
+            return new() { Error = "FleetApiNotLicensed", ErrorDescription = "The car has no Car License, so no command was sent via the Tesla cloud.", };
         }
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
 
@@ -874,7 +874,7 @@ public class TeslaFleetApiService(
             if (blocks.HasError || blocks.Data == default)
             {
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Solar4Car related error while sending command to car {car.Vin}",
-                    $"Could not get the Fleet API command budget from the Solar4Car backend, so the command {fleetApiRequest.RequestUrl} was not sent. Error Message: {blocks.ErrorMessage}",
+                    $"Could not get the Tesla cloud command budget from the Solar4Car backend, so the command {fleetApiRequest.RequestUrl} was not sent. Error Message: {blocks.ErrorMessage}",
                     issueKeys.Solar4CarSideFleetApiNonSuccessStatusCode + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
                 return new() { Error = FleetApiCommandBudgetUnavailableError, ErrorDescription = blocks.ErrorMessage, };
             }
@@ -926,7 +926,7 @@ public class TeslaFleetApiService(
                     return new() { Error = FleetApiTestRateLimitedError, ErrorDescription = backendResult.ErrorMessage, };
                 }
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                    $"Fleet API commands rate limited for car {car.Vin}",
+                    $"Tesla cloud commands rate limited for car {car.Vin}",
                     $"The Solar4Car backend rejected the command {fleetApiRequest.RequestUrl} as rate limited: {backendResult.ErrorMessage}",
                     issueKeys.FleetApiCommandRateLimited, car.Vin, null).ConfigureAwait(false);
                 logger.LogWarning("Backend rejected Fleet API command {command} for car {vin} as rate limited: {errorMessage}", fleetApiRequest.RequestUrl, car.Vin, backendResult.ErrorMessage);
@@ -1049,11 +1049,11 @@ public class TeslaFleetApiService(
         {
             var nextAllowedLocalTime = commandsBlockedUntil.ToLocalTime();
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                $"Fleet API commands rate limited for car {car.Vin}",
-                $"As the car has no Fleet API license, Fleet API can only be used as BLE fallback for one command per hour. The command {fleetApiRequest.RequestUrl} was not sent, the next command is allowed at {nextAllowedLocalTime}. To remove this limit fix the BLE connection or buy a Fleet API license for the car.",
+                $"Tesla cloud commands rate limited for car {car.Vin}",
+                $"As the car has no Car License, the Tesla cloud can only be used as BLE fallback for one command per hour. The command {fleetApiRequest.RequestUrl} was not sent, the next command is allowed at {nextAllowedLocalTime}. To remove this limit fix the BLE connection or buy a Car License for the car.",
                 issueKeys.FleetApiCommandRateLimited, car.Vin, null).ConfigureAwait(false);
             logger.LogWarning("Do not send Fleet API command {command} to car {vin} as commands are rate limited until {nextAllowed}", fleetApiRequest.RequestUrl, car.Vin, nextAllowedLocalTime);
-            return new() { Error = FleetApiCommandRateLimitedError, ErrorDescription = $"The car has no Fleet API license, so Fleet API fallback commands are rate limited. The next command is allowed at {nextAllowedLocalTime}.", };
+            return new() { Error = FleetApiCommandRateLimitedError, ErrorDescription = $"The car has no Car License, so Tesla cloud fallback commands are rate limited. The next command is allowed at {nextAllowedLocalTime}.", };
         }
         if (budgetKinds.Contains(FleetApiBudgetKind.WakeUp) && blocks.WakeUpBlockedUntil is { } wakeUpBlockedUntil)
         {
@@ -1065,7 +1065,7 @@ public class TeslaFleetApiService(
         {
             var nextAllowedLocalTime = fleetApiTestBlockedUntil.ToLocalTime();
             logger.LogDebug("Do not test Fleet API access of car {vin} as the next test is allowed at {nextAllowed}", car.Vin, nextAllowedLocalTime);
-            return new() { Error = FleetApiTestRateLimitedError, ErrorDescription = $"The Fleet API access was successfully tested less than a minute ago. The next test is allowed at {nextAllowedLocalTime}.", };
+            return new() { Error = FleetApiTestRateLimitedError, ErrorDescription = $"The Tesla cloud access was successfully tested less than a minute ago. The next test is allowed at {nextAllowedLocalTime}.", };
         }
         return null;
     }

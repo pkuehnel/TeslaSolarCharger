@@ -166,7 +166,7 @@ public class SetupPageTests : Bunit.TestContext
     {
         var page = RenderAt();
 
-        Assert.Contains("Welcome to TeslaSolarCharger", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Welcome to Solar4Car", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

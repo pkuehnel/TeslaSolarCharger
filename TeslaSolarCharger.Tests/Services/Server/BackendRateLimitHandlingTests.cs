@@ -42,7 +42,7 @@ public class BackendRateLimitHandlingTests(ITestOutputHelper outputHelper) : Tes
     private const string AccessToken = "backendAccessToken";
     private const string EncryptionKey = "encryptionKey";
     private const string WakeUpThrottleMessage = "Can not allow request wake for car LRW3E7FS2NC000001 as the next wake up is only allowed in 900 seconds.";
-    private const string HourlyLimitMessage = "The car LRW3E7FS2NC000001 has no Fleet API license, so only one successful command per hour is allowed.";
+    private const string HourlyLimitMessage = "The car LRW3E7FS2NC000001 has no Car License, so only one successful command per hour is allowed.";
     private const string SuccessfulCommandJson = "{\"response\":{\"result\":true,\"reason\":\"\"}}";
     private const string FailedCommandJson = "{\"response\":{\"result\":false,\"reason\":\"vehicle rejected\"}}";
 
@@ -282,7 +282,7 @@ public class BackendRateLimitHandlingTests(ITestOutputHelper outputHelper) : Tes
     {
         var car = SetupBleCarWithFailingBle(isFleetApiLicensed: false);
         SetupBudget(new DtoFleetApiCommandBudget());
-        SetupTestResponse(RateLimited("Only one successful Fleet API access test per minute is allowed."));
+        SetupTestResponse(RateLimited("Only one successful Tesla cloud access test per minute is allowed."));
 
         var result = await CreateService().TestFleetApiAccess(car.Id);
 

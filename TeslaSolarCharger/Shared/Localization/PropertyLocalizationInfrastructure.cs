@@ -11,6 +11,7 @@ public record PropertyLocalizationTranslation(string Language, string? DisplayNa
 public interface IPropertyLocalizationRegistry
 {
     Type TargetType { get; }
+    IReadOnlyCollection<string> Keys { get; }
     PropertyLocalization? Get(string propertyName, CultureInfo culture);
 }
 
@@ -25,6 +26,8 @@ public abstract class PropertyLocalizationRegistry<T> : IPropertyLocalizationReg
     }
 
     public Type TargetType => typeof(T);
+
+    public IReadOnlyCollection<string> Keys => _localizations.Keys;
 
     public PropertyLocalization? Get(string propertyName, CultureInfo culture)
     {

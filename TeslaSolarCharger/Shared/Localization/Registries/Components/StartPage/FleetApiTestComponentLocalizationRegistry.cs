@@ -7,8 +7,8 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
     protected override void Configure()
     {
         Register(TranslationKeys.FleetApiTestLoading,
-            new TextLocalizationTranslation(LanguageCodes.English, "Testing Fleet API access might take about 30 seconds..."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Das Testen des Fleet-API-Zugriffs kann etwa 30 Sekunden dauern..."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Testing the Tesla cloud access might take about 30 seconds..."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Das Testen des Tesla-Cloud-Zugriffs kann etwa 30 Sekunden dauern..."));
 
         Register(TranslationKeys.FleetApiTestSuccess,
             new TextLocalizationTranslation(LanguageCodes.English, "API access is working."),
@@ -35,16 +35,16 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.German, "hier"));
 
         Register(TranslationKeys.FleetApiTestNotTested,
-            new TextLocalizationTranslation(LanguageCodes.English, "You did not test the Fleet API connection, yet. Wake up the car by opening a door, wait about 30 seconds and click"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben die Fleet-API-Verbindung noch nicht getestet. Wecken Sie das Fahrzeug auf, indem Sie eine Tür öffnen, warten Sie etwa 30 Sekunden und klicken Sie"));
+            new TextLocalizationTranslation(LanguageCodes.English, "You did not test the Tesla cloud connection, yet. Wake up the car by opening a door, wait about 30 seconds and click"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben die Tesla-Cloud-Verbindung noch nicht getestet. Wecken Sie das Fahrzeug auf, indem Sie eine Tür öffnen, warten Sie etwa 30 Sekunden und klicken Sie"));
 
         Register(TranslationKeys.FleetApiTestTestConnectionLinkSuffix,
             new TextLocalizationTranslation(LanguageCodes.English, "to test the connection."),
             new TextLocalizationTranslation(LanguageCodes.German, "um die Verbindung zu testen."));
 
         Register(TranslationKeys.FleetApiTestNotConfigured,
-            new TextLocalizationTranslation(LanguageCodes.English, "TSC is not registered in car, click"),
-            new TextLocalizationTranslation(LanguageCodes.German, "TSC ist nicht im Fahrzeug registriert, klicken Sie auf"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Solar4Car is not registered in the car, click"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car ist nicht im Fahrzeug registriert, klicken Sie auf"));
 
         Register(TranslationKeys.FleetApiTestRegisterLink,
             new TextLocalizationTranslation(LanguageCodes.English, "to register the car."),
@@ -59,7 +59,7 @@ public class FleetApiTestComponentLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.German, "Sie haben das Fahrzeug registriert, aber die Verbindung noch nicht getestet. Klicken Sie auf"));
 
         Register(TranslationKeys.FleetApiTestStateLoadError,
-            new TextLocalizationTranslation(LanguageCodes.English, "Could not load Tesla Fleet API state: {0}"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Fleet-API-Status konnte nicht geladen werden: {0}"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not load Tesla cloud state: {0}"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Cloud-Status konnte nicht geladen werden: {0}"));
     }
 }

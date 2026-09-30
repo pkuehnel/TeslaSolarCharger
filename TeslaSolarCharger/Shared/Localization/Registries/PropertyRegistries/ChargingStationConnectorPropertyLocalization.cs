@@ -89,9 +89,9 @@ public class ChargingStationConnectorPropertyLocalization : PropertyLocalization
         Register(x => x.AllowGuestCars,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Allow Guest Cars",
-                "Cars that are not known by TSC can charge here."),
+                "Cars that are not known by Solar4Car can charge here."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Gastfahrzeuge erlauben",
-                "Hier können auch Fahrzeuge laden, die TSC nicht bekannt sind."));
+                "Hier können auch Fahrzeuge laden, die Solar4Car nicht bekannt sind."));
     }
 }

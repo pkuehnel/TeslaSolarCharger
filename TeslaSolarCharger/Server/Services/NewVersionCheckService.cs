@@ -49,7 +49,7 @@ public class NewVersionCheckService : INewVersionCheckService
         if (localVersion < minimumVersion)
         {
             await _errorHandlingService.HandleError(nameof(NewVersionCheckService), nameof(CheckForNewVersion), "New version required",
-                "You need to update to the latest version as TSC won't work anymore", _issueKeys.NewRequiredSoftwareAvailable, null, null).ConfigureAwait(false);
+                "You need to update to the latest version as Solar4Car won't work anymore", _issueKeys.NewRequiredSoftwareAvailable, null, null).ConfigureAwait(false);
             await _errorHandlingService.HandleErrorResolved(_issueKeys.NewRecommendedSoftwareAvailable, null).ConfigureAwait(false);
             await _errorHandlingService.HandleErrorResolved(_issueKeys.NewSoftwareAvailable, null).ConfigureAwait(false);
             return;
