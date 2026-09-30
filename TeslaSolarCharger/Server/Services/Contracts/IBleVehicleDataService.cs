@@ -1,3 +1,5 @@
+using TeslaSolarCharger.Shared.Dtos.Settings;
+
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IBleVehicleDataService
@@ -14,4 +16,11 @@ public interface IBleVehicleDataService
     /// in progress.
     /// </summary>
     Task RefreshSingleCarData(int carId);
+
+    /// <summary>
+    /// Refreshes the cars that share one container and adapter. Part of the interface only so
+    /// <see cref="RefreshBleCarData"/> can run every further group on an instance from its own DI scope, and with it
+    /// its own DbContext, in parallel. Never throws.
+    /// </summary>
+    Task RefreshGroupSafely(string? host, string? adapter, List<DtoCar> cars);
 }

@@ -34,7 +34,8 @@ public class BleVehicleDataService(
     IBleReadCoordinator bleReadCoordinator,
     IBleSleepWindowService bleSleepWindowService,
     IBleAccessGateService bleAccessGateService,
-    IIssueKeys issueKeys) : IBleVehicleDataService
+    IIssueKeys issueKeys,
+    IServiceScopeFactory serviceScopeFactory) : IBleVehicleDataService
 {
     private static readonly TimeSpan RadioSilenceWarningDuration = TimeSpan.FromHours(24);
 
@@ -66,9 +67,58 @@ public class BleVehicleDataService(
         //Cars on different adapters (or different containers) are served by different workers, so their groups can
         //run in parallel; within a group everything serializes on the adapter anyway.
         var groups = cars
-            .GroupBy(c => (Host: c.BleApiBaseUrl, Adapter: c.BleAdapterAddress))
+            .GroupBy(c => (Host: NormalizeBleHost(c.BleApiBaseUrl), Adapter: NormalizeBleAdapter(c.BleAdapterAddress)))
             .ToList();
-        await Task.WhenAll(groups.Select(group => RefreshGroup(group.Key.Host, group.Key.Adapter, group.ToList()))).ConfigureAwait(false);
+        //A DbContext must never be used by two operations at once, so only the first group runs on this instance's own
+        //scope and every further group gets a scope of its own. Sharing one context made nearly every refresh throw as
+        //soon as two groups were polled at the same time.
+        var refreshes = groups.Select((group, index) => index == 0
+            ? RefreshGroupSafely(group.Key.Host, group.Key.Adapter, group.ToList())
+            : RefreshGroupInOwnScope(group.Key.Host, group.Key.Adapter, group.ToList()));
+        await Task.WhenAll(refreshes).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The same container is often entered once with and once without a trailing slash; both must end up in the same
+    /// group as they are served by the same workers.
+    /// </summary>
+    internal static string? NormalizeBleHost(string? host)
+    {
+        var normalized = host?.Trim().TrimEnd('/');
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    internal static string? NormalizeBleAdapter(string? adapter)
+    {
+        var normalized = adapter?.Trim().ToUpperInvariant();
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    private async Task RefreshGroupInOwnScope(string? host, string? adapter, List<DtoCar> cars)
+    {
+        try
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var scopedService = scope.ServiceProvider.GetRequiredService<IBleVehicleDataService>();
+            await scopedService.RefreshGroupSafely(host, adapter, cars).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not refresh BLE data of the cars on {host} (adapter {adapter}) in their own scope", host, adapter);
+        }
+    }
+
+    public async Task RefreshGroupSafely(string? host, string? adapter, List<DtoCar> cars)
+    {
+        try
+        {
+            await RefreshGroup(host, adapter, cars).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            //One failing group must neither stop the others nor fail the whole job.
+            logger.LogError(ex, "Error while refreshing BLE data of the cars on {host} (adapter {adapter})", host, adapter);
+        }
     }
 
     private async Task RefreshGroup(string? host, string? adapter, List<DtoCar> cars)
