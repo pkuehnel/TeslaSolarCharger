@@ -57,17 +57,17 @@ public class DtoGenericRestTemplateValueConfigurationPropertyLocalization : Prop
         Register(x => x.EnableHomeBatteryControl,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Enable home battery control",
-                "Allows TSC to block discharging and force charging of the home battery."),
+                "Allows Solar4Car to block discharging and force charging of the home battery."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Heimspeichersteuerung aktivieren",
-                "Erlaubt TSC, das Entladen des Heimspeichers zu blockieren und das Laden zu erzwingen."));
+                "Erlaubt Solar4Car, das Entladen des Heimspeichers zu blockieren und das Laden zu erzwingen."));
 
         Register(x => x.MaxBatteryChargePowerW,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Max battery charge power",
-                "Power in watts used when TSC forces the battery to charge."),
+                "Power in watts used when Solar4Car forces the battery to charge."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Maximale Batterieladeleistung",
-                "Leistung in Watt, die verwendet wird, wenn TSC das Laden der Batterie erzwingt."));
+                "Leistung in Watt, die verwendet wird, wenn Solar4Car das Laden der Batterie erzwingt."));
     }
 }

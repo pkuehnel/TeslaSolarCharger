@@ -28,9 +28,9 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
 
         Register(TranslationKeys.BleTestKeyNotPaired,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "The car is in range but TSC can not establish a secure connection to it. In almost all cases this means TSC's key is not added to the car yet."),
+                "The car is in range but Solar4Car can not establish a secure connection to it. In almost all cases this means Solar4Car's key is not added to the car yet."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Das Fahrzeug ist in Reichweite, aber TSC kann keine sichere Verbindung aufbauen. Fast immer bedeutet das, dass der Schlüssel von TSC noch nicht im Fahrzeug hinterlegt ist."));
+                "Das Fahrzeug ist in Reichweite, aber Solar4Car kann keine sichere Verbindung aufbauen. Fast immer bedeutet das, dass der Schlüssel von Solar4Car noch nicht im Fahrzeug hinterlegt ist."));
 
         Register(TranslationKeys.BleTestContainerProblem,
             new TextLocalizationTranslation(LanguageCodes.English,
@@ -53,8 +53,8 @@ public class BleConnectionTestComponentLocalizationRegistry : TextLocalizationRe
             new TextLocalizationTranslation(LanguageCodes.German, "Details: {0}"));
 
         Register(TranslationKeys.BleTestPairKeyTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Add TSC's key to the car"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Schlüssel von TSC im Fahrzeug hinterlegen"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Add Solar4Car's key to the car"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Schlüssel von Solar4Car im Fahrzeug hinterlegen"));
 
         //Two steps, and both are easy to miss: the card tap alone does not add the key, the message on the car's
         //screen has to be confirmed as well.

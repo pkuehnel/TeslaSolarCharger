@@ -143,8 +143,8 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.German, "Cloud-Verbindung"));
 
         Register(TranslationKeys.TeslaPowerwallEditFormErrorSuffix,
-            new TextLocalizationTranslation(LanguageCodes.English, " if everything is all right with your Tesla Fleet API connection."),
-            new TextLocalizationTranslation(LanguageCodes.German, ", ob mit Ihrer Tesla Fleet API-Verbindung alles in Ordnung ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, " if everything is all right with your Tesla cloud connection."),
+            new TextLocalizationTranslation(LanguageCodes.German, ", ob mit Ihrer Tesla-Cloud-Verbindung alles in Ordnung ist."));
 
         Register(TranslationKeys.RestValueResultConfigurationResultsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Results"),

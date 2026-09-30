@@ -43,7 +43,7 @@ public static class Extensions
             case ChargeMode.SpotPrice:
                 return "Spot Price + PV";
             case ChargeMode.DoNothing:
-                return "TSC Disabled";
+                return "Solar4Car Disabled";
             default:
                 return chargeMode.ToString();
         }
