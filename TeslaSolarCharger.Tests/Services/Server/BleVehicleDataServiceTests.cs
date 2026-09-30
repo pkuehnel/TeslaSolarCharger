@@ -1186,10 +1186,62 @@ public class BleVehicleDataServiceTests : TestBase
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
 
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterRadioEvidence($"{BleHost}|{RadioA}", true,
+        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterRadioEvidence(RadioA, true,
             It.IsAny<DateTimeOffset>()), Times.Exactly(2));
         Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterRadioEvidence(
-            It.Is<string>(k => k != $"{BleHost}|{RadioA}"), It.IsAny<bool>(), It.IsAny<DateTimeOffset>()), Times.Never);
+            It.Is<string>(k => k != RadioA), It.IsAny<bool>(), It.IsAny<DateTimeOffset>()), Times.Never);
+    }
+
+    /// <summary>
+    /// One container reached once by DNS name and once by IP address: the hosts differ, the radio does not.
+    /// </summary>
+    [Fact]
+    public async Task OneContainerUnderTwoHostNamesIsStillOneRadio()
+    {
+        SetupTwoBleDataCollectionCars("http://bleapi:7210", null, BleHost, null);
+        SetupPresenceAnswer(null, PresenceHeardOn(RadioA));
+        var firstRead = BlockBodyControllerRead(TestVin);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var refresh = service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Never);
+        firstRead.SetResult(AsleepRead());
+        await refresh;
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Once);
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+    }
+
+    /// <summary>
+    /// "hci:hci0" only names an adapter on its own container, so two containers reporting it are still two radios.
+    /// </summary>
+    [Fact]
+    public async Task AdapterKeysWithoutBluetoothAddressKeepTheirContainerApart()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, "http://192.168.1.39:7210", null);
+        SetupPresenceAnswer(null, PresenceHeardOn("hci:hci0"));
+        var scopedService = new Mock<IBleVehicleDataService>();
+        SetupScopedService(scopedService.Object);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        scopedService.Verify(s => s.RefreshRadioGroupSafely(It.Is<List<DtoBleGroupPresence>>(groups =>
+            groups.Count == 1 && groups[0].Host == "http://192.168.1.39:7210")), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(BleHost, RadioA, RadioA)]
+    [InlineData("http://bleapi:7210", RadioA, RadioA)]
+    [InlineData(BleHost, "HCI:HCI0", BleHost + "|HCI:HCI0")]
+    [InlineData(BleHost, "DEFAULT", BleHost + "|DEFAULT")]
+    [InlineData(BleHost, null, BleHost + "|")]
+    [InlineData(BleHost, "A0:AD:9F:79:AD", BleHost + "|A0:AD:9F:79:AD")]
+    [InlineData(BleHost, "A0:AD:9F:79:AD:13:14", BleHost + "|A0:AD:9F:79:AD:13:14")]
+    public void RadioKeyIsTheBluetoothAddressAloneWhenThereIsOne(string? host, string? adapter, string expected)
+    {
+        Assert.Equal(expected, TeslaSolarCharger.Server.Services.BleVehicleDataService.RadioKey(host, adapter));
     }
 
     [Fact]

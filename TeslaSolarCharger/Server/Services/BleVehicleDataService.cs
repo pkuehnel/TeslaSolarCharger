@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -119,16 +120,27 @@ public class BleVehicleDataService(
     /// group on that container shares one key: serializing needlessly only costs time, reading one radio in parallel
     /// costs false errors.
     /// </summary>
-    internal static Func<DtoBleGroupPresence, (string? Host, string? Adapter)> RadioGroupKey(IReadOnlyCollection<DtoBleGroupPresence> groups)
+    internal static Func<DtoBleGroupPresence, string> RadioGroupKey(IReadOnlyCollection<DtoBleGroupPresence> groups)
     {
         var hostsWithUnknownRadio = groups
             .Where(g => ResolvedAdapter(g) == default)
             .Select(g => g.Host)
             .ToHashSet();
         return group => hostsWithUnknownRadio.Contains(group.Host)
-            ? (group.Host, null)
-            : (group.Host, ResolvedAdapter(group));
+            ? RadioKey(group.Host, null)
+            : RadioKey(group.Host, ResolvedAdapter(group));
     }
+
+    /// <summary>
+    /// Identifies one radio. A Bluetooth address belongs to one physical adapter, so it alone is the key: the same
+    /// container reached once by DNS name and once by IP address is still one radio. Other adapter keys of the
+    /// container ("hci:hci0" when the address is unknown, "default" without adapter enumeration) are only unique on
+    /// their own container and keep the host.
+    /// </summary>
+    internal static string RadioKey(string? host, string? adapter) =>
+        adapter != default && BluetoothAddressRegex.IsMatch(adapter) ? adapter : $"{host}|{adapter}";
+
+    private static readonly Regex BluetoothAddressRegex = new("^([0-9A-F]{2}:){5}[0-9A-F]{2}$", RegexOptions.Compiled);
 
     /// <summary>
     /// The same container is often entered once with and once without a trailing slash; both must end up in the same
@@ -380,8 +392,7 @@ public class BleVehicleDataService(
         //heard: that is what tells a dead radio apart from an empty driveway.
         var heardAnything = presence.LastAdvertisementMsAgo is { } lastAdvertisement
                             && lastAdvertisement <= presence.MaxAgeMs;
-        var containerKey = $"{host}|{adapter}";
-        var silence = blePresenceStateService.RegisterRadioEvidence(containerKey, heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
+        var silence = blePresenceStateService.RegisterRadioEvidence(RadioKey(host, adapter), heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
         foreach (var car in cars)
         {
             if (heardAnything)
