@@ -85,4 +85,9 @@ public interface IConstants
 
     /// <summary>Where the base licence and the per-car subscriptions are booked.</summary>
     string SubscriptionsUrl { get; }
+
+    /// <summary>
+    /// Tesla's page that adds the solar4car.com virtual key to the car currently selected in the Tesla app.
+    /// </summary>
+    string TeslaVirtualKeyPairingUrl { get; }
 }

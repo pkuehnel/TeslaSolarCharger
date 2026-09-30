@@ -37,7 +37,7 @@
                 {
                     <MudText Typo="Typo.subtitle1" GutterBottom="true">@T(TranslationKeys.CarEditFleetApiTestTitle)</MudText>
                     <MudText Typo="Typo.body2" Class="mb-3">@T(TranslationKeys.CarEditFleetApiTestHint)</MudText>
-                    <FleetApiTestComponent CarId="Car.Item.Id" AutoTest="true" />
+                    <FleetApiTestComponent CarId="Car.Item.Id" AutoTest="true" IsOptional="Car.Item.UseBle" />
                 }
                 @if (_testBleConnection)
                 {
