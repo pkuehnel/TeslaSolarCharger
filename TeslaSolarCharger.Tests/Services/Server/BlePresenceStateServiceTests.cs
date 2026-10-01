@@ -270,4 +270,109 @@ public class BlePresenceStateServiceTests
         Assert.Equal(TimeSpan.Zero, service.RegisterRadioEvidence(container, heardAnything: false, start));
         Assert.Equal(TimeSpan.FromHours(25), service.RegisterRadioEvidence(container, heardAnything: false, start.AddHours(25)));
     }
+
+    private static void VerifyTransitionLogged(Mock<ILogger<BlePresenceStateService>> logger, string message, Times times)
+    {
+        logger.Verify(l => l.Log(LogLevel.Trace, It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) => state.ToString() == message),
+            It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), times);
+    }
+
+    private static void VerifyTransitionCount(Mock<ILogger<BlePresenceStateService>> logger, Times times)
+    {
+        logger.Verify(l => l.Log(LogLevel.Trace, It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) => state.ToString()!.StartsWith("BLE presence decision of car")),
+            It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), times);
+    }
+
+    /// <summary>
+    /// The first decision after a start is logged too: "unknown from the very first poll" is exactly what a support
+    /// log has to show.
+    /// </summary>
+    [Fact]
+    public void TheFirstDecisionOfACarIsLoggedAsATransitionFromNone()
+    {
+        var logger = new Mock<ILogger<BlePresenceStateService>>();
+        var service = new BlePresenceStateService(logger.Object);
+
+        service.RegisterPresenceAge(CarId, null, MaxAge);
+
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {CarId} changed from none to Unknown", Times.Once());
+    }
+
+    /// <summary>The poll runs every few seconds, so an unchanged decision must not be logged again.</summary>
+    [Fact]
+    public void AnUnchangedDecisionIsNotLoggedAgain()
+    {
+        var logger = new Mock<ILogger<BlePresenceStateService>>();
+        var service = new BlePresenceStateService(logger.Object);
+
+        service.RegisterPresenceAge(CarId, null, MaxAge);
+        service.RegisterPresenceAge(CarId, null, MaxAge);
+        service.RegisterPresenceAge(CarId, null, MaxAge);
+
+        VerifyTransitionCount(logger, Times.Once());
+    }
+
+    [Fact]
+    public void EveryChangeOfTheDecisionIsLoggedWithBothDecisions()
+    {
+        var logger = new Mock<ILogger<BlePresenceStateService>>();
+        var service = new BlePresenceStateService(logger.Object);
+
+        service.RegisterPresenceAge(CarId, null, MaxAge);
+        service.RegisterPresenceAge(CarId, TimeSpan.FromSeconds(5), MaxAge);
+        service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
+        service.RegisterPresenceAge(CarId, TimeSpan.FromSeconds(5), MaxAge);
+
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {CarId} changed from Unknown to Present", Times.Once());
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {CarId} changed from Present to Uncertain", Times.Once());
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {CarId} changed from Uncertain to Present", Times.Once());
+        VerifyTransitionCount(logger, Times.Exactly(4));
+    }
+
+    /// <summary>
+    /// The away transition is logged once, not once more on the first already-away poll: both are the same stored
+    /// state.
+    /// </summary>
+    [Fact]
+    public void ConfirmingAwayIsLoggedOnceAsATransition()
+    {
+        var logger = new Mock<ILogger<BlePresenceStateService>>();
+        var service = new BlePresenceStateService(logger.Object);
+
+        service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
+        service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromSeconds(1), MaxAge);
+        service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromMinutes(5), MaxAge);
+
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {CarId} changed from Uncertain to AlreadyAway", Times.Once());
+        VerifyTransitionCount(logger, Times.Exactly(2));
+    }
+
+    /// <summary>Transitions are tracked per car, so one car's state never hides another car's change.</summary>
+    [Fact]
+    public void TransitionsAreTrackedPerCar()
+    {
+        var logger = new Mock<ILogger<BlePresenceStateService>>();
+        var service = new BlePresenceStateService(logger.Object);
+
+        service.RegisterPresenceAge(CarId, null, MaxAge);
+        service.RegisterPresenceAge(OtherCarId, null, MaxAge);
+
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {OtherCarId} changed from none to Unknown", Times.Once());
+    }
+
+    /// <summary>After a reset the car starts over, so its next decision is a transition from none again.</summary>
+    [Fact]
+    public void AResetCarLogsItsNextDecisionAsATransitionFromNone()
+    {
+        var logger = new Mock<ILogger<BlePresenceStateService>>();
+        var service = new BlePresenceStateService(logger.Object);
+
+        service.RegisterPresenceAge(CarId, TimeSpan.FromSeconds(5), MaxAge);
+        service.Reset(CarId);
+        service.RegisterPresenceAge(CarId, TimeSpan.FromSeconds(5), MaxAge);
+
+        VerifyTransitionLogged(logger, $"BLE presence decision of car {CarId} changed from none to Present", Times.Exactly(2));
+    }
 }

@@ -39,7 +39,7 @@ public class BlePresenceStateService(ILogger<BlePresenceStateService> logger) : 
         if (age is not { } evidenceAge)
         {
             //Never heard, or the container cannot say. Not the same as "not there".
-            _states[carId] = new CarState(BlePresenceDecision.Unknown, AwayHandled(carId));
+            SetState(carId, new CarState(BlePresenceDecision.Unknown, AwayHandled(carId)));
             return BlePresenceDecision.Unknown;
         }
         if (evidenceAge <= maxAge)
@@ -48,25 +48,40 @@ public class BlePresenceStateService(ILogger<BlePresenceStateService> logger) : 
             {
                 logger.LogDebug("Car {carId} was heard again after being away", carId);
             }
-            _states[carId] = new CarState(BlePresenceDecision.Present, false);
+            SetState(carId, new CarState(BlePresenceDecision.Present, false));
             return BlePresenceDecision.Present;
         }
         if (evidenceAge <= maxAge + AwayConfirmationDuration)
         {
             logger.LogDebug("Car {carId} not heard for {age}, threshold is {maxAge}, keeping last known state",
                 carId, evidenceAge, maxAge);
-            _states[carId] = new CarState(BlePresenceDecision.Uncertain, false);
+            SetState(carId, new CarState(BlePresenceDecision.Uncertain, false));
             return BlePresenceDecision.Uncertain;
         }
         //Only the first decision past the confirmation reports JustConfirmedAway, so the caller runs the away
         //transition exactly once.
         var justConfirmed = !AwayHandled(carId);
-        _states[carId] = new CarState(BlePresenceDecision.AlreadyAway, true);
+        SetState(carId, new CarState(BlePresenceDecision.AlreadyAway, true));
         if (justConfirmed)
         {
             logger.LogInformation("Car {carId} has not been heard for {age}, confirming it as away", carId, evidenceAge);
         }
         return justConfirmed ? BlePresenceDecision.JustConfirmedAway : BlePresenceDecision.AlreadyAway;
+    }
+
+    /// <summary>
+    /// Stores a car's new state and logs when its decision changed. Logged on the transition only, so the verbose
+    /// level shows when a car became unknown, uncertain or away and when it came back, without repeating every poll.
+    /// </summary>
+    private void SetState(int carId, CarState state)
+    {
+        BlePresenceDecision? previousDecision = _states.TryGetValue(carId, out var previous) ? previous.Decision : null;
+        _states[carId] = state;
+        if (previousDecision != state.Decision)
+        {
+            logger.LogTrace("BLE presence decision of car {carId} changed from {previousDecision} to {decision}",
+                carId, previousDecision?.ToString() ?? "none", state.Decision);
+        }
     }
 
     private bool AwayHandled(int carId) => _states.TryGetValue(carId, out var state) && state.AwayHandled;

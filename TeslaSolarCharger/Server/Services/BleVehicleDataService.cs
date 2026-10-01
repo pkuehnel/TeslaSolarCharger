@@ -213,16 +213,64 @@ public class BleVehicleDataService(
         }
         //Tracked per radio: a car without a selected adapter and one that selected the default adapter explicitly
         //must not keep two silence timers for the same radio.
+        LogRadioState(host, adapter, presence);
         await HandleRadioEvidence(host, ResolvedAdapter(group) ?? adapter, cars, presence).ConfigureAwait(false);
         foreach (var car in cars)
         {
             var vehicle = presence.Vehicles
                 .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-            var age = EvidenceAge(presence, vehicle, maxAge);
-            RecordPresenceObservation(car, adapter, presence, vehicle, age <= maxAge);
-            await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
+            var evidence = EvaluateEvidence(presence, vehicle, maxAge);
+            LogVehicleEvidence(car, vehicle);
+            RecordPresenceObservation(car, adapter, presence, vehicle, evidence.Age <= maxAge);
+            await RefreshCarFromPresence(car, evidence, maxAge).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// Everything the container reported about the radio itself. Without it a log can not tell a radio that hears
+    /// nothing at all apart from one that hears everything but the car, or a scan that is warming up from one that
+    /// is not running.
+    /// </summary>
+    private void LogRadioState(string? host, string? adapter, DtoBlePresenceResult presence)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+        logger.LogTrace("BLE radio {resolvedAdapter} on {host} (requested adapter {adapter}): scanner running {scannerRunning}, " +
+                        "warming up {warmingUp}, observing for {observing}, last advertisement of any device {lastAdvertisement} ago, " +
+                        "{advertisementsSeen} advertisements ({advertisementsPerSecond}/s) from {distinctDevices} devices, " +
+                        "last scan error {lastScanError}, cars heard: {trackedCars}",
+            presence.Adapter, host, adapter, presence.ScannerRunning, presence.WarmingUp,
+            FormatDuration(TimeSpan.FromMilliseconds(presence.ObservingMs)), FormatMsAgo(presence.LastAdvertisementMsAgo),
+            presence.AdvertisementsSeen, presence.AdvertisementsPerSecond, presence.DistinctDevicesSeen,
+            presence.LastScanError ?? "none",
+            presence.Tracked.Count == 0
+                ? "none"
+                : string.Join(", ", presence.Tracked.Select(t => $"{t.LocalName} {FormatMsAgo(t.LastSeenMsAgo)} ago via {t.LastSource ?? "unknown"}")));
+    }
+
+    private void LogVehicleEvidence(DtoCar car, DtoBlePresenceVehicle? vehicle)
+    {
+        if (vehicle == default)
+        {
+            logger.LogTrace("The BLE container did not report car {vin} at all", car.Vin);
+            return;
+        }
+        logger.LogTrace("BLE presence evidence of car {vin} ({localName}): last seen {lastSeen} ago via {source}, " +
+                        "last advertisement {lastAdvertisement} ago, last answered command {lastCommand} ago, first heard {firstHeard} ago, " +
+                        "RSSI {rssi}, address {address}, {count} advertisements ({namedCount} named)",
+            car.Vin, vehicle.LocalName, FormatMsAgo(vehicle.LastSeenMsAgo), vehicle.LastSource ?? "unknown",
+            FormatMsAgo(vehicle.LastAdvertisementMsAgo), FormatMsAgo(vehicle.LastCommandSuccessMsAgo),
+            FormatMsAgo(vehicle.FirstHeardMsAgo), vehicle.Rssi, vehicle.Address, vehicle.Count, vehicle.NamedCount);
+    }
+
+    internal static string FormatMsAgo(long? msAgo) =>
+        msAgo is { } milliseconds ? FormatDuration(TimeSpan.FromMilliseconds(milliseconds)) : "never";
+
+    /// <summary>Whole seconds, so hours of silence read as 14:03:12 rather than as a 20 digit tick count.</summary>
+    internal static string FormatDuration(TimeSpan duration) =>
+        TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds)).ToString("c");
 
     /// <summary>
     /// How old the newest evidence about a car is, or null when nothing may be concluded from this answer.
@@ -235,19 +283,44 @@ public class BleVehicleDataService(
     /// Reading the flags before the evidence is what made a car unreachable in blocks: the deaf adapter watchdog
     /// restarted the worker every few minutes, and each restart threw away fresh advertisements for a full max age.
     /// </summary>
-    internal static TimeSpan? EvidenceAge(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
+    internal static TimeSpan? EvidenceAge(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge) =>
+        EvaluateEvidence(presence, vehicle, maxAge).Age;
+
+    /// <summary>
+    /// <see cref="EvidenceAge"/> plus, when it is null, why nothing may be concluded. The reason is for the log only:
+    /// "nothing known" looks the same for a scan that warms up for a minute and a radio that never heard the car at
+    /// all, and only the second one is a fault.
+    /// </summary>
+    internal static BleEvidence EvaluateEvidence(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
     {
-        if (vehicle?.LastSeenMsAgo is not { } lastSeen)
+        if (vehicle == default)
         {
-            return null;
+            return new BleEvidence(null, "the BLE container did not report the car at all");
+        }
+        if (vehicle.LastSeenMsAgo is not { } lastSeen)
+        {
+            return new BleEvidence(null, "the BLE container never heard the car since it started, neither by advertisement nor by an answered command");
         }
         var age = TimeSpan.FromMilliseconds(lastSeen);
         if (age <= maxAge)
         {
-            return age;
+            return new BleEvidence(age, null);
         }
-        return presence is { WarmingUp: false, ScannerRunning: true } ? age : null;
+        if (!presence.ScannerRunning)
+        {
+            var scanError = string.IsNullOrEmpty(presence.LastScanError) ? string.Empty : $" (last scan error: {presence.LastScanError})";
+            return new BleEvidence(null, $"the car was last heard {FormatDuration(age)} ago and the BLE scan is not running{scanError}");
+        }
+        if (presence.WarmingUp)
+        {
+            return new BleEvidence(null, $"the car was last heard {FormatDuration(age)} ago and the BLE scan is still warming up " +
+                                         $"(observing for {FormatDuration(TimeSpan.FromMilliseconds(presence.ObservingMs))})");
+        }
+        return new BleEvidence(age, null);
     }
+
+    /// <summary>The age of the newest evidence about a car, or why nothing may be concluded when there is none.</summary>
+    internal readonly record struct BleEvidence(TimeSpan? Age, string? UnknownReason);
 
     /// <summary>
     /// Keeps what was known about a car at this poll for later inspection. Only presence drives behaviour, but the
@@ -275,7 +348,7 @@ public class BleVehicleDataService(
     /// A car that is not present is not talked to at all: that is the whole point of asking first. The old design
     /// paid a scan window, and a command only design would pay a full connect timeout, for a car that is simply gone.
     /// </summary>
-    private async Task RefreshCarFromPresence(DtoCar car, TimeSpan? age, TimeSpan maxAge)
+    private async Task RefreshCarFromPresence(DtoCar car, BleEvidence evidence, TimeSpan maxAge)
     {
         if (!bleReadCoordinator.TryBeginRead(car.Id))
         {
@@ -285,14 +358,14 @@ public class BleVehicleDataService(
         {
             try
             {
-                var decision = blePresenceStateService.RegisterPresenceAge(car.Id, age, maxAge);
+                var decision = blePresenceStateService.RegisterPresenceAge(car.Id, evidence.Age, maxAge);
                 if (decision == BlePresenceDecision.Present)
                 {
                     await RefreshPresentCarData(car).ConfigureAwait(false);
                 }
                 else
                 {
-                    await HandleAbsentCar(car, decision).ConfigureAwait(false);
+                    await HandleAbsentCar(car, decision, evidence.UnknownReason).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -363,8 +436,8 @@ public class BleVehicleDataService(
         }
         var vehicle = presence.Vehicles
             .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-        var age = EvidenceAge(presence, vehicle, maxAge);
-        await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
+        LogVehicleEvidence(car, vehicle);
+        await RefreshCarFromPresence(car, EvaluateEvidence(presence, vehicle, maxAge), maxAge).ConfigureAwait(false);
     }
 
     private async Task HandleScanUnavailable(List<DtoCar> cars, string? adapter, string message, bool isAdapterMissing)
@@ -393,6 +466,12 @@ public class BleVehicleDataService(
         var heardAnything = presence.LastAdvertisementMsAgo is { } lastAdvertisement
                             && lastAdvertisement <= presence.MaxAgeMs;
         var silence = blePresenceStateService.RegisterRadioEvidence(RadioKey(host, adapter), heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
+        if (!heardAnything)
+        {
+            //Counted from the last poll on which TSC saw the radio hear anything, or from TSC's start.
+            logger.LogTrace("BLE radio {radio} heard no advertisement of any device within the max age, silent for {silence} as seen by TSC",
+                RadioKey(host, adapter), FormatDuration(silence));
+        }
         foreach (var car in cars)
         {
             if (heardAnything)
@@ -418,7 +497,7 @@ public class BleVehicleDataService(
     /// A car that is not present is never talked to: no connect, no command, no timeout. That is the point of asking
     /// the container first, and it is what an absent car used to cost a scan window for.
     /// </summary>
-    private async Task HandleAbsentCar(DtoCar car, BlePresenceDecision decision)
+    private async Task HandleAbsentCar(DtoCar car, BlePresenceDecision decision, string? unknownReason)
     {
         var vin = car.Vin!;
         var timestamp = dateTimeProvider.UtcNow();
@@ -438,6 +517,7 @@ public class BleVehicleDataService(
                 //The container cannot say yet, e.g. its scan is still warming up after a restart. Ignorance is not
                 //absence: keep the last known state and wait.
                 logger.LogDebug("Nothing is known about car {vin} yet, keeping last known state", vin);
+                logger.LogTrace("Presence of car {vin} is unknown because {reason}", vin, unknownReason ?? "no reason was reported");
                 break;
             default:
                 //Not silent long enough yet: keep the last known state; charging commands are suspended via

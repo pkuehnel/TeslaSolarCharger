@@ -84,4 +84,102 @@ public class BleEvidenceAgeTests
         Assert.Null(BleVehicleDataService.EvidenceAge(Presence(warmingUp: false, scannerRunning: true), Vehicle(null), MaxAge));
         Assert.Null(BleVehicleDataService.EvidenceAge(Presence(warmingUp: false, scannerRunning: true), null, MaxAge));
     }
+
+    /// <summary>
+    /// Whenever an age is concluded there is nothing to explain, so the log never pairs a usable age with a reason.
+    /// </summary>
+    [Theory]
+    [InlineData(4L, true, false)]
+    [InlineData(90000L, true, true)]
+    [InlineData(600000L, false, true)]
+    public void AConcludedAgeCarriesNoUnknownReason(long lastSeenMsAgo, bool warmingUp, bool scannerRunning)
+    {
+        var evidence = BleVehicleDataService.EvaluateEvidence(Presence(warmingUp, scannerRunning), Vehicle(lastSeenMsAgo), MaxAge);
+
+        Assert.Equal(TimeSpan.FromMilliseconds(lastSeenMsAgo), evidence.Age);
+        Assert.Null(evidence.UnknownReason);
+    }
+
+    [Fact]
+    public void ACarMissingFromTheAnswerIsReportedAsNotReported()
+    {
+        var evidence = BleVehicleDataService.EvaluateEvidence(Presence(warmingUp: false, scannerRunning: true), null, MaxAge);
+
+        Assert.Null(evidence.Age);
+        Assert.Equal("the BLE container did not report the car at all", evidence.UnknownReason);
+    }
+
+    /// <summary>
+    /// The case that hid a deaf radio for hours: a settled, running scan that simply never heard the car. It must read
+    /// differently from a warm-up, which is the harmless reason for the same null age.
+    /// </summary>
+    [Fact]
+    public void ACarNeverHeardIsReportedAsNeverHeardEvenFromASettledScan()
+    {
+        var evidence = BleVehicleDataService.EvaluateEvidence(Presence(warmingUp: false, scannerRunning: true), Vehicle(null), MaxAge);
+
+        Assert.Null(evidence.Age);
+        Assert.Contains("never heard the car since it started", evidence.UnknownReason);
+    }
+
+    [Fact]
+    public void StaleEvidenceWithAStoppedScanNamesTheScanError()
+    {
+        var presence = Presence(warmingUp: false, scannerRunning: false);
+        presence.LastScanError = "adapter powered off";
+
+        var evidence = BleVehicleDataService.EvaluateEvidence(presence, Vehicle(600000), MaxAge);
+
+        Assert.Null(evidence.Age);
+        Assert.Equal("the car was last heard 00:10:00 ago and the BLE scan is not running (last scan error: adapter powered off)",
+            evidence.UnknownReason);
+    }
+
+    [Fact]
+    public void StaleEvidenceWithAStoppedScanAndNoErrorOmitsTheErrorPart()
+    {
+        var evidence = BleVehicleDataService.EvaluateEvidence(Presence(warmingUp: false, scannerRunning: false), Vehicle(600000), MaxAge);
+
+        Assert.Equal("the car was last heard 00:10:00 ago and the BLE scan is not running", evidence.UnknownReason);
+    }
+
+    /// <summary>A scan that is not running is the more fundamental reason, so it wins over warming up.</summary>
+    [Fact]
+    public void AStoppedScanIsReportedBeforeAWarmUp()
+    {
+        var evidence = BleVehicleDataService.EvaluateEvidence(Presence(warmingUp: true, scannerRunning: false), Vehicle(600000), MaxAge);
+
+        Assert.Contains("the BLE scan is not running", evidence.UnknownReason);
+    }
+
+    [Fact]
+    public void StaleEvidenceDuringAWarmUpNamesHowLongTheScanHasBeenObserving()
+    {
+        var presence = Presence(warmingUp: true, scannerRunning: true);
+        presence.ObservingMs = 42400;
+
+        var evidence = BleVehicleDataService.EvaluateEvidence(presence, Vehicle(600000), MaxAge);
+
+        Assert.Null(evidence.Age);
+        Assert.Equal("the car was last heard 00:10:00 ago and the BLE scan is still warming up (observing for 00:00:42)",
+            evidence.UnknownReason);
+    }
+
+    [Theory]
+    [InlineData(0L, "00:00:00")]
+    [InlineData(499L, "00:00:00")]
+    [InlineData(1500L, "00:00:02")]
+    [InlineData(50_400_000L, "14:00:00")]
+    [InlineData(93_784_000L, "1.02:03:04")]
+    public void DurationsAreFormattedInWholeSeconds(long milliseconds, string expected)
+    {
+        Assert.Equal(expected, BleVehicleDataService.FormatDuration(TimeSpan.FromMilliseconds(milliseconds)));
+        Assert.Equal(expected, BleVehicleDataService.FormatMsAgo(milliseconds));
+    }
+
+    [Fact]
+    public void AMissingTimestampIsFormattedAsNever()
+    {
+        Assert.Equal("never", BleVehicleDataService.FormatMsAgo(null));
+    }
 }
