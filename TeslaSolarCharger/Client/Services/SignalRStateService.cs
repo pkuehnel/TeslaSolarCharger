@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
+[assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Client.Services;
 
 public class SignalRStateService : ISignalRStateService, IAsyncDisposable
@@ -82,9 +84,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 _hubConnection.Reconnected += async (connectionId) =>
                 {
                     _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
-                    await ResubscribeToAllDataTypes();
-                    await RefreshAllStates();
-                    OnConnectionStateChanged?.Invoke();
+                    await OnConnectionRestoredAsync();
                 };
 
                 _hubConnection.Closed += (error) =>
@@ -158,9 +158,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
                         // Because we connected late, we need to push data to components 
                         // that rendered while we were offline
-                        await ResubscribeToAllDataTypes();
-                        await RefreshAllStates();
-                        OnConnectionStateChanged?.Invoke();
+                        await OnConnectionRestoredAsync();
 
                         break; // Success! Exit the infinite loop.
                     }
@@ -182,6 +180,19 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 _isRetryingInitialConnection = false;
             }
         }
+    }
+
+    /// <summary>
+    /// Brings every subscriber up to date after the connection was down, e.g. while a phone had the app in the
+    /// background. States are re-sent by the server, but triggers carry no state and are never re-sent, so every
+    /// trigger subscriber is called once to reload whatever it might have missed.
+    /// </summary>
+    internal async Task OnConnectionRestoredAsync()
+    {
+        await ResubscribeToAllDataTypes();
+        await RefreshAllStates();
+        NotifyAllTriggerSubscribers();
+        OnConnectionStateChanged?.Invoke();
     }
 
     private async Task RefreshAllStates()
@@ -507,6 +518,14 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                     _logger.LogError(ex, "Error in subscriber callback for {Key}", key);
                 }
             }
+        }
+    }
+
+    private void NotifyAllTriggerSubscribers()
+    {
+        foreach (var key in _triggerSubscribers.Keys)
+        {
+            NotifyTriggerSubscribers(key);
         }
     }
 
