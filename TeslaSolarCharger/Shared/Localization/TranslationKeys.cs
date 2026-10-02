@@ -413,6 +413,7 @@ public static class TranslationKeys
     public static string TeslaPowerwallEditFormError => nameof(TeslaPowerwallEditFormError);
     public static string TeslaPowerwallEditFormCloudConnectionLink => nameof(TeslaPowerwallEditFormCloudConnectionLink);
     public static string TeslaPowerwallEditFormErrorSuffix => nameof(TeslaPowerwallEditFormErrorSuffix);
+    public static string SmaInverterEditFormForecastBasedChargingHint => nameof(SmaInverterEditFormForecastBasedChargingHint);
 
     public static string InstallationInfoServerTimezone => nameof(InstallationInfoServerTimezone);
     public static string InstallationInfoServerTime => nameof(InstallationInfoServerTime);
