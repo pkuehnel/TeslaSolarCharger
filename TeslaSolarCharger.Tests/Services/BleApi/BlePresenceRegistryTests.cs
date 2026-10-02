@@ -435,4 +435,194 @@ public class BlePresenceRegistryTests
         var result = registry.GetPresence(Adapter, new List<string>(), MaxAge, Start.AddMinutes(3));
         Assert.True(result.Tracked.Count <= BlePresenceRegistry.MaxTrackedVehicles);
     }
+
+    private const string StuckError = "received scan response 52:65:f3:00:b2:99 with no associated Advertising Data packet";
+    private static readonly TimeSpan FailingThreshold = TimeSpan.FromSeconds(90);
+    private const int RepeatedErrorLimit = 5;
+
+    /// <summary>
+    /// What the worker emits on an adapter whose HCI layer stored an error: re-armed every second, and failing within
+    /// a millisecond with the same error. Returns the time of the last failure.
+    /// </summary>
+    private static DateTimeOffset FailScans(BlePresenceRegistry registry, DateTimeOffset from, int count, string error = StuckError)
+    {
+        var at = from;
+        for (var attempt = 0; attempt < count; attempt++)
+        {
+            at = from.AddSeconds(attempt);
+            registry.ApplyScanState(Adapter, "running", null, at);
+            registry.ApplyScanState(Adapter, "error", error, at.AddMilliseconds(1));
+        }
+        return at.AddMilliseconds(1);
+    }
+
+    private static string? StuckReason(BlePresenceRegistry registry, DateTimeOffset now) =>
+        registry.GetStuckScanReason(Adapter, FailingThreshold, RepeatedErrorLimit, now);
+
+    [Fact]
+    public void AWorkingScanIsNotStuck()
+    {
+        var registry = Observing(Start);
+        Assert.Null(StuckReason(registry, Start.AddHours(1)));
+    }
+
+    [Fact]
+    public void AnAdapterThatNeverScannedIsNotStuck()
+    {
+        Assert.Null(StuckReason(CreateRegistry(), Start.AddHours(1)));
+    }
+
+    /// <summary>
+    /// The measured failure: go-ble kept one malformed scan response as its error and answered every re-arm with it
+    /// for 28 hours. The deafness check never saw it because it only judges a running scan.
+    /// </summary>
+    [Fact]
+    public void TheSameErrorOnEveryReArmIsStuckOnceTheLimitIsReached()
+    {
+        var registry = CreateRegistry();
+
+        var fourth = FailScans(registry, Start, RepeatedErrorLimit - 1);
+        Assert.Null(StuckReason(registry, fourth));
+
+        var fifth = FailScans(registry, Start.AddSeconds(RepeatedErrorLimit - 1), 1);
+        var reason = StuckReason(registry, fifth);
+
+        Assert.Equal($"the scan failed {RepeatedErrorLimit} times in a row with the same error: {StuckError}", reason);
+        //Deafness alone would not have caught it: the scan is not running.
+        Assert.False(registry.IsDeaf(Adapter, FailingThreshold, fifth.AddHours(28)));
+    }
+
+    /// <summary>The error is the evidence; different errors in a row are not the stored one repeating.</summary>
+    [Fact]
+    public void ChangingErrorsDoNotCountAsRepeated()
+    {
+        var registry = CreateRegistry();
+        for (var attempt = 0; attempt < RepeatedErrorLimit * 2; attempt++)
+        {
+            FailScans(registry, Start.AddSeconds(attempt), 1, attempt % 2 == 0 ? "error a" : "error b");
+        }
+        Assert.Null(StuckReason(registry, Start.AddSeconds(RepeatedErrorLimit * 2)));
+    }
+
+    /// <summary>Errors that keep changing still mean the scan never works, so they are caught after the threshold.</summary>
+    [Fact]
+    public void AScanFailingLongerThanTheThresholdIsStuckWhateverTheErrors()
+    {
+        var registry = CreateRegistry();
+        var last = Start;
+        for (var attempt = 0; attempt <= 95; attempt++)
+        {
+            last = FailScans(registry, Start.AddSeconds(attempt), 1, attempt % 2 == 0 ? "error a" : "error b");
+        }
+
+        Assert.Null(StuckReason(registry, Start.AddSeconds(90)));
+        var reason = StuckReason(registry, last);
+        Assert.NotNull(reason);
+        Assert.StartsWith("the scan has been failing for 95 s, last error: error b", reason);
+    }
+
+    [Fact]
+    public void ALimitOfZeroDisablesTheRepeatedErrorRuleButNotTheThreshold()
+    {
+        var registry = CreateRegistry();
+        var last = FailScans(registry, Start, 10);
+        Assert.Null(registry.GetStuckScanReason(Adapter, FailingThreshold, 0, last));
+        Assert.NotNull(registry.GetStuckScanReason(Adapter, FailingThreshold, 0, Start.AddSeconds(91)));
+    }
+
+    /// <summary>
+    /// A scan that ran fine for a while before failing worked in between: an occasional error of a healthy scan must
+    /// never add up to a restart.
+    /// </summary>
+    [Fact]
+    public void ErrorsOfScansThatRanHealthyInBetweenDoNotAddUp()
+    {
+        var registry = CreateRegistry();
+        var at = Start;
+        for (var attempt = 0; attempt < RepeatedErrorLimit * 2; attempt++)
+        {
+            registry.ApplyScanState(Adapter, "running", null, at);
+            at += BlePresenceRegistry.HealthyScanDuration;
+            registry.ApplyScanState(Adapter, "error", StuckError, at);
+            at += TimeSpan.FromSeconds(1);
+        }
+        Assert.Null(StuckReason(registry, at));
+    }
+
+    /// <summary>
+    /// After one transient error the scan re-arms and runs fine at a silent site: no digest with advertisements and no
+    /// pause ever clears the failure, yet the running scan proves the adapter works.
+    /// </summary>
+    [Fact]
+    public void AReArmedScanThatKeepsRunningIsNotStuck()
+    {
+        var registry = CreateRegistry();
+        var failed = FailScans(registry, Start, 1);
+        registry.ApplyScanState(Adapter, "running", null, failed.AddSeconds(1));
+
+        Assert.Null(StuckReason(registry, failed.AddMinutes(10)));
+    }
+
+    public static TheoryData<string> Evidences => new() { "advertisement", "command", "pause", "forget", };
+
+    /// <summary>Anything that proves the adapter works, or a fresh worker, starts the count over.</summary>
+    [Theory]
+    [MemberData(nameof(Evidences))]
+    public void EvidenceOfAWorkingAdapterClearsTheFailures(string evidence)
+    {
+        var registry = CreateRegistry();
+        var failed = FailScans(registry, Start, RepeatedErrorLimit - 1);
+        var at = failed.AddMilliseconds(500);
+        switch (evidence)
+        {
+            case "advertisement":
+                registry.ApplyDigest(Adapter, Digest(1, Device("11:11:11:11:11:11", "some-phone", 1, 1)), at);
+                break;
+            case "command":
+                registry.NoteCommandOutcome(Adapter, Car11Vin, BleCommandOutcome.Ok, at);
+                break;
+            case "pause":
+                registry.ApplyScanState(Adapter, "paused", "radio handed over", at);
+                break;
+            case "forget":
+                registry.ForgetAdapter(Adapter);
+                break;
+        }
+
+        var next = FailScans(registry, Start.AddSeconds(RepeatedErrorLimit), RepeatedErrorLimit - 1);
+        Assert.Null(StuckReason(registry, next));
+        Assert.Null(StuckReason(registry, Start.AddSeconds(FailingThreshold.TotalSeconds + 1)));
+    }
+
+    /// <summary>An empty digest is the worker's idle heartbeat, sent while the scan is failing too: it proves nothing.</summary>
+    [Fact]
+    public void AnEmptyDigestDoesNotClearTheFailures()
+    {
+        var registry = CreateRegistry();
+        FailScans(registry, Start, RepeatedErrorLimit - 1);
+        registry.ApplyDigest(Adapter, Digest(0), Start.AddSeconds(RepeatedErrorLimit - 1).AddMilliseconds(500));
+        var fifth = FailScans(registry, Start.AddSeconds(RepeatedErrorLimit), 1);
+
+        Assert.NotNull(StuckReason(registry, fifth));
+    }
+
+    /// <summary>A failing command proves nothing about the adapter, so it must not hide a stuck scan.</summary>
+    [Fact]
+    public void AFailedCommandDoesNotClearTheFailures()
+    {
+        var registry = CreateRegistry();
+        FailScans(registry, Start, RepeatedErrorLimit - 1);
+        registry.NoteCommandOutcome(Adapter, Car11Vin, BleCommandOutcome.LinkFailed, Start.AddSeconds(RepeatedErrorLimit - 1));
+        var fifth = FailScans(registry, Start.AddSeconds(RepeatedErrorLimit), 1);
+
+        Assert.NotNull(StuckReason(registry, fifth));
+    }
+
+    [Fact]
+    public void FailuresAreTrackedPerAdapter()
+    {
+        var registry = CreateRegistry();
+        var last = FailScans(registry, Start, RepeatedErrorLimit);
+        Assert.Null(registry.GetStuckScanReason("AA:BB:CC:DD:EE:FF", FailingThreshold, RepeatedErrorLimit, last));
+    }
 }
