@@ -146,6 +146,10 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
             new TextLocalizationTranslation(LanguageCodes.English, " if everything is all right with your Tesla cloud connection."),
             new TextLocalizationTranslation(LanguageCodes.German, ", ob mit Ihrer Tesla-Cloud-Verbindung alles in Ordnung ist."));
 
+        Register(TranslationKeys.SmaInverterEditFormForecastBasedChargingHint,
+            new TextLocalizationTranslation(LanguageCodes.English, "If a Sunny Home Manager is installed, disable \"Forecast-based battery charging\" in the Sunny Portal. Otherwise it overrides the battery control of Solar4Car about once a minute, so the house switches back and forth between grid power and the home battery."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Falls ein Sunny Home Manager installiert ist, deaktivieren Sie im Sunny Portal das \"Prognosebasierte Batterieladen\". Andernfalls überschreibt es etwa einmal pro Minute die Batteriesteuerung von Solar4Car, sodass das Haus ständig zwischen Netzbezug und Heimspeicher wechselt."));
+
         Register(TranslationKeys.RestValueResultConfigurationResultsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Results"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ergebnisse"));
