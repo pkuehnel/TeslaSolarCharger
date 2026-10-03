@@ -30,11 +30,10 @@ public static class ConfigurationDefaults
     /// <summary>
     /// How old the newest evidence about a car may be and still count as present. Both its BLE advertisements and the
     /// commands it answered count: a Tesla emits nothing at all while it holds a connection, so the two sources cover
-    /// exactly the periods the other cannot. Measured worst case under a real 13 s poll was 21 s, and the worst a
-    /// parked car went unheard in an idle hour was 0.6 s, so 90 s is generous. The away confirmation sits on top of
-    /// this, putting the away transition at about four minutes of true silence.
+    /// exactly the periods the other cannot. A car not heard for this long counts as away, provided the scan has been
+    /// running for at least this long.
     /// </summary>
-    public const int BlePresenceMaxAgeSeconds = 90;
+    public const int BlePresenceMaxAgeSeconds = 180;
 
     /// <summary>
     /// Percentage points added to the dynamically calculated state of charge above which the home battery is held

@@ -62,8 +62,6 @@ public class BleVehicleDataService(
             .Where(car => car != default && !string.IsNullOrEmpty(car.Vin))
             .Cast<DtoCar>()
             .ToList();
-        //A car that left BLE data collection must not keep a stale uncertain state that would suppress its charging
-        //commands forever.
         blePresenceStateService.RetainOnly(cars.Select(c => c.Id).ToList());
         //Phase 1: one presence request per configured container and adapter. A presence request never waits for the
         //adapter, so these can all run at once; they touch neither the DbContext nor the error list.
@@ -219,10 +217,10 @@ public class BleVehicleDataService(
         {
             var vehicle = presence.Vehicles
                 .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-            var evidence = EvaluateEvidence(presence, vehicle, maxAge);
+            var isPresent = IsPresent(presence, vehicle, maxAge);
             LogVehicleEvidence(car, vehicle);
-            RecordPresenceObservation(car, adapter, presence, vehicle, evidence.Age <= maxAge);
-            await RefreshCarFromPresence(car, evidence, maxAge).ConfigureAwait(false);
+            RecordPresenceObservation(car, adapter, presence, vehicle, isPresent == true);
+            await RefreshCarFromPresence(car, isPresent).ConfigureAwait(false);
         }
     }
 
@@ -273,54 +271,22 @@ public class BleVehicleDataService(
         TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds)).ToString("c");
 
     /// <summary>
-    /// How old the newest evidence about a car is, or null when nothing may be concluded from this answer.
-    ///
-    /// Evidence within the max age proves the car is here however long the scan has been observing: a car heard
-    /// milliseconds ago is present whether or not the container calls itself warmed up. The warm-up and scanner flags
-    /// only gate the negative conclusion, because right after a container or worker restart every car reads as long
-    /// unheard and that is ignorance, not absence.
-    ///
-    /// Reading the flags before the evidence is what made a car unreachable in blocks: the deaf adapter watchdog
-    /// restarted the worker every few minutes, and each restart threw away fresh advertisements for a full max age.
+    /// True when the car was heard (advertisement or answered command) within the max age, false when it was not and
+    /// the scan has been running for at least the max age (the container reports that as not warming up), null
+    /// otherwise. Right after a container or worker restart nothing has been heard yet, which is not proof of absence.
     /// </summary>
-    internal static TimeSpan? EvidenceAge(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge) =>
-        EvaluateEvidence(presence, vehicle, maxAge).Age;
-
-    /// <summary>
-    /// <see cref="EvidenceAge"/> plus, when it is null, why nothing may be concluded. The reason is for the log only:
-    /// "nothing known" looks the same for a scan that warms up for a minute and a radio that never heard the car at
-    /// all, and only the second one is a fault.
-    /// </summary>
-    internal static BleEvidence EvaluateEvidence(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
+    internal static bool? IsPresent(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
     {
-        if (vehicle == default)
+        if (vehicle?.LastSeenMsAgo is { } lastSeen && TimeSpan.FromMilliseconds(lastSeen) <= maxAge)
         {
-            return new BleEvidence(null, "the BLE container did not report the car at all");
+            return true;
         }
-        if (vehicle.LastSeenMsAgo is not { } lastSeen)
+        if (presence.ScannerRunning && !presence.WarmingUp)
         {
-            return new BleEvidence(null, "the BLE container never heard the car since it started, neither by advertisement nor by an answered command");
+            return false;
         }
-        var age = TimeSpan.FromMilliseconds(lastSeen);
-        if (age <= maxAge)
-        {
-            return new BleEvidence(age, null);
-        }
-        if (!presence.ScannerRunning)
-        {
-            var scanError = string.IsNullOrEmpty(presence.LastScanError) ? string.Empty : $" (last scan error: {presence.LastScanError})";
-            return new BleEvidence(null, $"the car was last heard {FormatDuration(age)} ago and the BLE scan is not running{scanError}");
-        }
-        if (presence.WarmingUp)
-        {
-            return new BleEvidence(null, $"the car was last heard {FormatDuration(age)} ago and the BLE scan is still warming up " +
-                                         $"(observing for {FormatDuration(TimeSpan.FromMilliseconds(presence.ObservingMs))})");
-        }
-        return new BleEvidence(age, null);
+        return null;
     }
-
-    /// <summary>The age of the newest evidence about a car, or why nothing may be concluded when there is none.</summary>
-    internal readonly record struct BleEvidence(TimeSpan? Age, string? UnknownReason);
 
     /// <summary>
     /// Keeps what was known about a car at this poll for later inspection. Only presence drives behaviour, but the
@@ -348,7 +314,7 @@ public class BleVehicleDataService(
     /// A car that is not present is not talked to at all: that is the whole point of asking first. The old design
     /// paid a scan window, and a command only design would pay a full connect timeout, for a car that is simply gone.
     /// </summary>
-    private async Task RefreshCarFromPresence(DtoCar car, BleEvidence evidence, TimeSpan maxAge)
+    private async Task RefreshCarFromPresence(DtoCar car, bool? isPresent)
     {
         if (!bleReadCoordinator.TryBeginRead(car.Id))
         {
@@ -358,14 +324,13 @@ public class BleVehicleDataService(
         {
             try
             {
-                var decision = blePresenceStateService.RegisterPresenceAge(car.Id, evidence.Age, maxAge);
-                if (decision == BlePresenceDecision.Present)
+                if (isPresent == true)
                 {
                     await RefreshPresentCarData(car).ConfigureAwait(false);
                 }
                 else
                 {
-                    await HandleAbsentCar(car, decision, evidence.UnknownReason).ConfigureAwait(false);
+                    await HandleAbsentCar(car, isPresent).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -437,7 +402,7 @@ public class BleVehicleDataService(
         var vehicle = presence.Vehicles
             .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
         LogVehicleEvidence(car, vehicle);
-        await RefreshCarFromPresence(car, EvaluateEvidence(presence, vehicle, maxAge), maxAge).ConfigureAwait(false);
+        await RefreshCarFromPresence(car, IsPresent(presence, vehicle, maxAge)).ConfigureAwait(false);
     }
 
     private async Task HandleScanUnavailable(List<DtoCar> cars, string? adapter, string message, bool isAdapterMissing)
@@ -497,33 +462,21 @@ public class BleVehicleDataService(
     /// A car that is not present is never talked to: no connect, no command, no timeout. That is the point of asking
     /// the container first, and it is what an absent car used to cost a scan window for.
     /// </summary>
-    private async Task HandleAbsentCar(DtoCar car, BlePresenceDecision decision, string? unknownReason)
+    private async Task HandleAbsentCar(DtoCar car, bool? isPresent)
     {
         var vin = car.Vin!;
-        var timestamp = dateTimeProvider.UtcNow();
-        switch (decision)
+        if (isPresent == null)
         {
-            case BlePresenceDecision.JustConfirmedAway:
-                logger.LogInformation("Car {vin} has not been heard for the whole confirmation duration, car is confirmed as away", vin);
-                UpdateHomePresence(car, false, timestamp);
-                UpdateOnlineState(car, false, timestamp);
-                ResetChargingValuesForAwayCar(car, timestamp);
-                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                break;
-            case BlePresenceDecision.AlreadyAway:
-                //The car is already marked as away: nothing changed, so do not write the same values again.
-                break;
-            case BlePresenceDecision.Unknown:
-                //The container cannot say yet, e.g. its scan is still warming up after a restart. Ignorance is not
-                //absence: keep the last known state and wait.
-                logger.LogDebug("Nothing is known about car {vin} yet, keeping last known state", vin);
-                logger.LogTrace("Presence of car {vin} is unknown because {reason}", vin, unknownReason ?? "no reason was reported");
-                break;
-            default:
-                //Not silent long enough yet: keep the last known state; charging commands are suspended via
-                //IsPresenceUncertain until either the car is heard again or the away state is confirmed.
-                logger.LogDebug("Car {vin} not heard, keeping last known state until the away state is confirmed", vin);
-                break;
+            logger.LogDebug("BLE scan of car {vin} is not running or still warming up, keeping last known state", vin);
+        }
+        else if (car.IsHomeGeofence.Value != false)
+        {
+            logger.LogInformation("Car {vin} was not heard within the BLE presence max age, setting it to away", vin);
+            var timestamp = dateTimeProvider.UtcNow();
+            UpdateHomePresence(car, false, timestamp);
+            UpdateOnlineState(car, false, timestamp);
+            ResetChargingValuesForAwayCar(car, timestamp);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
         //Getting here means the container answered and the car was not read at all, so nothing can currently be wrong
         //with its data collection. Resolving only on the away transition left an error raised while the car was
