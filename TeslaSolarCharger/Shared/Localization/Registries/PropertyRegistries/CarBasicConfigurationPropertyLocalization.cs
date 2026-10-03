@@ -9,18 +9,18 @@ public class CarBasicConfigurationPropertyLocalization : PropertyLocalizationReg
         Register(x => x.MinimumAmpere,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Minimum Ampere",
-                "TSC never sets a current below this value"),
+                "Solar4Car never sets a current below this value"),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Minimaler Strom",
-                "TSC setzt den Strom niemals unter diesen Wert."));
+                "Solar4Car setzt den Strom niemals unter diesen Wert."));
 
         Register(x => x.MaximumAmpere,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Maximum Ampere",
-                "TSC never sets a current above this value. This value is also used in the Max Power charge mode."),
+                "Solar4Car never sets a current above this value. This value is also used in the Max Power charge mode."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Maximaler Strom",
-                "TSC setzt den Strom niemals über diesen Wert. Der Wert wird außerdem im Modus ‚Maximale Leistung‘ verwendet."));
+                "Solar4Car setzt den Strom niemals über diesen Wert. Der Wert wird außerdem im Modus ‚Maximale Leistung‘ verwendet."));
 
         Register(x => x.SwitchOffAtCurrent,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -57,18 +57,18 @@ public class CarBasicConfigurationPropertyLocalization : PropertyLocalizationReg
         Register(x => x.ShouldBeManaged,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Should Be Managed",
-                "If disabled, this car will not show up in the overview page and TSC does not manage it."),
+                "If disabled, this car will not show up in the overview page and Solar4Car does not manage it."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Soll verwaltet werden",
-                "Wenn deaktiviert, erscheint dieses Fahrzeug nicht in der Übersicht und wird von TSC nicht verwaltet."));
+                "Wenn deaktiviert, erscheint dieses Fahrzeug nicht in der Übersicht und wird von Solar4Car nicht verwaltet."));
 
         Register(x => x.UseBle,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use BLE",
-                "Use BLE communication (If enabled no car license is required for this car). Note: A BLE device (e.g., Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near (max 4 meters without any walls in between) your car."),
+                "Use BLE communication (If enabled no Car License is required for this car). Note: A BLE device (e.g., Raspberry Pi) with the Solar4Car BLE container (TeslaSolarChargerBleApi) installed needs to be near (max 4 meters without any walls in between) your car."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "BLE verwenden",
-                "BLE-Kommunikation verwenden (wenn aktiviert, ist für dieses Fahrzeug keine Car-Lizenz erforderlich). Hinweis: Ein BLE-Gerät (z. B. Raspberry Pi) mit installiertem TeslaSolarChargerBle-Container muss sich in der Nähe des Fahrzeugs befinden (maximal 4 m ohne Wände dazwischen)."));
+                "BLE-Kommunikation verwenden (wenn aktiviert, ist für dieses Fahrzeug keine Fahrzeuglizenz erforderlich). Hinweis: Ein BLE-Gerät (z. B. Raspberry Pi) mit installiertem BLE-Container von Solar4Car (TeslaSolarChargerBleApi) muss sich in der Nähe des Fahrzeugs befinden (maximal 4 m ohne Wände dazwischen)."));
 
         Register(x => x.BleApiBaseUrl,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -89,10 +89,10 @@ public class CarBasicConfigurationPropertyLocalization : PropertyLocalizationReg
         Register(x => x.IncludeTrackingRelevantFields,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Include Tracking Relevant Fields",
-                "When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations. Note: For this a car license is required."),
+                "When enabled, Solar4Car collects data of additional fields that are not necessarily required for Solar4Car to work, but logged data might be helpful for future visualizations. Note: For this a Car License is required."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Tracking-relevante Felder einbeziehen",
-                "Wenn aktiviert, sammelt TSC zusätzliche Datenfelder, die für den Betrieb nicht zwingend erforderlich sind, aber für zukünftige Visualisierungen hilfreich sein können. Hinweis: Dafür ist eine Car-Lizenz erforderlich."));
+                "Wenn aktiviert, sammelt Solar4Car zusätzliche Datenfelder, die für den Betrieb nicht zwingend erforderlich sind, aber für zukünftige Visualisierungen hilfreich sein können. Hinweis: Dafür ist eine Fahrzeuglizenz erforderlich."));
 
         Register(x => x.MaximumPhases,
             new PropertyLocalizationTranslation(LanguageCodes.English,

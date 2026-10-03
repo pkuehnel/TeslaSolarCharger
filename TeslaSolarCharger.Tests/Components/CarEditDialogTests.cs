@@ -11,6 +11,7 @@ using MudBlazor.Services;
 using MudExtensions.Services;
 using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Client.Components;
+using TeslaSolarCharger.Client.Components.StartPage;
 using TeslaSolarCharger.Client.Dialogs;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
@@ -121,13 +122,30 @@ public class CarEditDialogTests : Bunit.TestContext
         Assert.Empty(_testedVins);
     }
 
-    private IRenderedComponent<MudDialogProvider> OpenDialog()
+    [Fact]
+    public void ABluetoothCarIsRecommendedTheTeslaCloudKeyInsteadOfBeingToldItIsBroken()
+    {
+        //Switching a Bluetooth car to be managed still checks its Tesla cloud key: it is the car's fallback.
+        _homeService.Setup(s => s.GetFleetApiState(It.IsAny<int>()))
+            .ReturnsAsync(new Result<TeslaCarFleetApiState?>(TeslaCarFleetApiState.NotConfigured, null, null));
+        _homeService.Setup(s => s.TestFleetApiAccess(It.IsAny<int>()))
+            .ReturnsAsync(new Result<bool>(false, null, null));
+        var dialog = OpenDialog(shouldBeManaged: false);
+        dialog.FindComponent<CarEditDialog>().Instance.Car.Item.ShouldBeManaged = true;
+
+        var save = dialog.FindAll("button").Single(b => b.TextContent.Trim() == "Save");
+        save.Click();
+
+        dialog.WaitForAssertion(() => Assert.True(dialog.FindComponent<FleetApiTestComponent>().Instance.IsOptional));
+    }
+
+    private IRenderedComponent<MudDialogProvider> OpenDialog(bool shouldBeManaged = true)
     {
         var car = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration(3, "Patricks M3")
         {
             Vin = Vin,
             CarType = CarType.Tesla,
-            ShouldBeManaged = true,
+            ShouldBeManaged = shouldBeManaged,
             UseBle = true,
             BleApiBaseUrl = "http://raspis4ctest:7210/",
             MinimumAmpere = 2,

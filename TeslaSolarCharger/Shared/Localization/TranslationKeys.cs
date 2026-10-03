@@ -413,6 +413,7 @@ public static class TranslationKeys
     public static string TeslaPowerwallEditFormError => nameof(TeslaPowerwallEditFormError);
     public static string TeslaPowerwallEditFormCloudConnectionLink => nameof(TeslaPowerwallEditFormCloudConnectionLink);
     public static string TeslaPowerwallEditFormErrorSuffix => nameof(TeslaPowerwallEditFormErrorSuffix);
+    public static string SmaInverterEditFormForecastBasedChargingHint => nameof(SmaInverterEditFormForecastBasedChargingHint);
 
     public static string InstallationInfoServerTimezone => nameof(InstallationInfoServerTimezone);
     public static string InstallationInfoServerTime => nameof(InstallationInfoServerTime);
@@ -448,12 +449,17 @@ public static class TranslationKeys
     public static string FleetApiTestLoading => nameof(FleetApiTestLoading);
     public static string FleetApiTestSuccess => nameof(FleetApiTestSuccess);
     public static string FleetApiTestFailed => nameof(FleetApiTestFailed);
-    public static string FleetApiTestFailedHint => nameof(FleetApiTestFailedHint);
-    public static string FleetApiTestAgainButton => nameof(FleetApiTestAgainButton);
-    public static string FleetApiTestRegisterLink => nameof(FleetApiTestRegisterLink);
     public static string FleetApiTestNotTested => nameof(FleetApiTestNotTested);
     public static string FleetApiTestNotConfigured => nameof(FleetApiTestNotConfigured);
+    public static string FleetApiTestNotWorking => nameof(FleetApiTestNotWorking);
     public static string FleetApiTestRegisteredButNotTested => nameof(FleetApiTestRegisteredButNotTested);
+    public static string FleetApiTestOptionalExplanation => nameof(FleetApiTestOptionalExplanation);
+    public static string FleetApiTestStepAddKeyTitle => nameof(FleetApiTestStepAddKeyTitle);
+    public static string FleetApiTestStepAddKeyText => nameof(FleetApiTestStepAddKeyText);
+    public static string FleetApiTestAddKeyButton => nameof(FleetApiTestAddKeyButton);
+    public static string FleetApiTestStepTestTitle => nameof(FleetApiTestStepTestTitle);
+    public static string FleetApiTestStepTestText => nameof(FleetApiTestStepTestText);
+    public static string FleetApiTestTestButton => nameof(FleetApiTestTestButton);
 
     public static string BleTestTesting => nameof(BleTestTesting);
     public static string BleTestSuccess => nameof(BleTestSuccess);
@@ -685,9 +691,6 @@ public static class TranslationKeys
     public static string PowerFlowNodeCar => nameof(PowerFlowNodeCar);
     public static string ManualOcppErrorFormat => nameof(ManualOcppErrorFormat);
     public static string FleetApiTestKeyCheckHint => nameof(FleetApiTestKeyCheckHint);
-    public static string FleetApiTestHereLink => nameof(FleetApiTestHereLink);
-    public static string FleetApiTestTestConnectionLinkSuffix => nameof(FleetApiTestTestConnectionLinkSuffix);
-    public static string FleetApiTestRegisterCarNote => nameof(FleetApiTestRegisterCarNote);
     public static string FleetApiTestStateLoadError => nameof(FleetApiTestStateLoadError);
     public static string ChargingTargetsDeleteFailed => nameof(ChargingTargetsDeleteFailed);
     public static string CarDetailsFailedToUpdateMinSoc => nameof(CarDetailsFailedToUpdateMinSoc);
@@ -775,7 +778,6 @@ public static class TranslationKeys
     public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
     public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
     public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
-    public static string NotChargingReasonBlePresenceUncertain => nameof(NotChargingReasonBlePresenceUncertain);
 
     public static string SetupAssistantTitle => nameof(SetupAssistantTitle);
     public static string SetupStepWelcome => nameof(SetupStepWelcome);
@@ -994,6 +996,9 @@ public static class TranslationKeys
     public static string SetupCarTeslaCloudLicenceMissing => nameof(SetupCarTeslaCloudLicenceMissing);
     public static string SetupCarTelemetryIncompatibleFallback => nameof(SetupCarTelemetryIncompatibleFallback);
     public static string SetupCarTeslaCloudAsleepNote => nameof(SetupCarTeslaCloudAsleepNote);
+    public static string SetupCarBluetoothFallbackTitle => nameof(SetupCarBluetoothFallbackTitle);
+    public static string SetupCarBluetoothFallbackExplanation => nameof(SetupCarBluetoothFallbackExplanation);
+    public static string SetupCarBluetoothFallbackButton => nameof(SetupCarBluetoothFallbackButton);
     public static string SetupCarSmartCarIntro => nameof(SetupCarSmartCarIntro);
     public static string SetupCarSmartCarStillNeedsCharger => nameof(SetupCarSmartCarStillNeedsCharger);
     public static string SetupCarSmartCarConnected => nameof(SetupCarSmartCarConnected);
@@ -1034,6 +1039,11 @@ public static class TranslationKeys
     public static string SetupCarReviewCheckFailed => nameof(SetupCarReviewCheckFailed);
     public static string SetupCarReviewCheckPending => nameof(SetupCarReviewCheckPending);
     public static string SetupCarReviewCheckNotRun => nameof(SetupCarReviewCheckNotRun);
+    public static string SetupCarReviewFleetApiFallback => nameof(SetupCarReviewFleetApiFallback);
+    public static string SetupCarReviewFleetApiFallbackWorking => nameof(SetupCarReviewFleetApiFallbackWorking);
+    public static string SetupCarReviewFleetApiFallbackNotTested => nameof(SetupCarReviewFleetApiFallbackNotTested);
+    public static string SetupCarReviewFleetApiFallbackNotWorking => nameof(SetupCarReviewFleetApiFallbackNotWorking);
+    public static string SetupCarReviewFleetApiFallbackNotSetUp => nameof(SetupCarReviewFleetApiFallbackNotSetUp);
 
     public static string SetupChargerNotFound => nameof(SetupChargerNotFound);
     public static string SetupChargerStageConnectTitle => nameof(SetupChargerStageConnectTitle);

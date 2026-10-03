@@ -429,7 +429,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         settings.StartupCrashMessage = ex.Message;
         var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         var issueKeys = startupScope.ServiceProvider.GetRequiredService<IIssueKeys>();
-        await errorHandlingService.HandleError(nameof(Program), "Startup", "TSC crashed on startup",
+        await errorHandlingService.HandleError(nameof(Program), "Startup", "Solar4Car crashed on startup",
                 $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
     }

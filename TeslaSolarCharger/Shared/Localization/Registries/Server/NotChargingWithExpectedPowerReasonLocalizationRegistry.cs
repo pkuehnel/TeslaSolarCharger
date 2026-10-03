@@ -7,8 +7,8 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
     protected override void Configure()
     {
         Register(TranslationKeys.NotChargingReasonOcppConnectionNotEstablished,
-            new TextLocalizationTranslation(LanguageCodes.English, "OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."),
-            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Verbindung nicht hergestellt. Nach einem Neustart von TSC oder der Ladestation kann es bis zu 5 Minuten dauern, bis die Ladestation wieder verbunden ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "OCPP connection not established. After a Solar4Car or charger reboot it can take up to 5 minutes until the charger is connected again."),
+            new TextLocalizationTranslation(LanguageCodes.German, "OCPP-Verbindung nicht hergestellt. Nach einem Neustart von Solar4Car oder der Ladestation kann es bis zu 5 Minuten dauern, bis die Ladestation wieder verbunden ist."));
 
         Register(TranslationKeys.NotChargingReasonCarNotAtHome,
             new TextLocalizationTranslation(LanguageCodes.English, "Car is not at home"),
@@ -89,9 +89,5 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
         Register(TranslationKeys.NotChargingReasonPowerBufferIncreased,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging speed is increased due to power buffer being set to {0}W"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladegeschwindigkeit wird erhöht, da ein Leistungspuffer von {0}W eingestellt ist"));
-
-        Register(TranslationKeys.NotChargingReasonBlePresenceUncertain,
-            new TextLocalizationTranslation(LanguageCodes.English, "BLE connection to the car is unstable. Checking whether the car is still at home before sending new charging commands."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Die BLE-Verbindung zum Fahrzeug ist instabil. Es wird geprüft, ob das Fahrzeug noch zu Hause ist, bevor neue Ladebefehle gesendet werden."));
     }
 }

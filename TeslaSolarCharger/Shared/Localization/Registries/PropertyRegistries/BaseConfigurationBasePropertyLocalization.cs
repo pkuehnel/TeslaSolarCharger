@@ -201,10 +201,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.HomeBatteryMaxChargeSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Max Charge SoC",
-                "When TSC actively forces the home battery to charge, charging stops at this SoC to protect the battery from being overcharged."),
+                "When Solar4Car actively forces the home battery to charge, charging stops at this SoC to protect the battery from being overcharged."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Maximaler Lade-Ladestand der Heimbatterie",
-                "Wenn TSC das Laden der Heimbatterie aktiv erzwingt, wird das Laden bei diesem Ladestand gestoppt, um die Batterie vor Überladung zu schützen."));
+                "Wenn Solar4Car das Laden der Heimbatterie aktiv erzwingt, wird das Laden bei diesem Ladestand gestoppt, um die Batterie vor Überladung zu schützen."));
 
         Register(x => x.HomeBatteryMinDynamicMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -297,10 +297,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.DischargeHomeBatteryToMinSocDuringDay,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Discharge Home Battery To Min Soc During Day",
-                "When enabled TSC discharges the home battery to its Min Soc after sunrise and before sunset. Note: Charging of cars is only started if minimum difference between actual home battery soc and min soc is at least 10%."),
+                "When enabled Solar4Car discharges the home battery to its Min Soc after sunrise and before sunset. Note: Charging of cars is only started if minimum difference between actual home battery soc and min soc is at least 10%."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Heimbatterie tagsüber auf Mindest-Ladestand entladen",
-                "Wenn aktiviert, entlädt TSC die Heimbatterie zwischen Sonnenaufgang und Sonnenuntergang bis zum Mindest-Ladestand. Hinweis: Das Laden von Fahrzeugen startet erst, wenn die Differenz zwischen aktuellem und minimalem Ladestand mindestens 10 % beträgt."));
+                "Wenn aktiviert, entlädt Solar4Car die Heimbatterie zwischen Sonnenaufgang und Sonnenuntergang bis zum Mindest-Ladestand. Hinweis: Das Laden von Fahrzeugen startet erst, wenn die Differenz zwischen aktuellem und minimalem Ladestand mindestens 10 % beträgt."));
 
         Register(x => x.CarChargeLoss,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -369,10 +369,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.BlePresenceMaxAgeSeconds,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "BLE presence max age (s)",
-                "How long ago a car may last have been heard and still count as being at home. Both its Bluetooth announcements and every command it answered count, which matters because a Tesla goes completely silent while TeslaSolarCharger is connected to it - the two sources cover exactly the periods the other cannot. Measured on real cars, a parked car is normally heard several times a second, so this value has a lot of headroom; raise it only if cars are reported as out of range while standing at home. Detecting that a car really left takes this time plus a confirmation period of about two and a half minutes. Leave empty to use the default (90 s)."),
+                "How long ago a car may last have been heard and still count as being at home. Both its Bluetooth announcements and every command it answered count, which matters because a Tesla goes completely silent while Solar4Car is connected to it - the two sources cover exactly the periods the other cannot. Measured on real cars, a parked car is normally heard several times a second, so this value has a lot of headroom; raise it only if cars are reported as out of range while standing at home. A car not heard for this long is set to away. Leave empty to use the default (180 s)."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "BLE-Anwesenheit maximales Alter (s)",
-                "Wie lange ein Fahrzeug zuletzt gehört worden sein darf, um noch als zu Hause zu gelten. Dabei zählen sowohl seine Bluetooth-Meldungen als auch jeder beantwortete Befehl. Das ist wichtig, weil ein Tesla vollständig verstummt, solange TeslaSolarCharger mit ihm verbunden ist - die beiden Quellen decken also genau die Zeiträume ab, die die jeweils andere nicht abdeckt. An echten Fahrzeugen gemessen wird ein geparktes Fahrzeug normalerweise mehrmals pro Sekunde gehört, dieser Wert hat also viel Reserve; erhöhen Sie ihn nur, wenn Fahrzeuge als außer Reichweite gemeldet werden, obwohl sie zu Hause stehen. Bis erkannt wird, dass ein Fahrzeug wirklich weggefahren ist, vergeht diese Zeit zuzüglich einer Bestätigungszeit von etwa zweieinhalb Minuten. Leer lassen für den Standardwert (90 s)."));
+                "Wie lange ein Fahrzeug zuletzt gehört worden sein darf, um noch als zu Hause zu gelten. Dabei zählen sowohl seine Bluetooth-Meldungen als auch jeder beantwortete Befehl. Das ist wichtig, weil ein Tesla vollständig verstummt, solange Solar4Car mit ihm verbunden ist - die beiden Quellen decken also genau die Zeiträume ab, die die jeweils andere nicht abdeckt. An echten Fahrzeugen gemessen wird ein geparktes Fahrzeug normalerweise mehrmals pro Sekunde gehört, dieser Wert hat also viel Reserve; erhöhen Sie ihn nur, wenn Fahrzeuge als außer Reichweite gemeldet werden, obwohl sie zu Hause stehen. Ein Fahrzeug, das so lange nicht gehört wurde, gilt als weggefahren. Leer lassen für den Standardwert (180 s)."));
 
         Register(x => x.UseBleDebug,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -385,18 +385,18 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.UseTeslaMateIntegration,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use TeslaMate Integration",
-                "When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated every 24 hours."),
+                "When you use TeslaMate you can enable this so calculated charging costs from Solar4Car are set in TeslaMate. Note: The charging costs in TeslaMate are only updated every 24 hours."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "TeslaMate-Integration verwenden",
-                "Wenn Sie TeslaMate nutzen, können Sie hier aktivieren, dass die von TSC berechneten Ladekosten in TeslaMate übernommen werden. Hinweis: Die Kosten werden in TeslaMate nur alle 24 Stunden aktualisiert."));
+                "Wenn Sie TeslaMate nutzen, können Sie hier aktivieren, dass die von Solar4Car berechneten Ladekosten in TeslaMate übernommen werden. Hinweis: Die Kosten werden in TeslaMate nur alle 24 Stunden aktualisiert."));
 
         Register(x => x.UseTeslaMateAsDataSource,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Use TeslaMate as Data Source",
-                "If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called. Note: If you use TSC without TeslaMate the setting here does not matter. Then the Tesla API is used always."),
+                "If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called. Note: If you use Solar4Car without TeslaMate the setting here does not matter. Then the Tesla API is used always."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "TeslaMate als Datenquelle nutzen",
-                "Wenn aktiviert, wird TeslaMate MQTT als Datenquelle verwendet. Wenn deaktiviert, ruft TSC direkt die Tesla-API auf. Hinweis: Wird TSC ohne TeslaMate betrieben, hat diese Einstellung keine Wirkung – es wird immer die Tesla-API genutzt."));
+                "Wenn aktiviert, wird TeslaMate MQTT als Datenquelle verwendet. Wenn deaktiviert, ruft Solar4Car direkt die Tesla-API auf. Hinweis: Wird Solar4Car ohne TeslaMate betrieben, hat diese Einstellung keine Wirkung – es wird immer die Tesla-API genutzt."));
 
         Register(x => x.HomeGeofenceRadius,
             new PropertyLocalizationTranslation(LanguageCodes.English,

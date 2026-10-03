@@ -501,11 +501,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 foreach (var vin in vins)
                 {
                     await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                        $"BLE container with URL {host} has an incompatible version", $"Used for {vin}. Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.",
+                        $"BLE container with URL {host} has an incompatible version", $"Used for {vin}. Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update Solar4Car and the BLE container to the latest version.",
                         issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
                 }
 
-                return $"BLE container with URL {host} has an incompatible version; Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.";
+                return $"BLE container with URL {host} has an incompatible version; Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update Solar4Car and the BLE container to the latest version.";
             }
 
             foreach (var vin in vins)
@@ -665,7 +665,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     private DtoCar? FindCarByVin(string vin) =>
         settings.Cars.FirstOrDefault(c => string.Equals(c.Vin, vin, StringComparison.OrdinalIgnoreCase));
 
-    private static string UnknownCarMessage(string vin) => $"No car with VIN {vin} is known to TSC.";
+    private static string UnknownCarMessage(string vin) => $"No car with VIN {vin} is known to Solar4Car.";
 
     //The BLE url belongs to the car, not to the base configuration: it says which BLE container is near that car.
     //Sending the user to the base configuration made them look for a setting that is not there.

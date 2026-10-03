@@ -22,7 +22,7 @@ public class BleAccessGateService(ILogger<BleAccessGateService> logger, IDateTim
     /// will make BLE work for this car again.
     /// </summary>
     internal const string KeyNotPairedMessage =
-        "The car rejected TSC's key, so it was not asked again. Add TSC's key to the car: open the car's settings, " +
+        "The car rejected Solar4Car's key, so it was not asked again. Add Solar4Car's key to the car: open the car's settings, " +
         "test the Bluetooth connection and follow the steps to add the key.";
 
     private readonly ConcurrentDictionary<int, DateTimeOffset> _keyRejections = new();

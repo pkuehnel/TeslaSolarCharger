@@ -31,4 +31,6 @@ public interface IHomeService
     Task UpdateCarForLoadpoint(int chargingConnectorId, int? carId);
     Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to);
     Task<Result<TeslaCarFleetApiState?>> GetFleetApiState(int carId);
+    Task<Result<bool>> TestFleetApiAccess(int carId);
+    Task<Result<object?>> UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState);
 }

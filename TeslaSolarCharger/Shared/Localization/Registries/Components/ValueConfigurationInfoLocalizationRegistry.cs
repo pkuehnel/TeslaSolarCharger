@@ -12,7 +12,7 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
         Register(TranslationKeys.ValueConfigInfoUsedFor,
             new TextLocalizationTranslation(LanguageCodes.English,
                 """
-                Which of the four values TSC needs is read here. TSC expects:
+                Which of the four values Solar4Car needs is read here. Solar4Car expects:
 
                 Inverter power: solar power generated, a positive number in watts.
                 Grid power: watts, export to the grid positive, import from the grid negative.
@@ -23,7 +23,7 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
                 """),
             new TextLocalizationTranslation(LanguageCodes.German,
                 """
-                Welchen der vier Werte, die TSC benötigt, dieser Eintrag liefert. TSC erwartet:
+                Welchen der vier Werte, die Solar4Car benötigt, dieser Eintrag liefert. Solar4Car erwartet:
 
                 Wechselrichterleistung: erzeugte Solarleistung als positive Zahl in Watt.
                 Netzleistung: Watt, Einspeisung positiv, Bezug negativ.
@@ -38,21 +38,21 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
                 """
                 Whether the value is used as it is (Plus) or with its sign flipped (Minus).
 
-                Example: your device reports the power drawn from the grid as a positive number, but TSC expects an
+                Example: your device reports the power drawn from the grid as a positive number, but Solar4Car expects an
                 import to be negative. Select Minus.
                 """),
             new TextLocalizationTranslation(LanguageCodes.German,
                 """
                 Ob der Wert unverändert übernommen wird (Plus) oder mit umgekehrtem Vorzeichen (Minus).
 
-                Beispiel: Ihr Gerät meldet den Netzbezug als positive Zahl, TSC erwartet den Bezug aber negativ.
+                Beispiel: Ihr Gerät meldet den Netzbezug als positive Zahl, Solar4Car erwartet den Bezug aber negativ.
                 Wählen Sie Minus.
                 """));
 
         Register(TranslationKeys.ValueConfigInfoCorrectionFactor,
             new TextLocalizationTranslation(LanguageCodes.English,
                 """
-                The value is multiplied by this factor so the result is what TSC expects: watts, or percent for the
+                The value is multiplied by this factor so the result is what Solar4Car expects: watts, or percent for the
                 home battery SoC.
 
                 Examples:
@@ -62,7 +62,7 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
                 """),
             new TextLocalizationTranslation(LanguageCodes.German,
                 """
-                Der Wert wird mit diesem Faktor multipliziert, damit das Ergebnis dem entspricht, was TSC erwartet:
+                Der Wert wird mit diesem Faktor multipliziert, damit das Ergebnis dem entspricht, was Solar4Car erwartet:
                 Watt, beim Heimspeicher-Ladestand Prozent.
 
                 Beispiele:
@@ -153,14 +153,14 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
         Register(TranslationKeys.ValueConfigInfoRestUrl,
             new TextLocalizationTranslation(LanguageCodes.English,
                 """
-                The complete URL TSC calls to read the values, including protocol and port.
+                The complete URL Solar4Car calls to read the values, including protocol and port.
 
                 Example for the SolarEdge plugin:
                 http://<IP of your Docker host>:7193/api/CurrentValues/GetCurrentPvValues
                 """),
             new TextLocalizationTranslation(LanguageCodes.German,
                 """
-                Die vollständige URL, die TSC zum Auslesen der Werte aufruft, inklusive Protokoll und Port.
+                Die vollständige URL, die Solar4Car zum Auslesen der Werte aufruft, inklusive Protokoll und Port.
 
                 Beispiel für das SolarEdge-Plugin:
                 http://<IP Ihres Docker-Hosts>:7193/api/CurrentValues/GetCurrentPvValues
@@ -198,15 +198,15 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
 
         Register(TranslationKeys.ValueConfigInfoConnectDelay,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "How long TSC waits after connecting before it sends the first request. 1000 ms works with most devices."),
+                "How long Solar4Car waits after connecting before it sends the first request. 1000 ms works with most devices."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Wie lange TSC nach dem Verbinden wartet, bevor die erste Anfrage gesendet wird. 1000 ms funktionieren bei den meisten Geräten."));
+                "Wie lange Solar4Car nach dem Verbinden wartet, bevor die erste Anfrage gesendet wird. 1000 ms funktionieren bei den meisten Geräten."));
 
         Register(TranslationKeys.ValueConfigInfoReadTimeout,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "How long TSC waits for an answer before it reports an error. 1000 ms works with most devices."),
+                "How long Solar4Car waits for an answer before it reports an error. 1000 ms works with most devices."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Wie lange TSC auf eine Antwort wartet, bevor ein Fehler gemeldet wird. 1000 ms funktionieren bei den meisten Geräten."));
+                "Wie lange Solar4Car auf eine Antwort wartet, bevor ein Fehler gemeldet wird. 1000 ms funktionieren bei den meisten Geräten."));
 
         Register(TranslationKeys.ValueConfigInfoEndianess,
             new TextLocalizationTranslation(LanguageCodes.English,
@@ -246,8 +246,8 @@ public class ValueConfigurationInfoLocalizationRegistry : TextLocalizationRegist
 
         Register(TranslationKeys.ValueConfigInfoMqttTopic,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "Topic that carries the value, e.g. inverter/grid/power. TSC subscribes to it and uses the last message it received."),
+                "Topic that carries the value, e.g. inverter/grid/power. Solar4Car subscribes to it and uses the last message it received."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Topic, über das der Wert veröffentlicht wird, z. B. inverter/grid/power. TSC abonniert es und verwendet die zuletzt empfangene Nachricht."));
+                "Topic, über das der Wert veröffentlicht wird, z. B. inverter/grid/power. Solar4Car abonniert es und verwendet die zuletzt empfangene Nachricht."));
     }
 }

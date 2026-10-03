@@ -14,7 +14,7 @@ public class CoreServiceTests(ITestOutputHelper outputHelper) : TestBase(outputH
     [InlineData((HttpStatusCode)299)]
     public async Task SendTestTelegramMessage_SuccessStatusCode_ReturnsSuccess(HttpStatusCode statusCode)
     {
-        Mock.Mock<ITelegramService>().Setup(t => t.SendMessage("TeslaSolarCharger test message")).ReturnsAsync(statusCode);
+        Mock.Mock<ITelegramService>().Setup(t => t.SendMessage("Solar4Car test message")).ReturnsAsync(statusCode);
         var service = Mock.Create<TeslaSolarCharger.Server.Services.CoreService>();
 
         var result = await service.SendTestTelegramMessage();
@@ -31,7 +31,7 @@ public class CoreServiceTests(ITestOutputHelper outputHelper) : TestBase(outputH
     [InlineData(HttpStatusCode.InternalServerError)]
     public async Task SendTestTelegramMessage_NonSuccessStatusCode_ReturnsError(HttpStatusCode statusCode)
     {
-        Mock.Mock<ITelegramService>().Setup(t => t.SendMessage("TeslaSolarCharger test message")).ReturnsAsync(statusCode);
+        Mock.Mock<ITelegramService>().Setup(t => t.SendMessage("Solar4Car test message")).ReturnsAsync(statusCode);
         var service = Mock.Create<TeslaSolarCharger.Server.Services.CoreService>();
 
         var result = await service.SendTestTelegramMessage();

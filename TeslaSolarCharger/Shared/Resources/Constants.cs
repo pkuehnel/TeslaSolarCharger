@@ -40,6 +40,7 @@ public class Constants : IConstants
     public string SetChargingAmpsRequestUrl => "FleetApiRequests/SetChargingAmps";
     public string SetChargeLimitRequestUrl => "FleetApiRequests/SetChargeLimit";
     public string WakeUpRequestUrl => "FleetApiRequests/WakeUp";
+    public string FleetApiTestRequestUrl => "FleetApiRequests/TestFleetApiAccess";
     public string VehicleRequestUrl => "FleetApiRequests/GetVehicle";
     public string VehicleDataRequestUrl => $"FleetApiRequests/GetVehicleData";
     public string TeslaTokenEncryptionKeyKey => "TeslaTokenEncryptionKey";
@@ -92,4 +93,6 @@ public class Constants : IConstants
     public string QueryParamTeslaConnected => "teslaConnected";
 
     public string SubscriptionsUrl => "https://solar4car.com/subscriptions";
+
+    public string TeslaVirtualKeyPairingUrl => "https://tesla.com/_ak/solar4car.com";
 }
