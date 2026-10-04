@@ -189,8 +189,8 @@ public partial class SetupPageLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Gehen Sie zurück und geben Sie dem Auto zuerst einen Namen und die Fahrgestellnummer; ohne diese können wir es nicht versuchen."));
 
         Register(TranslationKeys.SetupCarTeslaCloudIntro,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla has to know that this app may control your car. That is a one-off approval you give at Tesla."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla muss wissen, dass diese App Ihr Auto steuern darf. Das ist eine einmalige Freigabe, die Sie bei Tesla erteilen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla has to know that this app may control your car. That is a one-off approval you give at Tesla. We first check whether your car already allows it; if it does not, we walk you through the approval below."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla muss wissen, dass diese App Ihr Auto steuern darf. Das ist eine einmalige Freigabe, die Sie bei Tesla erteilen. Wir prüfen zuerst, ob Ihr Auto das bereits erlaubt; falls nicht, führen wir Sie unten durch die Freigabe."));
 
         Register(TranslationKeys.SetupCarTeslaCloudRequirements,
             new TextLocalizationTranslation(LanguageCodes.English, "This car needs internet access and its own subscription. The car also has to be awake for the first check."),
@@ -207,6 +207,18 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupCarTeslaCloudAsleepNote,
             new TextLocalizationTranslation(LanguageCodes.English, "If the car is asleep or away, your settings are still saved. Come back and try the check when it is back."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wenn das Auto schläft oder unterwegs ist, bleiben Ihre Einstellungen trotzdem gespeichert. Prüfen Sie erneut, sobald es zurück ist."));
+
+        Register(TranslationKeys.SetupCarBluetoothFallbackTitle,
+            new TextLocalizationTranslation(LanguageCodes.English, "Recommended: a fallback via the Tesla cloud"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Empfohlen: eine Ausweichlösung über die Tesla-Cloud"));
+
+        Register(TranslationKeys.SetupCarBluetoothFallbackExplanation,
+            new TextLocalizationTranslation(LanguageCodes.English, "If Bluetooth cannot reach the car, for example because the device is switched off, we can send the charging command via the Tesla cloud instead. Without a Car License for this car, this fallback is limited to one command per hour. You can skip this step."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Wenn Bluetooth das Auto nicht erreicht, zum Beispiel weil das Gerät ausgeschaltet ist, können wir den Ladebefehl stattdessen über die Tesla-Cloud senden. Ohne Fahrzeuglizenz für dieses Auto ist diese Ausweichlösung auf einen Befehl pro Stunde begrenzt. Sie können diesen Schritt überspringen."));
+
+        Register(TranslationKeys.SetupCarBluetoothFallbackButton,
+            new TextLocalizationTranslation(LanguageCodes.English, "Set up the fallback"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ausweichlösung einrichten"));
 
         Register(TranslationKeys.SetupCarSmartCarIntro,
             new TextLocalizationTranslation(LanguageCodes.English, "Connecting your car account lets us read how full the battery is."),
@@ -365,6 +377,26 @@ public partial class SetupPageLocalizationRegistry
         Register(TranslationKeys.SetupCarReviewCheckNotRun,
             new TextLocalizationTranslation(LanguageCodes.English, "not tried yet"),
             new TextLocalizationTranslation(LanguageCodes.German, "noch nicht versucht"));
+
+        Register(TranslationKeys.SetupCarReviewFleetApiFallback,
+            new TextLocalizationTranslation(LanguageCodes.English, "Fallback via the Tesla cloud:"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ausweichlösung über die Tesla-Cloud:"));
+
+        Register(TranslationKeys.SetupCarReviewFleetApiFallbackWorking,
+            new TextLocalizationTranslation(LanguageCodes.English, "set up and working"),
+            new TextLocalizationTranslation(LanguageCodes.German, "eingerichtet und funktioniert"));
+
+        Register(TranslationKeys.SetupCarReviewFleetApiFallbackNotTested,
+            new TextLocalizationTranslation(LanguageCodes.English, "not tested yet (optional)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "noch nicht getestet (optional)"));
+
+        Register(TranslationKeys.SetupCarReviewFleetApiFallbackNotWorking,
+            new TextLocalizationTranslation(LanguageCodes.English, "the car did not accept the key yet (optional)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "das Auto hat den Schlüssel noch nicht akzeptiert (optional)"));
+
+        Register(TranslationKeys.SetupCarReviewFleetApiFallbackNotSetUp,
+            new TextLocalizationTranslation(LanguageCodes.English, "not set up (optional)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "nicht eingerichtet (optional)"));
     }
 
     private void RegisterChargerTexts()

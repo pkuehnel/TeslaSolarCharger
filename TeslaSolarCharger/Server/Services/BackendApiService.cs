@@ -390,9 +390,28 @@ public class BackendApiService(
     /// <param name="requestUrlPart">Request URL, e.g. User/Login</param>
     /// <param name="content">Body to send to backend</param>
     /// <returns></returns>
-    public async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
+    public Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content) =>
+        SendRequestToBackend<T>(httpMethod, accessToken, requestUrlPart, content, null);
+
+    public Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content, TimeSpan timeout) =>
+        SendRequestToBackend<T>(httpMethod, accessToken, requestUrlPart, content, (TimeSpan?)timeout);
+
+    public async Task<Result<DtoFleetApiCommandBudget>> GetFleetApiCommandBudget(string vin)
     {
-        logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
+        logger.LogTrace("{method}({vin})", nameof(GetFleetApiCommandBudget), vin);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            return new(null, "No backend token found.", null);
+        }
+        return await SendRequestToBackend<DtoFleetApiCommandBudget>(HttpMethod.Get, token.AccessToken,
+            $"FleetApiRequests/CommandBudget?vin={Uri.EscapeDataString(vin)}", null).ConfigureAwait(false);
+    }
+
+    /// <param name="timeout">Null uses the default timeout of backend requests.</param>
+    private async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content, TimeSpan? timeout)
+    {
+        logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent}, {timeout})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content, timeout);
         var request = new HttpRequestMessage();
         var fallbackCulture = "en-US";
         var uiCultureName = CultureInfo.CurrentUICulture.Name;
@@ -411,7 +430,10 @@ public class BackendApiService(
         }
         try
         {
-            var httpClient = httpClientFactory.CreateClient(StaticConstants.HttpClientNameShortTimeout);
+            var httpClient = httpClientFactory.CreateClient(timeout == default
+                ? StaticConstants.HttpClientNameShortTimeout
+                : StaticConstants.HttpClientNameDefaultTimeout);
+            using var cancellationTokenSource = new CancellationTokenSource(timeout ?? Timeout.InfiniteTimeSpan);
             if (httpMethod == HttpMethod.Get)
             {
                 request.Method = HttpMethod.Get;
@@ -442,8 +464,8 @@ public class BackendApiService(
                     null
                 );
             }
-            var response = await httpClient.SendAsync(request).ConfigureAwait(false);
-            var responseContentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await httpClient.SendAsync(request, cancellationTokenSource.Token).ConfigureAwait(false);
+            var responseContentString = await response.Content.ReadAsStringAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             logger.LogTrace("Response: {responseContent}", responseContentString);
             if (response.IsSuccessStatusCode)
             {

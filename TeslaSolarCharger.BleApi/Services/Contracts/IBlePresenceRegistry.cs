@@ -37,6 +37,15 @@ public interface IBlePresenceRegistry
     /// </summary>
     bool IsDeaf(string adapterKey, TimeSpan silenceThreshold, DateTimeOffset now);
 
+    /// <summary>
+    /// Why the adapter's scan counts as stuck, or null while it works. Stuck means it failed
+    /// <paramref name="repeatedErrorLimit"/> times in a row with the same error, or kept failing for longer than
+    /// <paramref name="failingThreshold"/>. Measured at a user's site: go-ble stored one malformed scan response as
+    /// its error and answered every later scan and connect with it for 28 hours, which <see cref="IsDeaf"/> never saw
+    /// because it only judges a running scan. Like deafness, only a fresh adapter bind recovers from it.
+    /// </summary>
+    string? GetStuckScanReason(string adapterKey, TimeSpan failingThreshold, int repeatedErrorLimit, DateTimeOffset now);
+
     /// <summary>Marks the adapter as no longer observed, e.g. because its worker stopped.</summary>
     void ForgetAdapter(string adapterKey);
 

@@ -17,6 +17,11 @@ public class DtoCarOverviewSettings
     public int? MaxSoc { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }
     public CarType CarType { get; set; }
+    /// <summary>
+    /// Whether the car is controlled via Bluetooth. The Tesla cloud is then only the fallback, so its missing key is a
+    /// recommendation rather than an error.
+    /// </summary>
+    public bool UseBle { get; set; }
 }
 
 public class DtoCarOverviewState

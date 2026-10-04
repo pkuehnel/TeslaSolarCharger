@@ -9,6 +9,7 @@
 
 @inject ITextLocalizationService TextLocalizer
 @inject IChargingStationsService ChargingStationsService
+@inject ISetupService SetupService
 
 <MudText Typo="Typo.body2" Class="mb-4">@T(TranslationKeys.SetupCarReviewIntro)</MudText>
 
@@ -56,6 +57,12 @@
     @StatusLine(T(TranslationKeys.SetupCarReviewConfiguration), T(ConfigurationStatusKey))
     @StatusLine(T(TranslationKeys.SetupCarReviewActivation), T(ActivationStatusKey))
     @StatusLine(T(TranslationKeys.SetupCarReviewConnectionCheck), T(ConnectionCheckKey))
+    @if (ShowsFleetApiFallback)
+    {
+        @* A Bluetooth car's connection check is the Bluetooth test. Its optional fallback via the Tesla cloud is a
+           second, separate thing, read from what the app stored about the car rather than from this setup. *@
+        @StatusLine(T(TranslationKeys.SetupCarReviewFleetApiFallback), T(FleetApiFallbackKey))
+    }
 </div>
 
 @if (Blockers.Count > 0)
@@ -76,14 +83,23 @@
     [Parameter, EditorRequired] public DtoSetupCarDraft Draft { get; set; } = default!;
 
     private List<DtoChargingStationConnector>? _connectors;
+    private DtoSetupCarCapabilities? _capabilities;
 
     private bool NeedsChargingStation => Draft.ConnectionRoute
         is SetupCarConnectionRoute.SmartCarWithChargingStation or SetupCarConnectionRoute.ChargingStationOnly;
+
+    private bool ShowsFleetApiFallback => Draft.ConnectionRoute == SetupCarConnectionRoute.TeslaBluetooth
+                                          && Draft.CarId != null;
 
     private IReadOnlyList<DtoSetupIssue> Blockers => Context.BlockersFor(Draft.DraftId);
 
     protected override async Task OnParametersSetAsync()
     {
+        if (ShowsFleetApiFallback)
+        {
+            _capabilities = await SetupService.GetCarCapabilities(Draft.CarId!.Value);
+        }
+
         if (!NeedsChargingStation)
         {
             return;
@@ -156,6 +172,15 @@
         SetupCheckResultState.Pending => TranslationKeys.SetupCarReviewCheckPending,
         //Never tested is not a failure: the car may simply have been away while this was set up.
         _ => TranslationKeys.SetupCarReviewCheckNotRun,
+    };
+
+    private string FleetApiFallbackKey => _capabilities?.FleetApiState switch
+    {
+        TeslaCarFleetApiState.Ok => TranslationKeys.SetupCarReviewFleetApiFallbackWorking,
+        TeslaCarFleetApiState.NotWorking => TranslationKeys.SetupCarReviewFleetApiFallbackNotWorking,
+        TeslaCarFleetApiState.NotConfigured => TranslationKeys.SetupCarReviewFleetApiFallbackNotSetUp,
+        //Opened the key page, or never looked at the key at all: in both cases the key may well be there.
+        _ => TranslationKeys.SetupCarReviewFleetApiFallbackNotTested,
     };
 
     private RenderFragment StatusLine(string label, string value) =>

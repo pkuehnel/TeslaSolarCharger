@@ -19,8 +19,8 @@ public interface ISettings
     List<DtoCar> Cars { get; set; }
     List<DtoCar> CarsToManage { get; }
     bool RestartNeeded { get; set; }
-    Dictionary<int, string> RawRestRequestResults { get; set; }
-    Dictionary<int, string> RawRestValues { get; set; }
+    ConcurrentDictionary<int, string> RawRestRequestResults { get; set; }
+    ConcurrentDictionary<int, string> RawRestValues { get; set; }
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
     bool IsStartupCompleted { get; set; }
     DtoProgress? ChargePricesUpdateProgress { get; set; }

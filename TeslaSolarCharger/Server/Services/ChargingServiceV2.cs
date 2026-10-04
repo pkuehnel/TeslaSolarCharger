@@ -40,7 +40,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IChargingScheduleService _chargingScheduleService;
     private readonly IConstants _constants;
     private readonly IHomeBatteryScheduleService _homeBatteryScheduleService;
-    private readonly IBlePresenceStateService _blePresenceStateService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -58,8 +57,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         IAppStateNotifier appStateNotifier,
         IChargingScheduleService chargingScheduleService,
         IConstants constants,
-        IHomeBatteryScheduleService homeBatteryScheduleService,
-        IBlePresenceStateService blePresenceStateService)
+        IHomeBatteryScheduleService homeBatteryScheduleService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -78,7 +76,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         _chargingScheduleService = chargingScheduleService;
         _constants = constants;
         _homeBatteryScheduleService = homeBatteryScheduleService;
-        _blePresenceStateService = blePresenceStateService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -462,9 +459,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (c.ChargerRequestedCurrent.Value != c.MaximumAmpere)
                         && (c.ChargerPilotCurrent.Value > c.ChargerRequestedCurrent.Value)
                         && (c.IsCharging.Value == false)
-                        && (c.ChargeModeV2 == ChargeModeV2.Auto)
-                        //While BLE presence is uncertain the car may already have left home, so do not send commands.
-                        && !_blePresenceStateService.IsPresenceUncertain(c.Id))
+                        && (c.ChargeModeV2 == ChargeModeV2.Auto))
             .ToList();
 
         foreach (var car in carsToSetToMaxCurrent)

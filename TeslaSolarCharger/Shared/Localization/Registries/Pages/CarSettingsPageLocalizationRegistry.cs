@@ -47,16 +47,16 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug wird gelöscht"));
 
         Register(TranslationKeys.CarSettingsCreateTokenTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Fleet API Token is not valid."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Fleet API Token ist ungültig."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla cloud token is not valid."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Cloud-Token ist ungültig."));
 
         Register(TranslationKeys.CarSettingsGoToPrefix,
             new TextLocalizationTranslation(LanguageCodes.English, "Go to "),
             new TextLocalizationTranslation(LanguageCodes.German, "Gehen Sie zu "));
 
         Register(TranslationKeys.CarSettingsGenerateTokenSuffix,
-            new TextLocalizationTranslation(LanguageCodes.English, " and generate a Tesla Fleet API Token."),
-            new TextLocalizationTranslation(LanguageCodes.German, " und generieren Sie ein Tesla Fleet API Token."));
+            new TextLocalizationTranslation(LanguageCodes.English, " and generate a Tesla cloud token."),
+            new TextLocalizationTranslation(LanguageCodes.German, " und generieren Sie ein Tesla-Cloud-Token."));
 
         Register(TranslationKeys.CarSettingsAddNonTeslaButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Add non-Tesla"),
@@ -141,8 +141,8 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "BLE-Kopplung"));
 
         Register(TranslationKeys.CarSettingsBlePairingHintStart,
-            new TextLocalizationTranslation(LanguageCodes.English, "To use BLE commands you need to pair the TSC with your car. See "),
-            new TextLocalizationTranslation(LanguageCodes.German, "Um BLE-Befehle nutzen zu können, müssen Sie TSC mit Ihrem Fahrzeug koppeln. Siehe "));
+            new TextLocalizationTranslation(LanguageCodes.English, "To use BLE commands you need to pair Solar4Car with your car. See "),
+            new TextLocalizationTranslation(LanguageCodes.German, "Um BLE-Befehle nutzen zu können, müssen Sie Solar4Car mit Ihrem Fahrzeug koppeln. Siehe "));
 
         Register(TranslationKeys.CarSettingsBlePairingLinkText,
             new TextLocalizationTranslation(LanguageCodes.English, "documentation"),
@@ -165,8 +165,8 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "BLE-Zugriff testen"));
 
         Register(TranslationKeys.CarSettingsTestBleAccessHint1,
-            new TextLocalizationTranslation(LanguageCodes.English, "Click the button below to test if TSC can send commands via BLE."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Schaltfläche unten, um zu testen, ob TSC Befehle über BLE senden kann."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Click the button below to test if Solar4Car can send commands via BLE."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Schaltfläche unten, um zu testen, ob Solar4Car Befehle über BLE senden kann."));
 
         Register(TranslationKeys.CarSettingsTestBleAccessHint2,
             new TextLocalizationTranslation(LanguageCodes.English, "This will try to set the charging amps to 7A."),
@@ -181,8 +181,8 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Aufwecken testen"));
 
         Register(TranslationKeys.CarSettingsTestWakeupHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Click the button below to test if TSC can wake up the car via BLE."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Schaltfläche unten, um zu testen, ob TSC das Fahrzeug über BLE aufwecken kann."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Click the button below to test if Solar4Car can wake up the car via BLE."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Schaltfläche unten, um zu testen, ob Solar4Car das Fahrzeug über BLE aufwecken kann."));
 
         Register(TranslationKeys.CarSettingsWakeUpButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Wake Up"),
@@ -253,7 +253,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Mit SmartCar verbinden"));
 
         Register(TranslationKeys.CarSettingsSmartCarBillingConfirmText,
-            new TextLocalizationTranslation(LanguageCodes.English, "In the next step you can select one or more vehicles. Any vehicle you select beyond your available car licenses is booked automatically as an additional car license and billed via Stripe (prorated). Do you want to continue?"),
+            new TextLocalizationTranslation(LanguageCodes.English, "In the next step you can select one or more vehicles. Any vehicle you select beyond your available Car Licenses is booked automatically as an additional Car License and billed via Stripe (prorated). Do you want to continue?"),
             new TextLocalizationTranslation(LanguageCodes.German, "Im nächsten Schritt können Sie ein oder mehrere Fahrzeuge auswählen. Jedes Fahrzeug, das Sie über Ihre verfügbaren Fahrzeuglizenzen hinaus auswählen, wird automatisch als zusätzliche Fahrzeuglizenz gebucht und anteilig über Stripe abgerechnet. Möchten Sie fortfahren?"));
 
         Register(TranslationKeys.CarSettingsSmartCarBillingConfirmButton,
@@ -265,8 +265,8 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeug hinzufügen"));
 
         Register(TranslationKeys.AddCarTokenInvalidTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Fleet API Token is not valid."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla Fleet API Token ist ungültig."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla cloud token is not valid."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Cloud-Token ist ungültig."));
 
         Register(TranslationKeys.AddCarTokenInvalidContent,
             new TextLocalizationTranslation(LanguageCodes.English, "Go to "),
@@ -293,7 +293,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Kostenlos mit BLE"));
 
         Register(TranslationKeys.AddCarLicenseBadge,
-            new TextLocalizationTranslation(LanguageCodes.English, "Car license required"),
+            new TextLocalizationTranslation(LanguageCodes.English, "Car License required"),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuglizenz erforderlich"));
 
         Register(TranslationKeys.AddCarManualOptionTitle,
@@ -317,7 +317,7 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Andere Marke (SmartCar)"));
 
         Register(TranslationKeys.AddCarSmartCarOptionDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Connect a supported vehicle via SmartCar. Consumes a car license."),
+            new TextLocalizationTranslation(LanguageCodes.English, "Connect a supported vehicle via SmartCar. Consumes a Car License."),
             new TextLocalizationTranslation(LanguageCodes.German, "Verbinden Sie ein unterstütztes Fahrzeug über SmartCar. Verbraucht eine Fahrzeuglizenz."));
 
         Register(TranslationKeys.AddCarTeslaStepHint,
@@ -449,14 +449,14 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
             new TextLocalizationTranslation(LanguageCodes.German, "Tesla-spezifisch"));
 
         Register(TranslationKeys.CarEditFleetApiTestTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Fleet API connection test"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Fleet-API-Verbindungstest"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla cloud connection test"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Cloud-Verbindungstest"));
 
         Register(TranslationKeys.CarEditFleetApiTestHint,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "The car was saved. As TSC can only control the car if it is registered in it, the connection is tested now. The car needs to be awake for the test, so open a door if it is asleep."),
+                "The car was saved. As Solar4Car can only control the car if it is registered in it, the connection is tested now. The car needs to be awake for the test, so open a door if it is asleep."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "Das Fahrzeug wurde gespeichert. Da TSC das Fahrzeug nur steuern kann, wenn es dort registriert ist, wird die Verbindung jetzt getestet. Für den Test muss das Fahrzeug wach sein – öffnen Sie daher eine Tür, falls es schläft."));
+                "Das Fahrzeug wurde gespeichert. Da Solar4Car das Fahrzeug nur steuern kann, wenn es dort registriert ist, wird die Verbindung jetzt getestet. Für den Test muss das Fahrzeug wach sein – öffnen Sie daher eine Tür, falls es schläft."));
 
         Register(TranslationKeys.CarEditBleTestTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Bluetooth connection test"),
@@ -464,9 +464,9 @@ public class CarSettingsPageLocalizationRegistry : TextLocalizationRegistry<CarS
 
         Register(TranslationKeys.CarEditBleTestHint,
             new TextLocalizationTranslation(LanguageCodes.English,
-                "TSC can only control the car via Bluetooth once its key is added to the car, so the connection is tested now. The car has to be parked in range of the BLE container."),
+                "Solar4Car can only control the car via Bluetooth once its key is added to the car, so the connection is tested now. The car has to be parked in range of the BLE container."),
             new TextLocalizationTranslation(LanguageCodes.German,
-                "TSC kann das Fahrzeug per Bluetooth erst steuern, wenn sein Schlüssel im Fahrzeug hinterlegt ist. Daher wird die Verbindung jetzt getestet. Das Fahrzeug muss dafür in Reichweite des BLE-Containers stehen."));
+                "Solar4Car kann das Fahrzeug per Bluetooth erst steuern, wenn sein Schlüssel im Fahrzeug hinterlegt ist. Daher wird die Verbindung jetzt getestet. Das Fahrzeug muss dafür in Reichweite des BLE-Containers stehen."));
 
         Register(TranslationKeys.CarEditBleTestButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Save and test Bluetooth connection"),

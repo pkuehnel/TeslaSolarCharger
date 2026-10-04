@@ -31,8 +31,8 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeuglimit: "));
 
         Register(TranslationKeys.CarDetailsManualSocWarning,
-            new TextLocalizationTranslation(LanguageCodes.English, "As this car is not connected via an API, you need to manually set the current state of charge. Note: Each time you plug in the car, the SoC is reset, as TSC does not know how much energy the car has used."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Da dieses Fahrzeug nicht über eine API verbunden ist, müssen Sie den aktuellen Ladestand manuell einstellen. Hinweis: Jedes Mal, wenn Sie das Fahrzeug anschließen, wird der SoC zurückgesetzt, da TSC nicht weiß, wie viel Energie das Fahrzeug verbraucht hat."));
+            new TextLocalizationTranslation(LanguageCodes.English, "As this car is not connected via an API, you need to manually set the current state of charge. Note: Each time you plug in the car, the SoC is reset, as Solar4Car does not know how much energy the car has used."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Da dieses Fahrzeug nicht über eine API verbunden ist, müssen Sie den aktuellen Ladestand manuell einstellen. Hinweis: Jedes Mal, wenn Sie das Fahrzeug anschließen, wird der SoC zurückgesetzt, da Solar4Car nicht weiß, wie viel Energie das Fahrzeug verbraucht hat."));
 
         Register(TranslationKeys.CarDetailsNoSocOnNotManualCarWarning,
             new TextLocalizationTranslation(LanguageCodes.English, "Although this car is connected via an API, the current state of charge is unknown. Depending on the vehicle manufacturer, this can have various causes. Especially when a vehicle has been newly connected via API, it may take a few hours for data to be transmitted. The initial transmission can often be accelerated by moving the vehicle and consuming at least 2% of the battery charge. If no state of charge is displayed within 24 hours, please contact support@solar4car.com with your Vehicle Identification Number (VIN)."),
@@ -57,7 +57,7 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
 
                 Manual: You set the charging speed yourself.
 
-                Auto: TSC sets the charging speed based on the available solar power. With a charging target set, it
+                Auto: Solar4Car sets the charging speed based on the available solar power. With a charging target set, it
                 charges so the target is reached in time, based on the predicted solar energy and the energy prices.
 
                 Max Power: The car charges as fast as possible, e.g. before a trip.
@@ -68,7 +68,7 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
 
                 Manuell: Sie legen die Ladegeschwindigkeit selbst fest.
 
-                Automatisch: TSC richtet die Ladegeschwindigkeit nach dem verfügbaren Solarstrom. Ist ein Ladeziel
+                Automatisch: Solar4Car richtet die Ladegeschwindigkeit nach dem verfügbaren Solarstrom. Ist ein Ladeziel
                 gesetzt, wird so geladen, dass das Ziel rechtzeitig erreicht wird – auf Basis der vorhergesagten
                 Solarenergie und der Energiepreise.
 
@@ -165,8 +165,8 @@ public class CarDetailsComponentLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Wach — Fahrzeug offen oder besetzt"));
 
         Register(TranslationKeys.CarDetailsSleepTooltip,
-            new TextLocalizationTranslation(LanguageCodes.English, "During a sleep attempt TSC stops polling the car's infotainment system so its standby timer can run out and it can fall asleep. Presence detection via BLE keeps running, but the state of charge is not updated until the attempt ends."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Während eines Einschlafversuchs fragt TSC das Infotainmentsystem des Fahrzeugs nicht mehr ab, damit dessen Standby-Timer ablaufen und es einschlafen kann. Die Anwesenheitserkennung über BLE läuft weiter, der Ladestand wird bis zum Ende des Versuchs jedoch nicht aktualisiert."));
+            new TextLocalizationTranslation(LanguageCodes.English, "During a sleep attempt Solar4Car stops polling the car's infotainment system so its standby timer can run out and it can fall asleep. Presence detection via BLE keeps running, but the state of charge is not updated until the attempt ends."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Während eines Einschlafversuchs fragt Solar4Car das Infotainmentsystem des Fahrzeugs nicht mehr ab, damit dessen Standby-Timer ablaufen und es einschlafen kann. Die Anwesenheitserkennung über BLE läuft weiter, der Ladestand wird bis zum Ende des Versuchs jedoch nicht aktualisiert."));
 
         Register(TranslationKeys.CarDetailsCancelSleepButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Cancel sleep attempt"),

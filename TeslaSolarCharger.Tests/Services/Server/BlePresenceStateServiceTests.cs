@@ -1,150 +1,19 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Moq;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Ble;
-using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
-/// <summary>
-/// Presence is decided on the age of the newest evidence about a car, which the container computes from both its
-/// advertisements and the commands it answered. There is no sampling any more: the miss streak machinery this
-/// replaced existed to smooth a scan that looked once every 13 s.
-/// </summary>
 public class BlePresenceStateServiceTests
 {
     private const int CarId = 1;
     private const int OtherCarId = 2;
-    private static readonly TimeSpan MaxAge = TimeSpan.FromSeconds(90);
-    private static readonly TimeSpan Confirmation = BlePresenceStateService.AwayConfirmationDuration;
 
-    private static IBlePresenceStateService NewService()
-        => new BlePresenceStateService(Mock.Of<ILogger<BlePresenceStateService>>());
-
-    [Fact]
-    public void ACarHeardWithinTheMaxAgeIsPresent()
-    {
-        var service = NewService();
-        Assert.Equal(BlePresenceDecision.Present, service.RegisterPresenceAge(CarId, TimeSpan.FromSeconds(20), MaxAge));
-        Assert.False(service.IsPresenceUncertain(CarId));
-    }
-
-    [Fact]
-    public void ACarOverTheMaxAgeIsUncertainButKeepsItsState()
-    {
-        var service = NewService();
-        var decision = service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
-
-        Assert.Equal(BlePresenceDecision.Uncertain, decision);
-        //Charging commands are suspended, but nothing about the car's state is written yet.
-        Assert.True(service.IsPresenceUncertain(CarId));
-    }
-
-    [Fact]
-    public void AwayIsConfirmedExactlyOnceAfterTheConfirmationDuration()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
-
-        var justConfirmed = service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromSeconds(1), MaxAge);
-        var again = service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromMinutes(5), MaxAge);
-
-        //Only the first one may run the away transition, otherwise the charging values would be rewritten every poll.
-        Assert.Equal(BlePresenceDecision.JustConfirmedAway, justConfirmed);
-        Assert.Equal(BlePresenceDecision.AlreadyAway, again);
-        //A confirmed away car sets IsHome false on its own, so it is not the "might have left" limbo.
-        Assert.False(service.IsPresenceUncertain(CarId));
-    }
-
-    [Fact]
-    public void HearingTheCarAgainClearsTheAwayStateSoItCanBeConfirmedOnceMore()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromSeconds(1), MaxAge);
-        Assert.Equal(BlePresenceDecision.Present, service.RegisterPresenceAge(CarId, TimeSpan.Zero, MaxAge));
-
-        Assert.Equal(BlePresenceDecision.JustConfirmedAway,
-            service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromSeconds(1), MaxAge));
-    }
-
-    /// <summary>
-    /// The container says nothing while its scan is warming up after a restart. Concluding "away" from that would
-    /// mark every car as gone whenever the container or its worker restarts.
-    /// </summary>
-    [Fact]
-    public void AnUnknownAgeConcludesNothing()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, TimeSpan.FromSeconds(20), MaxAge);
-
-        Assert.Equal(BlePresenceDecision.Unknown, service.RegisterPresenceAge(CarId, null, MaxAge));
-        Assert.False(service.IsPresenceUncertain(CarId));
-    }
-
-    [Fact]
-    public void AnUnknownAgeDoesNotUndoAConfirmedAway()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromSeconds(1), MaxAge);
-        service.RegisterPresenceAge(CarId, null, MaxAge);
-
-        //Still away, so the transition must not run a second time when the container can answer again.
-        Assert.Equal(BlePresenceDecision.AlreadyAway,
-            service.RegisterPresenceAge(CarId, MaxAge + Confirmation + TimeSpan.FromSeconds(2), MaxAge));
-    }
-
-    [Theory]
-    [InlineData(30)]
-    [InlineData(90)]
-    [InlineData(600)]
-    public void TheMaxAgeIsWhatDecides(int maxAgeSeconds)
-    {
-        var service = NewService();
-        var maxAge = TimeSpan.FromSeconds(maxAgeSeconds);
-
-        Assert.Equal(BlePresenceDecision.Present, service.RegisterPresenceAge(CarId, maxAge, maxAge));
-        Assert.Equal(BlePresenceDecision.Uncertain,
-            service.RegisterPresenceAge(CarId, maxAge + TimeSpan.FromMilliseconds(1), maxAge));
-    }
-
-    [Fact]
-    public void CarsAreTrackedIndependently()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
-        service.RegisterPresenceAge(OtherCarId, TimeSpan.Zero, MaxAge);
-
-        Assert.True(service.IsPresenceUncertain(CarId));
-        Assert.False(service.IsPresenceUncertain(OtherCarId));
-    }
-
-    [Fact]
-    public void ResetClearsTheState()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
-        service.Reset(CarId);
-        Assert.False(service.IsPresenceUncertain(CarId));
-    }
-
-    [Fact]
-    public void RetainOnlyDropsStateOfCarsNoLongerBlePolled()
-    {
-        var service = NewService();
-        service.RegisterPresenceAge(CarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
-        service.RegisterPresenceAge(OtherCarId, MaxAge + TimeSpan.FromSeconds(1), MaxAge);
-
-        service.RetainOnly(new[] { OtherCarId });
-
-        //A car that left BLE data collection must not keep a stale uncertain state suppressing its commands forever.
-        Assert.False(service.IsPresenceUncertain(CarId));
-        Assert.True(service.IsPresenceUncertain(OtherCarId));
-    }
+    private static IBlePresenceStateService NewService() => new BlePresenceStateService();
 
     private static DtoBleBeaconObservation Observation(DateTimeOffset timestamp, bool isPresent, int? rssi = null,
         string? source = null) => new()

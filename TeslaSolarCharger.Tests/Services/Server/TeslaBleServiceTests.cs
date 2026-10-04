@@ -294,7 +294,7 @@ public class TeslaBleServiceTests : TestBase
     [Fact]
     public async Task CommandOnAFailingContainerIsUnsuccessful()
     {
-        SetupContainer(new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        SetupContainer(new CapturingHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
             Content = new StringContent("boom"),
         }));
@@ -309,7 +309,7 @@ public class TeslaBleServiceTests : TestBase
     [Fact]
     public async Task CommandOnAnUnreachableContainerIsUnsuccessful()
     {
-        SetupContainer(new CapturingHandler(_ => throw new HttpRequestException("No route to host")));
+        SetupContainer(new CapturingHttpMessageHandler(_ => throw new HttpRequestException("No route to host")));
         var service = Mock.Create<TeslaBleService>();
 
         var result = await service.FlashLights(TestVin);
@@ -322,7 +322,7 @@ public class TeslaBleServiceTests : TestBase
     [Fact]
     public async Task CommandOnAnUnparsableAnswerIsUnsuccessful()
     {
-        SetupContainer(new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        SetupContainer(new CapturingHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("null"),
         }));
@@ -595,14 +595,14 @@ public class TeslaBleServiceTests : TestBase
         _ => throw new ArgumentOutOfRangeException(nameof(methodName), methodName, null),
     };
 
-    private CapturingHandler SetupContainer(DtoBleCommandResult containerResult,
+    private CapturingHttpMessageHandler SetupContainer(DtoBleCommandResult containerResult,
         string? bleApiBaseUrl = "http://ble-container:7210", string? adapter = null) =>
-        SetupContainer(new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        SetupContainer(new CapturingHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonConvert.SerializeObject(containerResult)),
         }), bleApiBaseUrl, adapter);
 
-    private CapturingHandler SetupContainer(CapturingHandler handler,
+    private CapturingHttpMessageHandler SetupContainer(CapturingHttpMessageHandler handler,
         string? bleApiBaseUrl = "http://ble-container:7210", string? adapter = null)
     {
         var car = new DtoCar
@@ -616,20 +616,6 @@ public class TeslaBleServiceTests : TestBase
         Mock.Mock<IHttpClientFactory>().Setup(f => f.CreateClient(StaticConstants.HttpClientNameBle))
             .Returns(() => new HttpClient(handler, disposeHandler: false));
         return handler;
-    }
-
-    private sealed record CapturedRequest(HttpMethod Method, Uri Uri, string? Body);
-
-    private sealed class CapturingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
-    {
-        public List<CapturedRequest> Requests { get; } = new();
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var body = request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-            Requests.Add(new CapturedRequest(request.Method, request.RequestUri!, body));
-            return respond(request);
-        }
     }
 
     private static DtoBlePresenceResult CreatePresence(bool heard) => new()

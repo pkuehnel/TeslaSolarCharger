@@ -17,10 +17,10 @@ public class CarChargingTargetPropertyLocalization : PropertyLocalizationRegistr
         Register(x => x.DischargeHomeBatteryToMinSoc,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Discharge home battery to min SoC",
-                "If no target SoC is set, TSC tries to discharge the home battery to its minimum SoC by the target time. If a target SoC is set, TSC reduces the car's charging speed to the home battery's maximum discharge power so grid usage is avoided."),
+                "If no target SoC is set, Solar4Car tries to discharge the home battery to its minimum SoC by the target time. If a target SoC is set, Solar4Car reduces the car's charging speed to the home battery's maximum discharge power so grid usage is avoided."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Heimbatterie auf Mindest-Ladestand entladen",
-                "Wenn kein Ziel-Ladestand gesetzt ist, versucht TSC, die Heimbatterie bis zur Zielzeit auf ihren minimalen Ladestand zu entladen. Ist ein Ziel-Ladestand definiert, plant TSC das Laden so, dass der Netzbezug reduziert wird und nur die von der Heimbatterie unterstützte Ladeleistung genutzt wird."));
+                "Wenn kein Ziel-Ladestand gesetzt ist, versucht Solar4Car, die Heimbatterie bis zur Zielzeit auf ihren minimalen Ladestand zu entladen. Ist ein Ziel-Ladestand definiert, plant Solar4Car das Laden so, dass der Netzbezug reduziert wird und nur die von der Heimbatterie unterstützte Ladeleistung genutzt wird."));
 
         Register(x => x.TargetDate,
             new PropertyLocalizationTranslation(LanguageCodes.English,

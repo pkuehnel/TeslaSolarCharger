@@ -19,8 +19,8 @@ public class ChargingStationsPageLocalizationRegistry : TextLocalizationRegistry
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen werden automatisch hinzugefügt, sobald sie sich über OCPP verbinden."));
 
         Register(TranslationKeys.ChargingStationsHowToConnectUrlFormat,
-            new TextLocalizationTranslation(LanguageCodes.English, "To connect, set the OCPP URL to the following: <code>ws://YOUR-TSC-IP:7190/api/Ocpp/</code> followed by a charging point ID."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Zum Verbinden setzen Sie die OCPP-URL wie folgt: <code>ws://IHRE-TSC-IP:7190/api/Ocpp/</code> gefolgt von einer Ladepunkt-ID."));
+            new TextLocalizationTranslation(LanguageCodes.English, "To connect, set the OCPP URL to the following: <code>ws://YOUR-SOLAR4CAR-IP:7190/api/Ocpp/</code> followed by a charging point ID."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Zum Verbinden setzen Sie die OCPP-URL wie folgt: <code>ws://IHRE-SOLAR4CAR-IP:7190/api/Ocpp/</code> gefolgt von einer Ladepunkt-ID."));
 
         Register(TranslationKeys.ChargingStationsHowToConnectNote,
             new TextLocalizationTranslation(LanguageCodes.English, "Note: Many charging stations automatically add a charging point ID to the URL, just make sure that the resulting URL looks similar to the following example. Mind the single <code>/</code> after <code>Ocpp</code>"),

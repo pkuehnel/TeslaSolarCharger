@@ -47,8 +47,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Abschluss"));
 
         Register(TranslationKeys.SetupWelcomeTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Welcome to TeslaSolarCharger!"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Willkommen bei TeslaSolarCharger!"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Welcome to Solar4Car!"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Willkommen bei Solar4Car!"));
 
         Register(TranslationKeys.SetupWelcomeDescription,
             new TextLocalizationTranslation(LanguageCodes.English, "This assistant will guide you through the basic configuration to get you started as quickly as possible."),
@@ -79,8 +79,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Solar- & Batteriedaten"));
 
         Register(TranslationKeys.SetupSolarBatteryDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Configure how TeslaSolarCharger gets your current solar production and grid usage data. Templates are the easiest way to start."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfigurieren Sie, wie TeslaSolarCharger Ihre aktuelle Solarproduktion und den Netzbezug ermittelt. Vorlagen sind der einfachste Weg zum Starten."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Configure how Solar4Car gets your current solar production and grid usage data. Templates are the easiest way to start."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfigurieren Sie, wie Solar4Car Ihre aktuelle Solarproduktion und den Netzbezug ermittelt. Vorlagen sind der einfachste Weg zum Starten."));
 
         Register(TranslationKeys.SetupPvNotAvailableAsTemplate,
             new TextLocalizationTranslation(LanguageCodes.English, "My PV system is not available as a template"),
@@ -99,8 +99,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Solar4Car-Cloud-Verbindung"));
 
         Register(TranslationKeys.SetupCloudConnectionDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "A Solar4Car account is required to use TeslaSolarCharger. Please log in or create an account to continue. You cannot proceed until your instance is connected."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Für die Nutzung von TeslaSolarCharger ist ein Solar4Car-Konto erforderlich. Bitte melden Sie sich an oder erstellen Sie ein Konto, um fortzufahren. Sie können erst fortfahren, wenn Ihre Instanz verbunden ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "A Solar4Car account is required. Please log in or create an account to continue. You cannot proceed until your instance is connected."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ein Solar4Car-Konto ist erforderlich. Bitte melden Sie sich an oder erstellen Sie ein Konto, um fortzufahren. Sie können erst fortfahren, wenn Ihre Instanz verbunden ist."));
 
         Register(TranslationKeys.SetupCloudConnectionRequiredNotification,
             new TextLocalizationTranslation(LanguageCodes.English, "Please connect your instance to the Solar4Car cloud before continuing."),
@@ -111,8 +111,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Für die Fortsetzung ist eine Solar4Car-Basislizenz erforderlich."));
 
         Register(TranslationKeys.SetupBaseAppLicenseMissingInfo,
-            new TextLocalizationTranslation(LanguageCodes.English, "Your account is connected, but it does not include a base license. A base license is required to use TeslaSolarCharger. You can purchase one here:"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Konto ist verbunden, enthält aber keine Basislizenz. Für die Nutzung von TeslaSolarCharger ist eine Basislizenz erforderlich. Sie können diese hier erwerben:"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Your account is connected, but it does not include a base license. A base license is required to use Solar4Car. You can purchase one here:"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Konto ist verbunden, enthält aber keine Basislizenz. Für die Nutzung von Solar4Car ist eine Basislizenz erforderlich. Sie können diese hier erwerben:"));
 
         Register(TranslationKeys.SetupBaseAppLicenseRecheckButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Re-check license"),
@@ -123,8 +123,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Strompreise"));
 
         Register(TranslationKeys.SetupPricesDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Configure your electricity prices to allow TeslaSolarCharger to charge when it's cheapest."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Konfigurieren Sie Ihre Strompreise, damit TeslaSolarCharger laden kann, wenn es am günstigsten ist."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Configure your electricity prices to allow Solar4Car to charge when it's cheapest."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Konfigurieren Sie Ihre Strompreise, damit Solar4Car laden kann, wenn es am günstigsten ist."));
 
         Register(TranslationKeys.SetupCarsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Cars"),
@@ -147,8 +147,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Fast fertig!"));
 
         Register(TranslationKeys.SetupFinishDescription,
-            new TextLocalizationTranslation(LanguageCodes.English, "Click \"Finish Setup\" to save your configuration and start using TeslaSolarCharger."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf \"Einrichtung abschließen\", um Ihre Konfiguration zu speichern und TeslaSolarCharger zu nutzen."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Click \"Finish Setup\" to save your configuration and start using Solar4Car."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf \"Einrichtung abschließen\", um Ihre Konfiguration zu speichern und Solar4Car zu nutzen."));
 
         Register(TranslationKeys.SetupSuccessInfo,
             new TextLocalizationTranslation(LanguageCodes.English, "Your initial setup is complete. You can always revisit the detailed settings pages for fine-tuning."),
@@ -375,8 +375,8 @@ public partial class SetupPageLocalizationRegistry : TextLocalizationRegistry<Se
             new TextLocalizationTranslation(LanguageCodes.German, "Es fehlt noch etwas, daher ist das Abschließen noch nicht möglich. Die Liste oben nennt was, und Speichern ohne Aktivieren bewahrt Ihre Eingaben so lange auf."));
 
         Register(TranslationKeys.SetupEnableExplanation,
-            new TextLocalizationTranslation(LanguageCodes.English, "Finishing lets TeslaSolarCharger control charging as soon as the conditions you set are met."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Mit dem Abschließen darf TeslaSolarCharger das Laden steuern, sobald die von Ihnen gesetzten Bedingungen erfüllt sind."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Finishing lets Solar4Car control charging as soon as the conditions you set are met."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Mit dem Abschließen darf Solar4Car das Laden steuern, sobald die von Ihnen gesetzten Bedingungen erfüllt sind."));
 
         Register(TranslationKeys.SetupSavedWithoutEnablingNotification,
             new TextLocalizationTranslation(LanguageCodes.English, "Saved. Nothing has been switched on yet - come back here when you are ready."),
