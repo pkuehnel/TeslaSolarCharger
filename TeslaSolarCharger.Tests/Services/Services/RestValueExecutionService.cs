@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
@@ -26,8 +30,8 @@ public class RestValueExecutionService(ITestOutputHelper outputHelper) : TestBas
 
     private void SetupSettingsDictionaries()
     {
-        Mock.Mock<ISettings>().Setup(d => d.RawRestRequestResults).Returns(new Dictionary<int, string>());
-        Mock.Mock<ISettings>().Setup(d => d.RawRestValues).Returns(new Dictionary<int, string>());
+        Mock.Mock<ISettings>().Setup(d => d.RawRestRequestResults).Returns(new ConcurrentDictionary<int, string>());
+        Mock.Mock<ISettings>().Setup(d => d.RawRestValues).Returns(new ConcurrentDictionary<int, string>());
         Mock.Mock<ISettings>().Setup(d => d.CalculatedRestValues).Returns(new Dictionary<int, decimal?>());
     }
 
@@ -126,6 +130,80 @@ public class RestValueExecutionService(ITestOutputHelper outputHelper) : TestBas
             CorrectionFactor = 1m,
         });
         Assert.Equal(150487m, value);
+    }
+
+    [Fact]
+    public void GetValue_StoresRawValuePerResultConfiguration()
+    {
+        SetupSettingsDictionaries();
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.RestValueExecutionService>();
+        service.GetValue("{\"state\":\"783.0\"}", NodePatternType.Json, new DtoJsonXmlResultConfiguration
+        {
+            Id = 3,
+            NodePattern = "$.state",
+            CorrectionFactor = 1m,
+        });
+        Assert.Equal("783.0", Mock.Mock<ISettings>().Object.RawRestValues[3]);
+    }
+
+    [Fact]
+    public void GetValue_CalledInParallelForManyResultConfigurations_StoresEveryRawValue()
+    {
+        //Refreshables run in parallel (Task.WhenAll), so writing to a plain Dictionary corrupted it and every later
+        //solar value refresh threw until TSC was restarted.
+        SetupSettingsDictionaries();
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.RestValueExecutionService>();
+        const int resultConfigurationCount = 5000;
+
+        Parallel.For(0, resultConfigurationCount, new ParallelOptions { MaxDegreeOfParallelism = 16, }, id =>
+        {
+            var value = service.GetValue(id.ToString(), NodePatternType.Direct, new DtoJsonXmlResultConfiguration
+            {
+                Id = id,
+                Operator = ValueOperator.Plus,
+                CorrectionFactor = 1m,
+            });
+            Assert.Equal(id, value);
+        });
+
+        var rawRestValues = Mock.Mock<ISettings>().Object.RawRestValues;
+        Assert.Equal(resultConfigurationCount, rawRestValues.Count);
+        Assert.All(Enumerable.Range(0, resultConfigurationCount), id => Assert.Equal(id.ToString(), rawRestValues[id]));
+    }
+
+    [Fact]
+    public void GetValue_CalledInParallelForSameResultConfiguration_KeepsSingleEntry()
+    {
+        SetupSettingsDictionaries();
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.RestValueExecutionService>();
+
+        Parallel.For(0, 1000, new ParallelOptions { MaxDegreeOfParallelism = 16, }, i =>
+        {
+            service.GetValue((i % 10).ToString(), NodePatternType.Direct, new DtoJsonXmlResultConfiguration
+            {
+                Id = 7,
+                Operator = ValueOperator.Plus,
+                CorrectionFactor = 1m,
+            });
+        });
+
+        var rawRestValues = Mock.Mock<ISettings>().Object.RawRestValues;
+        Assert.Single(rawRestValues);
+        Assert.Contains(rawRestValues[7], Enumerable.Range(0, 10).Select(v => v.ToString()));
+    }
+
+    [Fact]
+    public void GetValue_UnparsableValue_StoresRawValueAndThrows()
+    {
+        SetupSettingsDictionaries();
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.SolarValueGathering.Rest.RestValueExecutionService>();
+        Assert.Throws<FormatException>(() => service.GetValue("unavailable", NodePatternType.Direct, new DtoJsonXmlResultConfiguration
+        {
+            Id = 2,
+            Operator = ValueOperator.Plus,
+            CorrectionFactor = 1m,
+        }));
+        Assert.Equal("unavailable", Mock.Mock<ISettings>().Object.RawRestValues[2]);
     }
 
     [Fact]
