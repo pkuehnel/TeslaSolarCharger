@@ -47,8 +47,8 @@ public class Settings : ISettings
     public ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; } = new();
 
     public ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; } = new();
-    public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
-    public Dictionary<int, string> RawRestValues { get; set; } = new();
+    public ConcurrentDictionary<int, string> RawRestRequestResults { get; set; } = new();
+    public ConcurrentDictionary<int, string> RawRestValues { get; set; } = new();
     public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();
 
     public bool IsStartupCompleted { get; set; }

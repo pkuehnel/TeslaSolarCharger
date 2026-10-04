@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
@@ -222,12 +223,12 @@ public class CoreService : ICoreService
         return installationId.ToString();
     }
 
-    public Dictionary<int, string> GetRawRestRequestResults()
+    public ConcurrentDictionary<int, string> GetRawRestRequestResults()
     {
         return _settings.RawRestRequestResults;
     }
 
-    public Dictionary<int, string> GetRawRestValue()
+    public ConcurrentDictionary<int, string> GetRawRestValue()
     {
         return _settings.RawRestValues;
     }
