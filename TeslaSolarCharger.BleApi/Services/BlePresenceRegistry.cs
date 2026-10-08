@@ -135,6 +135,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, at);
             state.AdvertisementsSeen += digest.Total;
             if (digest.Total > 0)
             {
@@ -257,6 +258,25 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         }
     }
 
+    /// <summary>
+    /// An observation window that starts in the future means the system clock was set back after it began, e.g. a
+    /// Raspberry Pi without a hardware clock whose time was corrected later. Seen on a live system: the window started
+    /// almost 33 days ahead, so the scan stayed "warming up" and TSC froze the car's last state, showing it charging
+    /// long after it stopped. Command pauses deliberately keep the window, so nothing else would ever reset it.
+    /// Treated as a new window starting now: one max age of "unknown", the same cost as a worker restart.
+    /// </summary>
+    private void RestartObservationIfClockWentBack(AdapterState state, string adapterKey, DateTimeOffset now)
+    {
+        if (state.ObservingSinceUtc is not { } observingSince || observingSince <= now)
+        {
+            return;
+        }
+        _logger.LogTrace("Observation window of adapter {adapter} started at {observingSince}, after the current time {now}: the clock went back, restarting the window",
+            adapterKey, observingSince, now);
+        state.ObservingSinceUtc = now;
+        state.AdvertisementsAtObservingStart = state.AdvertisementsSeen;
+    }
+
     private static void RegisterScanFailure(AdapterState state, string? reason, DateTimeOffset at)
     {
         var ranHealthy = state.ScanStartedUtc is { } started && at - started >= HealthyScanDuration;
@@ -351,6 +371,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, now);
             if (state.ObservingSinceUtc is not { } observingSince || now - observingSince < maxAge)
             {
                 //Not observing long enough to conclude anything. Never report "not heard" from ignorance.
@@ -378,6 +399,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, now);
             if (!state.ScanRunning || state.ObservingSinceUtc is not { } observingSince)
             {
                 return false;
@@ -414,6 +436,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, now);
             var observingMs = state.ObservingSinceUtc is { } since ? (long)(now - since).TotalMilliseconds : 0;
             var result = new DtoBlePresenceResult
             {
