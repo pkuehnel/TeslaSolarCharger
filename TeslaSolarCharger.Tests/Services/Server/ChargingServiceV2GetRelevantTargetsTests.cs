@@ -103,6 +103,55 @@ public class ChargingServiceV2GetRelevantTargetsTests : TestBase
     }
 
     [Fact]
+    public async Task GetRelevantTargets_RepeatingTargetReachedAfterPlugIn_ReturnsNextOccurrenceInsteadOfOverdueOne()
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+        var carId = 1;
+        var carIds = new[] { carId };
+        // Wednesday, Oct 4th 2023 13:00 UTC
+        var currentDate = new DateTimeOffset(2023, 10, 4, 13, 0, 0, TimeSpan.Zero);
+
+        // Plugged in since Monday 18:00
+        var pluggedIn = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, false);
+        pluggedIn.Update(new DateTimeOffset(2023, 10, 2, 18, 0, 0, TimeSpan.Zero), true);
+
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>
+        {
+            new DtoCar
+            {
+                Id = carId,
+                PluggedIn = pluggedIn,
+            },
+        });
+
+        // Daily 07:00 target, last reached Wednesday 12:00 before the SoC dropped below it
+        Context.CarChargingTargets.Add(new CarChargingTarget
+        {
+            CarId = carId,
+            TargetSoc = 80,
+            TargetTime = new TimeOnly(7, 0),
+            RepeatOnMondays = true,
+            RepeatOnTuesdays = true,
+            RepeatOnWednesdays = true,
+            RepeatOnThursdays = true,
+            RepeatOnFridays = true,
+            RepeatOnSaturdays = true,
+            RepeatOnSundays = true,
+            ClientTimeZone = "UTC",
+            LastFulFilled = new DateTimeOffset(2023, 10, 4, 12, 0, 0, TimeSpan.Zero),
+        });
+        await Context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetRelevantTargets(carIds, currentDate, CancellationToken.None);
+
+        // Assert: Thursday 07:00, not the overdue Tuesday 07:00 occurrence after plug in
+        Assert.Single(result);
+        Assert.Equal(new DateTimeOffset(2023, 10, 5, 7, 0, 0, TimeSpan.Zero), result[0].NextExecutionTime);
+    }
+
+    [Fact]
     public async Task GetRelevantTargets_OverdueTarget_ReturnsTarget()
     {
         // Arrange

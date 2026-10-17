@@ -633,7 +633,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             ? TimeZoneInfo.Utc
             : TimeZoneInfo.FindSystemTimeZoneById(chargingTarget.ClientTimeZone);
 
-        var earliestExecutionTime = TimeZoneInfo.ConvertTime(lastPluggedIn, tz);
+        //An occurrence that was already reached must not be caught up again when the SoC drops later on, so search after the target was last fulfilled
+        var earliestExecutionTimeUtc = chargingTarget.LastFulFilled > lastPluggedIn ? chargingTarget.LastFulFilled.Value : lastPluggedIn;
+        var earliestExecutionTime = TimeZoneInfo.ConvertTime(earliestExecutionTimeUtc, tz);
         _logger.LogTrace("Earliest execution time for target {targetId} is {earliestExecutionTime} in timezone {tz}.", chargingTarget.Id, earliestExecutionTime, tz.Id);
 
         DateTimeOffset? candidate;
