@@ -174,6 +174,7 @@ public interface IConfigurationWrapper
     int HomeBatteryMaxDynamicMinSoc();
     bool ForceFullHomeBatteryBySunset();
     int CarChargeLoss();
+    bool UseLearnedUsableEnergy();
     int? HomeBatteryDischargingPower();
     int DynamicMinSocCalculationBufferInPercent();
     bool DischargeHomeBatteryToMinSocDuringDay();

@@ -1256,4 +1256,37 @@ public static class TranslationKeys
     public static string HttpsInstallMacTitle => nameof(HttpsInstallMacTitle);
     public static string HttpsInstallMacSteps => nameof(HttpsInstallMacSteps);
     public static string HttpsPortNotPublishedHint => nameof(HttpsPortNotPublishedHint);
+
+    public static string UsableEnergyLearnedInUse => nameof(UsableEnergyLearnedInUse);
+    public static string UsableEnergyLearnedNotUsedLearningOff => nameof(UsableEnergyLearnedNotUsedLearningOff);
+    public static string UsableEnergyLearningOff => nameof(UsableEnergyLearningOff);
+    public static string UsableEnergyLearningProgress => nameof(UsableEnergyLearningProgress);
+    public static string UsableEnergyLearningInconsistent => nameof(UsableEnergyLearningInconsistent);
+    public static string UsableEnergyMultipleHomeBatteries => nameof(UsableEnergyMultipleHomeBatteries);
+    public static string UsableEnergyCarDeviationWarning => nameof(UsableEnergyCarDeviationWarning);
+    public static string UsableEnergyHomeBatteryDeviationWarning => nameof(UsableEnergyHomeBatteryDeviationWarning);
+    public static string UsableEnergyKindCarCharge => nameof(UsableEnergyKindCarCharge);
+    public static string UsableEnergyKindHomeBatteryCharge => nameof(UsableEnergyKindHomeBatteryCharge);
+    public static string UsableEnergyKindHomeBatteryDischarge => nameof(UsableEnergyKindHomeBatteryDischarge);
+    public static string UsableEnergyShowDetails => nameof(UsableEnergyShowDetails);
+    public static string UsableEnergyHideDetails => nameof(UsableEnergyHideDetails);
+    public static string UsableEnergyDetailsExplanation => nameof(UsableEnergyDetailsExplanation);
+    public static string UsableEnergyNoSamples => nameof(UsableEnergyNoSamples);
+    public static string UsableEnergyColumnDate => nameof(UsableEnergyColumnDate);
+    public static string UsableEnergyColumnType => nameof(UsableEnergyColumnType);
+    public static string UsableEnergyColumnSoc => nameof(UsableEnergyColumnSoc);
+    public static string UsableEnergyColumnEnergy => nameof(UsableEnergyColumnEnergy);
+    public static string UsableEnergyColumnImplied => nameof(UsableEnergyColumnImplied);
+    public static string UsableEnergyColumnStatus => nameof(UsableEnergyColumnStatus);
+    public static string UsableEnergyStatusUsed => nameof(UsableEnergyStatusUsed);
+    public static string UsableEnergyStatusOlder => nameof(UsableEnergyStatusOlder);
+    public static string UsableEnergyRejectedMissingSoc => nameof(UsableEnergyRejectedMissingSoc);
+    public static string UsableEnergyRejectedSocDifferenceTooSmall => nameof(UsableEnergyRejectedSocDifferenceTooSmall);
+    public static string UsableEnergyRejectedMissingMeterValues => nameof(UsableEnergyRejectedMissingMeterValues);
+    public static string UsableEnergyRejectedMeterValueGap => nameof(UsableEnergyRejectedMeterValueGap);
+    public static string UsableEnergyRejectedSocJump => nameof(UsableEnergyRejectedSocJump);
+    public static string UsableEnergyRejectedOppositeEnergyFlow => nameof(UsableEnergyRejectedOppositeEnergyFlow);
+    public static string UsableEnergyRejectedImplausibleCapacity => nameof(UsableEnergyRejectedImplausibleCapacity);
+    public static string UsableEnergyResetButton => nameof(UsableEnergyResetButton);
+    public static string UsableEnergyResetDone => nameof(UsableEnergyResetDone);
 }

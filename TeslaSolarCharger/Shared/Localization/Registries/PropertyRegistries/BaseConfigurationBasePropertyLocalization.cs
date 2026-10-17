@@ -289,10 +289,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.HomeBatteryUsableEnergy,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Usable energy",
-                "Set the usable energy your home battery has."),
+                "Set the usable energy your home battery has. Once Solar4Car has learned the usable energy from enough past charges and discharges, the learned value is used instead."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Nutzbare Energie der Heimbatterie",
-                "Geben Sie die nutzbare Energiemenge Ihrer Heimbatterie an."));
+                "Geben Sie die nutzbare Energiemenge Ihrer Heimbatterie an. Sobald Solar4Car die nutzbare Energie aus genügend vergangenen Lade- und Entladevorgängen gelernt hat, wird stattdessen der gelernte Wert verwendet."));
 
         Register(x => x.DischargeHomeBatteryToMinSocDuringDay,
             new PropertyLocalizationTranslation(LanguageCodes.English,
@@ -309,6 +309,14 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Ladeverlust des Fahrzeugs",
                 "Energieverlust beim Laden der Fahrzeuge. Wird verwendet, um Ladepläne basierend auf der Batteriekapazität zu berechnen."));
+
+        Register(x => x.UseLearnedUsableEnergy,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                "Learn usable energies from past charges",
+                "Solar4Car measures how much energy changes the SoC of your cars and your home battery and uses the learned usable energy instead of the entered one once it is reliable. The entered values are kept and used again when this is switched off."),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                "Nutzbare Energien aus vergangenen Ladungen lernen",
+                "Solar4Car misst, wie viel Energie den Ladestand Ihrer Fahrzeuge und Ihrer Heimbatterie verändert, und verwendet die gelernte nutzbare Energie statt der eingegebenen, sobald sie zuverlässig ist. Die eingegebenen Werte bleiben erhalten und werden wieder verwendet, wenn dies ausgeschaltet wird."));
 
         Register(x => x.ChargingSwitchCosts,
             new PropertyLocalizationTranslation(LanguageCodes.English,

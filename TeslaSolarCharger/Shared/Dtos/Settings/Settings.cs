@@ -12,6 +12,10 @@ public class Settings : ISettings
     public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).OrderBy(c => c.ChargingPriority).ToList();
     public int? HomeBatterySoc { get; set; }
     public int? LastLoggedHomeBatterySoc { get; set; }
+    /// <summary>Reliable home battery usable energy learned from past charges and discharges in Wh, null while unknown.</summary>
+    public int? LearnedHomeBatteryUsableEnergyWh { get; set; }
+    /// <summary>Reliable usable energy in Wh learned from past charges, by car id. Cars without a reliable value are missing.</summary>
+    public ConcurrentDictionary<int, int> LearnedCarUsableEnergiesWh { get; set; } = new();
     public int? HomeBatteryPower { get; set; }
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }

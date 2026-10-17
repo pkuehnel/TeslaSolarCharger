@@ -1,0 +1,215 @@
+@using System.Globalization
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.UsableEnergy
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ITextLocalizationService TextLocalizer
+@inject ISnackbar Snackbar
+
+@* Shows below an entered usable energy what Solar4Car learned from past charges and whether that is used instead. *@
+@if (_state != null)
+{
+    <div class="px-2 pb-2">
+        @foreach (var line in GetStatusLines())
+        {
+            <MudText Typo="Typo.body2">@line</MudText>
+        }
+        @if (GetDeviationPercent() is { } deviationPercent)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                @Format(CarId != null ? TranslationKeys.UsableEnergyCarDeviationWarning : TranslationKeys.UsableEnergyHomeBatteryDeviationWarning, deviationPercent)
+            </MudAlert>
+        }
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" Class="px-0"
+                   OnClick="() => _showDetails = !_showDetails">
+            @T(_showDetails ? TranslationKeys.UsableEnergyHideDetails : TranslationKeys.UsableEnergyShowDetails)
+        </MudButton>
+        @if (_showDetails)
+        {
+            <MudText Typo="Typo.caption" Class="d-block mb-2">
+                @Format(TranslationKeys.UsableEnergyDetailsExplanation, MaxShownUsedSamples, _state.Estimates.FirstOrDefault()?.RequiredSampleCount)
+            </MudText>
+            @if (_state.Samples.Count == 0)
+            {
+                <MudText Typo="Typo.body2">@T(TranslationKeys.UsableEnergyNoSamples)</MudText>
+            }
+            else
+            {
+                <div style="overflow-x: auto;">
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                        <tr>
+                            <th>@T(TranslationKeys.UsableEnergyColumnDate)</th>
+                            @if (CarId == null)
+                            {
+                                <th>@T(TranslationKeys.UsableEnergyColumnType)</th>
+                            }
+                            <th>@T(TranslationKeys.UsableEnergyColumnSoc)</th>
+                            <th>@T(TranslationKeys.UsableEnergyColumnEnergy)</th>
+                            <th>@T(TranslationKeys.UsableEnergyColumnImplied)</th>
+                            <th>@T(TranslationKeys.UsableEnergyColumnStatus)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var sample in _state.Samples)
+                        {
+                            <tr>
+                                <td>@sample.EndTime.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td>
+                                @if (CarId == null)
+                                {
+                                    <td>@T(GetKindKey(sample.Kind))</td>
+                                }
+                                <td>@($"{sample.StartSoc} % → {sample.EndSoc} %")</td>
+                                <td>@(sample.EnergyKwh == null ? "-" : FormatKwh(sample.EnergyKwh.Value))</td>
+                                <td>@(sample.ImpliedUsableEnergyKwh == null ? "-" : FormatKwh(sample.ImpliedUsableEnergyKwh.Value))</td>
+                                <td>@GetSampleStatus(sample)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" Class="mt-2"
+                           StartIcon="@Icons.Material.Filled.RestartAlt"
+                           Disabled="_isResetting"
+                           OnClick="Reset">
+                    @T(TranslationKeys.UsableEnergyResetButton)
+                </MudButton>
+            }
+        }
+    </div>
+}
+
+@code {
+    /// <summary>The car whose learning state is shown, null for the home battery.</summary>
+    [Parameter] public int? CarId { get; set; }
+
+    /// <summary>The usable energy the user entered in kWh, to point out a large difference to the learned one.</summary>
+    [Parameter] public double? EnteredUsableEnergyKwh { get; set; }
+
+    //Matches the number of newest samples the server calculates the learned value from.
+    private const int MaxShownUsedSamples = 30;
+    //Below this the learned value just corrects the entry, above it the entry or the charge loss is probably wrong.
+    private const double DeviationWarningPercent = 20;
+
+    private DtoLearnedUsableEnergy? _state;
+    private bool _showDetails;
+    private bool _isResetting;
+
+    private string T(string key) =>
+        TextLocalizer.Get<LearnedUsableEnergyComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
+
+    private string Format(string key, params object?[] arguments) =>
+        string.Format(CultureInfo.CurrentCulture, T(key), arguments);
+
+    private static string FormatKwh(double kwh) => $"{kwh.ToString("0.0", CultureInfo.CurrentCulture)} kWh";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (_state == null)
+        {
+            await LoadState();
+        }
+    }
+
+    private async Task LoadState()
+    {
+        var url = CarId == null ? "api/UsableEnergy/GetHomeBatteryState" : $"api/UsableEnergy/GetCarState?carId={CarId}";
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoLearnedUsableEnergy>(url);
+        //Without the learning state the entered value simply stays the one that is used, so there is nothing to show.
+        _state = result.HasError ? null : result.Data;
+    }
+
+    private IEnumerable<string> GetStatusLines()
+    {
+        if (_state == null)
+        {
+            yield break;
+        }
+        if (_state.HasMultipleHomeBatteries)
+        {
+            yield return T(TranslationKeys.UsableEnergyMultipleHomeBatteries);
+            yield break;
+        }
+        if (_state.LearnedUsableEnergyKwh != null)
+        {
+            yield return _state.IsUsed
+                ? Format(TranslationKeys.UsableEnergyLearnedInUse, _state.Estimates.Sum(e => e.AcceptedSampleCount), FormatNumber(_state.LearnedUsableEnergyKwh.Value))
+                : Format(TranslationKeys.UsableEnergyLearnedNotUsedLearningOff, FormatNumber(_state.LearnedUsableEnergyKwh.Value));
+            yield break;
+        }
+        if (!_state.LearningEnabled)
+        {
+            yield return T(TranslationKeys.UsableEnergyLearningOff);
+            yield break;
+        }
+        foreach (var estimate in _state.Estimates.Where(e => !e.IsReliable))
+        {
+            yield return estimate.AcceptedSampleCount < estimate.RequiredSampleCount
+                ? Format(TranslationKeys.UsableEnergyLearningProgress, T(GetKindKey(estimate.Kind)), estimate.AcceptedSampleCount, estimate.RequiredSampleCount)
+                : Format(TranslationKeys.UsableEnergyLearningInconsistent, T(GetKindKey(estimate.Kind)), FormatNumber(estimate.SpreadPercent ?? 0), FormatNumber(estimate.MaxSpreadPercent));
+        }
+    }
+
+    private static string FormatNumber(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
+
+    private string? GetDeviationPercent()
+    {
+        if (_state is not { IsUsed: true, LearnedUsableEnergyKwh: { } learnedKwh } || !(EnteredUsableEnergyKwh > 0))
+        {
+            return null;
+        }
+        var deviationPercent = Math.Abs(learnedKwh - EnteredUsableEnergyKwh.Value) / EnteredUsableEnergyKwh.Value * 100;
+        return deviationPercent > DeviationWarningPercent ? deviationPercent.ToString("0", CultureInfo.CurrentCulture) : null;
+    }
+
+    private static string GetKindKey(UsableEnergySampleKind kind) => kind switch
+    {
+        UsableEnergySampleKind.CarCharge => TranslationKeys.UsableEnergyKindCarCharge,
+        UsableEnergySampleKind.HomeBatteryCharge => TranslationKeys.UsableEnergyKindHomeBatteryCharge,
+        UsableEnergySampleKind.HomeBatteryDischarge => TranslationKeys.UsableEnergyKindHomeBatteryDischarge,
+        _ => kind.ToString(),
+    };
+
+    private string GetSampleStatus(DtoUsableEnergySample sample)
+    {
+        if (sample.RejectionReason == null)
+        {
+            return T(sample.IsUsedForEstimate ? TranslationKeys.UsableEnergyStatusUsed : TranslationKeys.UsableEnergyStatusOlder);
+        }
+        return T(sample.RejectionReason switch
+        {
+            UsableEnergySampleRejectionReason.MissingSoc => TranslationKeys.UsableEnergyRejectedMissingSoc,
+            UsableEnergySampleRejectionReason.SocDifferenceTooSmall => TranslationKeys.UsableEnergyRejectedSocDifferenceTooSmall,
+            UsableEnergySampleRejectionReason.MissingMeterValues => TranslationKeys.UsableEnergyRejectedMissingMeterValues,
+            UsableEnergySampleRejectionReason.MeterValueGap => TranslationKeys.UsableEnergyRejectedMeterValueGap,
+            UsableEnergySampleRejectionReason.SocJump => TranslationKeys.UsableEnergyRejectedSocJump,
+            UsableEnergySampleRejectionReason.OppositeEnergyFlow => TranslationKeys.UsableEnergyRejectedOppositeEnergyFlow,
+            UsableEnergySampleRejectionReason.ImplausibleCapacity => TranslationKeys.UsableEnergyRejectedImplausibleCapacity,
+            _ => sample.RejectionReason.ToString()!,
+        });
+    }
+
+    private async Task Reset()
+    {
+        _isResetting = true;
+        var url = CarId == null ? "api/UsableEnergy/ResetHomeBattery" : $"api/UsableEnergy/ResetCar?carId={CarId}";
+        var result = await HttpClientHelper.SendPostRequestAsync(url, null);
+        if (result.HasError)
+        {
+            Snackbar.Add(result.ErrorMessage ?? string.Empty, Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add(T(TranslationKeys.UsableEnergyResetDone), Severity.Success);
+            await LoadState();
+        }
+        _isResetting = false;
+    }
+}

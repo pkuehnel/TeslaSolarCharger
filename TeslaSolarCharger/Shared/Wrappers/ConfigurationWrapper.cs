@@ -738,14 +738,21 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryDischargingPower;
     }
 
+    public bool UseLearnedUsableEnergy()
+    {
+        return GetBaseConfiguration().UseLearnedUsableEnergy;
+    }
+
     /// <summary>
-    /// Value is in Wh
+    /// The usable energy the home battery is planned with in Wh: the learned one while it is reliable and learning is
+    /// enabled, otherwise the entered one.
     /// </summary>
-    /// <returns></returns>
     public int? HomeBatteryUsableEnergy()
     {
+        var baseConfiguration = GetBaseConfiguration();
         // ReSharper disable once CompareOfFloatsByEqualityOperator
-        return GetBaseConfiguration().HomeBatteryUsableEnergy == default ? null : (int?)(GetBaseConfiguration().HomeBatteryUsableEnergy * 1000);
+        var enteredWh = baseConfiguration.HomeBatteryUsableEnergy == default ? null : (int?)(baseConfiguration.HomeBatteryUsableEnergy * 1000);
+        return UsableEnergySelector.SelectWh(baseConfiguration.UseLearnedUsableEnergy, settings.LearnedHomeBatteryUsableEnergyWh, enteredWh);
     }
 
     public bool DischargeHomeBatteryToMinSocDuringDay()

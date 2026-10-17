@@ -13,6 +13,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -918,6 +919,9 @@ public class ChargingScheduleService : IChargingScheduleService
             : null;
 
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
+        var usableEnergy = carData == null
+            ? (int?)null
+            : UsableEnergySelector.SelectCarKwh(_configurationWrapper.UseLearnedUsableEnergy(), _settings.LearnedCarUsableEnergiesWh, carId!.Value, carData.UsableEnergy);
         var carSoC = carSetting?.SoC.Value;
         var carPhases = carData?.CarType == CarType.Tesla ? carSetting?.ActualPhases : carData?.MaximumPhases;
         _logger.LogTrace("CarPhases: {carPhases}", carPhases);
@@ -929,8 +933,8 @@ public class ChargingScheduleService : IChargingScheduleService
         var minCurrent = CalculateMinValue(connectorData?.MinCurrent, carData?.MinimumAmpere);
 
         _logger.LogTrace("Result: usableEnergy={usableEnergy}, carSoc={carSoc}, maxPhases={maxPhases}, maxCurrent={maxCurrent}, minCurrent={minCurrent}",
-            carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
-        return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
+            usableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
+        return (usableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
     }
 
     internal int? CalculateMinValue(int? connectorValue, int? carValue)

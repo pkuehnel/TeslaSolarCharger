@@ -31,6 +31,12 @@ public class Car
 
     public int UsableEnergy { get; set; }
 
+    /// <summary>
+    /// Only charges that started after this point are used to learn the usable energy. Set when the learned value is
+    /// reset or a different vehicle (VIN) shows up behind this car, so older charges of another battery are ignored.
+    /// </summary>
+    public DateTime? UsableEnergyLearnedSince { get; set; }
+
     public bool? ShouldBeManaged { get; set; }
 
     public int ChargingPriority { get; set; }

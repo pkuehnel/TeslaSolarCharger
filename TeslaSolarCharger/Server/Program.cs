@@ -388,6 +388,17 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
         await configJsonService.AddCarsToSettings(null).ConfigureAwait(false);
 
+        //Without this the planning would use the entered usable energies until the learning job ran after startup.
+        var usableEnergyLearningService = startupScope.ServiceProvider.GetRequiredService<IUsableEnergyLearningService>();
+        try
+        {
+            await usableEnergyLearningService.UpdateLearnedValuesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger1.LogError(ex, "Error loading learned usable energies during startup");
+        }
+
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);

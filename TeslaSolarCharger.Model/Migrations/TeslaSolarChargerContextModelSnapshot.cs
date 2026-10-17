@@ -15,7 +15,7 @@ namespace TeslaSolarCharger.Model.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.BackendNotification", b =>
                 {
@@ -168,6 +168,9 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.Property<int>("UsableEnergy")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UsableEnergyLearnedSince")
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("UseBle")
                         .HasColumnType("INTEGER");
@@ -1056,6 +1059,54 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.ToTable("TscConfigurations");
                 });
 
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.UsableEnergySample", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("CarId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CarVin")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ChargingProcessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EndSoc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("EndTime")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EnergyWh")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("RejectionReason")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StartSoc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("StartTime")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarId");
+
+                    b.HasIndex("ChargingProcessId")
+                        .IsUnique();
+
+                    b.HasIndex("Kind", "CarId", "EndTime");
+
+                    b.ToTable("UsableEnergySamples");
+                });
+
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarChargingTarget", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
@@ -1230,6 +1281,16 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsRequired();
 
                     b.Navigation("RestValueConfiguration");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.UsableEnergySample", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
+                        .WithMany()
+                        .HasForeignKey("CarId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Car");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", b =>

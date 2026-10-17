@@ -47,6 +47,8 @@ public interface IConstants
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervallHours { get; }
     string MeterValueEstimatesCreated { get; }
+    /// <summary>Key of the point in time up to which home battery SoC runs were turned into usable energy samples.</summary>
+    string HomeBatteryUsableEnergyLearnedUntil { get; }
     int MeterValueDatabaseSaveIntervalMinutes { get; }
     int WeatherPredictionInFutureDays { get; }
     string OcppChargePointConnectorIdDelimiter { get; }
