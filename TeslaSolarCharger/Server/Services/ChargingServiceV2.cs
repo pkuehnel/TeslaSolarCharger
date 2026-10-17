@@ -35,6 +35,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
     private readonly IBackendApiService _backendApiService;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
     private readonly ITargetChargingValueCalculationService _targetChargingValueCalculationService;
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IChargingScheduleService _chargingScheduleService;
@@ -57,8 +58,10 @@ public class ChargingServiceV2 : IChargingServiceV2
         IAppStateNotifier appStateNotifier,
         IChargingScheduleService chargingScheduleService,
         IConstants constants,
-        IHomeBatteryScheduleService homeBatteryScheduleService)
+        IHomeBatteryScheduleService homeBatteryScheduleService,
+        ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _configurationWrapper = configurationWrapper;
         _loadPointManagementService = loadPointManagementService;
@@ -402,9 +405,18 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
             var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
             var actualTargetSoc = _chargingScheduleService.GetActualTargetSoc(car.SocLimit.Value, chargingTarget.TargetSoc, car.IsCharging.Value == true);
-            if (car.SoC.Value >= actualTargetSoc || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
+            var isReachedWithinRestartHysteresis = car.IsCharging.Value != true
+                                                   && car.SoC.Value < chargingTarget.TargetSoc
+                                                   && _carChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, chargingTarget.TargetSoc);
+            if (car.SoC.Value >= actualTargetSoc || isReachedWithinRestartHysteresis || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
+            }
+            if (isReachedWithinRestartHysteresis && car.PluggedIn.Value == true && car.IsHomeGeofence.Value == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(car.Id, null,
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis,
+                        chargingTarget.TargetSoc, car.SoC.Value, _carChargeRestartHysteresis.Percent));
             }
 
             if (actualTargetSoc == default && chargingTarget.DischargeHomeBatteryToMinSoc)
@@ -621,7 +633,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             ? TimeZoneInfo.Utc
             : TimeZoneInfo.FindSystemTimeZoneById(chargingTarget.ClientTimeZone);
 
-        var earliestExecutionTime = TimeZoneInfo.ConvertTime(lastPluggedIn, tz);
+        //An occurrence that was already reached must not be caught up again when the SoC drops later on, so search after the target was last fulfilled
+        var earliestExecutionTimeUtc = chargingTarget.LastFulFilled > lastPluggedIn ? chargingTarget.LastFulFilled.Value : lastPluggedIn;
+        var earliestExecutionTime = TimeZoneInfo.ConvertTime(earliestExecutionTimeUtc, tz);
         _logger.LogTrace("Earliest execution time for target {targetId} is {earliestExecutionTime} in timezone {tz}.", chargingTarget.Id, earliestExecutionTime, tz.Id);
 
         DateTimeOffset? candidate;

@@ -50,6 +50,10 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
             new TextLocalizationTranslation(LanguageCodes.English, "Car side SoC limit is reached. To start charging, the car side SoC limit needs to be at least {0}% higher than the actual SoC."),
             new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugseitiges Ladelimit ist erreicht. Um mit dem Laden zu beginnen, muss das Fahrzeuglimit mindestens {0}% höher als der aktuelle Ladestand sein."));
 
+        Register(TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis,
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging target of {0}% counts as reached at {1}%, because a car that is not charging only starts charging again when its SoC is at least {2}% below the target."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Das Ladeziel von {0}% gilt bei {1}% als erreicht, da ein Fahrzeug, das nicht lädt, erst wieder mit dem Laden beginnt, wenn sein Ladestand mindestens {2}% unter dem Ziel liegt."));
+
         Register(TranslationKeys.NotChargingReasonStoppedByCar,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging stopped by car, e.g. it is full or its charge limit is reached."),
             new TextLocalizationTranslation(LanguageCodes.German, "Laden wurde vom Fahrzeug gestoppt, z. B. weil es voll ist oder das Ladeziel erreicht wurde."));

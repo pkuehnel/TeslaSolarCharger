@@ -768,6 +768,7 @@ public static class TranslationKeys
     public static string NotChargingReasonWaitingChargeStop => nameof(NotChargingReasonWaitingChargeStop);
     public static string NotChargingReasonMaxSocReached => nameof(NotChargingReasonMaxSocReached);
     public static string NotChargingReasonCarSideSocLimitReached => nameof(NotChargingReasonCarSideSocLimitReached);
+    public static string NotChargingReasonTargetSocWithinRestartHysteresis => nameof(NotChargingReasonTargetSocWithinRestartHysteresis);
     public static string NotChargingReasonStoppedByCar => nameof(NotChargingReasonStoppedByCar);
     public static string NotChargingReasonWaitingChargeStart => nameof(NotChargingReasonWaitingChargeStart);
     public static string NotChargingReasonNotEnoughCombinedCurrent => nameof(NotChargingReasonNotEnoughCombinedCurrent);

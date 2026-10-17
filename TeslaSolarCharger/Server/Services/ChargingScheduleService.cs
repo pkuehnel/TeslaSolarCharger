@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
@@ -26,12 +27,14 @@ public class ChargingScheduleService : IChargingScheduleService
     private readonly IConstants _constants;
     private readonly IHomeBatteryEnergyCalculator _homeBatteryEnergyCalculator;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
 
     public ChargingScheduleService(ILogger<ChargingScheduleService> logger, ITeslaSolarChargerContext context,
         ISettings settings, IConfigurationWrapper configurationWrapper, IValidFromToSplitter validFromToSplitter,
         IConstants constants, IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator,
-        ITscOnlyChargingCostService tscOnlyChargingCostService)
+        ITscOnlyChargingCostService tscOnlyChargingCostService, ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _context = context;
         _settings = settings;
@@ -586,6 +589,11 @@ public class ChargingScheduleService : IChargingScheduleService
         var minimumEnergyToCharge = 0;
         if (nextTarget.TargetSoc != default)
         {
+            if (car.IsCharging.Value != true && _carChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, nextTarget.TargetSoc))
+            {
+                _logger.LogTrace("Car {carId} with SoC {soc} is not charging and within the restart hysteresis of target SoC {targetSoc}, so the target counts as reached.", car.Id, car.SoC.Value, nextTarget.TargetSoc);
+                return minimumEnergyToCharge;
+            }
             var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, nextTarget.TargetSoc, car.IsCharging.Value == true);
             if (actualTargetSoc != default && carUsableEnergy != default)
             {

@@ -10,6 +10,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -43,7 +44,8 @@ public class TeslaFleetApiService(
     IMemoryCache memoryCache,
     IBackendApiService backendApiService,
     IFleetApiRateLimitService fleetApiRateLimitService,
-    IBleSleepWindowService bleSleepWindowService)
+    IBleSleepWindowService bleSleepWindowService,
+    ICarChargeRestartHysteresis carChargeRestartHysteresis)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -128,9 +130,9 @@ public class TeslaFleetApiService(
             return;
         }
 
-        if (car.SoC.Value > (car.SocLimit.Value - constants.MinimumSocDifference))
+        if (carChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, car.SocLimit.Value))
         {
-            logger.LogWarning("Triggered start charging but cannot start charging as SoC is too high compared to Soc Limit - {minDifference}", constants.MinimumSocDifference);
+            logger.LogWarning("Triggered start charging but cannot start charging as SoC is too high compared to Soc Limit - {minDifference}", carChargeRestartHysteresis.Percent);
             return;
         }
         await WakeUpCarIfNeeded(carId).ConfigureAwait(false);

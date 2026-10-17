@@ -64,6 +64,147 @@ public class GetNextTargetUtcTests : TestBase
         }
     }
 
+    [Theory]
+    [MemberData(nameof(LastFulFilledScenarios))]
+    public void GetNextTargetUtc_SearchesAfterLastFulFilled(
+        string description,
+        DateTimeOffset lastPluggedIn,
+        DateTimeOffset? lastFulFilled,
+        DateOnly? targetDate,
+        bool[] repeatDays,
+        string clientTimeZone,
+        DateTimeOffset? expectedResult)
+    {
+        _outputHelper.WriteLine($"Running Scenario: {description}");
+
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        var chargingTarget = new CarChargingTarget
+        {
+            Id = 1,
+            TargetDate = targetDate,
+            TargetTime = new TimeOnly(7, 0),
+            RepeatOnMondays = repeatDays[0],
+            RepeatOnTuesdays = repeatDays[1],
+            RepeatOnWednesdays = repeatDays[2],
+            RepeatOnThursdays = repeatDays[3],
+            RepeatOnFridays = repeatDays[4],
+            RepeatOnSaturdays = repeatDays[5],
+            RepeatOnSundays = repeatDays[6],
+            ClientTimeZone = clientTimeZone,
+            LastFulFilled = lastFulFilled,
+            CarId = 123,
+        };
+
+        // Act
+        var result = service.GetNextTargetUtc(chargingTarget, lastPluggedIn);
+
+        // Assert
+        if (expectedResult.HasValue)
+        {
+            Assert.NotNull(result);
+            Assert.Equal(expectedResult.Value.ToUniversalTime(), result.Value);
+        }
+        else
+        {
+            Assert.Null(result);
+        }
+    }
+
+    public static TheoryData<string, DateTimeOffset, DateTimeOffset?, DateOnly?, bool[], string, DateTimeOffset?> LastFulFilledScenarios()
+    {
+        var data = new TheoryData<string, DateTimeOffset, DateTimeOffset?, DateOnly?, bool[], string, DateTimeOffset?>();
+
+        var repeatDaily = new bool[] { true, true, true, true, true, true, true };
+        var noRepeats = new bool[7];
+        // Monday, Oct 2nd 2023 18:00 UTC
+        var pluggedInMonday = new DateTimeOffset(2023, 10, 2, 18, 0, 0, TimeSpan.Zero);
+
+        data.Add(
+            "Never fulfilled: first occurrence after plug in",
+            pluggedInMonday,
+            null,
+            null,
+            repeatDaily,
+            "UTC",
+            new DateTimeOffset(2023, 10, 3, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "Fulfilled before plug in (while unplugged): first occurrence after plug in",
+            pluggedInMonday,
+            pluggedInMonday.AddMinutes(-1),
+            null,
+            repeatDaily,
+            "UTC",
+            new DateTimeOffset(2023, 10, 3, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "Fulfilled until Wednesday 13:00, then the SoC dropped: next occurrence is Thursday, not the overdue Tuesday one",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 4, 13, 0, 0, TimeSpan.Zero),
+            null,
+            repeatDaily,
+            "UTC",
+            new DateTimeOffset(2023, 10, 5, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "Reached early and SoC dropped before the target time: the same occurrence is still planned",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 3, 3, 0, 0, TimeSpan.Zero),
+            null,
+            repeatDaily,
+            "UTC",
+            new DateTimeOffset(2023, 10, 3, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "Fulfilled exactly at the target time: that occurrence counts as reached at its time",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 3, 7, 0, 0, TimeSpan.Zero),
+            null,
+            repeatDaily,
+            "UTC",
+            new DateTimeOffset(2023, 10, 3, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "Fulfilled one second after the target time: next occurrence is the following day",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 3, 7, 0, 1, TimeSpan.Zero),
+            null,
+            repeatDaily,
+            "UTC",
+            new DateTimeOffset(2023, 10, 4, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "One time target fulfilled after its time: no next execution",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 3, 8, 0, 0, TimeSpan.Zero),
+            new DateOnly(2023, 10, 3),
+            noRepeats,
+            "UTC",
+            null);
+
+        data.Add(
+            "One time target fulfilled early: its time stays the next execution",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 3, 3, 0, 0, TimeSpan.Zero),
+            new DateOnly(2023, 10, 3),
+            noRepeats,
+            "UTC",
+            new DateTimeOffset(2023, 10, 3, 7, 0, 0, TimeSpan.Zero));
+
+        data.Add(
+            "Time zone: fulfilled Wednesday 13:00 UTC, target 07:00 Berlin time (UTC+2) is next on Thursday 05:00 UTC",
+            pluggedInMonday,
+            new DateTimeOffset(2023, 10, 4, 13, 0, 0, TimeSpan.Zero),
+            null,
+            repeatDaily,
+            "Europe/Berlin",
+            new DateTimeOffset(2023, 10, 5, 5, 0, 0, TimeSpan.Zero));
+
+        return data;
+    }
+
     [Fact(Skip = "Bug: Loop only checks 7 days (i < 7), so missing the slot on the same day results in no target for next week. Intentionally failing/skipped.")]
     public void GetNextTargetUtc_ReturnsNextWeek_WhenSameDayMissed()
     {
