@@ -284,6 +284,81 @@ public class BlePresenceRegistryTests
     }
 
     /// <summary>
+    /// Measured on a live Raspberry Pi: the scan started while the clock was almost 33 days ahead and the clock was
+    /// corrected afterwards. Before the fix the observing time was negative, the scan stayed "warming up" for 33 days
+    /// and the car's state was frozen.
+    /// </summary>
+    private static readonly TimeSpan ClockJump = new(32, 20, 54, 0);
+
+    [Fact]
+    public void AClockSetBackRestartsTheWarmUpInsteadOfFreezingIt()
+    {
+        var registry = Observing(Start.Add(ClockJump));
+
+        var restarted = registry.GetPresence(Adapter, new List<string> { Car11Vin }, MaxAge, Start);
+        Assert.True(restarted.WarmingUp);
+        Assert.Equal(0, restarted.ObservingMs);
+
+        var settled = registry.GetPresence(Adapter, new List<string> { Car11Vin }, MaxAge, Start.Add(MaxAge).AddSeconds(1));
+        Assert.False(settled.WarmingUp);
+        Assert.Equal((long)MaxAge.TotalMilliseconds + 1000, settled.ObservingMs);
+    }
+
+    [Fact]
+    public void AClockSetBackLetsAnAbsentCarBeConcludedAfterOneMaxAge()
+    {
+        var registry = Observing(Start.Add(ClockJump));
+
+        Assert.True(registry.WasHeardWithin(Adapter, Car11Vin, MaxAge, Start));
+        Assert.False(registry.WasHeardWithin(Adapter, Car11Vin, MaxAge, Start.Add(MaxAge).AddSeconds(1)));
+    }
+
+    [Fact]
+    public void AClockSetBackIsNoticedByTheAdvertisementStream()
+    {
+        var registry = Observing(Start.Add(ClockJump));
+        registry.ApplyDigest(Adapter, Digest(4, Device("11:11:11:11:11:11", "some-phone", 4, 4)), Start);
+        registry.ApplyDigest(Adapter, Digest(6, Device("11:11:11:11:11:11", "some-phone", 6, 6)), Start.AddSeconds(10));
+
+        var result = registry.GetPresence(Adapter, new List<string> { Car11Vin }, MaxAge, Start.AddSeconds(10));
+        Assert.Equal(10000, result.ObservingMs);
+        //The rate counts what was heard since the restarted window began, which includes the digest that noticed the
+        //jump, the same way the first digest after a "running" event counts.
+        Assert.Equal(1, result.AdvertisementsPerSecond);
+    }
+
+    [Fact]
+    public void AClockSetBackDoesNotHideADeafAdapter()
+    {
+        var registry = Observing(Start.Add(ClockJump));
+        var threshold = TimeSpan.FromMinutes(5);
+
+        Assert.False(registry.IsDeaf(Adapter, threshold, Start));
+        Assert.True(registry.IsDeaf(Adapter, threshold, Start.Add(threshold).AddSeconds(1)));
+    }
+
+    [Fact]
+    public void ACommandPauseAfterAClockSetBackKeepsTheRestartedWindow()
+    {
+        var registry = Observing(Start.Add(ClockJump));
+        registry.ApplyDigest(Adapter, Digest(1), Start);
+        registry.ApplyScanState(Adapter, "paused", "radio handed over", Start.AddSeconds(60));
+        registry.ApplyScanState(Adapter, "running", null, Start.AddSeconds(61));
+
+        Assert.False(registry.GetPresence(Adapter, new List<string> { Car11Vin }, MaxAge, Start.Add(MaxAge).AddSeconds(1)).WarmingUp);
+    }
+
+    [Fact]
+    public void AClockGoingForwardDoesNotRestartTheWindow()
+    {
+        var registry = Observing(Start);
+
+        var result = registry.GetPresence(Adapter, new List<string> { Car11Vin }, MaxAge, Start.Add(ClockJump));
+        Assert.False(result.WarmingUp);
+        Assert.Equal((long)ClockJump.TotalMilliseconds, result.ObservingMs);
+    }
+
+    /// <summary>
     /// A worker restart is not a car leaving: the per car history has to survive it, only the observation window is
     /// dropped.
     /// </summary>
