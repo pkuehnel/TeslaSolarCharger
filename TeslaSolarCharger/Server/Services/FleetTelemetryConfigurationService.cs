@@ -49,11 +49,11 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (isBaseAppLicensed.Data != true)
         {
-            logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
+            logger.LogWarning("Solar4Car has no active base license, do not connect to Fleet Telemetry");
             return new DtoFleetTelemetryConfigurationResult
             {
                 Success = false,
-                ErrorMessage = "Can not configure Fleet Telemetry as Solar4Car is not licensed",
+                ErrorMessage = "Can not configure Fleet Telemetry as Solar4Car has no active base license",
             };
         }
         var carSettings = teslaSolarChargerContext.Cars

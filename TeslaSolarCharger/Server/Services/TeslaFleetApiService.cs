@@ -54,6 +54,7 @@ public class TeslaFleetApiService(
     internal const string FleetApiCommandRateLimitedError = "FleetApiCommandRateLimited";
     internal const string FleetApiTestRateLimitedError = "FleetApiTestRateLimited";
     internal const string FleetApiCommandBudgetUnavailableError = "FleetApiCommandBudgetUnavailable";
+    internal const string BaseAppNotLicensedError = "BaseAppNotLicensed";
     /// <summary>
     /// The backend wakes the car up if needed and gives it 20 seconds before setting the charging current.
     /// </summary>
@@ -302,11 +303,17 @@ public class TeslaFleetApiService(
                 {
                     car.IsOnline.Update(dateTimeProvider.DateTimeOffSetUtcNow(), false);
                 }
+                if (vehicleData?.Error == BaseAppNotLicensedError)
+                {
+                    //The missing base license is shown as its own error, which explains what to do.
+                    await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicleData, car.Vin);
+                    continue;
+                }
                 if (vehicleDataResult == default)
                 {
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while getting vehicle data for car {car.Vin}",
-                        $"Could not deserialize vehicle data: {JsonConvert.SerializeObject(vehicleData)}", issueKeys.GetVehicleData, car.Vin, null).ConfigureAwait(false);
-                    logger.LogError("Could not deserialize vehicle data for car {carId}: {@vehicleData}", carId, vehicleData);
+                        GetMissingResponseMessage("vehicle data", vehicleData), issueKeys.GetVehicleData, car.Vin, null).ConfigureAwait(false);
+                    logger.LogError("Could not get vehicle data for car {carId}: {@vehicleData}", carId, vehicleData);
                     continue;
                 }
                 await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicleData, car.Vin);
@@ -443,11 +450,17 @@ public class TeslaFleetApiService(
         var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest).ConfigureAwait(false);
         var vehicleResult = vehicle?.Response;
         logger.LogTrace("Got vehicle {@vehicle}", vehicle);
+        if (vehicle?.Error == BaseAppNotLicensedError)
+        {
+            //The missing base license is shown as its own error, which explains what to do.
+            await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicle, car.Vin);
+            return;
+        }
         if (vehicleResult == default)
         {
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while getting vehicle info for car {car.Vin}",
-                $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}", issueKeys.GetVehicle, car.Vin, null).ConfigureAwait(false);
-            logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", car.Id, vehicle);
+                GetMissingResponseMessage("vehicle", vehicle), issueKeys.GetVehicle, car.Vin, null).ConfigureAwait(false);
+            logger.LogError("Could not get vehicle for car {carId}: {@vehicle}", car.Id, vehicle);
             return;
         }
         await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicle, car.Vin);
@@ -761,6 +774,21 @@ public class TeslaFleetApiService(
         await WakeUpCar(carId, false).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// A response without data is only a deserialization problem if the request was not refused with an error, e.g. as
+    /// the backend token is not up to date or Tesla answered with an error.
+    /// </summary>
+    internal static string GetMissingResponseMessage<T>(string subject, DtoGenericTeslaResponse<T>? response) where T : class
+    {
+        if (string.IsNullOrEmpty(response?.Error))
+        {
+            return $"Could not deserialize {subject}: {JsonConvert.SerializeObject(response)}";
+        }
+        return string.IsNullOrEmpty(response.ErrorDescription)
+            ? $"Could not get {subject}: {response.Error}"
+            : $"Could not get {subject}: {response.ErrorDescription}";
+    }
+
     internal async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null, bool isFleetApiTest = false) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {intParam})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, intParam);
@@ -783,8 +811,8 @@ public class TeslaFleetApiService(
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (isBaseAppLicensed.Data != true)
         {
-            logger.LogError("Can not send request to car as base app is not licensed");
-            return new() { Error = "BaseAppNotLicensed", ErrorDescription = "The base app is not licensed, so no command was sent to the car.", };
+            logger.LogError("Can not send request to car as Solar4Car has no active base license");
+            return new() { Error = BaseAppNotLicensedError, ErrorDescription = "Solar4Car has no active base license, so no command was sent to the car (neither via BLE nor via the Tesla cloud).", };
         }
 
         var car = settings.Cars.First(c => c.Vin == vin);

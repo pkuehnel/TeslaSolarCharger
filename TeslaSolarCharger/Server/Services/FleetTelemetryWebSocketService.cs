@@ -71,7 +71,7 @@ public class FleetTelemetryWebSocketService : IFleetTelemetryWebSocketService, I
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (cars.Any() && (isBaseAppLicensed.Data != true))
         {
-            _logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
+            _logger.LogWarning("Solar4Car has no active base license, do not connect to Fleet Telemetry");
             return;
         }
 
