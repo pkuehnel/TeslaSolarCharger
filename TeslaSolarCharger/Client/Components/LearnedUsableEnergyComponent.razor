@@ -137,11 +137,26 @@
             yield return T(TranslationKeys.UsableEnergyMultipleHomeBatteries);
             yield break;
         }
+        if (_state.DischargingExceedsCharging)
+        {
+            yield return Format(TranslationKeys.UsableEnergyDischargingExceedsCharging,
+                FormatNumber(GetMedianKwh(UsableEnergySampleKind.HomeBatteryCharge)), FormatNumber(GetMedianKwh(UsableEnergySampleKind.HomeBatteryDischarge)));
+            yield break;
+        }
         if (_state.LearnedUsableEnergyKwh != null)
         {
             yield return _state.IsUsed
                 ? Format(TranslationKeys.UsableEnergyLearnedInUse, _state.Estimates.Sum(e => e.AcceptedSampleCount), FormatNumber(_state.LearnedUsableEnergyKwh.Value))
                 : Format(TranslationKeys.UsableEnergyLearnedNotUsedLearningOff, FormatNumber(_state.LearnedUsableEnergyKwh.Value));
+            yield break;
+        }
+        if (_state is { LearnedChargingEnergyKwh: { } chargingKwh, LearnedDischargingEnergyKwh: { } dischargingKwh, })
+        {
+            var learnedValues = Format(TranslationKeys.UsableEnergyHomeBatteryLearnedValues, FormatNumber(chargingKwh), FormatNumber(dischargingKwh),
+                (dischargingKwh / chargingKwh * 100).ToString("0", CultureInfo.CurrentCulture));
+            yield return _state.IsUsed
+                ? Format(TranslationKeys.UsableEnergyHomeBatteryLearnedInUse, _state.Estimates.Sum(e => e.AcceptedSampleCount), learnedValues)
+                : Format(TranslationKeys.UsableEnergyHomeBatteryLearnedNotUsedLearningOff, learnedValues);
             yield break;
         }
         if (!_state.LearningEnabled)
@@ -159,13 +174,17 @@
 
     private static string FormatNumber(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
 
+    private double GetMedianKwh(UsableEnergySampleKind kind) => _state?.Estimates.FirstOrDefault(e => e.Kind == kind)?.MedianKwh ?? 0;
+
     private string? GetDeviationPercent()
     {
-        if (_state is not { IsUsed: true, LearnedUsableEnergyKwh: { } learnedKwh } || !(EnteredUsableEnergyKwh > 0))
+        //A home battery's data sheet usually states what it takes in, so the entry is compared to the charging energy.
+        var learnedKwh = _state?.LearnedUsableEnergyKwh ?? _state?.LearnedChargingEnergyKwh;
+        if (_state is not { IsUsed: true } || learnedKwh == null || !(EnteredUsableEnergyKwh > 0))
         {
             return null;
         }
-        var deviationPercent = Math.Abs(learnedKwh - EnteredUsableEnergyKwh.Value) / EnteredUsableEnergyKwh.Value * 100;
+        var deviationPercent = Math.Abs(learnedKwh.Value - EnteredUsableEnergyKwh.Value) / EnteredUsableEnergyKwh.Value * 100;
         return deviationPercent > DeviationWarningPercent ? deviationPercent.ToString("0", CultureInfo.CurrentCulture) : null;
     }
 

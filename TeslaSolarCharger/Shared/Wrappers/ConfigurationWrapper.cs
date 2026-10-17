@@ -744,15 +744,29 @@ public class ConfigurationWrapper(
     }
 
     /// <summary>
-    /// The usable energy the home battery is planned with in Wh: the learned one while it is reliable and learning is
-    /// enabled, otherwise the entered one.
+    /// Metered energy in Wh it takes to charge the home battery from 0 to 100 %: the learned one while learning is enabled
+    /// and reliable, otherwise the entered usable energy.
     /// </summary>
-    public int? HomeBatteryUsableEnergy()
+    public int? HomeBatteryChargingEnergy()
+    {
+        return SelectHomeBatteryEnergy(settings.LearnedHomeBatteryChargingEnergyWh);
+    }
+
+    /// <summary>
+    /// Metered energy in Wh the home battery delivers from 100 to 0 %: the learned one while learning is enabled and
+    /// reliable, otherwise the entered usable energy.
+    /// </summary>
+    public int? HomeBatteryDischargingEnergy()
+    {
+        return SelectHomeBatteryEnergy(settings.LearnedHomeBatteryDischargingEnergyWh);
+    }
+
+    private int? SelectHomeBatteryEnergy(int? learnedWh)
     {
         var baseConfiguration = GetBaseConfiguration();
         // ReSharper disable once CompareOfFloatsByEqualityOperator
         var enteredWh = baseConfiguration.HomeBatteryUsableEnergy == default ? null : (int?)(baseConfiguration.HomeBatteryUsableEnergy * 1000);
-        return UsableEnergySelector.SelectWh(baseConfiguration.UseLearnedUsableEnergy, settings.LearnedHomeBatteryUsableEnergyWh, enteredWh);
+        return UsableEnergySelector.SelectWh(baseConfiguration.UseLearnedUsableEnergy, learnedWh, enteredWh);
     }
 
     public bool DischargeHomeBatteryToMinSocDuringDay()

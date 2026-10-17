@@ -11,7 +11,10 @@ public class HomeBatteryPlanningInput
 {
     public DateTimeOffset CurrentDate { get; set; }
     public int CurrentSocPercent { get; set; }
-    public int UsableEnergyWh { get; set; }
+    /// <summary>Metered Wh to charge the battery from 0 to 100 %.</summary>
+    public int ChargingEnergyWh { get; set; }
+    /// <summary>Metered Wh the battery delivers from 100 to 0 %.</summary>
+    public int DischargingEnergyWh { get; set; }
     /// <summary>Max power the battery can charge with. Null disables grid charge planning (hold only).</summary>
     public int? MaxChargingPowerW { get; set; }
     /// <summary>SoC the battery needs right now to last until self sufficiency (hold buffer).</summary>

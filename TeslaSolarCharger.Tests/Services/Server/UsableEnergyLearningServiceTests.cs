@@ -36,7 +36,8 @@ public class UsableEnergyLearningServiceTests : TestBase
     public UsableEnergyLearningServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
     {
         Mock.Mock<ISettings>().Setup(s => s.LearnedCarUsableEnergiesWh).Returns(_learnedCarUsableEnergies);
-        Mock.Mock<ISettings>().SetupProperty(s => s.LearnedHomeBatteryUsableEnergyWh);
+        Mock.Mock<ISettings>().SetupProperty(s => s.LearnedHomeBatteryChargingEnergyWh);
+        Mock.Mock<ISettings>().SetupProperty(s => s.LearnedHomeBatteryDischargingEnergyWh);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.CarChargeLoss()).Returns(ChargeLossPercent);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.UseLearnedUsableEnergy()).Returns(true);
         Mock.Mock<IGenericValueService>().Setup(g => g.GetSourceValues(It.IsAny<bool>())).Returns(_sourceValues);
@@ -569,7 +570,7 @@ public class UsableEnergyLearningServiceTests : TestBase
     #region Home battery samples
 
     [Fact]
-    public async Task RefreshAsync_LearnsHomeBatteryAsAverageOfChargingAndDischarging()
+    public async Task RefreshAsync_LearnsHomeBatteryChargingAndDischargingSeparately()
     {
         var battery = new HomeBatteryHistory(this, HistoryStart, 20);
         for (var i = 0; i < UsableEnergyLearningService.RequiredSampleCount; i++)
@@ -583,12 +584,79 @@ public class UsableEnergyLearningServiceTests : TestBase
 
         await CreateService().RefreshAsync(CancellationToken.None);
 
-        Assert.Equal(9_500, Mock.Mock<ISettings>().Object.LearnedHomeBatteryUsableEnergyWh);
+        Assert.Equal(10_000, Mock.Mock<ISettings>().Object.LearnedHomeBatteryChargingEnergyWh);
+        Assert.Equal(9_000, Mock.Mock<ISettings>().Object.LearnedHomeBatteryDischargingEnergyWh);
         var samples = await Context.UsableEnergySamples.ToListAsync();
         Assert.Equal(UsableEnergyLearningService.RequiredSampleCount, samples.Count(s => s.Kind == UsableEnergySampleKind.HomeBatteryCharge && s.RejectionReason == null));
         Assert.Equal(UsableEnergyLearningService.RequiredSampleCount, samples.Count(s => s.Kind == UsableEnergySampleKind.HomeBatteryDischarge && s.RejectionReason == null));
         Mock.Mock<ITscConfigurationService>().Verify(t => t.SetConfigurationValueByKey(
             It.IsAny<string>(), battery.LastTurningPoint.ToString("O", System.Globalization.CultureInfo.InvariantCulture)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetHomeBatteryStateAsync_ShowsBothLearnedDirections()
+    {
+        AddStoredHomeBatterySamples(UsableEnergySampleKind.HomeBatteryCharge, 10_000);
+        AddStoredHomeBatterySamples(UsableEnergySampleKind.HomeBatteryDischarge, 9_000);
+        await Context.SaveChangesAsync();
+
+        var state = await CreateService().GetHomeBatteryStateAsync(CancellationToken.None);
+
+        Assert.Equal(10, state.LearnedChargingEnergyKwh);
+        Assert.Equal(9, state.LearnedDischargingEnergyKwh);
+        Assert.Null(state.LearnedUsableEnergyKwh);
+        Assert.True(state.IsUsed);
+        Assert.False(state.DischargingExceedsCharging);
+    }
+
+    [Fact]
+    public async Task UpdateLearnedValuesAsync_DeliveringMoreThanCharged_UsesNeitherDirection()
+    {
+        Mock.Mock<ISettings>().Object.LearnedHomeBatteryChargingEnergyWh = 1;
+        Mock.Mock<ISettings>().Object.LearnedHomeBatteryDischargingEnergyWh = 1;
+        AddStoredHomeBatterySamples(UsableEnergySampleKind.HomeBatteryCharge, 9_000);
+        AddStoredHomeBatterySamples(UsableEnergySampleKind.HomeBatteryDischarge, 10_000);
+        await Context.SaveChangesAsync();
+        var service = CreateService();
+
+        await service.UpdateLearnedValuesAsync(CancellationToken.None);
+
+        Assert.Null(Mock.Mock<ISettings>().Object.LearnedHomeBatteryChargingEnergyWh);
+        Assert.Null(Mock.Mock<ISettings>().Object.LearnedHomeBatteryDischargingEnergyWh);
+        var state = await service.GetHomeBatteryStateAsync(CancellationToken.None);
+        Assert.True(state.DischargingExceedsCharging);
+        Assert.False(state.IsUsed);
+    }
+
+    [Fact]
+    public async Task UpdateLearnedValuesAsync_EqualDirections_AreUsed()
+    {
+        // A battery without any measurable loss is unusual but not impossible
+        AddStoredHomeBatterySamples(UsableEnergySampleKind.HomeBatteryCharge, 10_000);
+        AddStoredHomeBatterySamples(UsableEnergySampleKind.HomeBatteryDischarge, 10_000);
+        await Context.SaveChangesAsync();
+
+        await CreateService().UpdateLearnedValuesAsync(CancellationToken.None);
+
+        Assert.Equal(10_000, Mock.Mock<ISettings>().Object.LearnedHomeBatteryChargingEnergyWh);
+        Assert.Equal(10_000, Mock.Mock<ISettings>().Object.LearnedHomeBatteryDischargingEnergyWh);
+    }
+
+    private void AddStoredHomeBatterySamples(UsableEnergySampleKind kind, int usableEnergyWh)
+    {
+        for (var i = 0; i < UsableEnergyLearningService.RequiredSampleCount; i++)
+        {
+            var end = HistoryStart.AddDays(i).AddHours(kind == UsableEnergySampleKind.HomeBatteryCharge ? 12 : 23);
+            Context.UsableEnergySamples.Add(new UsableEnergySample
+            {
+                Kind = kind,
+                StartTime = end.AddHours(-4),
+                EndTime = end,
+                StartSoc = kind == UsableEnergySampleKind.HomeBatteryCharge ? 20 : 60,
+                EndSoc = kind == UsableEnergySampleKind.HomeBatteryCharge ? 60 : 20,
+                EnergyWh = usableEnergyWh * 40 / 100,
+            });
+        }
     }
 
     [Fact]
@@ -607,7 +675,8 @@ public class UsableEnergyLearningServiceTests : TestBase
         var service = CreateService();
         await service.RefreshAsync(CancellationToken.None);
 
-        Assert.Null(Mock.Mock<ISettings>().Object.LearnedHomeBatteryUsableEnergyWh);
+        Assert.Null(Mock.Mock<ISettings>().Object.LearnedHomeBatteryChargingEnergyWh);
+        Assert.Null(Mock.Mock<ISettings>().Object.LearnedHomeBatteryDischargingEnergyWh);
         var state = await service.GetHomeBatteryStateAsync(CancellationToken.None);
         Assert.Equal(2, state.Estimates.Count);
         Assert.True(state.Estimates.Single(e => e.Kind == UsableEnergySampleKind.HomeBatteryCharge).IsReliable);

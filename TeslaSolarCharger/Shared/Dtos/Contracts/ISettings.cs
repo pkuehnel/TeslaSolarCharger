@@ -45,7 +45,8 @@ public interface ISettings
     ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; }
     HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; }
     int? LastLoggedHomeBatterySoc { get; set; }
-    int? LearnedHomeBatteryUsableEnergyWh { get; set; }
+    int? LearnedHomeBatteryChargingEnergyWh { get; set; }
+    int? LearnedHomeBatteryDischargingEnergyWh { get; set; }
     ConcurrentDictionary<int, int> LearnedCarUsableEnergiesWh { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }

@@ -374,14 +374,22 @@ public class ConfigurationWrapper : TestBase
     // A learned value also fills an empty entry
     [InlineData(null, true, 9_500, 9_500)]
     [InlineData(null, true, null, null)]
-    public void HomeBatteryUsableEnergy_UsesTheLearnedValueOnlyWhileEnabledAndKnown(double? enteredKwh, bool useLearned, int? learnedWh, int? expectedWh)
+    public void HomeBatteryEnergies_UseTheLearnedValuesOnlyWhileEnabledAndKnown(double? enteredKwh, bool useLearned, int? learnedChargingWh, int? expectedChargingWh)
     {
-        Mock.Mock<TeslaSolarCharger.Shared.Dtos.Contracts.ISettings>().Setup(s => s.LearnedHomeBatteryUsableEnergyWh).Returns(learnedWh);
+        // Discharging is learned as 70 % of charging, so both directions can be told apart
+        int? learnedDischargingWh = learnedChargingWh * 7 / 10;
+        var expectedDischargingWh = learnedChargingWh != null && useLearned ? learnedDischargingWh : expectedChargingWh;
+        var settings = Mock.Mock<TeslaSolarCharger.Shared.Dtos.Contracts.ISettings>();
+        settings.Setup(s => s.LearnedHomeBatteryChargingEnergyWh).Returns(learnedChargingWh);
+        settings.Setup(s => s.LearnedHomeBatteryDischargingEnergyWh).Returns(learnedDischargingWh);
         var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
         var configuration = new DtoBaseConfiguration { HomeBatteryUsableEnergy = enteredKwh, UseLearnedUsableEnergy = useLearned, };
 
-        WithStoredBaseConfiguration(configuration,
-            () => Assert.Equal(expectedWh, configurationWrapper.HomeBatteryUsableEnergy()));
+        WithStoredBaseConfiguration(configuration, () =>
+        {
+            Assert.Equal(expectedChargingWh, configurationWrapper.HomeBatteryChargingEnergy());
+            Assert.Equal(expectedDischargingWh, configurationWrapper.HomeBatteryDischargingEnergy());
+        });
     }
 
     [Fact]

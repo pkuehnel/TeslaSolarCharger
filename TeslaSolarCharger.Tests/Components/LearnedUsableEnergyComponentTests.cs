@@ -147,6 +147,42 @@ public class LearnedUsableEnergyComponentTests : Bunit.TestContext
         _httpClientHelper.Verify(h => h.SendGetRequestAsync<DtoLearnedUsableEnergy>("api/UsableEnergy/GetHomeBatteryState", It.IsAny<CancellationToken>()));
     }
 
+    private static List<DtoUsableEnergyEstimate> HomeBatteryEstimates(double chargingKwh, double dischargingKwh) => new()
+    {
+        new DtoUsableEnergyEstimate { Kind = UsableEnergySampleKind.HomeBatteryCharge, AcceptedSampleCount = 6, RequiredSampleCount = 5, MedianKwh = chargingKwh, IsReliable = true, },
+        new DtoUsableEnergyEstimate { Kind = UsableEnergySampleKind.HomeBatteryDischarge, AcceptedSampleCount = 7, RequiredSampleCount = 5, MedianKwh = dischargingKwh, IsReliable = true, },
+    };
+
+    [Theory]
+    // The entry is compared to the charging energy: 10 vs 10.2 kWh is fine although only 6.4 kWh come out again
+    [InlineData(10.0, false)]
+    [InlineData(14.0, true)]
+    public void TheHomeBatteryShowsBothLearnedDirectionsAndTheirRatio(double enteredKwh, bool expectWarning)
+    {
+        _state = new DtoLearnedUsableEnergy
+        {
+            LearningEnabled = true, IsUsed = true, LearnedChargingEnergyKwh = 10.2, LearnedDischargingEnergyKwh = 6.4,
+            Estimates = HomeBatteryEstimates(10.2, 6.4),
+        };
+
+        var component = Render<LearnedUsableEnergyComponent>(p => p.Add(c => c.EnteredUsableEnergyKwh, enteredKwh));
+
+        var learnedValues = Format(TranslationKeys.UsableEnergyHomeBatteryLearnedValues,
+            10.2.ToString("0.#", CultureInfo.CurrentCulture), 6.4.ToString("0.#", CultureInfo.CurrentCulture), 63);
+        component.WaitForAssertion(() => Assert.Contains(Format(TranslationKeys.UsableEnergyHomeBatteryLearnedInUse, 13, learnedValues), component.Markup));
+        Assert.Equal(expectWarning, component.FindAll(".mud-alert").Any());
+    }
+
+    [Fact]
+    public void AHomeBatteryDeliveringMoreThanChargedIsExplained()
+    {
+        _state = new DtoLearnedUsableEnergy { LearningEnabled = true, DischargingExceedsCharging = true, Estimates = HomeBatteryEstimates(9, 10), };
+
+        var component = Render<LearnedUsableEnergyComponent>(p => p.Add(c => c.EnteredUsableEnergyKwh, 10));
+
+        component.WaitForAssertion(() => Assert.Contains(Format(TranslationKeys.UsableEnergyDischargingExceedsCharging, "9", "10"), component.Markup));
+    }
+
     [Fact]
     public void SwitchedOffLearningSaysSo()
     {

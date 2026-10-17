@@ -289,10 +289,10 @@ public class BaseConfigurationBasePropertyLocalization : PropertyLocalizationReg
         Register(x => x.HomeBatteryUsableEnergy,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Home Battery Usable energy",
-                "Set the usable energy your home battery has. Once Solar4Car has learned the usable energy from enough past charges and discharges, the learned value is used instead."),
+                "Set the usable energy your home battery has. It is used for charging and discharging until Solar4Car has learned from enough past charges and discharges how much energy it takes to charge the battery and how much it delivers; from then on the learned values are used instead."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Nutzbare Energie der Heimbatterie",
-                "Geben Sie die nutzbare Energiemenge Ihrer Heimbatterie an. Sobald Solar4Car die nutzbare Energie aus genügend vergangenen Lade- und Entladevorgängen gelernt hat, wird stattdessen der gelernte Wert verwendet."));
+                "Geben Sie die nutzbare Energiemenge Ihrer Heimbatterie an. Sie wird fürs Laden und Entladen verwendet, bis Solar4Car aus genügend vergangenen Lade- und Entladevorgängen gelernt hat, wie viel Energie das Laden der Batterie braucht und wie viel sie abgibt; ab dann werden stattdessen die gelernten Werte verwendet."));
 
         Register(x => x.DischargeHomeBatteryToMinSocDuringDay,
             new PropertyLocalizationTranslation(LanguageCodes.English,

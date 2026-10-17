@@ -69,23 +69,30 @@ public class UsableEnergyLearningService(
         var carIds = await context.Cars.Select(c => c.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
         foreach (var carId in carIds)
         {
-            var learnedWh = (await GetCarStateAsync(carId, cancellationToken).ConfigureAwait(false)).LearnedUsableEnergyKwh * 1000;
+            var learnedWh = ToWh((await GetCarStateAsync(carId, cancellationToken).ConfigureAwait(false)).LearnedUsableEnergyKwh);
             if (learnedWh == null)
             {
                 settings.LearnedCarUsableEnergiesWh.TryRemove(carId, out _);
             }
             else
             {
-                settings.LearnedCarUsableEnergiesWh[carId] = (int)Math.Round(learnedWh.Value);
+                settings.LearnedCarUsableEnergiesWh[carId] = learnedWh.Value;
             }
         }
         foreach (var removedCarId in settings.LearnedCarUsableEnergiesWh.Keys.Except(carIds).ToList())
         {
             settings.LearnedCarUsableEnergiesWh.TryRemove(removedCarId, out _);
         }
-        var homeBatteryLearnedKwh = (await GetHomeBatteryStateAsync(cancellationToken).ConfigureAwait(false)).LearnedUsableEnergyKwh;
-        settings.LearnedHomeBatteryUsableEnergyWh = homeBatteryLearnedKwh == null ? null : (int)Math.Round(homeBatteryLearnedKwh.Value * 1000);
-        logger.LogTrace("Learned car usable energies: {@cars}, home battery: {homeBattery}", settings.LearnedCarUsableEnergiesWh, settings.LearnedHomeBatteryUsableEnergyWh);
+        var homeBatteryState = await GetHomeBatteryStateAsync(cancellationToken).ConfigureAwait(false);
+        settings.LearnedHomeBatteryChargingEnergyWh = ToWh(homeBatteryState.LearnedChargingEnergyKwh);
+        settings.LearnedHomeBatteryDischargingEnergyWh = ToWh(homeBatteryState.LearnedDischargingEnergyKwh);
+        logger.LogTrace("Learned car usable energies: {@cars}, home battery charging: {charging}, discharging: {discharging}", settings.LearnedCarUsableEnergiesWh,
+            settings.LearnedHomeBatteryChargingEnergyWh, settings.LearnedHomeBatteryDischargingEnergyWh);
+    }
+
+    private static int? ToWh(double? kwh)
+    {
+        return kwh == null ? null : (int)Math.Round(kwh.Value * 1000);
     }
 
     public async Task<DtoLearnedUsableEnergy> GetCarStateAsync(int carId, CancellationToken cancellationToken)
@@ -94,7 +101,11 @@ public class UsableEnergyLearningService(
         var samples = await context.UsableEnergySamples
             .Where(s => s.CarId == carId && s.Kind == UsableEnergySampleKind.CarCharge)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
-        return BuildState(samples, [UsableEnergySampleKind.CarCharge,], false);
+        var state = BuildState(samples, [UsableEnergySampleKind.CarCharge,]);
+        var estimate = state.Estimates.Single();
+        state.LearnedUsableEnergyKwh = estimate.IsReliable ? Math.Round(estimate.MedianKwh!.Value, 1) : null;
+        state.IsUsed = state.LearningEnabled && state.LearnedUsableEnergyKwh != null;
+        return state;
     }
 
     public async Task<DtoLearnedUsableEnergy> GetHomeBatteryStateAsync(CancellationToken cancellationToken)
@@ -103,7 +114,24 @@ public class UsableEnergyLearningService(
         var samples = await context.UsableEnergySamples
             .Where(s => s.CarId == null && HomeBatteryKinds.Contains(s.Kind))
             .ToListAsync(cancellationToken).ConfigureAwait(false);
-        return BuildState(samples, HomeBatteryKinds, HasMultipleHomeBatteries());
+        var state = BuildState(samples, HomeBatteryKinds);
+        state.HasMultipleHomeBatteries = HasMultipleHomeBatteries();
+        var charging = state.Estimates.Single(e => e.Kind == UsableEnergySampleKind.HomeBatteryCharge);
+        var discharging = state.Estimates.Single(e => e.Kind == UsableEnergySampleKind.HomeBatteryDischarge);
+        //Charging and discharging energy differ by the losses on the way in and out. Only both together describe the
+        //battery, so one learned direction next to the entered value would give a meaningless ratio.
+        if (!state.HasMultipleHomeBatteries && charging.IsReliable && discharging.IsReliable)
+        {
+            //Getting more out than was put in is impossible, so the measurements are wrong.
+            state.DischargingExceedsCharging = discharging.MedianKwh > charging.MedianKwh;
+            if (!state.DischargingExceedsCharging)
+            {
+                state.LearnedChargingEnergyKwh = charging.MedianKwh;
+                state.LearnedDischargingEnergyKwh = discharging.MedianKwh;
+            }
+        }
+        state.IsUsed = state.LearningEnabled && state.LearnedChargingEnergyKwh != null;
+        return state;
     }
 
     public async Task ResetCarAsync(int carId, CancellationToken cancellationToken)
@@ -123,7 +151,8 @@ public class UsableEnergyLearningService(
         await UpdateLearnedValuesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private DtoLearnedUsableEnergy BuildState(List<UsableEnergySample> samples, UsableEnergySampleKind[] kinds, bool hasMultipleHomeBatteries)
+    /// <summary>The samples and the estimate per kind; which learned values follow from them is up to the caller.</summary>
+    private DtoLearnedUsableEnergy BuildState(List<UsableEnergySample> samples, UsableEnergySampleKind[] kinds)
     {
         var chargeLossPercent = configurationWrapper.CarChargeLoss();
         var evaluatedSamples = samples
@@ -140,18 +169,9 @@ public class UsableEnergyLearningService(
             usedSamples.ForEach(s => s.IsUsedForEstimate = true);
             estimates.Add(Estimate(kind, usedSamples.Select(s => s.ImpliedUsableEnergyKwh!.Value * 1000).ToList()));
         }
-        //Charging and discharging each miss part of the truth (loss on the way in, loss on the way out), so a home
-        //battery is only learned once both directions are reliable, as their average.
-        var learnedKwh = !hasMultipleHomeBatteries && estimates.All(e => e.IsReliable)
-            ? estimates.Average(e => e.MedianKwh!.Value)
-            : (double?)null;
-        var learningEnabled = configurationWrapper.UseLearnedUsableEnergy();
         return new DtoLearnedUsableEnergy
         {
-            LearningEnabled = learningEnabled,
-            HasMultipleHomeBatteries = hasMultipleHomeBatteries,
-            LearnedUsableEnergyKwh = learnedKwh == null ? null : Math.Round(learnedKwh.Value, 1),
-            IsUsed = learningEnabled && learnedKwh != null,
+            LearningEnabled = configurationWrapper.UseLearnedUsableEnergy(),
             Estimates = estimates,
             Samples = evaluatedSamples.Take(ShownSampleCount).ToList(),
         };

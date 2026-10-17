@@ -209,7 +209,8 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
             .Returns(nextSunrise);
 
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
-        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryMinDynamicMinSoc()).Returns(5);
         configurationWrapperMock.Setup(c => c.HomeBatteryMaxDynamicMinSoc()).Returns(95);
@@ -268,7 +269,8 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         SetupSunEvents();
 
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
-        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryMinDynamicMinSoc()).Returns(5);
         configurationWrapperMock.Setup(c => c.HomeBatteryMaxDynamicMinSoc()).Returns(95);
@@ -317,7 +319,8 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         SetupSunEvents();
 
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
-        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
 
         var slices = new Dictionary<DateTimeOffset, int>
@@ -421,5 +424,84 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         Mock.Mock<ISunCalculator>()
             .Setup(s => s.NextSunrise(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(new DateTimeOffset(2023, 2, 3, 7, 0, 0, TimeSpan.Zero));
+    }
+
+    [Theory]
+    // Taking energy out is metered on the discharging side already, so it is not scaled
+    [InlineData(1_000, -500, null, 0.5, 500)]
+    // Only half of a surplus going in can be taken out again
+    [InlineData(1_000, 2_000, null, 0.5, 2_000)]
+    // The charging power limit applies to the metered energy, before the loss
+    [InlineData(1_000, 5_000, 3_000, 0.5, 2_500)]
+    // Without a loss a surplus goes in completely
+    [InlineData(1_000, 2_000, null, 1.0, 3_000)]
+    public void ApplyEnergyChange_ScalesOnlyChargedEnergy(int energyInBattery, int energyDifference, int? maxChargingPower, double chargedEnergyFactor, int expected)
+    {
+        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
+
+        Assert.Equal(expected, calculator.ApplyEnergyChange(energyInBattery, energyDifference, maxChargingPower, chargedEnergyFactor));
+    }
+
+    [Theory]
+    // 2000Wh surplus in the evening cover 2000Wh of the 3000Wh night: 10 % of 10000Wh are missing
+    [InlineData(1.0, 10)]
+    // If only half of the surplus comes out again, 2000Wh are missing
+    [InlineData(0.5, 20)]
+    public void CalculateRequiredInitialStateOfChargePercent_SurplusOnlyCoversTheNightAfterLosses(double chargedEnergyFactor, int expectedSoc)
+    {
+        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
+        var slices = new Dictionary<DateTimeOffset, int>
+        {
+            { new DateTimeOffset(2023, 2, 2, 18, 0, 0, TimeSpan.Zero), 2_000 },
+            { new DateTimeOffset(2023, 2, 2, 19, 0, 0, TimeSpan.Zero), -3_000 },
+        };
+        var targetTime = new DateTimeOffset(2023, 2, 3, 7, 0, 0, TimeSpan.Zero);
+
+        var result = calculator.CalculateRequiredInitialStateOfChargePercent(slices, 10_000, 0, 0, targetTime, 0, chargedEnergyFactor);
+
+        Assert.Equal(expectedSoc, result.RequiredInitialSocPercent);
+    }
+
+    /// <summary>
+    /// The battery lasts as long as its discharging energy: the same night needs a larger share of a battery that
+    /// delivers only 5000Wh although it takes 10000Wh to charge.
+    /// </summary>
+    [Fact]
+    public async Task RefreshHomeBatteryMinSoc_PlansTheNightWithTheDischargingEnergy()
+    {
+        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
+        Mock.Mock<ISettings>().SetupAllProperties();
+        Mock.Mock<ISunCalculator>()
+            .Setup(s => s.NextSunset(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Returns(new DateTimeOffset(2023, 2, 2, 17, 0, 0, TimeSpan.Zero));
+        Mock.Mock<ISunCalculator>()
+            .Setup(s => s.NextSunrise(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Returns(new DateTimeOffset(2023, 2, 3, 7, 0, 0, TimeSpan.Zero));
+        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10_000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(5_000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10_000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryMinDynamicMinSoc()).Returns(5);
+        configurationWrapperMock.Setup(c => c.HomeBatteryMaxDynamicMinSoc()).Returns(95);
+        configurationWrapperMock.Setup(c => c.HoldHomeBatteryChargeSocBufferInPercent()).Returns(0);
+        configurationWrapperMock.Setup(c => c.ChargeHomeBatterySocBufferInPercent()).Returns(0);
+        var slices = new Dictionary<DateTimeOffset, int>
+        {
+            { new DateTimeOffset(2023, 2, 2, 20, 0, 0, TimeSpan.Zero), -1_000 },
+            { new DateTimeOffset(2023, 2, 3, 8, 0, 0, TimeSpan.Zero), 2_000 },
+        };
+        Mock.Mock<IEnergyDataService>()
+            .Setup(e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(slices);
+
+        await calculator.RefreshHomeBatteryMinSoc(CancellationToken.None);
+
+        // Floor 5 % of 5000Wh = 250Wh, plus the 1000Wh night => 25 % (it would be 15 % of the 10000Wh charging energy)
+        var holdTarget = Mock.Mock<ISettings>().Object.HomeBatteryHoldTarget;
+        Assert.NotNull(holdTarget);
+        Assert.Equal(25, holdTarget.RequiredInitialSocPercent);
+        Assert.Equal(1_000, holdTarget.AdditionalEnergyRequiredWh);
     }
 }

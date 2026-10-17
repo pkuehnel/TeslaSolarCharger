@@ -12,6 +12,24 @@ public class LearnedUsableEnergyComponentLocalizationRegistry : TextLocalization
             new TextLocalizationTranslation(LanguageCodes.English, "Learned from past charges: {0} kWh. Not used as learning is switched off in the base configuration."),
             new TextLocalizationTranslation(LanguageCodes.German, "Aus vergangenen Ladungen gelernt: {0} kWh. Wird nicht verwendet, da das Lernen in der Basiskonfiguration ausgeschaltet ist."));
 
+        Register(TranslationKeys.UsableEnergyHomeBatteryLearnedValues,
+            new TextLocalizationTranslation(LanguageCodes.English, "charging {0} kWh, discharging {1} kWh ({2} % of the charged energy comes back out)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Laden {0} kWh, Entladen {1} kWh ({2} % der geladenen Energie kommen wieder heraus)"));
+
+        Register(TranslationKeys.UsableEnergyHomeBatteryLearnedInUse,
+            new TextLocalizationTranslation(LanguageCodes.English, "Learned from {0} measurements: {1}. Used instead of the value above."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aus {0} Messungen gelernt: {1}. Wird statt des Werts oben verwendet."));
+
+        Register(TranslationKeys.UsableEnergyHomeBatteryLearnedNotUsedLearningOff,
+            new TextLocalizationTranslation(LanguageCodes.English, "Learned from past charges and discharges: {0}. Not used as learning is switched off in the base configuration."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aus vergangenen Lade- und Entladevorgängen gelernt: {0}. Wird nicht verwendet, da das Lernen in der Basiskonfiguration ausgeschaltet ist."));
+
+        Register(TranslationKeys.UsableEnergyDischargingExceedsCharging,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "Not used: the home battery seems to deliver more than is charged into it (charging {0} kWh, discharging {1} kWh), which is impossible. Please check the home battery power and SoC values. Until then the value above is used."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Nicht verwendet: die Heimbatterie scheint mehr abzugeben, als in sie geladen wird (Laden {0} kWh, Entladen {1} kWh), was unmöglich ist. Bitte prüfen Sie die Werte für Leistung und Ladestand der Heimbatterie. Bis dahin wird der Wert oben verwendet."));
+
         Register(TranslationKeys.UsableEnergyLearningOff,
             new TextLocalizationTranslation(LanguageCodes.English, "Learning the usable energy from past charges is switched off in the base configuration."),
             new TextLocalizationTranslation(LanguageCodes.German, "Das Lernen der nutzbaren Energie aus vergangenen Ladungen ist in der Basiskonfiguration ausgeschaltet."));

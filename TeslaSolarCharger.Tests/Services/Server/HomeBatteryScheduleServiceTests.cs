@@ -480,7 +480,8 @@ public class HomeBatteryScheduleServiceTests : TestBase
     {
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
         configurationWrapperMock.Setup(c => c.GridPriceBasedHomeBatteryControl()).Returns(true);
-        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(5000);
         configurationWrapperMock.Setup(c => c.HomeBatteryUsageCostsPerKwh()).Returns(0.05m);
     }
@@ -504,7 +505,8 @@ public class HomeBatteryScheduleServiceTests : TestBase
         {
             CurrentDate = EveningDate,
             CurrentSocPercent = currentSocPercent,
-            UsableEnergyWh = 10000,
+            ChargingEnergyWh = 10000,
+            DischargingEnergyWh = 10000,
             MaxChargingPowerW = 5000,
             HoldTargetSocPercent = holdTargetSocPercent,
             ChargeTargetSocPercent = chargeTargetSocPercent,
@@ -534,5 +536,21 @@ public class HomeBatteryScheduleServiceTests : TestBase
             ValidTo = validTo,
             TargetMinPower = 11000,
         };
+    }
+
+    [Theory]
+    // 20 % missing: grid charging puts 2000Wh in (of 10000Wh charging energy), holding saves 1000Wh (of 5000Wh discharging energy)
+    [InlineData(0, 10_000, 2_000)]
+    [InlineData(0, 5_000, 1_000)]
+    // 500Wh already preserved are 10 % of the discharging energy, so only 10 % are missing
+    [InlineData(500, 10_000, 1_000)]
+    [InlineData(500, 5_000, 500)]
+    // More preserved than missing leaves nothing to do
+    [InlineData(2_000, 10_000, 0)]
+    public void CalculateDeficitWh_ConvertsPreservedEnergyWithTheDischargingEnergy(int alreadyPreservedWh, int energyPer100PercentWh, int expectedWh)
+    {
+        var input = new HomeBatteryPlanningInput { CurrentSocPercent = 40, ChargingEnergyWh = 10_000, DischargingEnergyWh = 5_000, };
+
+        Assert.Equal(expectedWh, HomeBatteryScheduleService.CalculateDeficitWh(60, input, alreadyPreservedWh, energyPer100PercentWh));
     }
 }
