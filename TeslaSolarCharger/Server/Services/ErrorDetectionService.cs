@@ -85,27 +85,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             await context.SaveChangesAsync();
         }
 
-        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
-        var isBaseAppLicensedHeadline = string.Empty;
-        if (isBaseAppLicensed.Data == default)
-        {
-            isBaseAppLicensedHeadline = "Could not check if app is licensed";
-        }
-        else if (isBaseAppLicensed.Data == false)
-        {
-            isBaseAppLicensedHeadline = "Base App not licensed";
-        }
-        var isBaseAppLicensedErrorMessage = string.Empty;
-        if (!string.IsNullOrEmpty(isBaseAppLicensed.ErrorMessage))
-        {
-            isBaseAppLicensedErrorMessage = isBaseAppLicensed.ErrorMessage;
-        }
-        //Only show error message if backend token is up to date.
-        var baseAppLicensedTokenShouldBeActive = backendTokenUpToDate && (isBaseAppLicensed.Data != true);
-        await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, isBaseAppLicensedHeadline,
-            isBaseAppLicensedErrorMessage, (baseAppLicensedTokenShouldBeActive));
-
-        
+        await DetectBaseAppLicenseIssue(activeErrors, backendTokenUpToDate).ConfigureAwait(false);
 
         foreach (var car in settings.CarsToManage)
         {
@@ -194,7 +174,35 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
     }
 
-    private async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)
+    internal async Task DetectBaseAppLicenseIssue(List<LoggedError> activeErrors, bool backendTokenUpToDate)
+    {
+        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
+        string headline;
+        string message;
+        if (isBaseAppLicensed.Data == false)
+        {
+            headline = "No Solar4Car base license";
+            message = "Your Solar4Car account has no active base license, so Solar4Car does not control any charging: "
+                      + "no commands are sent to your cars or chargers, including cars connected via BLE. "
+                      + "The base license is required for every installation, a Car License is only needed in addition for using the Tesla cloud. "
+                      + $"Get it at <a href=\"{constants.SubscriptionsUrl}\" target=\"_blank\">solar4car.com/subscriptions</a>. "
+                      + "After buying, restart Solar4Car as otherwise it takes up to six hours until the license is detected.";
+        }
+        else
+        {
+            headline = "Could not check if Solar4Car is licensed";
+            message = isBaseAppLicensed.ErrorMessage ?? string.Empty;
+        }
+        //Only show error message if backend token is up to date.
+        var shouldBeActive = backendTokenUpToDate && (isBaseAppLicensed.Data != true);
+        await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, headline, message, shouldBeActive).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Headline and message of an error that is still active are updated, so it shows the current state and texts
+    /// changed by an update reach errors that were opened by an older version.
+    /// </summary>
+    internal async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)
     {
         var filteredErrors = activeErrors.Where(e => e.IssueKey == issueKey).ToList();
         if (shouldBeActive && filteredErrors.Count < 1)
@@ -217,6 +225,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                 if (i == 0)
                 {
                     filteredErrors[i].FurtherOccurrences.Add(dateTimeProvider.UtcNow());
+                    filteredErrors[i].Headline = headline;
+                    filteredErrors[i].Message = message;
                 }
                 else
                 {

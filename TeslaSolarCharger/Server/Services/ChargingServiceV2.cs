@@ -86,7 +86,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
         if ((await _backendApiService.IsBaseAppLicensed(true)).Data != true)
         {
-            _logger.LogError("Can not set new charging values as base app is not licensed");
+            _logger.LogError("Can not set new charging values as Solar4Car has no active base license");
             return;
         }
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
