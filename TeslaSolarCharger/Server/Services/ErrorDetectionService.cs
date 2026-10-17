@@ -4,11 +4,11 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -23,7 +23,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
     IConstants constants,
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
     IBackendApiService backendApiService,
-    IFleetApiRateLimitService fleetApiRateLimitService) : IErrorDetectionService
+    IFleetApiRateLimitService fleetApiRateLimitService,
+    IGenericValueService genericValueService) : IErrorDetectionService
 {
     public async Task DetectErrors()
     {
@@ -48,12 +49,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
 
 
         var pvValueUpdateAge = dateTimeProvider.DateTimeOffSetUtcNow() - settings.LastPvValueUpdate;
-        var solarValuesTooOld = (pvValueUpdateAge > (configurationWrapper.PvValueJobUpdateIntervall() * 3)) && (
-                                await context.ModbusResultConfigurations.Where(r => r.UsedFor <= ValueUsage.HomeBatterySoc).AnyAsync().ConfigureAwait(false)
-                              || await context.RestValueResultConfigurations.Where(r => r.UsedFor <= ValueUsage.HomeBatterySoc).AnyAsync().ConfigureAwait(false)
-                              || await context.MqttResultConfigurations.Where(r => r.UsedFor <= ValueUsage.HomeBatterySoc).AnyAsync().ConfigureAwait(false));
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
-            $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
+            $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", AreSolarValuesTooOld(pvValueUpdateAge)).ConfigureAwait(false);
 
         var backendTokenState = await tokenHelper.GetBackendTokenState(true);
         var backendTokenUpToDate = backendTokenState == TokenState.UpToDate;
@@ -178,6 +175,18 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.ChargeStopRequestUrl, car.Vin);
             }
         }
+    }
+
+    /// <summary>
+    /// The solar values are too old when they were not updated for three runs while at least one device is configured.
+    /// Every configured device (REST, Modbus, MQTT and templates) is in the value registry, the fake device is not configured.
+    /// </summary>
+    internal bool AreSolarValuesTooOld(TimeSpan pvValueUpdateAge)
+    {
+        return pvValueUpdateAge > configurationWrapper.PvValueJobUpdateIntervall() * 3
+               && genericValueService
+                   .GetAllByPredicate(v => v.SourceValueKey.ConfigurationType != ConfigurationType.FakeSolarValue)
+                   .Count > 0;
     }
 
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)

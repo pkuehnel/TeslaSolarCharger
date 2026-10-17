@@ -1,15 +1,14 @@
 using Autofac;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Server.Services.SolarValueGathering;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
@@ -23,6 +22,7 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.SignalRClients;
 using TeslaSolarCharger.SharedModel.Enums;
+using TeslaSolarCharger.Tests.Helper;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
@@ -45,7 +45,15 @@ public class PvValuePublishingTests : TestBase
         Mock.Mock<IGenericValueService>()
             .Setup(s => s.GetSourceValues(It.IsAny<bool>()))
             .Returns(() => _deviceValues);
+        Mock.Mock<IGenericValueService>()
+            .Setup(s => s.GetAllByPredicate(It.IsAny<Expression<Func<IGenericValue<decimal>, bool>>>()))
+            .Returns<Expression<Func<IGenericValue<decimal>, bool>>>(predicate => _devices.AsQueryable().Where(predicate).ToList());
     }
+
+    /// <summary>The devices in the value registry, which tell whether one of them currently fails to deliver.</summary>
+    private List<IGenericValue<decimal>> _devices = new();
+
+    private static readonly DateTimeOffset LastSuccessfulUpdate = new(2023, 2, 2, 7, 0, 0, TimeSpan.Zero);
 
     private DtoPvSourceValue Source(ValueUsage usage, decimal value, int sourceId = 1,
         ConfigurationType configurationType = ConfigurationType.TemplateValue) => new()
@@ -65,6 +73,7 @@ public class PvValuePublishingTests : TestBase
         Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>(
             new TypedParameter(typeof(ISettings), _settings),
             new TypedParameter(typeof(IIndexService), CreateIndexService(genericValueService)),
+            new TypedParameter(typeof(IGenericValueService), genericValueService ?? Mock.Mock<IGenericValueService>().Object),
             new TypedParameter(typeof(IFakeSolarValueHandlingService),
                 fakeSolarValueHandlingService ?? Mock.Mock<IFakeSolarValueHandlingService>().Object));
 
@@ -73,20 +82,102 @@ public class PvValuePublishingTests : TestBase
     /// device, both reached through the one generic value service.
     /// </summary>
     private (IGenericValueService GenericValueService, FakeSolarValueHandlingService FakeSolarValueHandlingService) CreateRealValueHandling(
-        decimal realGridPower)
+        decimal realGridPower, bool realDeviceHasError = false)
     {
-        var realDevice = new Mock<IGenericValue<decimal>>();
-        realDevice.Setup(v => v.SourceValueKey).Returns(new SourceValueKey(1, ConfigurationType.TemplateValue));
-        realDevice.Setup(v => v.HistoricValues).Returns(new Dictionary<ValueKey, DtoHistoricValue<decimal>>
-        {
-            { new ValueKey(ValueUsage.GridPower, null, 1), new DtoHistoricValue<decimal>(CurrentFakeDate, realGridPower, 1) },
-        });
-        var realHandlingService = new Mock<IDecimalValueHandlingService>();
-        realHandlingService.Setup(s => s.GetSnapshot()).Returns([realDevice.Object,]);
+        var realDevice = GenericValueTestDevices.Device(ConfigurationType.TemplateValue, CurrentFakeDate, realDeviceHasError,
+            readings: (ValueUsage.GridPower, realGridPower));
         var fakeSolarValueHandlingService = new FakeSolarValueHandlingService(new Mock<IServiceScopeFactory>().Object);
-        var genericValueService = new GenericValueService(NullLogger<GenericValueService>.Instance,
-            [realHandlingService.Object, fakeSolarValueHandlingService,]);
+        var genericValueService = GenericValueTestDevices.Registry(GenericValueTestDevices.HandlingService(realDevice),
+            fakeSolarValueHandlingService);
         return (genericValueService, fakeSolarValueHandlingService);
+    }
+
+    private IGenericValue<decimal> RegistryDevice(int sourceId, bool hasError,
+        ConfigurationType configurationType = ConfigurationType.TemplateValue) =>
+        GenericValueTestDevices.Device(configurationType, CurrentFakeDate, hasError, sourceId);
+
+    [Fact]
+    public async Task TheAgeIsUpdatedWhileEveryDeviceDelivers()
+    {
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _devices = [RegistryDevice(1, false), RegistryDevice(2, false, ConfigurationType.RestSolarValue),];
+
+        await CreatePvValueService().UpdatePvValues();
+
+        Assert.Equal(CurrentFakeDate, _settings.LastPvValueUpdate);
+    }
+
+    [Theory]
+    [InlineData(ConfigurationType.TemplateValue)]
+    [InlineData(ConfigurationType.RestSolarValue)]
+    [InlineData(ConfigurationType.ModbusSolarValue)]
+    [InlineData(ConfigurationType.MqttSolarValue)]
+    public async Task OneFailingDeviceKeepsTheAgeWhileTheOthersStillCount(ConfigurationType failingConfigurationType)
+    {
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _devices = [RegistryDevice(1, false), RegistryDevice(2, true, failingConfigurationType),];
+        //Only the healthy device delivers, the failing one is left out of the totals.
+        _deviceValues = [Source(ValueUsage.InverterPower, 3000, sourceId: 1),];
+
+        await CreatePvValueService().UpdatePvValues();
+
+        Assert.Equal(LastSuccessfulUpdate, _settings.LastPvValueUpdate);
+        Assert.Equal(3000, _settings.InverterPower);
+        Assert.Null(_settings.Overage);
+    }
+
+    [Fact]
+    public async Task EveryDeviceFailingKeepsTheAgeAndLeavesEveryTotalUnknown()
+    {
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _settings.Overage = 100;
+        _devices = [RegistryDevice(1, true), RegistryDevice(2, true),];
+
+        await CreatePvValueService().UpdatePvValues();
+
+        Assert.Equal(LastSuccessfulUpdate, _settings.LastPvValueUpdate);
+        Assert.Null(_settings.Overage);
+    }
+
+    [Fact]
+    public async Task ARecoveredDeviceUpdatesTheAgeAgain()
+    {
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        var pvValueService = CreatePvValueService();
+        _devices = [RegistryDevice(1, true),];
+        await pvValueService.UpdatePvValues();
+        Assert.Equal(LastSuccessfulUpdate, _settings.LastPvValueUpdate);
+
+        _devices = [RegistryDevice(1, false),];
+        await pvValueService.UpdatePvValues();
+
+        Assert.Equal(CurrentFakeDate, _settings.LastPvValueUpdate);
+    }
+
+    [Fact]
+    public async Task ErrorsOfRealDevicesDoNotKeepTheAgeWhileFakeValuesReplaceThem()
+    {
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.ShouldUseFakeSolarValues()).Returns(true);
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _settings.LastPvDemoCase = 12;
+        var (genericValueService, fakeSolarValueHandlingService) = CreateRealValueHandling(99999, realDeviceHasError: true);
+
+        await CreatePvValueService(genericValueService, fakeSolarValueHandlingService).UpdatePvValues();
+
+        Assert.Equal(CurrentFakeDate, _settings.LastPvValueUpdate);
+    }
+
+    [Fact]
+    public async Task ARealFailingDeviceKeepsTheAgeWithTheRealRegistry()
+    {
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        var (genericValueService, fakeSolarValueHandlingService) = CreateRealValueHandling(500, realDeviceHasError: true);
+
+        await CreatePvValueService(genericValueService, fakeSolarValueHandlingService).UpdatePvValues();
+
+        Assert.Equal(LastSuccessfulUpdate, _settings.LastPvValueUpdate);
+        //The failing device's last reading is not used either.
+        Assert.Null(_settings.Overage);
     }
 
     [Fact]
