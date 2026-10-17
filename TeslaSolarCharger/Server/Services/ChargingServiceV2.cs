@@ -3,7 +3,6 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
-using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -36,6 +35,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
     private readonly IBackendApiService _backendApiService;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
     private readonly ITargetChargingValueCalculationService _targetChargingValueCalculationService;
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IChargingScheduleService _chargingScheduleService;
@@ -58,8 +58,10 @@ public class ChargingServiceV2 : IChargingServiceV2
         IAppStateNotifier appStateNotifier,
         IChargingScheduleService chargingScheduleService,
         IConstants constants,
-        IHomeBatteryScheduleService homeBatteryScheduleService)
+        IHomeBatteryScheduleService homeBatteryScheduleService,
+        ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _configurationWrapper = configurationWrapper;
         _loadPointManagementService = loadPointManagementService;
@@ -405,7 +407,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             var actualTargetSoc = _chargingScheduleService.GetActualTargetSoc(car.SocLimit.Value, chargingTarget.TargetSoc, car.IsCharging.Value == true);
             var isReachedWithinRestartHysteresis = car.IsCharging.Value != true
                                                    && car.SoC.Value < chargingTarget.TargetSoc
-                                                   && CarChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, chargingTarget.TargetSoc);
+                                                   && _carChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, chargingTarget.TargetSoc);
             if (car.SoC.Value >= actualTargetSoc || isReachedWithinRestartHysteresis || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
@@ -414,7 +416,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(car.Id, null,
                     new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis,
-                        chargingTarget.TargetSoc, car.SoC.Value, CarChargeRestartHysteresis.Percent));
+                        chargingTarget.TargetSoc, car.SoC.Value, _carChargeRestartHysteresis.Percent));
             }
 
             if (actualTargetSoc == default && chargingTarget.DischargeHomeBatteryToMinSoc)

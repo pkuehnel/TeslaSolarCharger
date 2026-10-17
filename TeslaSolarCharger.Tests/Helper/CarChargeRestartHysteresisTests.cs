@@ -1,14 +1,29 @@
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using Xunit;
 
 namespace TeslaSolarCharger.Tests.Helper;
 
-public class CarChargeRestartHysteresisTests
+public class CarChargeRestartHysteresisTests : TestBase
 {
+    public CarChargeRestartHysteresisTests(ITestOutputHelper outputHelper) : base(outputHelper)
+    {
+    }
+
     [Fact]
     public void Percent_IsThree()
     {
-        Assert.Equal(3, CarChargeRestartHysteresis.Percent);
+        var hysteresis = new CarChargeRestartHysteresis();
+
+        Assert.Equal(3, hysteresis.Percent);
+    }
+
+    [Fact]
+    public void IsResolvedAsRealImplementationInTests()
+    {
+        var hysteresis = Mock.Create<ICarChargeRestartHysteresis>();
+
+        Assert.IsType<CarChargeRestartHysteresis>(hysteresis);
     }
 
     [Theory]
@@ -29,6 +44,8 @@ public class CarChargeRestartHysteresisTests
     [InlineData(null, null, false)]
     public void PreventsChargeStart_ReturnsExpected(int? soc, int? socLimit, bool expected)
     {
-        Assert.Equal(expected, CarChargeRestartHysteresis.PreventsChargeStart(soc, socLimit));
+        var hysteresis = new CarChargeRestartHysteresis();
+
+        Assert.Equal(expected, hysteresis.PreventsChargeStart(soc, socLimit));
     }
 }

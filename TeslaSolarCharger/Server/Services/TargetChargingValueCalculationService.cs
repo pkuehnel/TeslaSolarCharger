@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
-using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -22,6 +21,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IConstants _constants;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
 
@@ -31,8 +31,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         IConfigurationWrapper configurationWrapper,
         IConstants constants,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
-        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
+        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
+        ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _context = context;
         _settings = settings;
@@ -413,10 +415,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonMaxSocReached));
                     return null;
                 }
-                if (CarChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
+                if (_carChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarSideSocLimitReached, CarChargeRestartHysteresis.Percent));
+                        new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarSideSocLimitReached, _carChargeRestartHysteresis.Percent));
                     return null;
                 }
                 if (constraintValues.IsCarFullyCharged == true
@@ -469,7 +471,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             // Check for maximum SOC reached is already done above, so we can skip it here
             if ((constraintValues.IsCharging == false)
-                && CarChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
+                && _carChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
             {
                 return null;
             }

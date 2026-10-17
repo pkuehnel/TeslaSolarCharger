@@ -191,11 +191,12 @@ public class SetCarChargingTargetsToFulFilledTests : TestBase
         await service.SetCarChargingTargetsToFulFilled(CurrentFakeDate);
 
         // Assert
+        var hysteresisPercent = Mock.Create<ICarChargeRestartHysteresis>().Percent;
         Mock.Mock<INotChargingWithExpectedPowerReasonHelper>()
             .Verify(h => h.AddLoadPointSpecificReason(carId, null,
                     It.Is<NotChargingWithExpectedPowerReasonTemplate>(r =>
                         r.LocalizationKey == TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis
-                        && r.FormatArguments != null && r.FormatArguments.SequenceEqual(new object?[] { targetSoc, carSoc, CarChargeRestartHysteresis.Percent, }))),
+                        && r.FormatArguments != null && r.FormatArguments.SequenceEqual(new object?[] { targetSoc, carSoc, hysteresisPercent, }))),
                 shouldAddReason ? Times.Once() : Times.Never());
     }
 

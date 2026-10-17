@@ -302,11 +302,12 @@ public class GetTargetValueTests : TestBase
         {
             Assert.Null(result);
         }
+        var hysteresisPercent = Mock.Create<ICarChargeRestartHysteresis>().Percent;
         Mock.Mock<INotChargingWithExpectedPowerReasonHelper>()
             .Verify(h => h.AddLoadPointSpecificReason(1, 1,
                     It.Is<NotChargingWithExpectedPowerReasonTemplate>(r =>
                         r.LocalizationKey == TranslationKeys.NotChargingReasonCarSideSocLimitReached
-                        && r.FormatArguments != null && Equals(r.FormatArguments[0], CarChargeRestartHysteresis.Percent))),
+                        && r.FormatArguments != null && Equals(r.FormatArguments[0], hysteresisPercent))),
                 shouldStart ? Times.Never() : Times.Once());
     }
 
