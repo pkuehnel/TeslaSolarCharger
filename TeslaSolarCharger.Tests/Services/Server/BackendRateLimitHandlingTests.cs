@@ -36,20 +36,10 @@ namespace TeslaSolarCharger.Tests.Services.Server;
 /// backend's own rate limits are never reached in normal operation, and how it handles the backend rejecting one anyway.
 /// </summary>
 [SuppressMessage("ReSharper", "UseConfigureAwaitFalse")]
-public class BackendRateLimitHandlingTests(ITestOutputHelper outputHelper) : TestBase(outputHelper)
+public class BackendRateLimitHandlingTests(ITestOutputHelper outputHelper) : FleetApiFallbackTestBase(outputHelper)
 {
-    private const string Vin = "LRW3E7FS2NC000001";
-    private const string AccessToken = "backendAccessToken";
-    private const string EncryptionKey = "encryptionKey";
     private const string WakeUpThrottleMessage = "Can not allow request wake for car LRW3E7FS2NC000001 as the next wake up is only allowed in 900 seconds.";
     private const string HourlyLimitMessage = "The car LRW3E7FS2NC000001 has no Car License, so only one successful command per hour is allowed.";
-    private const string SuccessfulCommandJson = "{\"response\":{\"result\":true,\"reason\":\"\"}}";
-    private const string FailedCommandJson = "{\"response\":{\"result\":false,\"reason\":\"vehicle rejected\"}}";
-
-    private IConstants Constants => Mock.Create<IConstants>();
-    private IIssueKeys IssueKeys => Mock.Create<IIssueKeys>();
-    //One clock for TeslaFleetApiService and FleetApiRateLimitService, so both agree on the current time.
-    private FakeDateTimeProvider Clock => new(CurrentFakeDate.UtcDateTime);
 
     [Fact]
     public async Task BudgetAllowsCommand_CommandIsSent()
@@ -254,7 +244,7 @@ public class BackendRateLimitHandlingTests(ITestOutputHelper outputHelper) : Tes
     {
         var car = SetupBleCarWithFailingBle(isFleetApiLicensed: false);
         SetupBudget(new DtoFleetApiCommandBudget());
-        SetupTestResponse(new(new() { StatusCode = HttpStatusCode.OK, JsonResponse = FailedCommandJson, }, null, null));
+        SetupTestResponse(TeslaResponse(FailedCommandJson));
 
         var result = await CreateService().TestFleetApiAccess(car.Id);
 
@@ -290,109 +280,10 @@ public class BackendRateLimitHandlingTests(ITestOutputHelper outputHelper) : Tes
         VerifyRateLimitIssueRaised(Times.Never());
     }
 
-    /// <summary>
-    /// A BLE car whose BLE commands all fail, so every command falls back to the Fleet API.
-    /// </summary>
-    private DtoCar SetupBleCarWithFailingBle(bool isFleetApiLicensed)
-    {
-        Context.Cars.Add(new Car
-        {
-            Id = 1,
-            Vin = Vin,
-            CarType = CarType.Tesla,
-            ShouldBeManaged = true,
-            UseBle = true,
-            UseFleetTelemetry = false,
-        });
-        Context.BackendTokens.Add(new BackendToken(AccessToken, "backendRefreshToken") { ExpiresAtUtc = CurrentFakeDate.AddHours(1), });
-        Context.SaveChangesAsync().GetAwaiter().GetResult();
-        DetachAllEntities();
-
-        var car = new DtoCar
-        {
-            Id = 1,
-            Vin = Vin,
-            UseBle = true,
-        };
-        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { car });
-        Mock.Mock<ITokenHelper>().Setup(t => t.GetBackendTokenState(true)).ReturnsAsync(TokenState.UpToDate);
-        Mock.Mock<IBackendApiService>().Setup(b => b.IsBaseAppLicensed(true)).ReturnsAsync(new Result<bool?>(true, null, null));
-        Mock.Mock<IBackendApiService>().Setup(b => b.IsFleetApiLicensed(Vin, true)).ReturnsAsync(isFleetApiLicensed);
-        Mock.Mock<ITscConfigurationService>().Setup(c => c.GetConfigurationValueByKey(Constants.TeslaTokenEncryptionKeyKey)).ReturnsAsync(EncryptionKey);
-
-        var bleFailure = new DtoBleCommandResult
-        {
-            Success = false,
-            Outcome = BleCommandOutcome.CarAbsent,
-            ResultMessage = "Car not in range",
-        };
-        Mock.Mock<IBleService>().Setup(b => b.WakeUpCar(Vin)).ReturnsAsync(bleFailure);
-        Mock.Mock<IBleService>().Setup(b => b.SetAmp(Vin, It.IsAny<int>())).ReturnsAsync(bleFailure);
-        Mock.Mock<IBleService>().Setup(b => b.StopCharging(Vin)).ReturnsAsync(bleFailure);
-        return car;
-    }
-
-    /// <summary>
-    /// Service with the real <see cref="FleetApiRateLimitService"/> asking the mocked backend for the budget.
-    /// </summary>
-    private FleetApiService CreateService()
-    {
-        var rateLimitService = new FleetApiRateLimitService(NullLogger<FleetApiRateLimitService>.Instance, Clock,
-            Mock.Mock<IBackendApiService>().Object);
-        return Mock.Create<FleetApiService>(
-            new TypedParameter(typeof(IDateTimeProvider), Clock),
-            new TypedParameter(typeof(IFleetApiRateLimitService), rateLimitService));
-    }
-
     private DtoFleetApiRequest ChargeStopRequest() => new()
     {
         RequestUrl = Constants.ChargeStopRequestUrl,
         BleCompatible = true,
         TeslaApiRequestType = TeslaApiRequestType.Charging,
     };
-
-    private static Result<DtoBackendApiTeslaResponse> RateLimited(string message) =>
-        new(null, message, new ProblemDetails { Status = (int)HttpStatusCode.TooManyRequests, Detail = message, });
-
-    private static Result<DtoBackendApiTeslaResponse> Successful() =>
-        new(new() { StatusCode = HttpStatusCode.OK, JsonResponse = SuccessfulCommandJson, }, null, null);
-
-    private void SetupBudget(DtoFleetApiCommandBudget budget) =>
-        Mock.Mock<IBackendApiService>().Setup(b => b.GetFleetApiCommandBudget(Vin))
-            .ReturnsAsync(new Result<DtoFleetApiCommandBudget>(budget, null, null));
-
-    private void SetupBackendResponse(string requestUrl, Result<DtoBackendApiTeslaResponse> response)
-    {
-        Mock.Mock<IBackendApiService>()
-            .Setup(b => b.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Post, AccessToken,
-                It.Is<string>(uri => uri.StartsWith(requestUrl + "?")), null))
-            .ReturnsAsync(response);
-    }
-
-    private void SetupTestResponse(Result<DtoBackendApiTeslaResponse> response)
-    {
-        Mock.Mock<IBackendApiService>()
-            .Setup(b => b.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Post, AccessToken,
-                It.Is<string>(uri => uri.StartsWith(Constants.FleetApiTestRequestUrl + "?")), null, It.IsAny<TimeSpan>()))
-            .ReturnsAsync(response);
-    }
-
-    private void VerifyBackendCalled(string requestUrl, Times times)
-    {
-        Mock.Mock<IBackendApiService>().Verify(
-            b => b.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Post, AccessToken,
-                It.Is<string>(uri => uri.StartsWith(requestUrl + "?")), null),
-            times);
-    }
-
-    private void VerifyRateLimitIssueRaised(Times times)
-    {
-        Mock.Mock<IErrorHandlingService>().Verify(
-            e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                IssueKeys.FleetApiCommandRateLimited, Vin, It.IsAny<string?>()),
-            times);
-    }
-
-    private async Task<TeslaCarFleetApiState?> GetFleetApiState() =>
-        await Context.Cars.AsNoTracking().Where(c => c.Id == 1).Select(c => c.TeslaFleetApiState).FirstAsync();
 }

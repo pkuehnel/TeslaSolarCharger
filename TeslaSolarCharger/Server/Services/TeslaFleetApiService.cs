@@ -117,7 +117,7 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({carId}, {startAmp})", nameof(StartCharging), carId, startAmp);
         var car = settings.Cars.First(c => c.Id == carId);
-        if (car.ChargeStartCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
+        if (WasSentWithinLastMinute(car.ChargeStartCalls))
         {
             logger.LogDebug("Last charge start call is less than a minute old. Do not send command again.");
             return;
@@ -177,7 +177,7 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({carId})", nameof(StopCharging), carId);
         var car = settings.Cars.First(c => c.Id == carId);
-        if (car.ChargeStopCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
+        if (WasSentWithinLastMinute(car.ChargeStopCalls))
         {
             logger.LogDebug("Last charge stop call is less than a minute old. Do not send command again.");
             return;
@@ -197,11 +197,18 @@ public class TeslaFleetApiService(
             return;
         }
         var vin = GetVinByCarId(carId);
-        var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps).ConfigureAwait(false);
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        car.LastSetAmp.Update(currentDate, amps);
+        if (result?.Response?.Result != true)
+        {
+            //The car still charges with the previous current, so the next cycle has to calculate from that one.
+            logger.LogDebug("Setting {amps} A for car {carId} did not succeed, keep last set current", amps, carId);
+            return;
+        }
+        car.LastSetAmp.Update(dateTimeProvider.DateTimeOffSetUtcNow(), amps);
     }
+
+    private bool WasSentWithinLastMinute(IEnumerable<DateTime> calls) =>
+        calls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() - TimeSpan.FromMinutes(1));
 
     public async Task<TeslaCarFleetApiState?> GetFleetApiState(int carId)
     {
@@ -857,16 +864,8 @@ public class TeslaFleetApiService(
         }
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
 
-        if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
-        {
-            var lastWakeUp = car.WakeUpCalls.OrderByDescending(c => c).FirstOrDefault();
-            if (lastWakeUp != default && lastWakeUp > dateTimeProvider.UtcNow().AddMinutes(-30))
-            {
-                logger.LogDebug("Do not send wake up command as last wake up was at {lastWakeUp}", lastWakeUp);
-                return new() { Error = WakeUpThrottledError, ErrorDescription = $"No wake up command was sent because the last wake up was at {lastWakeUp:o} (less than 30 minutes ago).", };
-            }
-        }
-
+        //Fleet API wake ups are only throttled by the backend's wake up budget. It only counts Fleet API wake ups, so a
+        //successful BLE wake up shortly before BLE broke does not block the fallback.
         var budgetKinds = GetBudgetKinds(fleetApiRequest, isFleetApiLicensed);
         if (budgetKinds.Count > 0)
         {
