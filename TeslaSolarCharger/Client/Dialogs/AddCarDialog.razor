@@ -1,4 +1,5 @@
 @using MudBlazor
+@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
@@ -102,6 +103,8 @@
                                      Variant="Variant.Outlined"
                                      SearchFunc="SearchCompatibleVehicles"
                                      ToStringFunc="DisplayVehicle"
+                                     MaxItems="null"
+                                     Virtualize="true"
                                      ResetValueOnEmptyText="true"
                                      CoerceText="true"
                                      @bind-Value="_selectedVehicle" />
@@ -311,14 +314,8 @@
 
     private Task<IEnumerable<DtoSmartCarCompatibleVehicle>> SearchCompatibleVehicles(string? value, CancellationToken token)
     {
-        var source = _compatibleVehicles ?? new List<DtoSmartCarCompatibleVehicle>();
-        IEnumerable<DtoSmartCarCompatibleVehicle> result = source;
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            result = source.Where(v =>
-                $"{v.Make} {v.Model}".Contains(value, StringComparison.OrdinalIgnoreCase));
-        }
-        return Task.FromResult(result.OrderBy(v => v.Make).ThenBy(v => v.Model).Take(50).AsEnumerable());
+        return Task.FromResult(SmartCarCompatibleVehicleSearch.Search(
+            _compatibleVehicles ?? new List<DtoSmartCarCompatibleVehicle>(), value));
     }
 
     private string DisplayVehicle(DtoSmartCarCompatibleVehicle? vehicle)
