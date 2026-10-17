@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -412,10 +413,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonMaxSocReached));
                     return null;
                 }
-                if (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference))
+                if (CarChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarSideSocLimitReached, _constants.MinimumSocDifference));
+                        new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarSideSocLimitReached, CarChargeRestartHysteresis.Percent));
                     return null;
                 }
                 if (constraintValues.IsCarFullyCharged == true
@@ -468,7 +469,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             // Check for maximum SOC reached is already done above, so we can skip it here
             if ((constraintValues.IsCharging == false)
-                && (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference)))
+                && CarChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
             {
                 return null;
             }

@@ -3,6 +3,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -402,9 +403,18 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
             var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
             var actualTargetSoc = _chargingScheduleService.GetActualTargetSoc(car.SocLimit.Value, chargingTarget.TargetSoc, car.IsCharging.Value == true);
-            if (car.SoC.Value >= actualTargetSoc || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
+            var isReachedWithinRestartHysteresis = car.IsCharging.Value != true
+                                                   && car.SoC.Value < chargingTarget.TargetSoc
+                                                   && CarChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, chargingTarget.TargetSoc);
+            if (car.SoC.Value >= actualTargetSoc || isReachedWithinRestartHysteresis || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
+            }
+            if (isReachedWithinRestartHysteresis && car.PluggedIn.Value == true && car.IsHomeGeofence.Value == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(car.Id, null,
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis,
+                        chargingTarget.TargetSoc, car.SoC.Value, CarChargeRestartHysteresis.Percent));
             }
 
             if (actualTargetSoc == default && chargingTarget.DischargeHomeBatteryToMinSoc)

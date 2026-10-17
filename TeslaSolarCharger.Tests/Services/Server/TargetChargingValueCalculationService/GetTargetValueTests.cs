@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using Moq;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -254,8 +255,13 @@ public class GetTargetValueTests : TestBase
         Assert.Equal(maxCurrent, resultHigh.TargetCurrent);
     }
 
-    [Fact]
-    public void GetTargetValue_CarSocLimitReached_ReturnsNull()
+    [Theory]
+    [InlineData(80, false)]
+    [InlineData(79, false)]
+    [InlineData(78, false)]
+    // Exactly the restart hysteresis below the car side limit: the car starts again
+    [InlineData(77, true)]
+    public void GetTargetValue_CarSocLimitWithinRestartHysteresis_DoesNotStartCharging(int soc, bool shouldStart)
     {
          // Arrange
         var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
@@ -264,8 +270,8 @@ public class GetTargetValueTests : TestBase
             MaxCurrent = 16,
             MinCurrent = 6,
             ChargeMode = ChargeModeV2.Auto,
-            Soc = 80,
-            CarSocLimit = 80, // Same as SOC, difference is 0. Constant MinimumSocDifference is likely > 0
+            Soc = soc,
+            CarSocLimit = 80,
             IsCharging = false,
             ChargeStartAllowed = true,
             MinPhases = 1,
@@ -284,10 +290,24 @@ public class GetTargetValueTests : TestBase
         SetupOcppConnectorState(1, new DtoOcppConnectorState());
 
         // Act
-        var result = sut.GetTargetValue(constraintValues, loadPoint, 1000, false, CurrentFakeDate);
+        var result = sut.GetTargetValue(constraintValues, loadPoint, 5000, false, CurrentFakeDate);
 
         // Assert
-        Assert.Null(result);
+        if (shouldStart)
+        {
+            Assert.NotNull(result);
+            Assert.True(result.StartCharging);
+        }
+        else
+        {
+            Assert.Null(result);
+        }
+        Mock.Mock<INotChargingWithExpectedPowerReasonHelper>()
+            .Verify(h => h.AddLoadPointSpecificReason(1, 1,
+                    It.Is<NotChargingWithExpectedPowerReasonTemplate>(r =>
+                        r.LocalizationKey == TranslationKeys.NotChargingReasonCarSideSocLimitReached
+                        && r.FormatArguments != null && Equals(r.FormatArguments[0], CarChargeRestartHysteresis.Percent))),
+                shouldStart ? Times.Never() : Times.Once());
     }
 
     [Fact]

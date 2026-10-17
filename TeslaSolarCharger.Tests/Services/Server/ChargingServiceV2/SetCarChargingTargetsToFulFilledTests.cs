@@ -6,11 +6,15 @@ using Autofac.Extras.Moq;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Localization;
 using Xunit;
 
 
@@ -25,12 +29,13 @@ public class SetCarChargingTargetsToFulFilledTests : TestBase
 
     // --- HELPER METHODS ---
 
-    private DtoCar CreateDtoCar(int id, int? soc, bool pluggedIn, bool isHome, int socLimit = 100)
+    private DtoCar CreateDtoCar(int id, int? soc, bool pluggedIn, bool isHome, int socLimit = 100, bool? isCharging = null)
     {
         return new DtoCar
         {
             Id = id,
             SoC = new DtoTimeStampedValue<int?>(DateTimeOffset.MinValue, soc),
+            IsCharging = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, isCharging),
             PluggedIn = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, pluggedIn),
             IsHomeGeofence = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, isHome),
             SocLimit = new DtoTimeStampedValue<int?>(DateTimeOffset.MinValue, socLimit),
@@ -102,18 +107,25 @@ public class SetCarChargingTargetsToFulFilledTests : TestBase
 
     [Theory]
     // Reached Target SoC
-    [InlineData(80, 80, true, true, true)]
-    [InlineData(81, 80, true, true, true)]
-    [InlineData(79, 80, true, true, false)] // Not reached
+    [InlineData(80, 80, true, true, true, null)]
+    [InlineData(81, 80, true, true, true, null)]
+    [InlineData(79, 80, true, true, false, true)] // Not reached but charging
+    [InlineData(77, 80, true, true, false, true)] // Not reached but charging
+    // Not charging within restart hysteresis counts as reached
+    [InlineData(79, 80, true, true, true, false)]
+    [InlineData(78, 80, true, true, true, false)]
+    [InlineData(78, 80, true, true, true, null)]
+    // Not charging at hysteresis boundary: car starts again, so not reached
+    [InlineData(77, 80, true, true, false, false)]
     // Unplugged
-    [InlineData(50, 80, false, true, true)]
+    [InlineData(50, 80, false, true, true, false)]
     // Not Home
-    [InlineData(50, 80, true, false, true)]
-    public async Task SetCarChargingTargetsToFulFilled_MarksFulfilled_WhenConditionsMet(int carSoc, int targetSoc, bool pluggedIn, bool isHome, bool shouldFulfill)
+    [InlineData(50, 80, true, false, true, false)]
+    public async Task SetCarChargingTargetsToFulFilled_MarksFulfilled_WhenConditionsMet(int carSoc, int targetSoc, bool pluggedIn, bool isHome, bool shouldFulfill, bool? isCharging)
     {
         // Arrange
         var carId = 1;
-        var car = CreateDtoCar(carId, carSoc, pluggedIn, isHome);
+        var car = CreateDtoCar(carId, carSoc, pluggedIn, isHome, isCharging: isCharging);
         var target = CreateTarget(1, carId, targetSoc, DateOnly.FromDateTime(CurrentFakeDate.Date));
 
         var settingsMock = Mock.Mock<ISettings>();
@@ -142,6 +154,49 @@ public class SetCarChargingTargetsToFulFilledTests : TestBase
         {
             Assert.Null(dbTarget.LastFulFilled);
         }
+    }
+
+    [Theory]
+    // Not charging within hysteresis at home -> explain why the car does not charge
+    [InlineData(78, true, true, false, true)]
+    [InlineData(79, true, true, null, true)]
+    // Charging, at the boundary, reached or away -> no hysteresis reason
+    [InlineData(78, true, true, true, false)]
+    [InlineData(77, true, true, false, false)]
+    [InlineData(80, true, true, false, false)]
+    [InlineData(78, false, true, false, false)]
+    [InlineData(78, true, false, false, false)]
+    public async Task SetCarChargingTargetsToFulFilled_AddsHysteresisReason_OnlyWhenTargetIsReachedWithinHysteresis(int carSoc, bool pluggedIn, bool isHome, bool? isCharging, bool shouldAddReason)
+    {
+        // Arrange
+        var carId = 1;
+        var targetSoc = 80;
+        var car = CreateDtoCar(carId, carSoc, pluggedIn, isHome, isCharging: isCharging);
+        var target = CreateTarget(1, carId, targetSoc, DateOnly.FromDateTime(CurrentFakeDate.Date));
+
+        var settingsMock = Mock.Mock<ISettings>();
+        settingsMock.Setup(s => s.CarsToManage).Returns(new List<DtoCar> { car });
+        settingsMock.Setup(s => s.Cars).Returns(new List<DtoCar> { car });
+
+        Mock.Mock<IChargingScheduleService>()
+            .Setup(s => s.GetActualTargetSoc(It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<bool>()))
+            .Returns(targetSoc);
+
+        Context.CarChargingTargets.Add(target);
+        await Context.SaveChangesAsync();
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        // Act
+        await service.SetCarChargingTargetsToFulFilled(CurrentFakeDate);
+
+        // Assert
+        Mock.Mock<INotChargingWithExpectedPowerReasonHelper>()
+            .Verify(h => h.AddLoadPointSpecificReason(carId, null,
+                    It.Is<NotChargingWithExpectedPowerReasonTemplate>(r =>
+                        r.LocalizationKey == TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis
+                        && r.FormatArguments != null && r.FormatArguments.SequenceEqual(new object?[] { targetSoc, carSoc, CarChargeRestartHysteresis.Percent, }))),
+                shouldAddReason ? Times.Once() : Times.Never());
     }
 
     [Theory]
