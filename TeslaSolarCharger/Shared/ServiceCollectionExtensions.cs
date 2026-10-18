@@ -77,6 +77,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, EnergyPredictionComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FleetApiTestComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BleConnectionTestComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, LearnedUsableEnergyComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, HiddenErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LegendItemComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()

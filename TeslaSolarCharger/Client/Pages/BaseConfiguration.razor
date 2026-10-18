@@ -80,6 +80,7 @@ else
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMaxChargeSoc" />
         <GenericInput For="() => _dtoBaseConfiguration.Item.DischargeHomeBatteryToMinSocDuringDay" />
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
+        <LearnedUsableEnergyComponent EnteredUsableEnergyKwh="_dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.MaxInverterAcPower" />
 
@@ -150,6 +151,7 @@ else
                 <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsageCostsPerKwh" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.ForceFullHomeBatteryBySunset" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.CarChargeLoss" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.UseLearnedUsableEnergy" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.ChargingSwitchCosts" />
                 <hr/>
                 <GenericInput T="bool?"

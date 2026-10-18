@@ -20,7 +20,7 @@ public class ReserveHomeBatteryChargingEnergyFromSurplusTests : TestBase
         int? chargingPower = HomeBatteryChargingPower)
     {
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
-        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(usableEnergy);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(usableEnergy);
         configurationWrapperMock.Setup(c => c.HomeBatteryMinSoc()).Returns(minSoc);
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(chargingPower);
         Mock.Mock<ISettings>().Setup(s => s.HomeBatterySoc).Returns(soc);
@@ -46,6 +46,27 @@ public class ReserveHomeBatteryChargingEnergyFromSurplusTests : TestBase
 
         Assert.Equal(2_000, result[CurrentFakeDate]);
         Assert.Equal(3_500, result[CurrentFakeDate.AddHours(1)]);
+    }
+
+    /// <summary>
+    /// Surplus that refills the battery goes in, so the charging energy decides how much surplus to reserve, not the
+    /// smaller discharging energy.
+    /// </summary>
+    [Fact]
+    public void ReservesTheChargingEnergyOfTheMissingSoc()
+    {
+        //Deficit: (80 - 65) * 10000 / 100 = 1500Wh, below the charging power cap (only 750Wh with the discharging energy)
+        SetupHomeBattery(usableEnergy: 10_000);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryDischargingEnergy()).Returns(5_000);
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var surplusSlices = new Dictionary<DateTimeOffset, int>
+        {
+            { CurrentFakeDate, 10_000 },
+        };
+
+        var result = service.ReserveHomeBatteryChargingEnergyFromSurplus(surplusSlices);
+
+        Assert.Equal(8_500, result[CurrentFakeDate]);
     }
 
     [Fact]

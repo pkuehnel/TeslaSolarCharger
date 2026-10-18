@@ -22,7 +22,7 @@ public class GetHomeBatteryEnergyFromSocDifferenceTests : TestBase
     /// - Standard positive calculations
     /// - Truncation behavior for integer division
     /// </summary>
-    /// <param name="homeBatteryUsableEnergy">The configured usable energy of the home battery in Wh.</param>
+    /// <param name="homeBatteryUsableEnergy">The home battery energy for 100 % SoC in Wh in the direction the energy moves.</param>
     /// <param name="socDifference">The difference in SoC (percentage).</param>
     /// <param name="expectedEnergy">The expected calculated energy in Wh.</param>
     [Theory]
@@ -37,14 +37,10 @@ public class GetHomeBatteryEnergyFromSocDifferenceTests : TestBase
     public void GetHomeBatteryEnergyFromSocDifference_CalculatesCorrectly(int? homeBatteryUsableEnergy, int socDifference, int expectedEnergy)
     {
         // Arrange
-        Mock.Mock<IConfigurationWrapper>()
-            .Setup(x => x.HomeBatteryUsableEnergy())
-            .Returns(homeBatteryUsableEnergy);
-
         var service = Mock.Create<ChargingScheduleService>();
 
         // Act
-        var result = service.GetHomeBatteryEnergyFromSocDifference(socDifference);
+        var result = service.GetHomeBatteryEnergyFromSocDifference(socDifference, homeBatteryUsableEnergy);
 
         // Assert
         Assert.Equal(expectedEnergy, result);

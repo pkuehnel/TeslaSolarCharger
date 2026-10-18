@@ -89,6 +89,10 @@
                         }
 
                         <GenericInput For="() => Car.Item.UsableEnergy" />
+                        @if (Car.Item.Id != default)
+                        {
+                            <LearnedUsableEnergyComponent CarId="Car.Item.Id" EnteredUsableEnergyKwh="Car.Item.UsableEnergy" />
+                        }
                         <GenericInput For="() => Car.Item.ChargingPriority" />
                     </div>
 

@@ -20,6 +20,7 @@ using TeslaSolarCharger.Client.Wrapper;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
+using TeslaSolarCharger.Shared.Dtos.UsableEnergy;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 
@@ -67,6 +68,8 @@ public class CarEditDialogTests : Bunit.TestContext
             .ReturnsAsync(new Result<DtoValue<bool>>(new DtoValue<bool>(false), null, null));
         _httpClientHelper.Setup(h => h.SendGetRequestAsync<List<DtoBleAdapter>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Result<List<DtoBleAdapter>>(new List<DtoBleAdapter>(), null, null));
+        _httpClientHelper.Setup(h => h.SendGetRequestAsync<DtoLearnedUsableEnergy>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Result<DtoLearnedUsableEnergy>(new DtoLearnedUsableEnergy(), null, null));
         Services.AddSingleton(_httpClientHelper.Object);
     }
 
@@ -137,6 +140,18 @@ public class CarEditDialogTests : Bunit.TestContext
         save.Click();
 
         dialog.WaitForAssertion(() => Assert.True(dialog.FindComponent<FleetApiTestComponent>().Instance.IsOptional));
+    }
+
+    [Fact]
+    public void TheLearnedUsableEnergyOfTheCarInTheDialogIsShown()
+    {
+        var dialog = OpenDialog();
+
+        var learnedUsableEnergy = dialog.FindComponent<LearnedUsableEnergyComponent>().Instance;
+        Assert.Equal(3, learnedUsableEnergy.CarId);
+        Assert.Equal(75, learnedUsableEnergy.EnteredUsableEnergyKwh);
+        _httpClientHelper.Verify(h => h.SendGetRequestAsync<DtoLearnedUsableEnergy>("api/UsableEnergy/GetCarState?carId=3", It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private IRenderedComponent<MudDialogProvider> OpenDialog(bool shouldBeManaged = true)

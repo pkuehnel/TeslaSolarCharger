@@ -41,10 +41,10 @@ public class CarBasicConfigurationPropertyLocalization : PropertyLocalizationReg
         Register(x => x.UsableEnergy,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Usable Energy",
-                "This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode."),
+                "This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode. Once Solar4Car has learned the usable energy from enough past charges, the learned value is used instead."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Nutzbare Energie",
-                "Dieser Wert wird genutzt, um im Spotpreis- oder PV-Only-Modus rechtzeitig einen gewünschten Ladestand zu erreichen."));
+                "Dieser Wert wird genutzt, um im Spotpreis- oder PV-Only-Modus rechtzeitig einen gewünschten Ladestand zu erreichen. Sobald Solar4Car die nutzbare Energie aus genügend vergangenen Ladungen gelernt hat, wird stattdessen der gelernte Wert verwendet."));
 
         Register(x => x.ChargingPriority,
             new PropertyLocalizationTranslation(LanguageCodes.English,

@@ -363,4 +363,47 @@ public class ConfigurationWrapper : TestBase
         Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
+
+    [Theory]
+    // Learned and enabled: the learned value wins over the entered one
+    [InlineData(10.0, true, 9_500, 9_500)]
+    // Learning switched off: the entered value is used even though a learned one exists
+    [InlineData(10.0, false, 9_500, 10_000)]
+    // Nothing reliable learned yet: the entered value is used
+    [InlineData(10.0, true, null, 10_000)]
+    // A learned value also fills an empty entry
+    [InlineData(null, true, 9_500, 9_500)]
+    [InlineData(null, true, null, null)]
+    public void HomeBatteryEnergies_UseTheLearnedValuesOnlyWhileEnabledAndKnown(double? enteredKwh, bool useLearned, int? learnedChargingWh, int? expectedChargingWh)
+    {
+        // Discharging is learned as 70 % of charging, so both directions can be told apart
+        int? learnedDischargingWh = learnedChargingWh * 7 / 10;
+        var expectedDischargingWh = learnedChargingWh != null && useLearned ? learnedDischargingWh : expectedChargingWh;
+        var settings = Mock.Mock<TeslaSolarCharger.Shared.Dtos.Contracts.ISettings>();
+        settings.Setup(s => s.LearnedHomeBatteryChargingEnergyWh).Returns(learnedChargingWh);
+        settings.Setup(s => s.LearnedHomeBatteryDischargingEnergyWh).Returns(learnedDischargingWh);
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var configuration = new DtoBaseConfiguration { HomeBatteryUsableEnergy = enteredKwh, UseLearnedUsableEnergy = useLearned, };
+
+        WithStoredBaseConfiguration(configuration, () =>
+        {
+            Assert.Equal(expectedChargingWh, configurationWrapper.HomeBatteryChargingEnergy());
+            Assert.Equal(expectedDischargingWh, configurationWrapper.HomeBatteryDischargingEnergy());
+        });
+    }
+
+    [Fact]
+    public void UseLearnedUsableEnergy_IsOnForAConfigurationSavedBeforeTheSettingExisted()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        MemoryCache.Default.Set(BaseConfigurationCacheName, "{\"CarChargeLoss\":15}", new CacheItemPolicy());
+        try
+        {
+            Assert.True(configurationWrapper.UseLearnedUsableEnergy());
+        }
+        finally
+        {
+            MemoryCache.Default.Remove(BaseConfigurationCacheName);
+        }
+    }
 }

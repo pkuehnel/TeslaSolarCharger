@@ -127,6 +127,10 @@ public class BaseConfigurationBase
     public bool DischargeHomeBatteryToMinSocDuringDay { get; set; }
     [Postfix("%")]
     public int CarChargeLoss { get; set; } = 15;
+    /// <summary>
+    /// Use the usable energy learned from past charges instead of the entered one while the learned value is reliable.
+    /// </summary>
+    public bool UseLearnedUsableEnergy { get; set; } = true;
     [Postfix("A")]
     public int? MaxCombinedCurrent { get; set; }
     [Postfix("W")]
