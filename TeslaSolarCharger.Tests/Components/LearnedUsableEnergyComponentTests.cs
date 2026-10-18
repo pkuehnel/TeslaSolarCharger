@@ -62,6 +62,10 @@ public class LearnedUsableEnergyComponentTests : Bunit.TestContext
         IsReliable = isReliable,
     };
 
+    private static List<DtoUsableEnergySample> AcceptedCarSamples(int count) => Enumerable.Range(0, count)
+        .Select(i => new DtoUsableEnergySample { Kind = UsableEnergySampleKind.CarCharge, EndTime = DateTimeOffset.UtcNow.AddDays(-i), StartSoc = 20, EndSoc = 70, EnergyKwh = 34.5, ImpliedUsableEnergyKwh = 60, IsUsedForEstimate = true, })
+        .ToList();
+
     private IRenderedComponent<LearnedUsableEnergyComponent> RenderForCar(double enteredKwh = 60) =>
         Render<LearnedUsableEnergyComponent>(p => p
             .Add(c => c.CarId, CarId)
@@ -104,7 +108,12 @@ public class LearnedUsableEnergyComponentTests : Bunit.TestContext
     [Fact]
     public void TheProgressIsShownWhileTooFewChargesWereMeasured()
     {
-        _state = new DtoLearnedUsableEnergy { LearningEnabled = true, Estimates = { CarEstimate(3, false), }, };
+        _state = new DtoLearnedUsableEnergy
+        {
+            LearningEnabled = true,
+            Estimates = { CarEstimate(3, false), },
+            Samples = AcceptedCarSamples(3),
+        };
 
         var component = RenderForCar();
 
@@ -113,9 +122,41 @@ public class LearnedUsableEnergyComponentTests : Bunit.TestContext
     }
 
     [Fact]
+    public void ACarWithoutAnyMeasurementSaysWhenItIsMeasured()
+    {
+        _state = new DtoLearnedUsableEnergy { LearningEnabled = true, Estimates = { CarEstimate(0, false), }, };
+
+        var component = RenderForCar();
+
+        component.WaitForAssertion(() => Assert.Contains(T(TranslationKeys.UsableEnergyCarNotMeasuredYet), component.Markup));
+        Assert.DoesNotContain(Format(TranslationKeys.UsableEnergyLearningProgress, T(TranslationKeys.UsableEnergyKindCarCharge), 0, 5), component.Markup);
+    }
+
+    [Fact]
+    public void ACarWhoseChargesWereAllUnsuitableShowsTheProgress()
+    {
+        // Measured but rejected charges are not "not measured yet"
+        _state = new DtoLearnedUsableEnergy
+        {
+            LearningEnabled = true,
+            Estimates = { CarEstimate(0, false), },
+            Samples = new List<DtoUsableEnergySample>
+            {
+                new() { Kind = UsableEnergySampleKind.CarCharge, EndTime = DateTimeOffset.UtcNow, StartSoc = 40, EndSoc = 50, RejectionReason = UsableEnergySampleRejectionReason.SocDifferenceTooSmall, },
+            },
+        };
+
+        var component = RenderForCar();
+
+        component.WaitForAssertion(() => Assert.Contains(
+            Format(TranslationKeys.UsableEnergyLearningProgress, T(TranslationKeys.UsableEnergyKindCarCharge), 0, 5), component.Markup));
+        Assert.DoesNotContain(T(TranslationKeys.UsableEnergyCarNotMeasuredYet), component.Markup);
+    }
+
+    [Fact]
     public void InconsistentMeasurementsAreExplained()
     {
-        _state = new DtoLearnedUsableEnergy { LearningEnabled = true, Estimates = { CarEstimate(8, false, 22.5), }, };
+        _state = new DtoLearnedUsableEnergy { LearningEnabled = true, Estimates = { CarEstimate(8, false, 22.5), }, Samples = AcceptedCarSamples(8), };
 
         var component = RenderForCar();
 

@@ -1265,6 +1265,7 @@ public static class TranslationKeys
     public static string UsableEnergyDischargingExceedsCharging => nameof(UsableEnergyDischargingExceedsCharging);
     public static string UsableEnergyLearningOff => nameof(UsableEnergyLearningOff);
     public static string UsableEnergyLearningProgress => nameof(UsableEnergyLearningProgress);
+    public static string UsableEnergyCarNotMeasuredYet => nameof(UsableEnergyCarNotMeasuredYet);
     public static string UsableEnergyLearningInconsistent => nameof(UsableEnergyLearningInconsistent);
     public static string UsableEnergyMultipleHomeBatteries => nameof(UsableEnergyMultipleHomeBatteries);
     public static string UsableEnergyCarDeviationWarning => nameof(UsableEnergyCarDeviationWarning);

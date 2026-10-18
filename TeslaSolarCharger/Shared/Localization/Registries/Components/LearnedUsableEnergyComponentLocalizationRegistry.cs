@@ -38,6 +38,12 @@ public class LearnedUsableEnergyComponentLocalizationRegistry : TextLocalization
             new TextLocalizationTranslation(LanguageCodes.English, "Learning from past {0}: {1} of {2} suitable ones so far. Until then the value above is used."),
             new TextLocalizationTranslation(LanguageCodes.German, "Lernen aus vergangenen {0}: bisher {1} von {2} geeigneten. Bis dahin wird der Wert oben verwendet."));
 
+        Register(TranslationKeys.UsableEnergyCarNotMeasuredYet,
+            new TextLocalizationTranslation(LanguageCodes.English,
+                "No charges measured yet. Past charges are measured 5 minutes after Solar4Car starts and every night. Until a value is learned the value above is used."),
+            new TextLocalizationTranslation(LanguageCodes.German,
+                "Noch keine Ladungen gemessen. Vergangene Ladungen werden 5 Minuten nach dem Start von Solar4Car und jede Nacht gemessen. Bis ein Wert gelernt ist, wird der Wert oben verwendet."));
+
         Register(TranslationKeys.UsableEnergyLearningInconsistent,
             new TextLocalizationTranslation(LanguageCodes.English, "Not used yet: the past {0} vary too much (±{1} %, at most ±{2} % allowed), so the value above is used."),
             new TextLocalizationTranslation(LanguageCodes.German, "Noch nicht verwendet: die vergangenen {0} weichen zu stark voneinander ab (±{1} %, erlaubt sind höchstens ±{2} %), daher wird der Wert oben verwendet."));

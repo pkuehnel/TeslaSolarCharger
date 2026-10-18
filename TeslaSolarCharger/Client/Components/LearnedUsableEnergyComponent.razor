@@ -164,6 +164,12 @@
             yield return T(TranslationKeys.UsableEnergyLearningOff);
             yield break;
         }
+        //"0 of 5" would read as if the past charges were checked and none was suitable.
+        if (CarId != null && _state.Samples.Count == 0)
+        {
+            yield return T(TranslationKeys.UsableEnergyCarNotMeasuredYet);
+            yield break;
+        }
         foreach (var estimate in _state.Estimates.Where(e => !e.IsReliable))
         {
             yield return estimate.AcceptedSampleCount < estimate.RequiredSampleCount
