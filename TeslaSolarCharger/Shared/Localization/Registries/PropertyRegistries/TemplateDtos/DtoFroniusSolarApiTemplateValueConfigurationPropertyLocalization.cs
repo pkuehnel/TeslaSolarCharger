@@ -17,10 +17,10 @@ public class DtoFroniusSolarApiTemplateValueConfigurationPropertyLocalization : 
         Register(x => x.EnableHomeBatteryControl,
             new PropertyLocalizationTranslation(LanguageCodes.English,
                 "Enable home battery control",
-                "Allows TSC to block discharging of the home battery via the battery management time of use configuration. Forced charging is not supported. Attention: Existing time of use settings under Energy Management - Battery Management are overwritten."),
+                "Allows Solar4Car to block discharging of the home battery via the battery management time of use configuration. Forced charging is not supported. Attention: Existing time of use settings under Energy Management - Battery Management are overwritten."),
             new PropertyLocalizationTranslation(LanguageCodes.German,
                 "Heimspeichersteuerung aktivieren",
-                "Erlaubt TSC, das Entladen des Heimspeichers über die zeitabhängige Batteriesteuerung zu blockieren. Erzwungenes Laden wird nicht unterstützt. Achtung: Bestehende Einstellungen unter Energiemanagement - Batteriemanagement werden überschrieben."));
+                "Erlaubt Solar4Car, das Entladen des Heimspeichers über die zeitabhängige Batteriesteuerung zu blockieren. Erzwungenes Laden wird nicht unterstützt. Achtung: Bestehende Einstellungen unter Energiemanagement - Batteriemanagement werden überschrieben."));
 
         Register(x => x.Username,
             new PropertyLocalizationTranslation(LanguageCodes.English,

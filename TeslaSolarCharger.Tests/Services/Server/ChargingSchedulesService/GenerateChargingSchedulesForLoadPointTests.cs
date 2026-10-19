@@ -104,6 +104,29 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
     }
 
     /// <summary>
+    /// Energy the home battery gives to the car is what it delivers, so the discharging energy decides how much can be
+    /// planned, not the larger charging energy.
+    /// </summary>
+    [Fact]
+    public async Task HomeBatteryDischargeSchedule_UsesTheDischargingEnergyOfTheHomeBattery()
+    {
+        // 20 % above the min SoC are 2000Wh of the 10000Wh discharging energy (6000Wh of the 30000Wh charging energy)
+        await SetupScenario(carSoc: 50);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10_000);
+        Mock.Mock<IHomeBatteryEnergyCalculator>()
+            .Setup(h => h.GetHomeBatteryMinSocAtTime(It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(80);
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+
+        var schedules = await service.GenerateChargingSchedulesForLoadPoint(CreateLoadPoint(), CreateTargets(targetSoc: null),
+            CreatePredictedSurplusSlices(), CurrentFakeDate, CancellationToken.None, new());
+
+        var schedule = Assert.Single(schedules);
+        Assert.Contains(ScheduleReason.HomeBatteryDischarging, schedule.ScheduleReasons);
+        Assert.Equal(2_000, schedule.EstimatedEnergy);
+    }
+
+    /// <summary>
     /// When the home battery holds less energy than the car needs, all of it must be planned and the rest must come
     /// from the grid.
     /// </summary>
@@ -329,7 +352,8 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
 
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
         configurationWrapperMock.Setup(c => c.HomeBatteryDischargingPower()).Returns(HomeBatteryDischargePower);
-        configurationWrapperMock.Setup(c => c.HomeBatteryUsableEnergy()).Returns(30_000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(30_000);
+        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(30_000);
         configurationWrapperMock.Setup(c => c.CarChargeLoss()).Returns(0);
         configurationWrapperMock.Setup(c => c.ChargingSwitchCosts()).Returns(0m);
         configurationWrapperMock.Setup(c => c.MaxCombinedCurrent()).Returns(32);

@@ -1,3 +1,6 @@
+using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
+using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -5,66 +8,69 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 namespace TeslaSolarCharger.Server.Services;
 
 /// <summary>
-/// Rate limits Fleet API commands for BLE enabled cars without a Fleet API license: one counted successful command per
-/// <see cref="CommandWindow"/>. The first counted command opens a <see cref="GraceWindow"/> during which further commands
-/// are allowed without consuming the budget, so multi command sequences like wake up, set amps, charge start can complete.
-/// The same limits are enforced in the Solar4Car backend, so these values must not be changed without changing them there, too.
+/// Keeps Fleet API requests within the Solar4Car backend's command budget, so the backend never has to reject one. The
+/// budget is only evaluated by the backend; this service asks for it before a rate limited request and remembers blocks,
+/// so a blocked car does not cause a backend request per charging cycle.
 /// </summary>
 public class FleetApiRateLimitService(
     ILogger<FleetApiRateLimitService> logger,
-    IDateTimeProvider dateTimeProvider) : IFleetApiRateLimitService
+    IDateTimeProvider dateTimeProvider,
+    IBackendApiService backendApiService) : IFleetApiRateLimitService
 {
-    public static readonly TimeSpan CommandWindow = TimeSpan.FromMinutes(60);
-    public static readonly TimeSpan GraceWindow = TimeSpan.FromMinutes(5);
-
-    public DateTime? GetNextAllowedUtc(DtoCar car)
-    {
-        logger.LogTrace("{method}({vin})", nameof(GetNextAllowedUtc), car.Vin);
-        var lastCountedCommand = car.LastCountedFleetApiCommand;
-        if (lastCountedCommand == default)
-        {
-            return null;
-        }
-        var currentDate = dateTimeProvider.UtcNow();
-        if (currentDate < (lastCountedCommand.Value + GraceWindow))
-        {
-            return null;
-        }
-        if (currentDate >= (lastCountedCommand.Value + CommandWindow))
-        {
-            return null;
-        }
-        return lastCountedCommand.Value + CommandWindow;
-    }
-
-    public void RecordSuccessfulCommand(DtoCar car)
-    {
-        logger.LogTrace("{method}({vin})", nameof(RecordSuccessfulCommand), car.Vin);
-        var lastCountedCommand = car.LastCountedFleetApiCommand;
-        var currentDate = dateTimeProvider.UtcNow();
-        if (lastCountedCommand == default || currentDate >= (lastCountedCommand.Value + CommandWindow))
-        {
-            car.LastCountedFleetApiCommand = currentDate;
-        }
-    }
-
     /// <summary>
-    /// Blocks further commands after the backend rejected one as rate limited. As <see cref="DtoCar.LastCountedFleetApiCommand"/>
-    /// is only kept in memory but the backend enforces the limit across restarts, the local state can be empty while the backend
-    /// still blocks. Without this every charging cycle would send a command just to get rejected again.
-    /// The block is anchored a <see cref="GraceWindow"/> in the past so no new grace window is opened. As the backend does not
-    /// tell when exactly the next command is allowed, this blocks for the remaining <see cref="CommandWindow"/> minus
-    /// <see cref="GraceWindow"/>, which never blocks longer than a full command window.
+    /// Subtracted from grace windows and added to blocks, so the time between asking for the budget and the request reaching
+    /// the backend can never let a request run into a limit.
     /// </summary>
-    public void RecordRateLimited(DtoCar car)
+    public static readonly TimeSpan SafetyMargin = TimeSpan.FromSeconds(30);
+
+    public async Task<Result<DtoFleetApiBudgetBlocks>> GetBlocks(DtoCar car, IReadOnlyCollection<FleetApiBudgetKind> kinds)
     {
-        logger.LogTrace("{method}({vin})", nameof(RecordRateLimited), car.Vin);
-        var lastCountedCommand = car.LastCountedFleetApiCommand;
-        var blockAnchor = dateTimeProvider.UtcNow() - GraceWindow;
-        //Never shorten an already known block, e.g. when the backend rejects a command sent within the local grace window.
-        if (lastCountedCommand == default || blockAnchor > lastCountedCommand.Value)
+        logger.LogTrace("{method}({vin}, {@kinds})", nameof(GetBlocks), car.Vin, kinds);
+        var currentDate = dateTimeProvider.UtcNow();
+        var knownBlocks = RunningBlocks(car.FleetApiBudgetBlocks, currentDate);
+        if (kinds.Any(kind => BlockedUntil(knownBlocks, kind) != null))
         {
-            car.LastCountedFleetApiCommand = blockAnchor;
+            return new(knownBlocks, null, null);
         }
+        var budget = await backendApiService.GetFleetApiCommandBudget(car.Vin).ConfigureAwait(false);
+        if (budget.HasError || budget.Data == default)
+        {
+            logger.LogError("Could not get the Fleet API command budget of car {vin}: {errorMessage}", car.Vin, budget.ErrorMessage);
+            return new(null, budget.ErrorMessage ?? "The Solar4Car backend did not return a command budget.", budget.ProblemDetails);
+        }
+        car.FleetApiBudgetBlocks = ToBlocks(budget.Data, currentDate);
+        return new(RunningBlocks(car.FleetApiBudgetBlocks, currentDate), null, null);
     }
+
+    public bool IsKnownToBeBlocked(DtoCar car, FleetApiBudgetKind kind) =>
+        BlockedUntil(RunningBlocks(car.FleetApiBudgetBlocks, dateTimeProvider.UtcNow()), kind) != null;
+
+    internal static DtoFleetApiBudgetBlocks ToBlocks(DtoFleetApiCommandBudget budget, DateTime currentDate)
+    {
+        var isWithinGraceWindow = budget.GraceRemainingSeconds is { } graceRemainingSeconds
+                                  && TimeSpan.FromSeconds(graceRemainingSeconds) > SafetyMargin;
+        return new(
+            isWithinGraceWindow ? null : BlockEnd(budget.NextCommandInSeconds, currentDate),
+            BlockEnd(budget.NextWakeUpInSeconds, currentDate),
+            BlockEnd(budget.NextFleetApiTestInSeconds, currentDate));
+    }
+
+    private static DateTime? BlockEnd(int? seconds, DateTime currentDate) =>
+        seconds == null ? null : currentDate + TimeSpan.FromSeconds(seconds.Value) + SafetyMargin;
+
+    private static DtoFleetApiBudgetBlocks RunningBlocks(DtoFleetApiBudgetBlocks blocks, DateTime currentDate) =>
+        new(Running(blocks.CommandsBlockedUntil, currentDate),
+            Running(blocks.WakeUpBlockedUntil, currentDate),
+            Running(blocks.FleetApiTestBlockedUntil, currentDate));
+
+    private static DateTime? Running(DateTime? blockedUntil, DateTime currentDate) =>
+        blockedUntil > currentDate ? blockedUntil : null;
+
+    internal static DateTime? BlockedUntil(DtoFleetApiBudgetBlocks blocks, FleetApiBudgetKind kind) => kind switch
+    {
+        FleetApiBudgetKind.Commands => blocks.CommandsBlockedUntil,
+        FleetApiBudgetKind.WakeUp => blocks.WakeUpBlockedUntil,
+        FleetApiBudgetKind.FleetApiTest => blocks.FleetApiTestBlockedUntil,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 }

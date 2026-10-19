@@ -11,6 +11,7 @@ using Moq;
 using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Client.Components;
 using TeslaSolarCharger.Client.Components.Setup;
 using TeslaSolarCharger.Client.Components.StartPage;
@@ -166,7 +167,7 @@ public class SetupPageTests : Bunit.TestContext
     {
         var page = RenderAt();
 
-        Assert.Contains("Welcome to TeslaSolarCharger", page.Markup, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Welcome to Solar4Car", page.Markup, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -1380,5 +1381,153 @@ public class SetupPageTests : Bunit.TestContext
         var page = RenderAt(SetupSections.Solar);
 
         Assert.Contains("Connected, waiting for the first reading", page.Markup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    //A failed Tesla cloud test is repeated after a second, which is longer than bUnit waits by default.
+    private static readonly TimeSpan FleetApiTestTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>A car whose Tesla cloud key is not added yet, with a Bluetooth device that lists no radios.</summary>
+    private void TeslaCloudKeyMissing()
+    {
+        _homeService.Setup(s => s.GetFleetApiState(It.IsAny<int>()))
+            .ReturnsAsync(new Result<TeslaCarFleetApiState?>(TeslaCarFleetApiState.NotConfigured, null, null));
+        _homeService.Setup(s => s.TestFleetApiAccess(It.IsAny<int>())).ReturnsAsync(new Result<bool>(false, null, null));
+        _httpClientHelper
+            .Setup(h => h.SendGetRequestAsync<List<DtoBleAdapter>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Result<List<DtoBleAdapter>>(new List<DtoBleAdapter>(), null, null));
+    }
+
+    private int FleetApiTestRequests() =>
+        _homeService.Invocations.Count(i => i.Method.Name == nameof(IHomeService.TestFleetApiAccess));
+
+    private IEnumerable<DtoSetupCarDraft> AllSavedCarDrafts() => _setupService.Invocations
+        .Where(i => i.Method.Name == nameof(ISetupService.UpdateSetupState))
+        .SelectMany(i => ((DtoSetupState)i.Arguments[0]).CarDrafts);
+
+    [Fact]
+    public void ABluetoothCarIsOfferedTheTeslaCloudFallbackWithoutTestingIt()
+    {
+        //The fallback is optional, and the Bluetooth test may be talking to the car at the same moment, so nothing
+        //is sent to the car before the user asks for it.
+        TeslaCloudKeyMissing();
+        var draft = CarDraft(stage: SetupCarStage.Connect);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connect));
+
+        Assert.Contains("Recommended: a fallback via the Tesla cloud", page.Markup, StringComparison.Ordinal);
+        Assert.Contains("You can skip this step", page.Markup, StringComparison.Ordinal);
+        Assert.NotNull(ButtonWithText(page, "Set up the fallback"));
+        Assert.Empty(page.FindComponents<FleetApiTestComponent>());
+        Assert.Equal(0, FleetApiTestRequests());
+    }
+
+    [Fact]
+    public void SettingUpTheFallbackWalksThroughTheKeyWithoutTouchingTheBluetoothCheck()
+    {
+        TeslaCloudKeyMissing();
+        var draft = CarDraft(stage: SetupCarStage.Connect);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connect));
+
+        ButtonWithText(page, "Set up the fallback").Click();
+
+        page.WaitForAssertion(() => Assert.Contains("1. Add the Solar4Car key to your car", page.Markup, StringComparison.Ordinal),
+            FleetApiTestTimeout);
+        Assert.True(page.FindComponent<FleetApiTestComponent>().Instance.IsOptional);
+        Assert.True(FleetApiTestRequests() > 0);
+        //The Bluetooth test is this car's connection check. What the fallback found out is a different thing.
+        Assert.Equal(SetupCheckResultState.NotRun, draft.ConnectionCheckState);
+        Assert.All(AllSavedCarDrafts(), saved => Assert.Equal(SetupCheckResultState.NotRun, saved.ConnectionCheckState));
+    }
+
+    [Fact]
+    public void AWorkingFallbackIsShownWithoutAskingOrTestingAgain()
+    {
+        TeslaCloudKeyMissing();
+        _homeService.Setup(s => s.GetFleetApiState(It.IsAny<int>()))
+            .ReturnsAsync(new Result<TeslaCarFleetApiState?>(TeslaCarFleetApiState.Ok, null, null));
+        _setupService.Setup(s => s.GetCarCapabilities(5))
+            .ReturnsAsync(new DtoSetupCarCapabilities { CarId = 5, FleetApiState = TeslaCarFleetApiState.Ok, });
+        var draft = CarDraft(stage: SetupCarStage.Connect);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connect));
+
+        page.WaitForAssertion(() => Assert.Contains("The connection via the Tesla cloud works.", page.Markup, StringComparison.Ordinal),
+            FleetApiTestTimeout);
+        Assert.DoesNotContain("Set up the fallback", page.Markup, StringComparison.Ordinal);
+        Assert.Equal(0, FleetApiTestRequests());
+    }
+
+    [Fact]
+    public void WithoutATeslaAccountTheFallbackAsksToConnectItFirst()
+    {
+        //Without the account the test could only fail, for a reason that has nothing to do with the car.
+        TeslaCloudKeyMissing();
+        _carSettingsService.Setup(s => s.GetFleetApiTokenState()).ReturnsAsync(TokenState.NotAvailable);
+        var draft = CarDraft(stage: SetupCarStage.Connect);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connect));
+
+        Assert.Contains("Connect your Tesla account", page.Markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("Set up the fallback", page.Markup, StringComparison.Ordinal);
+        Assert.NotNull(ButtonWithText(page, "Back to my equipment"));
+    }
+
+    [Fact]
+    public void TheTeslaCloudRouteWalksThroughAddingTheKeyWhenTheCheckFails()
+    {
+        //The check runs straight away, because the key may already be in the car. Only when it fails are the steps
+        //to add it shown - and then as the thing to do next, not as a hint at the end of an error.
+        TeslaCloudKeyMissing();
+        var draft = CarDraft(stage: SetupCarStage.Connect);
+        draft.ConnectionRoute = SetupCarConnectionRoute.TeslaCloud;
+        draft.Configuration.UseBle = false;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Connect));
+
+        page.WaitForAssertion(() => Assert.Contains("1. Add the Solar4Car key to your car", page.Markup, StringComparison.Ordinal),
+            FleetApiTestTimeout);
+        Assert.False(page.FindComponent<FleetApiTestComponent>().Instance.IsOptional);
+        Assert.DoesNotContain("Recommended: a fallback via the Tesla cloud", page.Markup, StringComparison.Ordinal);
+        page.WaitForAssertion(() => Assert.Equal(SetupCheckResultState.Failed, LastSavedState().CarDrafts.Single().ConnectionCheckState),
+            FleetApiTestTimeout);
+    }
+
+    [Theory]
+    [InlineData(TeslaCarFleetApiState.Ok, "set up and working")]
+    [InlineData(TeslaCarFleetApiState.NotConfigured, "not set up (optional)")]
+    [InlineData(TeslaCarFleetApiState.NotWorking, "the car did not accept the key yet (optional)")]
+    [InlineData(TeslaCarFleetApiState.OpenedLinkButNotTested, "not tested yet (optional)")]
+    [InlineData(null, "not tested yet (optional)")]
+    public void ABluetoothCarsReviewSaysWhereItsFallbackStands(TeslaCarFleetApiState? state, string expected)
+    {
+        _setupService.Setup(s => s.GetCarCapabilities(5))
+            .ReturnsAsync(new DtoSetupCarCapabilities { CarId = 5, FleetApiState = state, });
+        var draft = CarDraft(stage: SetupCarStage.Review);
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Review));
+
+        Assert.Contains("Fallback via the Tesla cloud:", page.Markup, StringComparison.Ordinal);
+        Assert.Contains(expected, page.Markup, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(SetupCarConnectionRoute.TeslaCloud)]
+    [InlineData(SetupCarConnectionRoute.ChargingStationOnly)]
+    public void OnlyABluetoothCarsReviewMentionsTheFallback(SetupCarConnectionRoute route)
+    {
+        //A Tesla cloud car's connection check already is the Tesla cloud test; any other car has no Tesla cloud.
+        var draft = CarDraft(stage: SetupCarStage.Review);
+        draft.ConnectionRoute = route;
+        _storedState = new DtoSetupState { CarDrafts = { draft, }, };
+
+        var page = RenderAt(SetupSections.Car, draft.DraftId, nameof(SetupCarStage.Review));
+
+        Assert.DoesNotContain("Fallback via the Tesla cloud", page.Markup, StringComparison.Ordinal);
     }
 }

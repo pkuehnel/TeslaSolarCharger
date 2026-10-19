@@ -54,10 +54,11 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
             return;
         }
         var currentSoc = _settings.HomeBatterySoc;
-        var usableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
+        var chargingEnergy = _configurationWrapper.HomeBatteryChargingEnergy();
+        var dischargingEnergy = _configurationWrapper.HomeBatteryDischargingEnergy();
         var holdTarget = _settings.HomeBatteryHoldTarget;
         var chargeTarget = _settings.HomeBatteryChargeTarget;
-        if (currentSoc == default || usableEnergy == default || holdTarget == default || chargeTarget == default)
+        if (currentSoc == default || chargingEnergy == default || dischargingEnergy == default || holdTarget == default || chargeTarget == default)
         {
             _logger.LogDebug("Can not plan home battery schedule windows: SoC, usable energy or SoC targets are unknown.");
             ClearWindows();
@@ -84,7 +85,8 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         {
             CurrentDate = currentDate,
             CurrentSocPercent = currentSoc.Value,
-            UsableEnergyWh = usableEnergy.Value,
+            ChargingEnergyWh = chargingEnergy.Value,
+            DischargingEnergyWh = dischargingEnergy.Value,
             MaxChargingPowerW = _configurationWrapper.HomeBatteryChargingPower(),
             HoldTargetSocPercent = holdTarget.RequiredInitialSocPercent,
             ChargeTargetSocPercent = chargeTarget.RequiredInitialSocPercent,
@@ -119,10 +121,12 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         var slices = BuildPlanningSlices(input);
 
         var carHoldPreservedWh = slices.Where(s => s.CarGridChargeActive && s.NetEnergyWh < 0).Sum(s => -s.NetEnergyWh);
-        var holdDeficitWh = CalculateDeficitWh(input.HoldTargetSocPercent, input, carHoldPreservedWh);
+        //Holding replaces discharging, so the hold deficit is energy the battery would deliver.
+        var holdDeficitWh = CalculateDeficitWh(input.HoldTargetSocPercent, input, carHoldPreservedWh, input.DischargingEnergyWh);
         var heldSlices = SelectHoldSlices(slices, holdDeficitWh, input);
         var economicHoldPreservedWh = heldSlices.Sum(s => -s.NetEnergyWh);
-        var chargeDeficitWh = CalculateDeficitWh(input.ChargeTargetSocPercent, input, carHoldPreservedWh + economicHoldPreservedWh);
+        //Grid charging puts energy in, so the charge deficit is energy taken from the grid.
+        var chargeDeficitWh = CalculateDeficitWh(input.ChargeTargetSocPercent, input, carHoldPreservedWh + economicHoldPreservedWh, input.ChargingEnergyWh);
         var chargedEnergyBySlice = SelectChargeSlices(slices, heldSlices, chargeDeficitWh, input);
 
         var windows = BuildCarHoldWindows(carHoldIntervals, slices, input);
@@ -130,10 +134,16 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         return windows.OrderBy(w => w.ValidFrom).ToList();
     }
 
-    private static int CalculateDeficitWh(int targetSocPercent, HomeBatteryPlanningInput input, int alreadyPreservedWh)
+    /// <summary>
+    /// Energy still missing to reach <paramref name="targetSocPercent"/>. Preserved energy is energy the battery did not
+    /// deliver, so it counts in discharging energy; the remaining SoC gap is then expressed in
+    /// <paramref name="energyPer100PercentWh"/>, the energy of the direction that closes the gap.
+    /// </summary>
+    internal static int CalculateDeficitWh(int targetSocPercent, HomeBatteryPlanningInput input, int alreadyPreservedWh, int energyPer100PercentWh)
     {
-        var deficit = (targetSocPercent - input.CurrentSocPercent) * input.UsableEnergyWh / 100 - alreadyPreservedWh;
-        return Math.Max(0, deficit);
+        var preservedSocPercent = alreadyPreservedWh * 100.0 / input.DischargingEnergyWh;
+        var missingSocPercent = targetSocPercent - input.CurrentSocPercent - preservedSocPercent;
+        return Math.Max(0, (int)(missingSocPercent * energyPer100PercentWh / 100));
     }
 
     /// <summary>

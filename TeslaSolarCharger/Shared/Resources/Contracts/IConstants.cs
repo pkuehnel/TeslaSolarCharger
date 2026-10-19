@@ -8,10 +8,6 @@ public interface IConstants
     string CarConfigurationKey { get; }
     int MinSocLimit { get; }
     int DefaultOverage { get; }
-    /// <summary>
-    /// Soc Difference needs to be higher than this value
-    /// </summary>
-    int MinimumSocDifference { get; }
 
     string InstallationIdKey { get; }
     string FleetApiTokenMissingScopes { get; }
@@ -36,6 +32,7 @@ public interface IConstants
     string SetChargingAmpsRequestUrl { get; }
     string SetChargeLimitRequestUrl { get; }
     string WakeUpRequestUrl { get; }
+    string FleetApiTestRequestUrl { get; }
     string VehicleRequestUrl { get; }
     string VehicleDataRequestUrl { get; }
     string TeslaTokenEncryptionKeyKey { get; }
@@ -50,6 +47,8 @@ public interface IConstants
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervallHours { get; }
     string MeterValueEstimatesCreated { get; }
+    /// <summary>Key of the point in time up to which home battery SoC runs were turned into usable energy samples.</summary>
+    string HomeBatteryUsableEnergyLearnedUntil { get; }
     int MeterValueDatabaseSaveIntervalMinutes { get; }
     int WeatherPredictionInFutureDays { get; }
     string OcppChargePointConnectorIdDelimiter { get; }
@@ -84,4 +83,9 @@ public interface IConstants
 
     /// <summary>Where the base licence and the per-car subscriptions are booked.</summary>
     string SubscriptionsUrl { get; }
+
+    /// <summary>
+    /// Tesla's page that adds the solar4car.com virtual key to the car currently selected in the Tesla app.
+    /// </summary>
+    string TeslaVirtualKeyPairingUrl { get; }
 }

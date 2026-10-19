@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
@@ -12,6 +13,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -26,12 +28,14 @@ public class ChargingScheduleService : IChargingScheduleService
     private readonly IConstants _constants;
     private readonly IHomeBatteryEnergyCalculator _homeBatteryEnergyCalculator;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
 
     public ChargingScheduleService(ILogger<ChargingScheduleService> logger, ITeslaSolarChargerContext context,
         ISettings settings, IConfigurationWrapper configurationWrapper, IValidFromToSplitter validFromToSplitter,
         IConstants constants, IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator,
-        ITscOnlyChargingCostService tscOnlyChargingCostService)
+        ITscOnlyChargingCostService tscOnlyChargingCostService, ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _context = context;
         _settings = settings;
@@ -110,7 +114,9 @@ public class ChargingScheduleService : IChargingScheduleService
                     _logger.LogTrace("Home battery SoC data for target {@target}: minSoCAtTime={minSoC}, estimatedSoCAtTime={estimatedSoC}", nextTarget, homeBatteryMinSocAtTime, estimatedHomeBatterySocAtTime);
                     if (homeBatteryMinSocAtTime != default && estimatedHomeBatterySocAtTime != default)
                     {
-                        homeBatteryEnergyToCharge = GetHomeBatteryEnergyFromSocDifference(estimatedHomeBatterySocAtTime.Value - homeBatteryMinSocAtTime.Value);
+                        //Energy the battery delivers into the car, so the discharging energy applies.
+                        homeBatteryEnergyToCharge = GetHomeBatteryEnergyFromSocDifference(estimatedHomeBatterySocAtTime.Value - homeBatteryMinSocAtTime.Value,
+                            _configurationWrapper.HomeBatteryDischargingEnergy());
                         _logger.LogTrace("Calculated home battery energy to charge: {homeBatteryEnergyToCharge}Wh", homeBatteryEnergyToCharge);
                     }
                 }
@@ -586,6 +592,11 @@ public class ChargingScheduleService : IChargingScheduleService
         var minimumEnergyToCharge = 0;
         if (nextTarget.TargetSoc != default)
         {
+            if (car.IsCharging.Value != true && _carChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, nextTarget.TargetSoc))
+            {
+                _logger.LogTrace("Car {carId} with SoC {soc} is not charging and within the restart hysteresis of target SoC {targetSoc}, so the target counts as reached.", car.Id, car.SoC.Value, nextTarget.TargetSoc);
+                return minimumEnergyToCharge;
+            }
             var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, nextTarget.TargetSoc, car.IsCharging.Value == true);
             if (actualTargetSoc != default && carUsableEnergy != default)
             {
@@ -910,6 +921,9 @@ public class ChargingScheduleService : IChargingScheduleService
             : null;
 
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
+        var usableEnergy = carData == null
+            ? (int?)null
+            : UsableEnergySelector.SelectCarKwh(_configurationWrapper.UseLearnedUsableEnergy(), _settings.LearnedCarUsableEnergiesWh, carId!.Value, carData.UsableEnergy);
         var carSoC = carSetting?.SoC.Value;
         var carPhases = carData?.CarType == CarType.Tesla ? carSetting?.ActualPhases : carData?.MaximumPhases;
         _logger.LogTrace("CarPhases: {carPhases}", carPhases);
@@ -921,8 +935,8 @@ public class ChargingScheduleService : IChargingScheduleService
         var minCurrent = CalculateMinValue(connectorData?.MinCurrent, carData?.MinimumAmpere);
 
         _logger.LogTrace("Result: usableEnergy={usableEnergy}, carSoc={carSoc}, maxPhases={maxPhases}, maxCurrent={maxCurrent}, minCurrent={minCurrent}",
-            carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
-        return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
+            usableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
+        return (usableEnergy, carSoC, maxPhases, maxCurrent, minCurrent);
     }
 
     internal int? CalculateMinValue(int? connectorValue, int? carValue)
@@ -1021,13 +1035,14 @@ public class ChargingScheduleService : IChargingScheduleService
         Dictionary<DateTimeOffset, int> predictedSurplusSlices)
     {
         _logger.LogTrace("{method}({@predictedSurplusSlices})", nameof(ReserveHomeBatteryChargingEnergyFromSurplus), predictedSurplusSlices);
-        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
+        //Surplus that has to go into the battery, so the charging energy applies.
+        var homeBatteryChargingEnergy = _configurationWrapper.HomeBatteryChargingEnergy();
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
         var homeBatteryChargingPower = _configurationWrapper.HomeBatteryChargingPower();
         var homeBatterySoc = _settings.HomeBatterySoc;
         //When one of these values is unknown the execution side does not reserve any power for the home battery either,
         //so the planning must not reserve anything to stay consistent with the execution.
-        if (homeBatteryUsableEnergy == default
+        if (homeBatteryChargingEnergy == default
             || homeBatteryMinSoc == default
             || homeBatterySoc == default
             || !(homeBatteryChargingPower > 0))
@@ -1035,7 +1050,7 @@ public class ChargingScheduleService : IChargingScheduleService
             _logger.LogTrace("Not reserving any surplus for the home battery as at least one required value is unknown.");
             return predictedSurplusSlices;
         }
-        var remainingDeficitEnergy = GetHomeBatteryEnergyFromSocDifference(homeBatteryMinSoc.Value - homeBatterySoc.Value);
+        var remainingDeficitEnergy = GetHomeBatteryEnergyFromSocDifference(homeBatteryMinSoc.Value - homeBatterySoc.Value, homeBatteryChargingEnergy);
         if (remainingDeficitEnergy <= 0)
         {
             _logger.LogTrace("Home battery SoC {homeBatterySoc} is not below min SoC {homeBatteryMinSoc}. Not reserving any surplus.", homeBatterySoc, homeBatteryMinSoc);
@@ -1060,10 +1075,10 @@ public class ChargingScheduleService : IChargingScheduleService
         return surplusSlicesAvailableForCar;
     }
 
-    internal int GetHomeBatteryEnergyFromSocDifference(int socDifference)
+    /// <param name="homeBatteryEnergy">Wh for 100 % SoC in the direction the energy moves: charging or discharging energy.</param>
+    internal int GetHomeBatteryEnergyFromSocDifference(int socDifference, int? homeBatteryEnergy)
     {
-        _logger.LogTrace("{method}({socDifference})", nameof(GetHomeBatteryEnergyFromSocDifference), socDifference);
-        var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
+        _logger.LogTrace("{method}({socDifference}, {homeBatteryEnergy})", nameof(GetHomeBatteryEnergyFromSocDifference), socDifference, homeBatteryEnergy);
         if (homeBatteryEnergy == default)
         {
             return 0;

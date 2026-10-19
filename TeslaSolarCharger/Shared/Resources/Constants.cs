@@ -9,7 +9,6 @@ public class Constants : IConstants
     public string CarConfigurationKey => "CarConfiguration";
     public int MinSocLimit => 50;
     public int DefaultOverage => -1000000;
-    public int MinimumSocDifference => 2;
 
     public string NextAllowedTeslaApiRequest => "NextAllowedTeslaApiRequest";
 
@@ -40,6 +39,7 @@ public class Constants : IConstants
     public string SetChargingAmpsRequestUrl => "FleetApiRequests/SetChargingAmps";
     public string SetChargeLimitRequestUrl => "FleetApiRequests/SetChargeLimit";
     public string WakeUpRequestUrl => "FleetApiRequests/WakeUp";
+    public string FleetApiTestRequestUrl => "FleetApiRequests/TestFleetApiAccess";
     public string VehicleRequestUrl => "FleetApiRequests/GetVehicle";
     public string VehicleDataRequestUrl => $"FleetApiRequests/GetVehicleData";
     public string TeslaTokenEncryptionKeyKey => "TeslaTokenEncryptionKey";
@@ -56,6 +56,7 @@ public class Constants : IConstants
     public int FleetTelemetryReconfigurationBufferHours => 3;
     public int WeatherDateRefreshIntervallHours => 3;
     public string MeterValueEstimatesCreated => "MeterValueEstimatesCreated";
+    public string HomeBatteryUsableEnergyLearnedUntil => "HomeBatteryUsableEnergyLearnedUntil";
     public int MeterValueDatabaseSaveIntervalMinutes => 6;
     public int HomeBatteryMinSocRefreshIntervalMinutes => 8;
     //Needs to be smaller than half of the smallest controller rewrite interval so device side watchdogs do not expire.
@@ -92,4 +93,6 @@ public class Constants : IConstants
     public string QueryParamTeslaConnected => "teslaConnected";
 
     public string SubscriptionsUrl => "https://solar4car.com/subscriptions";
+
+    public string TeslaVirtualKeyPairingUrl => "https://tesla.com/_ak/solar4car.com";
 }

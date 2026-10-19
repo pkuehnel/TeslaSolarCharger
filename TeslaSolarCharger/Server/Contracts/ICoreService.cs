@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Server.Dtos;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 
@@ -19,8 +20,8 @@ public interface ICoreService
     Task DisconnectMqttServices();
     Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to);
     Task<string> GetInstallationId();
-    Dictionary<int, string> GetRawRestRequestResults();
-    Dictionary<int, string> GetRawRestValue();
+    ConcurrentDictionary<int, string> GetRawRestRequestResults();
+    ConcurrentDictionary<int, string> GetRawRestValue();
     Dictionary<int, decimal?> GetCalculatedRestValue();
     bool IsStartupCompleted();
     Task<Result<DtoValue<string>>> SendTestTelegramMessage();

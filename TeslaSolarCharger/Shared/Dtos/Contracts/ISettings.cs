@@ -19,8 +19,8 @@ public interface ISettings
     List<DtoCar> Cars { get; set; }
     List<DtoCar> CarsToManage { get; }
     bool RestartNeeded { get; set; }
-    Dictionary<int, string> RawRestRequestResults { get; set; }
-    Dictionary<int, string> RawRestValues { get; set; }
+    ConcurrentDictionary<int, string> RawRestRequestResults { get; set; }
+    ConcurrentDictionary<int, string> RawRestValues { get; set; }
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
     bool IsStartupCompleted { get; set; }
     DtoProgress? ChargePricesUpdateProgress { get; set; }
@@ -45,6 +45,9 @@ public interface ISettings
     ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; }
     HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; }
     int? LastLoggedHomeBatterySoc { get; set; }
+    int? LearnedHomeBatteryChargingEnergyWh { get; set; }
+    int? LearnedHomeBatteryDischargingEnergyWh { get; set; }
+    ConcurrentDictionary<int, int> LearnedCarUsableEnergiesWh { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }
     NextSunEvent NextSunEvent { get; set; }

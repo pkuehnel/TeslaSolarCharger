@@ -40,4 +40,5 @@ public interface ITeslaSolarChargerContext
     DbSet<PvValueLog> PvValueLogs { get; set; }
     DbSet<ChargingStationConnectorAllowedCar> ChargingStationConnectorAllowedCars { get; set; }
     DbSet<TemplateValueConfiguration> TemplateValueConfigurations { get; set; }
+    DbSet<UsableEnergySample> UsableEnergySamples { get; set; }
 }

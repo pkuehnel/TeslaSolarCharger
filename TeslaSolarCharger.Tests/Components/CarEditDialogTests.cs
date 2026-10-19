@@ -11,6 +11,7 @@ using MudBlazor.Services;
 using MudExtensions.Services;
 using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Client.Components;
+using TeslaSolarCharger.Client.Components.StartPage;
 using TeslaSolarCharger.Client.Dialogs;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
@@ -19,6 +20,7 @@ using TeslaSolarCharger.Client.Wrapper;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
+using TeslaSolarCharger.Shared.Dtos.UsableEnergy;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 
@@ -66,6 +68,8 @@ public class CarEditDialogTests : Bunit.TestContext
             .ReturnsAsync(new Result<DtoValue<bool>>(new DtoValue<bool>(false), null, null));
         _httpClientHelper.Setup(h => h.SendGetRequestAsync<List<DtoBleAdapter>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Result<List<DtoBleAdapter>>(new List<DtoBleAdapter>(), null, null));
+        _httpClientHelper.Setup(h => h.SendGetRequestAsync<DtoLearnedUsableEnergy>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Result<DtoLearnedUsableEnergy>(new DtoLearnedUsableEnergy(), null, null));
         Services.AddSingleton(_httpClientHelper.Object);
     }
 
@@ -121,13 +125,42 @@ public class CarEditDialogTests : Bunit.TestContext
         Assert.Empty(_testedVins);
     }
 
-    private IRenderedComponent<MudDialogProvider> OpenDialog()
+    [Fact]
+    public void ABluetoothCarIsRecommendedTheTeslaCloudKeyInsteadOfBeingToldItIsBroken()
+    {
+        //Switching a Bluetooth car to be managed still checks its Tesla cloud key: it is the car's fallback.
+        _homeService.Setup(s => s.GetFleetApiState(It.IsAny<int>()))
+            .ReturnsAsync(new Result<TeslaCarFleetApiState?>(TeslaCarFleetApiState.NotConfigured, null, null));
+        _homeService.Setup(s => s.TestFleetApiAccess(It.IsAny<int>()))
+            .ReturnsAsync(new Result<bool>(false, null, null));
+        var dialog = OpenDialog(shouldBeManaged: false);
+        dialog.FindComponent<CarEditDialog>().Instance.Car.Item.ShouldBeManaged = true;
+
+        var save = dialog.FindAll("button").Single(b => b.TextContent.Trim() == "Save");
+        save.Click();
+
+        dialog.WaitForAssertion(() => Assert.True(dialog.FindComponent<FleetApiTestComponent>().Instance.IsOptional));
+    }
+
+    [Fact]
+    public void TheLearnedUsableEnergyOfTheCarInTheDialogIsShown()
+    {
+        var dialog = OpenDialog();
+
+        var learnedUsableEnergy = dialog.FindComponent<LearnedUsableEnergyComponent>().Instance;
+        Assert.Equal(3, learnedUsableEnergy.CarId);
+        Assert.Equal(75, learnedUsableEnergy.EnteredUsableEnergyKwh);
+        _httpClientHelper.Verify(h => h.SendGetRequestAsync<DtoLearnedUsableEnergy>("api/UsableEnergy/GetCarState?carId=3", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private IRenderedComponent<MudDialogProvider> OpenDialog(bool shouldBeManaged = true)
     {
         var car = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration(3, "Patricks M3")
         {
             Vin = Vin,
             CarType = CarType.Tesla,
-            ShouldBeManaged = true,
+            ShouldBeManaged = shouldBeManaged,
             UseBle = true,
             BleApiBaseUrl = "http://raspis4ctest:7210/",
             MinimumAmpere = 2,

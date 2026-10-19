@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using PkSoftwareService.Custom.Backend.Ble;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -34,7 +35,8 @@ public class BleVehicleDataService(
     IBleReadCoordinator bleReadCoordinator,
     IBleSleepWindowService bleSleepWindowService,
     IBleAccessGateService bleAccessGateService,
-    IIssueKeys issueKeys) : IBleVehicleDataService
+    IIssueKeys issueKeys,
+    IServiceScopeFactory serviceScopeFactory) : IBleVehicleDataService
 {
     private static readonly TimeSpan RadioSilenceWarningDuration = TimeSpan.FromHours(24);
 
@@ -60,36 +62,143 @@ public class BleVehicleDataService(
             .Where(car => car != default && !string.IsNullOrEmpty(car.Vin))
             .Cast<DtoCar>()
             .ToList();
-        //A car that left BLE data collection must not keep a stale uncertain state that would suppress its charging
-        //commands forever.
         blePresenceStateService.RetainOnly(cars.Select(c => c.Id).ToList());
-        //Cars on different adapters (or different containers) are served by different workers, so their groups can
-        //run in parallel; within a group everything serializes on the adapter anyway.
-        var groups = cars
-            .GroupBy(c => (Host: c.BleApiBaseUrl, Adapter: c.BleAdapterAddress))
+        //Phase 1: one presence request per configured container and adapter. A presence request never waits for the
+        //adapter, so these can all run at once; they touch neither the DbContext nor the error list.
+        var configuredGroups = cars
+            .GroupBy(c => (Host: NormalizeBleHost(c.BleApiBaseUrl), Adapter: NormalizeBleAdapter(c.BleAdapterAddress)))
             .ToList();
-        await Task.WhenAll(groups.Select(group => RefreshGroup(group.Key.Host, group.Key.Adapter, group.ToList()))).ConfigureAwait(false);
+        var maxAge = TimeSpan.FromSeconds(configurationWrapper.BlePresenceMaxAgeSeconds());
+        var groupPresences = await Task.WhenAll(configuredGroups
+            .Select(group => FetchGroupPresence(group.Key.Host, group.Key.Adapter, group.ToList(), maxAge))).ConfigureAwait(false);
+        //Phase 2: the configured adapter does not tell which radio a car uses - no adapter selected means the
+        //container's default one, which may well be the adapter another car selected explicitly. Only the adapter the
+        //container resolved does, and only groups on different radios may read in parallel: reads on one radio queue
+        //on its worker in the container, where a read waiting behind a slow connect runs out of TSC's HTTP timeout
+        //and reports a healthy car as failing.
+        var radioGroups = groupPresences
+            .GroupBy(RadioGroupKey(groupPresences))
+            .ToList();
+        //A DbContext must never be used by two operations at once, so only the first radio group runs on this
+        //instance's own scope and every further one gets a scope of its own.
+        var refreshes = radioGroups.Select((radioGroup, index) => index == 0
+            ? RefreshRadioGroupSafely(radioGroup.ToList())
+            : RefreshRadioGroupInOwnScope(radioGroup.ToList()));
+        await Task.WhenAll(refreshes).ConfigureAwait(false);
     }
 
-    private async Task RefreshGroup(string? host, string? adapter, List<DtoCar> cars)
+    private async Task<DtoBleGroupPresence> FetchGroupPresence(string? host, string? adapter, List<DtoCar> cars, TimeSpan maxAge)
     {
-        logger.LogTrace("{method}({host}, {adapter}, {carCount} cars)", nameof(RefreshGroup), host, adapter, cars.Count);
         var vins = cars.Select(c => c.Vin!).ToList();
-        var maxAge = TimeSpan.FromSeconds(configurationWrapper.BlePresenceMaxAgeSeconds());
-        DtoBlePresenceResult presence;
         try
         {
             //keepWarmSeconds is only ever sent here, on the scheduled poll: the worker of this adapter stays warm
             //between polls - and with it its background scan - while one-off commands never change the warm window.
-            presence = await bleService.GetPresence(host, adapter, vins, BleConstants.BleKeepWarmSeconds,
+            var presence = await bleService.GetPresence(host, adapter, vins, BleConstants.BleKeepWarmSeconds,
                 (int)maxAge.TotalSeconds).ConfigureAwait(false);
+            return new DtoBleGroupPresence { Host = host, Adapter = adapter, Cars = cars, Presence = presence, };
         }
         catch (Exception ex)
+        {
+            return new DtoBleGroupPresence { Host = host, Adapter = adapter, Cars = cars, PresenceException = ex, };
+        }
+    }
+
+    /// <summary>
+    /// The adapter the container resolved for this group, or null when the answer does not say: the request failed,
+    /// the container reported an error or it is too old to report the adapter.
+    /// </summary>
+    internal static string? ResolvedAdapter(DtoBleGroupPresence group) =>
+        group.PresenceException == default && string.IsNullOrEmpty(group.Presence?.ErrorMessage)
+            ? NormalizeBleAdapter(group.Presence?.Adapter)
+            : null;
+
+    /// <summary>
+    /// Groups that use the same radio get the same key. When the radio of any group on a container is unknown, every
+    /// group on that container shares one key: serializing needlessly only costs time, reading one radio in parallel
+    /// costs false errors.
+    /// </summary>
+    internal static Func<DtoBleGroupPresence, string> RadioGroupKey(IReadOnlyCollection<DtoBleGroupPresence> groups)
+    {
+        var hostsWithUnknownRadio = groups
+            .Where(g => ResolvedAdapter(g) == default)
+            .Select(g => g.Host)
+            .ToHashSet();
+        return group => hostsWithUnknownRadio.Contains(group.Host)
+            ? RadioKey(group.Host, null)
+            : RadioKey(group.Host, ResolvedAdapter(group));
+    }
+
+    /// <summary>
+    /// Identifies one radio. A Bluetooth address belongs to one physical adapter, so it alone is the key: the same
+    /// container reached once by DNS name and once by IP address is still one radio. Other adapter keys of the
+    /// container ("hci:hci0" when the address is unknown, "default" without adapter enumeration) are only unique on
+    /// their own container and keep the host.
+    /// </summary>
+    internal static string RadioKey(string? host, string? adapter) =>
+        adapter != default && BluetoothAddressRegex.IsMatch(adapter) ? adapter : $"{host}|{adapter}";
+
+    private static readonly Regex BluetoothAddressRegex = new("^([0-9A-F]{2}:){5}[0-9A-F]{2}$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// The same container is often entered once with and once without a trailing slash; both must end up in the same
+    /// group as they are served by the same workers.
+    /// </summary>
+    internal static string? NormalizeBleHost(string? host)
+    {
+        var normalized = host?.Trim().TrimEnd('/');
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    internal static string? NormalizeBleAdapter(string? adapter)
+    {
+        var normalized = adapter?.Trim().ToUpperInvariant();
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    private async Task RefreshRadioGroupInOwnScope(List<DtoBleGroupPresence> groups)
+    {
+        try
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var scopedService = scope.ServiceProvider.GetRequiredService<IBleVehicleDataService>();
+            await scopedService.RefreshRadioGroupSafely(groups).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not refresh BLE data of the cars on {host} in their own scope", groups.FirstOrDefault()?.Host);
+        }
+    }
+
+    public async Task RefreshRadioGroupSafely(List<DtoBleGroupPresence> groups)
+    {
+        //All these groups use one radio, so they run one after the other.
+        foreach (var group in groups)
+        {
+            try
+            {
+                await RefreshGroup(group).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                //One failing group must neither stop the others nor fail the whole job.
+                logger.LogError(ex, "Error while refreshing BLE data of the cars on {host} (adapter {adapter})", group.Host, group.Adapter);
+            }
+        }
+    }
+
+    private async Task RefreshGroup(DtoBleGroupPresence group)
+    {
+        var (host, adapter, cars) = (group.Host, group.Adapter, group.Cars);
+        logger.LogTrace("{method}({host}, {adapter}, {carCount} cars)", nameof(RefreshGroup), host, adapter, cars.Count);
+        var maxAge = TimeSpan.FromSeconds(configurationWrapper.BlePresenceMaxAgeSeconds());
+        if (group.PresenceException is { } ex)
         {
             logger.LogError(ex, "Presence request for {host} (adapter {adapter}) failed", host, adapter);
             await HandleScanUnavailable(cars, adapter, $"BLE presence request failed: {ex.Message}", isAdapterMissing: false).ConfigureAwait(false);
             return;
         }
+        var presence = group.Presence!;
         if (!string.IsNullOrEmpty(presence.ErrorMessage))
         {
             //The container could not answer: this carries no presence information for any car, so the last known
@@ -100,40 +209,83 @@ public class BleVehicleDataService(
                 isAdapterMissing: presence.ErrorMessage.Contains("not present on this host", StringComparison.OrdinalIgnoreCase)).ConfigureAwait(false);
             return;
         }
-        await HandleRadioEvidence(host, adapter, cars, presence).ConfigureAwait(false);
+        //Tracked per radio: a car without a selected adapter and one that selected the default adapter explicitly
+        //must not keep two silence timers for the same radio.
+        LogRadioState(host, adapter, presence);
+        await HandleRadioEvidence(host, ResolvedAdapter(group) ?? adapter, cars, presence).ConfigureAwait(false);
         foreach (var car in cars)
         {
             var vehicle = presence.Vehicles
                 .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-            var age = EvidenceAge(presence, vehicle, maxAge);
-            RecordPresenceObservation(car, adapter, presence, vehicle, age <= maxAge);
-            await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
+            var isPresent = IsPresent(presence, vehicle, maxAge);
+            LogVehicleEvidence(car, vehicle);
+            RecordPresenceObservation(car, adapter, presence, vehicle, isPresent == true);
+            await RefreshCarFromPresence(car, isPresent).ConfigureAwait(false);
         }
     }
 
     /// <summary>
-    /// How old the newest evidence about a car is, or null when nothing may be concluded from this answer.
-    ///
-    /// Evidence within the max age proves the car is here however long the scan has been observing: a car heard
-    /// milliseconds ago is present whether or not the container calls itself warmed up. The warm-up and scanner flags
-    /// only gate the negative conclusion, because right after a container or worker restart every car reads as long
-    /// unheard and that is ignorance, not absence.
-    ///
-    /// Reading the flags before the evidence is what made a car unreachable in blocks: the deaf adapter watchdog
-    /// restarted the worker every few minutes, and each restart threw away fresh advertisements for a full max age.
+    /// Everything the container reported about the radio itself. Without it a log can not tell a radio that hears
+    /// nothing at all apart from one that hears everything but the car, or a scan that is warming up from one that
+    /// is not running.
     /// </summary>
-    internal static TimeSpan? EvidenceAge(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
+    private void LogRadioState(string? host, string? adapter, DtoBlePresenceResult presence)
     {
-        if (vehicle?.LastSeenMsAgo is not { } lastSeen)
+        if (!logger.IsEnabled(LogLevel.Trace))
         {
-            return null;
+            return;
         }
-        var age = TimeSpan.FromMilliseconds(lastSeen);
-        if (age <= maxAge)
+        logger.LogTrace("BLE radio {resolvedAdapter} on {host} (requested adapter {adapter}): scanner running {scannerRunning}, " +
+                        "warming up {warmingUp}, observing for {observing}, last advertisement of any device {lastAdvertisement} ago, " +
+                        "{advertisementsSeen} advertisements ({advertisementsPerSecond}/s) from {distinctDevices} devices, " +
+                        "last scan error {lastScanError}, cars heard: {trackedCars}",
+            presence.Adapter, host, adapter, presence.ScannerRunning, presence.WarmingUp,
+            FormatDuration(TimeSpan.FromMilliseconds(presence.ObservingMs)), FormatMsAgo(presence.LastAdvertisementMsAgo),
+            presence.AdvertisementsSeen, presence.AdvertisementsPerSecond, presence.DistinctDevicesSeen,
+            presence.LastScanError ?? "none",
+            presence.Tracked.Count == 0
+                ? "none"
+                : string.Join(", ", presence.Tracked.Select(t => $"{t.LocalName} {FormatMsAgo(t.LastSeenMsAgo)} ago via {t.LastSource ?? "unknown"}")));
+    }
+
+    private void LogVehicleEvidence(DtoCar car, DtoBlePresenceVehicle? vehicle)
+    {
+        if (vehicle == default)
         {
-            return age;
+            logger.LogTrace("The BLE container did not report car {vin} at all", car.Vin);
+            return;
         }
-        return presence is { WarmingUp: false, ScannerRunning: true } ? age : null;
+        logger.LogTrace("BLE presence evidence of car {vin} ({localName}): last seen {lastSeen} ago via {source}, " +
+                        "last advertisement {lastAdvertisement} ago, last answered command {lastCommand} ago, first heard {firstHeard} ago, " +
+                        "RSSI {rssi}, address {address}, {count} advertisements ({namedCount} named)",
+            car.Vin, vehicle.LocalName, FormatMsAgo(vehicle.LastSeenMsAgo), vehicle.LastSource ?? "unknown",
+            FormatMsAgo(vehicle.LastAdvertisementMsAgo), FormatMsAgo(vehicle.LastCommandSuccessMsAgo),
+            FormatMsAgo(vehicle.FirstHeardMsAgo), vehicle.Rssi, vehicle.Address, vehicle.Count, vehicle.NamedCount);
+    }
+
+    internal static string FormatMsAgo(long? msAgo) =>
+        msAgo is { } milliseconds ? FormatDuration(TimeSpan.FromMilliseconds(milliseconds)) : "never";
+
+    /// <summary>Whole seconds, so hours of silence read as 14:03:12 rather than as a 20 digit tick count.</summary>
+    internal static string FormatDuration(TimeSpan duration) =>
+        TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds)).ToString("c");
+
+    /// <summary>
+    /// True when the car was heard (advertisement or answered command) within the max age, false when it was not and
+    /// the scan has been running for at least the max age (the container reports that as not warming up), null
+    /// otherwise. Right after a container or worker restart nothing has been heard yet, which is not proof of absence.
+    /// </summary>
+    internal static bool? IsPresent(DtoBlePresenceResult presence, DtoBlePresenceVehicle? vehicle, TimeSpan maxAge)
+    {
+        if (vehicle?.LastSeenMsAgo is { } lastSeen && TimeSpan.FromMilliseconds(lastSeen) <= maxAge)
+        {
+            return true;
+        }
+        if (presence.ScannerRunning && !presence.WarmingUp)
+        {
+            return false;
+        }
+        return null;
     }
 
     /// <summary>
@@ -162,7 +314,7 @@ public class BleVehicleDataService(
     /// A car that is not present is not talked to at all: that is the whole point of asking first. The old design
     /// paid a scan window, and a command only design would pay a full connect timeout, for a car that is simply gone.
     /// </summary>
-    private async Task RefreshCarFromPresence(DtoCar car, TimeSpan? age, TimeSpan maxAge)
+    private async Task RefreshCarFromPresence(DtoCar car, bool? isPresent)
     {
         if (!bleReadCoordinator.TryBeginRead(car.Id))
         {
@@ -172,14 +324,13 @@ public class BleVehicleDataService(
         {
             try
             {
-                var decision = blePresenceStateService.RegisterPresenceAge(car.Id, age, maxAge);
-                if (decision == BlePresenceDecision.Present)
+                if (isPresent == true)
                 {
                     await RefreshPresentCarData(car).ConfigureAwait(false);
                 }
                 else
                 {
-                    await HandleAbsentCar(car, decision).ConfigureAwait(false);
+                    await HandleAbsentCar(car, isPresent).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -250,8 +401,8 @@ public class BleVehicleDataService(
         }
         var vehicle = presence.Vehicles
             .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
-        var age = EvidenceAge(presence, vehicle, maxAge);
-        await RefreshCarFromPresence(car, age, maxAge).ConfigureAwait(false);
+        LogVehicleEvidence(car, vehicle);
+        await RefreshCarFromPresence(car, IsPresent(presence, vehicle, maxAge)).ConfigureAwait(false);
     }
 
     private async Task HandleScanUnavailable(List<DtoCar> cars, string? adapter, string message, bool isAdapterMissing)
@@ -279,8 +430,13 @@ public class BleVehicleDataService(
         //heard: that is what tells a dead radio apart from an empty driveway.
         var heardAnything = presence.LastAdvertisementMsAgo is { } lastAdvertisement
                             && lastAdvertisement <= presence.MaxAgeMs;
-        var containerKey = $"{host}|{adapter}";
-        var silence = blePresenceStateService.RegisterRadioEvidence(containerKey, heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
+        var silence = blePresenceStateService.RegisterRadioEvidence(RadioKey(host, adapter), heardAnything, new DateTimeOffset(dateTimeProvider.UtcNow(), TimeSpan.Zero));
+        if (!heardAnything)
+        {
+            //Counted from the last poll on which TSC saw the radio hear anything, or from TSC's start.
+            logger.LogTrace("BLE radio {radio} heard no advertisement of any device within the max age, silent for {silence} as seen by TSC",
+                RadioKey(host, adapter), FormatDuration(silence));
+        }
         foreach (var car in cars)
         {
             if (heardAnything)
@@ -306,32 +462,21 @@ public class BleVehicleDataService(
     /// A car that is not present is never talked to: no connect, no command, no timeout. That is the point of asking
     /// the container first, and it is what an absent car used to cost a scan window for.
     /// </summary>
-    private async Task HandleAbsentCar(DtoCar car, BlePresenceDecision decision)
+    private async Task HandleAbsentCar(DtoCar car, bool? isPresent)
     {
         var vin = car.Vin!;
-        var timestamp = dateTimeProvider.UtcNow();
-        switch (decision)
+        if (isPresent == null)
         {
-            case BlePresenceDecision.JustConfirmedAway:
-                logger.LogInformation("Car {vin} has not been heard for the whole confirmation duration, car is confirmed as away", vin);
-                UpdateHomePresence(car, false, timestamp);
-                UpdateOnlineState(car, false, timestamp);
-                ResetChargingValuesForAwayCar(car, timestamp);
-                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                break;
-            case BlePresenceDecision.AlreadyAway:
-                //The car is already marked as away: nothing changed, so do not write the same values again.
-                break;
-            case BlePresenceDecision.Unknown:
-                //The container cannot say yet, e.g. its scan is still warming up after a restart. Ignorance is not
-                //absence: keep the last known state and wait.
-                logger.LogDebug("Nothing is known about car {vin} yet, keeping last known state", vin);
-                break;
-            default:
-                //Not silent long enough yet: keep the last known state; charging commands are suspended via
-                //IsPresenceUncertain until either the car is heard again or the away state is confirmed.
-                logger.LogDebug("Car {vin} not heard, keeping last known state until the away state is confirmed", vin);
-                break;
+            logger.LogDebug("BLE scan of car {vin} is not running or still warming up, keeping last known state", vin);
+        }
+        else if (car.IsHomeGeofence.Value != false)
+        {
+            logger.LogInformation("Car {vin} was not heard within the BLE presence max age, setting it to away", vin);
+            var timestamp = dateTimeProvider.UtcNow();
+            UpdateHomePresence(car, false, timestamp);
+            UpdateOnlineState(car, false, timestamp);
+            ResetChargingValuesForAwayCar(car, timestamp);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
         //Getting here means the container answered and the car was not read at all, so nothing can currently be wrong
         //with its data collection. Resolving only on the away transition left an error raised while the car was

@@ -11,8 +11,8 @@ public class BackupComponentLocalizationRegistry : TextLocalizationRegistry<Back
             new TextLocalizationTranslation(LanguageCodes.German, "Sichern und Wiederherstellen"));
 
         Register(TranslationKeys.BackupRestoreInfoText,
-            new TextLocalizationTranslation(LanguageCodes.English, "During the backup or restore process all TSC actions will be stopped and started again after the backup"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Während des Sicherungs- oder Wiederherstellungsvorgangs werden alle TSC-Aktionen gestoppt und nach der Sicherung wieder gestartet"));
+            new TextLocalizationTranslation(LanguageCodes.English, "During the backup or restore process all Solar4Car actions will be stopped and started again after the backup"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Während des Sicherungs- oder Wiederherstellungsvorgangs werden alle Solar4Car-Aktionen gestoppt und nach der Sicherung wieder gestartet"));
 
         Register(TranslationKeys.BackupSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Backup"),
@@ -35,8 +35,8 @@ public class BackupComponentLocalizationRegistry : TextLocalizationRegistry<Back
             new TextLocalizationTranslation(LanguageCodes.German, "Wiederherstellen"));
 
         Register(TranslationKeys.RestoreWarning,
-            new TextLocalizationTranslation(LanguageCodes.English, "After the restore process you need to restart the TSC container."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Nach dem Wiederherstellungsvorgang müssen Sie den TSC-Container neu starten."));
+            new TextLocalizationTranslation(LanguageCodes.English, "After the restore process you need to restart the Solar4Car container (teslasolarcharger)."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Nach dem Wiederherstellungsvorgang müssen Sie den Solar4Car-Container (teslasolarcharger) neu starten."));
 
         Register(TranslationKeys.RestoreSelectFileButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Select Backup File"),
@@ -67,8 +67,8 @@ public class BackupComponentLocalizationRegistry : TextLocalizationRegistry<Back
             new TextLocalizationTranslation(LanguageCodes.German, "Fehler beim Wiederherstellen der Sicherung: {0}"));
 
         Register(TranslationKeys.RestoreSuccessMessage,
-            new TextLocalizationTranslation(LanguageCodes.English, "Backup file saved. Container restart required to complete restore. Please restart the TSC container now."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Sicherungsdatei gespeichert. Neustart des Containers erforderlich, um die Wiederherstellung abzuschließen. Bitte starten Sie den TSC-Container jetzt neu."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Backup file saved. Container restart required to complete restore. Please restart the Solar4Car container (teslasolarcharger) now."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sicherungsdatei gespeichert. Neustart des Containers erforderlich, um die Wiederherstellung abzuschließen. Bitte starten Sie den Solar4Car-Container (teslasolarcharger) jetzt neu."));
 
         Register(TranslationKeys.RestoreFatalError,
             new TextLocalizationTranslation(LanguageCodes.English, "Fatal Error while restoring backup: {0}"),

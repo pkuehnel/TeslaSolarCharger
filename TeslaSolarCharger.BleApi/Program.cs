@@ -45,6 +45,7 @@ var app = builder.Build();
 
 var startupService = app.Services.GetRequiredService<IStartupService>();
 await startupService.UpdateRequestsAllowed();
+await startupService.EnsureKeyPair();
 
 app.UseSwagger();
 app.UseSwaggerUI();

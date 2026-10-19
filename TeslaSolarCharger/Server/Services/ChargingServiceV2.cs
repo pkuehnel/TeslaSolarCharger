@@ -35,12 +35,12 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
     private readonly IBackendApiService _backendApiService;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
     private readonly ITargetChargingValueCalculationService _targetChargingValueCalculationService;
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IChargingScheduleService _chargingScheduleService;
     private readonly IConstants _constants;
     private readonly IHomeBatteryScheduleService _homeBatteryScheduleService;
-    private readonly IBlePresenceStateService _blePresenceStateService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -59,8 +59,9 @@ public class ChargingServiceV2 : IChargingServiceV2
         IChargingScheduleService chargingScheduleService,
         IConstants constants,
         IHomeBatteryScheduleService homeBatteryScheduleService,
-        IBlePresenceStateService blePresenceStateService)
+        ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _configurationWrapper = configurationWrapper;
         _loadPointManagementService = loadPointManagementService;
@@ -78,7 +79,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         _chargingScheduleService = chargingScheduleService;
         _constants = constants;
         _homeBatteryScheduleService = homeBatteryScheduleService;
-        _blePresenceStateService = blePresenceStateService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -86,7 +86,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
         if ((await _backendApiService.IsBaseAppLicensed(true)).Data != true)
         {
-            _logger.LogError("Can not set new charging values as base app is not licensed");
+            _logger.LogError("Can not set new charging values as Solar4Car has no active base license");
             return;
         }
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
@@ -405,9 +405,18 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
             var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
             var actualTargetSoc = _chargingScheduleService.GetActualTargetSoc(car.SocLimit.Value, chargingTarget.TargetSoc, car.IsCharging.Value == true);
-            if (car.SoC.Value >= actualTargetSoc || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
+            var isReachedWithinRestartHysteresis = car.IsCharging.Value != true
+                                                   && car.SoC.Value < chargingTarget.TargetSoc
+                                                   && _carChargeRestartHysteresis.PreventsChargeStart(car.SoC.Value, chargingTarget.TargetSoc);
+            if (car.SoC.Value >= actualTargetSoc || isReachedWithinRestartHysteresis || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
+            }
+            if (isReachedWithinRestartHysteresis && car.PluggedIn.Value == true && car.IsHomeGeofence.Value == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(car.Id, null,
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonTargetSocWithinRestartHysteresis,
+                        chargingTarget.TargetSoc, car.SoC.Value, _carChargeRestartHysteresis.Percent));
             }
 
             if (actualTargetSoc == default && chargingTarget.DischargeHomeBatteryToMinSoc)
@@ -462,9 +471,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (c.ChargerRequestedCurrent.Value != c.MaximumAmpere)
                         && (c.ChargerPilotCurrent.Value > c.ChargerRequestedCurrent.Value)
                         && (c.IsCharging.Value == false)
-                        && (c.ChargeModeV2 == ChargeModeV2.Auto)
-                        //While BLE presence is uncertain the car may already have left home, so do not send commands.
-                        && !_blePresenceStateService.IsPresenceUncertain(c.Id))
+                        && (c.ChargeModeV2 == ChargeModeV2.Auto))
             .ToList();
 
         foreach (var car in carsToSetToMaxCurrent)
@@ -626,7 +633,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             ? TimeZoneInfo.Utc
             : TimeZoneInfo.FindSystemTimeZoneById(chargingTarget.ClientTimeZone);
 
-        var earliestExecutionTime = TimeZoneInfo.ConvertTime(lastPluggedIn, tz);
+        //An occurrence that was already reached must not be caught up again when the SoC drops later on, so search after the target was last fulfilled
+        var earliestExecutionTimeUtc = chargingTarget.LastFulFilled > lastPluggedIn ? chargingTarget.LastFulFilled.Value : lastPluggedIn;
+        var earliestExecutionTime = TimeZoneInfo.ConvertTime(earliestExecutionTimeUtc, tz);
         _logger.LogTrace("Earliest execution time for target {targetId} is {earliestExecutionTime} in timezone {tz}.", chargingTarget.Id, earliestExecutionTime, tz.Id);
 
         DateTimeOffset? candidate;

@@ -59,6 +59,7 @@ public class JobManager(
         var weatherDataRefreshJob = JobBuilder.Create<WeatherDataRefreshJob>().WithIdentity(nameof(WeatherDataRefreshJob)).Build();
         var databaseBufferedValuesSaveJob = JobBuilder.Create<DatabaseBufferedValuesSaveJob>().WithIdentity(nameof(DatabaseBufferedValuesSaveJob)).Build();
         var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
+        var usableEnergyLearningJob = JobBuilder.Create<UsableEnergyLearningJob>().WithIdentity(nameof(UsableEnergyLearningJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
         var homeBatteryModeJob = JobBuilder.Create<HomeBatteryModeJob>().WithIdentity(nameof(HomeBatteryModeJob)).Build();
         var refreshableValuesRefreshJob = JobBuilder.Create<RefreshableValuesRefreshJob>().WithIdentity(nameof(RefreshableValuesRefreshJob)).Build();
@@ -189,6 +190,20 @@ public class JobManager(
             .StartNow()
             .Build();
 
+        var usableEnergyLearningHour = random.Next(1, 6);
+        var usableEnergyLearningMinute = random.Next(0, 59);
+        var usableEnergyLearningTrigger = TriggerBuilder.Create()
+            .WithIdentity("usableEnergyLearningTrigger")
+            .WithSchedule(DailyAtHourAndMinute(usableEnergyLearningHour, usableEnergyLearningMinute).InTimeZone(TimeZoneInfo.Local))
+            .StartNow()
+            .Build();
+        //Once after startup so a new installation or a new version learns from the existing history right away. Delayed
+        //so the home battery devices have reported in, as several batteries are not learned.
+        var usableEnergyLearningAfterStartupTrigger = TriggerBuilder.Create()
+            .WithIdentity("usableEnergyLearningAfterStartupTrigger")
+            .StartAt(currentDate.AddMinutes(5))
+            .Build();
+
         var triggerNow = TriggerBuilder
             .Create().WithIdentity("triggerNow")
             .StartAt(DateTimeOffset.Now.AddSeconds(15))
@@ -208,6 +223,7 @@ public class JobManager(
             {weatherDataRefreshJob, new HashSet<ITrigger> {weatherDataRefreshTrigger}},
             {databaseBufferedValuesSaveJob, new HashSet<ITrigger> {databaseBufferedValuesSaveTrigger}},
             {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
+            {usableEnergyLearningJob, new HashSet<ITrigger> {usableEnergyLearningTrigger, usableEnergyLearningAfterStartupTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
             {homeBatteryModeJob, new HashSet<ITrigger> {homeBatteryModeTrigger}},
             {refreshableValuesRefreshJob, new HashSet<ITrigger> {refreshableValuesRefreshTrigger}},

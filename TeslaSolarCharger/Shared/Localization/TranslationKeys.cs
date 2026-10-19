@@ -413,6 +413,7 @@ public static class TranslationKeys
     public static string TeslaPowerwallEditFormError => nameof(TeslaPowerwallEditFormError);
     public static string TeslaPowerwallEditFormCloudConnectionLink => nameof(TeslaPowerwallEditFormCloudConnectionLink);
     public static string TeslaPowerwallEditFormErrorSuffix => nameof(TeslaPowerwallEditFormErrorSuffix);
+    public static string SmaInverterEditFormForecastBasedChargingHint => nameof(SmaInverterEditFormForecastBasedChargingHint);
 
     public static string InstallationInfoServerTimezone => nameof(InstallationInfoServerTimezone);
     public static string InstallationInfoServerTime => nameof(InstallationInfoServerTime);
@@ -448,12 +449,17 @@ public static class TranslationKeys
     public static string FleetApiTestLoading => nameof(FleetApiTestLoading);
     public static string FleetApiTestSuccess => nameof(FleetApiTestSuccess);
     public static string FleetApiTestFailed => nameof(FleetApiTestFailed);
-    public static string FleetApiTestFailedHint => nameof(FleetApiTestFailedHint);
-    public static string FleetApiTestAgainButton => nameof(FleetApiTestAgainButton);
-    public static string FleetApiTestRegisterLink => nameof(FleetApiTestRegisterLink);
     public static string FleetApiTestNotTested => nameof(FleetApiTestNotTested);
     public static string FleetApiTestNotConfigured => nameof(FleetApiTestNotConfigured);
+    public static string FleetApiTestNotWorking => nameof(FleetApiTestNotWorking);
     public static string FleetApiTestRegisteredButNotTested => nameof(FleetApiTestRegisteredButNotTested);
+    public static string FleetApiTestOptionalExplanation => nameof(FleetApiTestOptionalExplanation);
+    public static string FleetApiTestStepAddKeyTitle => nameof(FleetApiTestStepAddKeyTitle);
+    public static string FleetApiTestStepAddKeyText => nameof(FleetApiTestStepAddKeyText);
+    public static string FleetApiTestAddKeyButton => nameof(FleetApiTestAddKeyButton);
+    public static string FleetApiTestStepTestTitle => nameof(FleetApiTestStepTestTitle);
+    public static string FleetApiTestStepTestText => nameof(FleetApiTestStepTestText);
+    public static string FleetApiTestTestButton => nameof(FleetApiTestTestButton);
 
     public static string BleTestTesting => nameof(BleTestTesting);
     public static string BleTestSuccess => nameof(BleTestSuccess);
@@ -685,9 +691,6 @@ public static class TranslationKeys
     public static string PowerFlowNodeCar => nameof(PowerFlowNodeCar);
     public static string ManualOcppErrorFormat => nameof(ManualOcppErrorFormat);
     public static string FleetApiTestKeyCheckHint => nameof(FleetApiTestKeyCheckHint);
-    public static string FleetApiTestHereLink => nameof(FleetApiTestHereLink);
-    public static string FleetApiTestTestConnectionLinkSuffix => nameof(FleetApiTestTestConnectionLinkSuffix);
-    public static string FleetApiTestRegisterCarNote => nameof(FleetApiTestRegisterCarNote);
     public static string FleetApiTestStateLoadError => nameof(FleetApiTestStateLoadError);
     public static string ChargingTargetsDeleteFailed => nameof(ChargingTargetsDeleteFailed);
     public static string CarDetailsFailedToUpdateMinSoc => nameof(CarDetailsFailedToUpdateMinSoc);
@@ -765,6 +768,7 @@ public static class TranslationKeys
     public static string NotChargingReasonWaitingChargeStop => nameof(NotChargingReasonWaitingChargeStop);
     public static string NotChargingReasonMaxSocReached => nameof(NotChargingReasonMaxSocReached);
     public static string NotChargingReasonCarSideSocLimitReached => nameof(NotChargingReasonCarSideSocLimitReached);
+    public static string NotChargingReasonTargetSocWithinRestartHysteresis => nameof(NotChargingReasonTargetSocWithinRestartHysteresis);
     public static string NotChargingReasonStoppedByCar => nameof(NotChargingReasonStoppedByCar);
     public static string NotChargingReasonWaitingChargeStart => nameof(NotChargingReasonWaitingChargeStart);
     public static string NotChargingReasonNotEnoughCombinedCurrent => nameof(NotChargingReasonNotEnoughCombinedCurrent);
@@ -775,7 +779,6 @@ public static class TranslationKeys
     public static string NotChargingReasonSolarValuesTooOld => nameof(NotChargingReasonSolarValuesTooOld);
     public static string NotChargingReasonPowerBufferDecreased => nameof(NotChargingReasonPowerBufferDecreased);
     public static string NotChargingReasonPowerBufferIncreased => nameof(NotChargingReasonPowerBufferIncreased);
-    public static string NotChargingReasonBlePresenceUncertain => nameof(NotChargingReasonBlePresenceUncertain);
 
     public static string SetupAssistantTitle => nameof(SetupAssistantTitle);
     public static string SetupStepWelcome => nameof(SetupStepWelcome);
@@ -994,6 +997,9 @@ public static class TranslationKeys
     public static string SetupCarTeslaCloudLicenceMissing => nameof(SetupCarTeslaCloudLicenceMissing);
     public static string SetupCarTelemetryIncompatibleFallback => nameof(SetupCarTelemetryIncompatibleFallback);
     public static string SetupCarTeslaCloudAsleepNote => nameof(SetupCarTeslaCloudAsleepNote);
+    public static string SetupCarBluetoothFallbackTitle => nameof(SetupCarBluetoothFallbackTitle);
+    public static string SetupCarBluetoothFallbackExplanation => nameof(SetupCarBluetoothFallbackExplanation);
+    public static string SetupCarBluetoothFallbackButton => nameof(SetupCarBluetoothFallbackButton);
     public static string SetupCarSmartCarIntro => nameof(SetupCarSmartCarIntro);
     public static string SetupCarSmartCarStillNeedsCharger => nameof(SetupCarSmartCarStillNeedsCharger);
     public static string SetupCarSmartCarConnected => nameof(SetupCarSmartCarConnected);
@@ -1034,6 +1040,11 @@ public static class TranslationKeys
     public static string SetupCarReviewCheckFailed => nameof(SetupCarReviewCheckFailed);
     public static string SetupCarReviewCheckPending => nameof(SetupCarReviewCheckPending);
     public static string SetupCarReviewCheckNotRun => nameof(SetupCarReviewCheckNotRun);
+    public static string SetupCarReviewFleetApiFallback => nameof(SetupCarReviewFleetApiFallback);
+    public static string SetupCarReviewFleetApiFallbackWorking => nameof(SetupCarReviewFleetApiFallbackWorking);
+    public static string SetupCarReviewFleetApiFallbackNotTested => nameof(SetupCarReviewFleetApiFallbackNotTested);
+    public static string SetupCarReviewFleetApiFallbackNotWorking => nameof(SetupCarReviewFleetApiFallbackNotWorking);
+    public static string SetupCarReviewFleetApiFallbackNotSetUp => nameof(SetupCarReviewFleetApiFallbackNotSetUp);
 
     public static string SetupChargerNotFound => nameof(SetupChargerNotFound);
     public static string SetupChargerStageConnectTitle => nameof(SetupChargerStageConnectTitle);
@@ -1245,4 +1256,42 @@ public static class TranslationKeys
     public static string HttpsInstallMacTitle => nameof(HttpsInstallMacTitle);
     public static string HttpsInstallMacSteps => nameof(HttpsInstallMacSteps);
     public static string HttpsPortNotPublishedHint => nameof(HttpsPortNotPublishedHint);
+
+    public static string UsableEnergyLearnedInUse => nameof(UsableEnergyLearnedInUse);
+    public static string UsableEnergyLearnedNotUsedLearningOff => nameof(UsableEnergyLearnedNotUsedLearningOff);
+    public static string UsableEnergyHomeBatteryLearnedValues => nameof(UsableEnergyHomeBatteryLearnedValues);
+    public static string UsableEnergyHomeBatteryLearnedInUse => nameof(UsableEnergyHomeBatteryLearnedInUse);
+    public static string UsableEnergyHomeBatteryLearnedNotUsedLearningOff => nameof(UsableEnergyHomeBatteryLearnedNotUsedLearningOff);
+    public static string UsableEnergyDischargingExceedsCharging => nameof(UsableEnergyDischargingExceedsCharging);
+    public static string UsableEnergyLearningOff => nameof(UsableEnergyLearningOff);
+    public static string UsableEnergyLearningProgress => nameof(UsableEnergyLearningProgress);
+    public static string UsableEnergyCarNotMeasuredYet => nameof(UsableEnergyCarNotMeasuredYet);
+    public static string UsableEnergyLearningInconsistent => nameof(UsableEnergyLearningInconsistent);
+    public static string UsableEnergyMultipleHomeBatteries => nameof(UsableEnergyMultipleHomeBatteries);
+    public static string UsableEnergyCarDeviationWarning => nameof(UsableEnergyCarDeviationWarning);
+    public static string UsableEnergyHomeBatteryDeviationWarning => nameof(UsableEnergyHomeBatteryDeviationWarning);
+    public static string UsableEnergyKindCarCharge => nameof(UsableEnergyKindCarCharge);
+    public static string UsableEnergyKindHomeBatteryCharge => nameof(UsableEnergyKindHomeBatteryCharge);
+    public static string UsableEnergyKindHomeBatteryDischarge => nameof(UsableEnergyKindHomeBatteryDischarge);
+    public static string UsableEnergyShowDetails => nameof(UsableEnergyShowDetails);
+    public static string UsableEnergyHideDetails => nameof(UsableEnergyHideDetails);
+    public static string UsableEnergyDetailsExplanation => nameof(UsableEnergyDetailsExplanation);
+    public static string UsableEnergyNoSamples => nameof(UsableEnergyNoSamples);
+    public static string UsableEnergyColumnDate => nameof(UsableEnergyColumnDate);
+    public static string UsableEnergyColumnType => nameof(UsableEnergyColumnType);
+    public static string UsableEnergyColumnSoc => nameof(UsableEnergyColumnSoc);
+    public static string UsableEnergyColumnEnergy => nameof(UsableEnergyColumnEnergy);
+    public static string UsableEnergyColumnImplied => nameof(UsableEnergyColumnImplied);
+    public static string UsableEnergyColumnStatus => nameof(UsableEnergyColumnStatus);
+    public static string UsableEnergyStatusUsed => nameof(UsableEnergyStatusUsed);
+    public static string UsableEnergyStatusOlder => nameof(UsableEnergyStatusOlder);
+    public static string UsableEnergyRejectedMissingSoc => nameof(UsableEnergyRejectedMissingSoc);
+    public static string UsableEnergyRejectedSocDifferenceTooSmall => nameof(UsableEnergyRejectedSocDifferenceTooSmall);
+    public static string UsableEnergyRejectedMissingMeterValues => nameof(UsableEnergyRejectedMissingMeterValues);
+    public static string UsableEnergyRejectedMeterValueGap => nameof(UsableEnergyRejectedMeterValueGap);
+    public static string UsableEnergyRejectedSocJump => nameof(UsableEnergyRejectedSocJump);
+    public static string UsableEnergyRejectedOppositeEnergyFlow => nameof(UsableEnergyRejectedOppositeEnergyFlow);
+    public static string UsableEnergyRejectedImplausibleCapacity => nameof(UsableEnergyRejectedImplausibleCapacity);
+    public static string UsableEnergyResetButton => nameof(UsableEnergyResetButton);
+    public static string UsableEnergyResetDone => nameof(UsableEnergyResetDone);
 }

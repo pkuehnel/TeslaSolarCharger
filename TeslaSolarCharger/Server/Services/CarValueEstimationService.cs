@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -18,13 +19,15 @@ public class CarValueEstimationService : ICarValueEstimationService
     private readonly ISettings _settings;
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly IConstants _constants;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public CarValueEstimationService(ILogger<CarValueEstimationService> logger,
         ITeslaSolarChargerContext context,
         IDateTimeProvider dateTimeProvider,
         ISettings settings,
         ILoadPointManagementService loadPointManagementService,
-        IConstants constants)
+        IConstants constants,
+        IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _context = context;
@@ -32,6 +35,7 @@ public class CarValueEstimationService : ICarValueEstimationService
         _settings = settings;
         _loadPointManagementService = loadPointManagementService;
         _constants = constants;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task PlugoutCarsAndClearSocIfRequired(CancellationToken cancellationToken)
@@ -209,14 +213,19 @@ public class CarValueEstimationService : ICarValueEstimationService
 
         var chargedSinceLastNonEstimatedSoc = latestChargedEnergy.Value - chargedEnergyAtLastNonEstimatedSoc.Value;
         _logger.LogTrace("chargedSinceLastNonEstimatedSoc: {chargedSinceLastNonEstimatedSoc}", chargedSinceLastNonEstimatedSoc);
-        var carBatteryCapacity = car.UsableEnergy * 3_600_000; // kWh to Ws
+        var usableEnergy = UsableEnergySelector.SelectCarKwh(_configurationWrapper.UseLearnedUsableEnergy(), _settings.LearnedCarUsableEnergiesWh, car.Id, car.UsableEnergy);
+        var carBatteryCapacity = usableEnergy * 3_600_000; // kWh to Ws
         _logger.LogTrace("carBatteryCapacity: {carBatteryCapacity}", carBatteryCapacity);
         if (carBatteryCapacity <= 0)
         {
-            _logger.LogWarning("Can not estimate soc for car {carId} as usable energy is {usableEnergy} which is <= 0", car.Id, car.UsableEnergy);
+            _logger.LogWarning("Can not estimate soc for car {carId} as usable energy is {usableEnergy} which is <= 0", car.Id, usableEnergy);
             return;
         }
-        var estimatedSoc = (int)(lastNonEstimatedSoc.Soc.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
+        //The meter counts the energy taken from the wall, the usable energy is what ends up in the battery.
+        var energyLossFactor = 1 + (_configurationWrapper.CarChargeLoss() / (float)100);
+        var chargedIntoBattery = chargedSinceLastNonEstimatedSoc / energyLossFactor;
+        _logger.LogTrace("chargedIntoBattery: {chargedIntoBattery}", chargedIntoBattery);
+        var estimatedSoc = (int)(lastNonEstimatedSoc.Soc.Value + ((chargedIntoBattery / carBatteryCapacity) * 100));
         _logger.LogTrace("estimatedSoc: {estimatedSoc}", estimatedSoc);
         var estimatedSocCarValueLog = new CarValueLog()
         {

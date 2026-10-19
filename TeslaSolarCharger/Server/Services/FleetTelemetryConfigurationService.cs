@@ -49,11 +49,11 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (isBaseAppLicensed.Data != true)
         {
-            logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
+            logger.LogWarning("Solar4Car has no active base license, do not connect to Fleet Telemetry");
             return new DtoFleetTelemetryConfigurationResult
             {
                 Success = false,
-                ErrorMessage = "Can not configure Fleet Telemetry as TSC is not licensed",
+                ErrorMessage = "Can not configure Fleet Telemetry as Solar4Car has no active base license",
             };
         }
         var carSettings = teslaSolarChargerContext.Cars
@@ -69,7 +69,7 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
             return new DtoFleetTelemetryConfigurationResult
             {
                 Success = false,
-                ErrorMessage = "Car not found in local TSC database",
+                ErrorMessage = "Car not found in the local Solar4Car database",
             };
         }
 
@@ -88,7 +88,7 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
             return new DtoFleetTelemetryConfigurationResult
             {
                 Success = false,
-                ErrorMessage = "Fleet API license required for car {vin} as Include Tracking Relevant Fields is enabled",
+                ErrorMessage = $"Car License required for car {vin} as Include Tracking Relevant Fields is enabled",
             };
         }
 
@@ -226,7 +226,7 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
             else
             {
                 await errorHandlingService.HandleError(nameof(FleetTelemetryConfigurationService), nameof(ReconfigureAllCarsIfRequired),
-                    $"Error while configuring Fleet Telemetry for car {vin}", $"{result.ErrorMessage}\r\nNote: The error only disappears after fxing the root cause, restarting TSC and waiting for 2 minutes.", issueKeys.FleetTelemetryConfigurationError, vin, null).ConfigureAwait(false);
+                    $"Error while configuring Fleet Telemetry for car {vin}", $"{result.ErrorMessage}\r\nNote: The error only disappears after fixing the root cause, restarting Solar4Car and waiting for 2 minutes.", issueKeys.FleetTelemetryConfigurationError, vin, null).ConfigureAwait(false);
             }
         }
     }

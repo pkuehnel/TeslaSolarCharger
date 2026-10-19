@@ -50,9 +50,9 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         _settings.NextSunEvent = nextSunEvent;
         _logger.LogTrace("Updated {settingsName}.{nextSunEventName} to {nextSunEventValue}", nameof(ISettings), nameof(ISettings.NextSunEvent), nextSunEvent);
 
-        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
+        var batteryEnergies = GetBatteryEnergies();
 
-        var canComputeDynamicSocTargets = homeBatteryUsableEnergy != default
+        var canComputeDynamicSocTargets = batteryEnergies != default
                                           && nextSunrise != default
                                           && nextSunset != default;
 
@@ -74,8 +74,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         if (_configurationWrapper.DynamicHomeBatteryMinSoc())
         {
             var minSocResult = CalculateDynamicBatteryTargetSoc(predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise,
-                homeBatteryUsableEnergy!.Value, minDynamicSoc, maxDynamicSoc,
-                _configurationWrapper.DynamicMinSocCalculationBufferInPercent());
+                batteryEnergies!.Value.DischargingEnergyWh, minDynamicSoc, maxDynamicSoc,
+                _configurationWrapper.DynamicMinSocCalculationBufferInPercent(), batteryEnergies.Value.ChargedEnergyFactor);
             if (minSocResult.RequiredInitialSocPercent != _configurationWrapper.HomeBatteryMinSoc())
             {
                 var configuration = await _configurationWrapper.GetBaseConfigurationAsync();
@@ -91,15 +91,15 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
 
         var holdTarget = CalculateDynamicBatteryTargetSoc(predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise,
-            homeBatteryUsableEnergy!.Value, minDynamicSoc, maxDynamicSoc,
-            _configurationWrapper.HoldHomeBatteryChargeSocBufferInPercent());
+            batteryEnergies!.Value.DischargingEnergyWh, minDynamicSoc, maxDynamicSoc,
+            _configurationWrapper.HoldHomeBatteryChargeSocBufferInPercent(), batteryEnergies.Value.ChargedEnergyFactor);
         _settings.HomeBatteryHoldTarget = holdTarget;
         _logger.LogTrace("Hold target: SOC={soc}%, firstBreach={breach}, additionalWh={wh}, selfSufficientAt={selfSufficiencyTime}",
             holdTarget.RequiredInitialSocPercent, holdTarget.FirstBreachTime, holdTarget.AdditionalEnergyRequiredWh, holdTarget.SelfSufficiencyTime);
 
         var chargeTarget = CalculateDynamicBatteryTargetSoc(predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise,
-            homeBatteryUsableEnergy.Value, minDynamicSoc, maxDynamicSoc,
-            _configurationWrapper.ChargeHomeBatterySocBufferInPercent());
+            batteryEnergies.Value.DischargingEnergyWh, minDynamicSoc, maxDynamicSoc,
+            _configurationWrapper.ChargeHomeBatterySocBufferInPercent(), batteryEnergies.Value.ChargedEnergyFactor);
         _settings.HomeBatteryChargeTarget = chargeTarget;
         _logger.LogTrace("Charge target: SOC={soc}%, firstBreach={breach}, additionalWh={wh}, selfSufficientAt={selfSufficiencyTime}",
             chargeTarget.RequiredInitialSocPercent, chargeTarget.FirstBreachTime, chargeTarget.AdditionalEnergyRequiredWh, chargeTarget.SelfSufficiencyTime);
@@ -114,8 +114,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             return _configurationWrapper.HomeBatteryMinSoc();
         }
 
-        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
-        if (homeBatteryUsableEnergy == default)
+        var batteryEnergies = GetBatteryEnergies();
+        if (batteryEnergies == default)
         {
             _logger.LogWarning(
                 "Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Using configured home battery min soc.");
@@ -127,7 +127,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             return null;
         }
 
-        return await GetDynamicMinSocAtTime(targetTime, homeBatteryUsableEnergy.Value, nextSunrise.Value, nextSunset.Value, nextSunEvent, cancellationToken).ConfigureAwait(false);
+        return await GetDynamicMinSocAtTime(targetTime, batteryEnergies.Value, nextSunrise.Value, nextSunset.Value, nextSunEvent, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DtoHomeBatterySurplusPrediction?> GetSurplusPrediction(DateTimeOffset targetTime, CancellationToken cancellationToken)
@@ -159,8 +159,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         _logger.LogTrace("{method}({futureTime}, {currentSocPercent}, {@schedules})", nameof(GetEstimatedHomeBatterySocAtTime), futureTime,
             currentSocPercent, schedules);
 
-        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
-        if (homeBatteryUsableEnergy == default)
+        var batteryEnergies = GetBatteryEnergies();
+        if (batteryEnergies == default)
         {
             _logger.LogWarning("No usable energy configured for home battery. Cannot estimate future SoC.");
             return null;
@@ -186,33 +186,52 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
 
         var estimatedSoc = SimulateBatterySoc(
             predictedSurplusPerSlices,
-            homeBatteryUsableEnergy.Value,
+            batteryEnergies.Value.DischargingEnergyWh,
             currentSocPercent,
             futureTime,
-            schedules);
+            schedules,
+            batteryEnergies.Value.ChargedEnergyFactor);
 
         return estimatedSoc;
     }
 
-    private async Task<int> GetDynamicMinSocAtTime(DateTimeOffset targetTime,
-        int homeBatteryUsableEnergy, DateTimeOffset nextSunrise, DateTimeOffset nextSunset, NextSunEvent nextSunEvent, CancellationToken cancellationToken)
+    /// <summary>
+    /// The battery is simulated in the energy it can deliver (discharging energy). Surplus going in is metered on the
+    /// charging side, so only <c>ChargedEnergyFactor</c> of it can be taken out again.
+    /// </summary>
+    private (int DischargingEnergyWh, double ChargedEnergyFactor)? GetBatteryEnergies()
     {
-        _logger.LogTrace("{method}({targetTime}, {homeBatteryUsableEnergy})", nameof(GetDynamicMinSocAtTime), targetTime,
-            homeBatteryUsableEnergy);
+        var chargingEnergy = _configurationWrapper.HomeBatteryChargingEnergy();
+        var dischargingEnergy = _configurationWrapper.HomeBatteryDischargingEnergy();
+        if (chargingEnergy == default || dischargingEnergy == default)
+        {
+            return null;
+        }
+        return (dischargingEnergy.Value, dischargingEnergy.Value / (double)chargingEnergy.Value);
+    }
+
+    private async Task<int> GetDynamicMinSocAtTime(DateTimeOffset targetTime,
+        (int DischargingEnergyWh, double ChargedEnergyFactor) batteryEnergies, DateTimeOffset nextSunrise, DateTimeOffset nextSunset, NextSunEvent nextSunEvent, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({targetTime}, {@batteryEnergies})", nameof(GetDynamicMinSocAtTime), targetTime,
+            batteryEnergies);
 
         var result = await CalculateDynamicBatteryTargetSoc(
             targetTime,
-            homeBatteryUsableEnergy,
+            batteryEnergies.DischargingEnergyWh,
             nextSunrise,
             nextSunset,
             nextSunEvent,
             _configurationWrapper.HomeBatteryMinDynamicMinSoc(),
             _configurationWrapper.HomeBatteryMaxDynamicMinSoc(),
             _configurationWrapper.DynamicMinSocCalculationBufferInPercent(),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            batteryEnergies.ChargedEnergyFactor).ConfigureAwait(false);
         return result.RequiredInitialSocPercent;
     }
 
+    /// <param name="homeBatteryUsableEnergy">Discharging energy of the home battery in Wh.</param>
+    /// <param name="chargedEnergyFactor">Share of charged energy that can be discharged again (discharging / charging energy).</param>
     internal async Task<DtoHomeBatterySocTarget> CalculateDynamicBatteryTargetSoc(DateTimeOffset targetTime,
         int homeBatteryUsableEnergy,
         DateTimeOffset nextSunrise,
@@ -221,14 +240,15 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         int minimalStateOfChargePercent,
         int targetStateOfChargePercentForSunsetCase,
         int bufferInPercent,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        double chargedEnergyFactor = 1)
     {
-        _logger.LogTrace("{method}({targetTime}, {homeBatteryUsableEnergy}, buffer={buffer})", nameof(CalculateDynamicBatteryTargetSoc), targetTime, homeBatteryUsableEnergy, bufferInPercent);
+        _logger.LogTrace("{method}({targetTime}, {homeBatteryUsableEnergy}, buffer={buffer}, chargedEnergyFactor={factor})", nameof(CalculateDynamicBatteryTargetSoc), targetTime, homeBatteryUsableEnergy, bufferInPercent, chargedEnergyFactor);
 
         var (predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise) = await GetSurplusPredictionData(targetTime,
             nextSunrise, nextSunset, nextSunEvent, cancellationToken).ConfigureAwait(false);
         return CalculateDynamicBatteryTargetSoc(predictedSurplusPerSlices, selfSufficiencyTime, isTargetDateSunrise,
-            homeBatteryUsableEnergy, minimalStateOfChargePercent, targetStateOfChargePercentForSunsetCase, bufferInPercent);
+            homeBatteryUsableEnergy, minimalStateOfChargePercent, targetStateOfChargePercentForSunsetCase, bufferInPercent, chargedEnergyFactor);
     }
 
     /// <summary>
@@ -293,7 +313,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         int homeBatteryUsableEnergy,
         int minimalStateOfChargePercent,
         int targetStateOfChargePercentForSunsetCase,
-        int bufferInPercent)
+        int bufferInPercent,
+        double chargedEnergyFactor = 1)
     {
         var result = CalculateRequiredInitialStateOfChargePercent(
             predictedSurplusPerSlices,
@@ -301,7 +322,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             minimalStateOfChargePercent,
             isTargetDateSunrise ? minimalStateOfChargePercent : targetStateOfChargePercentForSunsetCase,
             selfSufficiencyTime,
-            bufferInPercent);
+            bufferInPercent,
+            chargedEnergyFactor);
 
         var maxDynamic = _configurationWrapper.HomeBatteryMaxDynamicMinSoc();
         if (result.RequiredInitialSocPercent > maxDynamic)
@@ -358,7 +380,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         int minimalStateOfChargePercent,
         int targetStateOfChargePercent,
         DateTimeOffset targetTime,
-        int dynamicMinSocCalculationBufferInPercent)
+        int dynamicMinSocCalculationBufferInPercent,
+        double chargedEnergyFactor = 1)
     {
         DtoHomeBatterySocTarget CreateResult(int requiredInitialSocPercent, DateTimeOffset? breachTime, int additionalEnergyRequiredWh) => new()
         {
@@ -387,7 +410,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         foreach (var energyDifference in localDictionary)
         {
             _logger.LogTrace("Adding {energy} Wh of {date}", energyDifference.Value, energyDifference.Key);
-            energyInBattery = ApplyEnergyChange(energyInBattery, energyDifference.Value, batteryMaxChargingPower);
+            energyInBattery = ApplyEnergyChange(energyInBattery, energyDifference.Value, batteryMaxChargingPower, chargedEnergyFactor);
             _logger.LogTrace("Energy in battery at {date}: {energy} Wh", energyDifference.Key, energyInBattery);
             if (energyDifference.Key <= targetTime)
             {
@@ -458,7 +481,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     int batteryUsableCapacityInWh,
     int initialSocPercent,
     DateTimeOffset targetTime,
-    List<DtoChargingSchedule> schedules)
+    List<DtoChargingSchedule> schedules,
+    double chargedEnergyFactor = 1)
     {
         _logger.LogTrace("{method}({@energyDifferences}, {batteryUsableCapacityInWh}, {initialSocPercent}, {targetTime}, {@scheduled})",
             nameof(SimulateBatterySoc), energyDifferences, batteryUsableCapacityInWh, initialSocPercent, targetTime, schedules);
@@ -532,7 +556,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             // Adjust the base energy difference
             var adjustedEnergyDifference = energyInThisInterval - consumedBySchedulesWh;
 
-            energyInBattery = ApplyEnergyChange(energyInBattery, adjustedEnergyDifference, batteryMaxChargingPower);
+            energyInBattery = ApplyEnergyChange(energyInBattery, adjustedEnergyDifference, batteryMaxChargingPower, chargedEnergyFactor);
 
             // Clamp to battery capacity
             energyInBattery = Math.Max(0, Math.Min(energyInBattery, batteryUsableCapacityInWh));
@@ -547,18 +571,19 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     }
 
     /// <summary>
-    /// Applies energy change to battery, respecting charging power limits.
+    /// Applies energy change to battery, respecting charging power limits. The charging power limit applies to the
+    /// metered energy, of which only <paramref name="chargedEnergyFactor"/> can be discharged again.
     /// </summary>
-    private int ApplyEnergyChange(int currentEnergyInBattery, int energyDifference, int? batteryMaxChargingPower)
+    internal int ApplyEnergyChange(int currentEnergyInBattery, int energyDifference, int? batteryMaxChargingPower, double chargedEnergyFactor = 1)
     {
-        _logger.LogTrace("{method}({currentEnergyInBattery}, {energyDifference}, {batteryMaxChargingPower})", nameof(ApplyEnergyChange), currentEnergyInBattery, energyDifference, batteryMaxChargingPower);
-        if (energyDifference > 0 && batteryMaxChargingPower.HasValue && energyDifference > batteryMaxChargingPower.Value)
+        _logger.LogTrace("{method}({currentEnergyInBattery}, {energyDifference}, {batteryMaxChargingPower}, {chargedEnergyFactor})", nameof(ApplyEnergyChange), currentEnergyInBattery, energyDifference, batteryMaxChargingPower, chargedEnergyFactor);
+        if (energyDifference <= 0)
         {
-            _logger.LogTrace("Use max charging power");
-            return currentEnergyInBattery + batteryMaxChargingPower.Value;
+            return currentEnergyInBattery + energyDifference;
         }
-
-        _logger.LogTrace("Use actual additional energy.");
-        return currentEnergyInBattery + energyDifference;
+        var chargedEnergy = batteryMaxChargingPower.HasValue && energyDifference > batteryMaxChargingPower.Value
+            ? batteryMaxChargingPower.Value
+            : energyDifference;
+        return currentEnergyInBattery + (int)(chargedEnergy * chargedEnergyFactor);
     }
 }

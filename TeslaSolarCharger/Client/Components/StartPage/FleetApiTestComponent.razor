@@ -1,89 +1,79 @@
-@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using System.Globalization
-@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Localization.Registries
 @using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
+@using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IHomeService HomeService
-@inject HttpClient HttpClient
-@inject IJavaScriptWrapper JavaScriptWrapper
+@inject IConstants Constants
 @inject ITextLocalizationService TextLocalizer
 
 @if (!string.IsNullOrEmpty(_fleetApiStateErrorMessage))
 {
     <MudAlert Severity="Severity.Error" Class="mb-3">
-        <div>
-            @Format(TranslationKeys.FleetApiTestStateLoadError, _fleetApiStateErrorMessage)
-        </div>
+        @Format(TranslationKeys.FleetApiTestStateLoadError, _fleetApiStateErrorMessage)
     </MudAlert>
 }
 
-
 @if (_isTesting)
 {
-    <div>
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        <span class="sr-only">@T(TranslationKeys.FleetApiTestLoading)</span>
+    <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.FleetApiTestLoading)</MudText>
+    <LoadingSpinnerComponent />
+}
+else if (!_initialLoaded || CarId == null)
+{
+    @* Nothing can be said about a car before its state is known, or about no car at all. *@
+}
+else if (_fleetApiState == TeslaCarFleetApiState.Ok)
+{
+    @* A working connection needs no box on the home page. In a guided flow the user is waiting for the answer. *@
+    @if (_testSucceeded == true || AutoTest)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-3">@T(TranslationKeys.FleetApiTestSuccess)</MudAlert>
+    }
+}
+else
+{
+    <MudAlert Severity="@(IsOptional ? Severity.Info : Severity.Error)" Class="mb-3" ContentAlignment="HorizontalAlignment.Left">
+        <div>@T(StatusKey)</div>
+        @if (IsOptional)
+        {
+            <div class="mt-1">@T(TranslationKeys.FleetApiTestOptionalExplanation)</div>
+        }
+    </MudAlert>
+
+    @* Adding the key and testing it are two separate things the user does, so they are two numbered steps. The one
+       to do next is the filled button; the other stays available, because only the user knows whether the key is
+       already in the car. *@
+    <div class="p-3 rounded border mb-3">
+        <MudText Typo="Typo.subtitle2" GutterBottom="true">@T(TranslationKeys.FleetApiTestStepAddKeyTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.FleetApiTestStepAddKeyText)</MudText>
+        @* A plain link rather than script: the browser opens it straight from the click, so no popup blocker
+           can swallow it. *@
+        <MudButton Href="@Constants.TeslaVirtualKeyPairingUrl" Target="_blank"
+                   Variant="@StepVariant(!IsTestTheNextStep)" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Key"
+                   OnClick="OnAddKeyClicked">
+            @T(TranslationKeys.FleetApiTestAddKeyButton)
+        </MudButton>
+
+        <MudText Typo="Typo.subtitle2" GutterBottom="true" Class="mt-4">@T(TranslationKeys.FleetApiTestStepTestTitle)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@T(TranslationKeys.FleetApiTestStepTestText)</MudText>
+        <MudButton Variant="@StepVariant(IsTestTheNextStep)" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.NetworkCheck"
+                   OnClick="TestFleetApiAccess">
+            @T(TranslationKeys.FleetApiTestTestButton)
+        </MudButton>
+
+        @if (_testSucceeded == false)
+        {
+            <MudText Typo="Typo.caption" Class="d-block mt-3">@T(TranslationKeys.FleetApiTestKeyCheckHint)</MudText>
+        }
     </div>
 }
-else if (_initialLoaded)
-{
-    @if (_testSucceeded == true)
-    {
-        <MudAlert Severity="Severity.Success" Class="mb-3">
-            <div>
-                @T(TranslationKeys.FleetApiTestSuccess)
-            </div>
-        </MudAlert>
-    }
-    else if (_testSucceeded == false)
-    {
-        <MudAlert Severity="Severity.Error" Class="mb-3">
-            <div>@T(TranslationKeys.FleetApiTestFailed)</div>
-            <hr />
-            <p>
-                <span>@T(TranslationKeys.FleetApiTestFailedHint)</span>&nbsp;
-                <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T(TranslationKeys.FleetApiTestAgainButton)</button>.
-                <br />
-                <span>@T(TranslationKeys.FleetApiTestKeyCheckHint)</span>&nbsp;
-                <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage()">@T(TranslationKeys.FleetApiTestHereLink)</button>.
-            </p>
-        </MudAlert>
-    }
-    else if (_fleetApiState == default)
-    {
-        <div class="alert alert-danger" role="alert">
-            <span>@T(TranslationKeys.FleetApiTestNotTested)</span>&nbsp;
-            <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T(TranslationKeys.FleetApiTestHereLink)</button>&nbsp;
-            <span>@T(TranslationKeys.FleetApiTestTestConnectionLinkSuffix)</span>
-        </div>
-    }
-    else if (_fleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
-    {
-        <div class="alert alert-danger" role="alert">
-            <span>@T(TranslationKeys.FleetApiTestNotConfigured)</span>&nbsp;
-            <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage()">@T(TranslationKeys.FleetApiTestHereLink)</button>&nbsp;
-            <span>@T(TranslationKeys.FleetApiTestRegisterLink)</span>
-            <br />
-            @T(TranslationKeys.FleetApiTestRegisterCarNote)
-        </div>
-    }
-    else if (_fleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
-    {
-        <div class="alert alert-danger" role="alert">
-            <span>@T(TranslationKeys.FleetApiTestRegisteredButNotTested)</span>&nbsp;
-            <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">@T(TranslationKeys.FleetApiTestHereLink)</button>&nbsp;
-            <span>@T(TranslationKeys.FleetApiTestTestConnectionLinkSuffix)</span>
-        </div>
-    }
-}
-
-
-
 
 @code {
     [Parameter]
@@ -103,6 +93,13 @@ else if (_initialLoaded)
     [Parameter]
     public EventCallback<(bool IsSuccess, string? Message)> OnTested { get; set; }
 
+    /// <summary>
+    /// The car is controlled via Bluetooth and the Tesla cloud is only its fallback. A missing key is then a
+    /// recommendation, not an error the user has to live with on every visit of the home page.
+    /// </summary>
+    [Parameter]
+    public bool IsOptional { get; set; }
+
     private TeslaCarFleetApiState? _fleetApiState;
 
     private string? _fleetApiStateErrorMessage;
@@ -115,13 +112,44 @@ else if (_initialLoaded)
 
     private bool _autoTestTriggered;
 
+    private bool _isStateRequested;
+
+    private int? _requestedCarId;
+
+    /// <summary>
+    /// Until the user has added the key (or when nothing is known at all) the test is the thing to try next. After a
+    /// failed test, adding the key is.
+    /// </summary>
+    private bool IsTestTheNextStep => _fleetApiState is null or TeslaCarFleetApiState.OpenedLinkButNotTested;
+
+    private string StatusKey => _testSucceeded == false
+        ? TranslationKeys.FleetApiTestFailed
+        : _fleetApiState switch
+        {
+            TeslaCarFleetApiState.NotConfigured => TranslationKeys.FleetApiTestNotConfigured,
+            TeslaCarFleetApiState.NotWorking => TranslationKeys.FleetApiTestNotWorking,
+            TeslaCarFleetApiState.OpenedLinkButNotTested => TranslationKeys.FleetApiTestRegisteredButNotTested,
+            _ => TranslationKeys.FleetApiTestNotTested,
+        };
+
     protected override async Task OnParametersSetAsync()
     {
-        _initialLoaded = false;
         await base.OnParametersSetAsync();
+        //Only another car needs its state loaded. A guided flow re-renders this component whenever it saves, and
+        //reloading then would throw away what the user just did here.
+        if (_isStateRequested && _requestedCarId == CarId)
+        {
+            return;
+        }
+        _isStateRequested = true;
+        _requestedCarId = CarId;
+        _initialLoaded = false;
+        _testSucceeded = null;
+        _autoTestTriggered = false;
         if (CarId == null)
         {
             _fleetApiState = null;
+            _fleetApiStateErrorMessage = null;
             _initialLoaded = true;
             return;
         }
@@ -130,7 +158,9 @@ else if (_initialLoaded)
         _fleetApiStateErrorMessage = fleetApiState.ErrorMessage;
 
         _initialLoaded = true;
-        //Only test once per component instance, further tests are triggered by the user via the test again button.
+        //Also tested when the stored state says no key was added: a new installation, or one moved to another
+        //device, knows nothing about a key the car already has. Only a failed test proves the key has to be added.
+        //Only tested once per component instance, further tests are triggered by the user.
         if (AutoTest && !_autoTestTriggered && _fleetApiState != TeslaCarFleetApiState.Ok)
         {
             _autoTestTriggered = true;
@@ -140,39 +170,41 @@ else if (_initialLoaded)
 
     private async Task TestFleetApiAccess()
     {
-        if (CarId == default)
+        if (CarId == null)
         {
             return;
         }
         _isTesting = true;
         //The test takes up to a minute, so make sure the spinner is rendered before waiting for the result.
         StateHasChanged();
-        var response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={CarId}").ConfigureAwait(false);
+        var result = await HomeService.TestFleetApiAccess(CarId.Value);
         //Try again if non success because first try may result in no success because of Fleet API proxy required is only set after first error. So maybe the error is due to fleet Api proxy being required but not used.
-        if (response!.Value == false)
+        if (!result.Data)
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
-            response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={CarId}").ConfigureAwait(false);
+            result = await HomeService.TestFleetApiAccess(CarId.Value);
         }
-        if (response != default)
-        {
-            _testSucceeded = response.Value;
-        }
-
+        _testSucceeded = result.Data;
+        //The server stores the same outcome, so the next visit starts from what this test found out.
+        _fleetApiState = result.Data ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
         _isTesting = false;
-        await OnTested.InvokeAsync((_testSucceeded == true,
-            _testSucceeded == true ? null : T(TranslationKeys.FleetApiTestFailed)));
+        await OnTested.InvokeAsync((result.Data, result.Data ? null : T(TranslationKeys.FleetApiTestFailed)));
     }
 
-    private async Task OpenRegisterPublicKeyPage()
+    private async Task OnAddKeyClicked()
     {
-        if (CarId == default)
+        if (CarId == null)
         {
             return;
         }
-        var response = await HttpClient.PostAsync($"api/Index/UpdateCarFleetApiState?carId={CarId}&fleetApiState={TeslaCarFleetApiState.OpenedLinkButNotTested}", null).ConfigureAwait(false);
-        await JavaScriptWrapper.OpenUrlInNewTab("https://tesla.com/_ak/solar4car.com");
+        //The Tesla page opens in its own tab. Remember that it was opened, so the test is offered as the next step
+        //here and after a reload.
+        _fleetApiState = TeslaCarFleetApiState.OpenedLinkButNotTested;
+        _testSucceeded = null;
+        await HomeService.UpdateCarFleetApiState(CarId.Value, TeslaCarFleetApiState.OpenedLinkButNotTested);
     }
+
+    private static Variant StepVariant(bool isNextStep) => isNextStep ? Variant.Filled : Variant.Outlined;
 
     private string T(string key) =>
         TextLocalizer.Get<FleetApiTestComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))

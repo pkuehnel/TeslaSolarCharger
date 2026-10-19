@@ -14,3 +14,7 @@ Before creating new methods, classes, or components, you must thoroughly analyze
 
 ## 4. Blazor-First & Minimal JavaScript Policy
 When developing or modifying this application, you must attempt to implement all functionality natively within Blazor using C#. You are required to keep the use of custom JavaScript as low as absolutely possible. Only resort to JavaScript interop as a strict last resort when native Blazor solutions do not exist or are fundamentally insufficient. **When JavaScript is required, it must exclusively be called through the `JavaScriptWrapper` class.** You are forbidden from injecting or calling `IJSRuntime` directly from standard components or other services.
+## 5. Simplicity First
+Always prefer the simplest solution that solves the actual problem. Do not add state machines, confirmation windows, extra states, heuristics or tunables for edge cases that have not been proven to matter; a simple rule that is easy to reason about beats a "smarter" one that nobody can predict. When an existing piece of code is more complicated than its job requires, say so.
+* If you think a more complex solution would be better than the simple one, do not implement it silently: implement the simple one or ask first, and explain what the more complex variant would add and why.
+* If a simpler solution would be better but needs more code (e.g. replacing a clever shortcut with an explicit, readable implementation), tell the user before implementing it.

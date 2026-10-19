@@ -9,8 +9,22 @@ public class StartupService(ILogger<StartupService> logger,
     ISettings settings,
     IConfiguration configuration,
     TimeProvider timeProvider,
-    IHttpClientFactory httpClientFactory) : IStartupService
+    IHttpClientFactory httpClientFactory,
+    IPairingService pairingService) : IStartupService
 {
+    public async Task EnsureKeyPair()
+    {
+        try
+        {
+            await pairingService.EnsureKeyPair().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            //The container must still start: everything but the worker keeps working, and pairing retries.
+            logger.LogError(ex, "Could not create the key pair on startup");
+        }
+    }
+
     public async Task UpdateRequestsAllowed()
     {
         settings.BleRequestAllowed = true;

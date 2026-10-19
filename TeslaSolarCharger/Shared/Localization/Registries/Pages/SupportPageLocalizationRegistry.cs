@@ -123,12 +123,12 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.German, "Fleet-Konfiguration erzwingen"));
 
         Register(TranslationKeys.SupportWakeUpCarButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Wake up (Fleet API)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Aufwecken (Fleet API)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Wake up (Tesla cloud)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Aufwecken (Tesla-Cloud)"));
 
         Register(TranslationKeys.SupportGetVehicleOnlineStateButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Get online state (Fleet API)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Onlinestatus abrufen (Fleet API)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Get online state (Tesla cloud)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Onlinestatus abrufen (Tesla-Cloud)"));
 
         Register(TranslationKeys.SupportGetBleBodyControllerStateButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Get body controller state (BLE)"),
@@ -197,12 +197,12 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.German, "Zu setzender Ladestrom (A)"));
 
         Register(TranslationKeys.SupportChargingAmpsToSetHelperText,
-            new TextLocalizationTranslation(LanguageCodes.English, "The charging current in ampere that will be sent to the car via Fleet API."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladestrom in Ampere, der über die Fleet API an das Fahrzeug gesendet wird."));
+            new TextLocalizationTranslation(LanguageCodes.English, "The charging current in ampere that will be sent to the car via the Tesla cloud."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Der Ladestrom in Ampere, der über die Tesla-Cloud an das Fahrzeug gesendet wird."));
 
         Register(TranslationKeys.SupportSetChargingAmpsButton,
-            new TextLocalizationTranslation(LanguageCodes.English, "Set charge current (Fleet API)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ladestrom setzen (Fleet API)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Set charge current (Tesla cloud)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestrom setzen (Tesla-Cloud)"));
 
         Register(TranslationKeys.SupportChargingStationDebugDetailsSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Charging station debug details"),
@@ -497,8 +497,8 @@ public class SupportPageLocalizationRegistry : TextLocalizationRegistry<SupportP
             new TextLocalizationTranslation(LanguageCodes.German, "Bei günstigem Netzpreis laden"));
 
         Register(TranslationKeys.HomeBatteryModeUnknown,
-            new TextLocalizationTranslation(LanguageCodes.English, "Unknown (not modified by TSC)"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Unbekannt (nicht durch TSC verändert)"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Unknown (not modified by Solar4Car)"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Unbekannt (nicht durch Solar4Car verändert)"));
 
         Register(TranslationKeys.HomeBatteryModeNormal,
             new TextLocalizationTranslation(LanguageCodes.English, "Normal"),

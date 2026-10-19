@@ -35,8 +35,8 @@ public class BaseConfigurationPageLocalizationRegistry : TextLocalizationRegistr
             new TextLocalizationTranslation(LanguageCodes.German, "Der Standort ist notwendig, um zu erkennen, ob Fahrzeuge zu Hause sind und um das Wetter vorherzusagen."));
 
         Register(TranslationKeys.BaseConfigurationHomeGeofenceMapHandlingHint,
-            new TextLocalizationTranslation(LanguageCodes.English, "Click on the map to select your home geofence. Within that area TSC will regulate the charging power."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Karte, um Ihren Home-Geofence auszuwählen. Innerhalb dieses Bereichs reguliert TSC die Ladeleistung."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Click on the map to select your home geofence. Within that area Solar4Car will regulate the charging power."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Klicken Sie auf die Karte, um Ihren Home-Geofence auszuwählen. Innerhalb dieses Bereichs reguliert Solar4Car die Ladeleistung."));
 
         Register(TranslationKeys.BaseConfigurationTelegramSectionTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "Telegram:"),

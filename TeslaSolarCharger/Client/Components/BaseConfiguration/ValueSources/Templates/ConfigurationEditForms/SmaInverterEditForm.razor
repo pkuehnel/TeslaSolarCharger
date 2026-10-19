@@ -1,8 +1,13 @@
 @using Newtonsoft.Json.Linq
 @using TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts
 @using TeslaSolarCharger.Shared.Dtos.TemplateConfiguration.Sma
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
 
 @implements TeslaSolarCharger.Client.Components.BaseConfiguration.ValueSources.Templates.ConfigurationEditForms.Contracts.ITemplateEditFormComponent
+
+@inject ITextLocalizationService TextLocalizer
 
 <TemplateEditFormComponentBase TConfiguration="DtoSmaInverterTemplateValueConfiguration"
                                Configuration="Configuration"
@@ -16,6 +21,7 @@
             <GenericInput For="() => wrapped.Item.EnableHomeBatteryControl"></GenericInput>
             @if (wrapped.Item.EnableHomeBatteryControl)
             {
+                <MudAlert Severity="Severity.Info" Class="mb-3">@T(TranslationKeys.SmaInverterEditFormForecastBasedChargingHint)</MudAlert>
                 <GenericInput For="() => wrapped.Item.MaxBatteryChargePowerW"></GenericInput>
                 <GenericInput For="() => wrapped.Item.MaxBatteryDischargePowerW"></GenericInput>
             }
@@ -43,4 +49,7 @@
         return TemplateEditForm?.GetConfiguration();
     }
 
+    private string T(string key) =>
+        TextLocalizer.Get<SharedComponentLocalizationRegistry>(key)
+        ?? key;
 }

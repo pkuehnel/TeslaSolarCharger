@@ -39,44 +39,44 @@ public class CloudConnectionPageLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Registrieren"));
 
         Register(TranslationKeys.CloudConnectionTeslaFleetApiSectionTitle,
-            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Fleet API Connection"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Fleet-API-Verbindung"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Tesla Cloud Connection"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tesla-Cloud-Verbindung"));
 
         Register(TranslationKeys.CloudConnectionRequestTokenButton,
             new TextLocalizationTranslation(LanguageCodes.English, "Request Token"),
             new TextLocalizationTranslation(LanguageCodes.German, "Token anfordern"));
 
         Register(TranslationKeys.CloudConnectionTokenStateMissingPrecondition,
-            new TextLocalizationTranslation(LanguageCodes.English, "Could not check Token state. Is your TSC connected to the internet?"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Tokenstatus konnte nicht geprüft werden. Ist Ihr TSC mit dem Internet verbunden?"));
+            new TextLocalizationTranslation(LanguageCodes.English, "Could not check Token state. Is your Solar4Car installation connected to the internet?"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Tokenstatus konnte nicht geprüft werden. Ist Ihre Solar4Car-Installation mit dem Internet verbunden?"));
 
         Register(TranslationKeys.CloudConnectionTokenStateNotAvailable,
             new TextLocalizationTranslation(LanguageCodes.English, "No Token found, login below to get a Backend Token"),
             new TextLocalizationTranslation(LanguageCodes.German, "Kein Token gefunden, melden Sie sich unten an, um ein Backend-Token zu erhalten"));
 
         Register(TranslationKeys.CloudConnectionTokenStateUnauthorized,
-            new TextLocalizationTranslation(LanguageCodes.English, "Your Backend Token is unauthorized. Reasons could be a changed solar4car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Backend-Token ist nicht autorisiert. Gründe können ein geändertes solar4car.com-Passwort, ein zweiter TSC mit derselben Installations-ID (angezeigt ganz unten auf der Startseite) oder ein längerer Ausfall Ihres TSC sein."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Your Backend Token is unauthorized. Reasons could be a changed solar4car.com password, a second Solar4Car installation running with the same installation ID (displayed on the home page at the very bottom) or your Solar4Car installation was not running for quite a while."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Backend-Token ist nicht autorisiert. Gründe können ein geändertes solar4car.com-Passwort, eine zweite Solar4Car-Installation mit derselben Installations-ID (angezeigt ganz unten auf der Startseite) oder ein längerer Ausfall Ihrer Solar4Car-Installation sein."));
 
         Register(TranslationKeys.CloudConnectionTokenStateMissingScopes,
             new TextLocalizationTranslation(LanguageCodes.English, "Your Backend Token has missing scopes"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ihrem Backend-Token fehlen Berechtigungen"));
 
         Register(TranslationKeys.CloudConnectionTokenStateExpired,
-            new TextLocalizationTranslation(LanguageCodes.English, "Your Backend Token is expired, which means it could not be refreshed automatically. Reasons could be a changed solar4car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Backend-Token ist abgelaufen und konnte nicht automatisch erneuert werden. Gründe können ein geändertes solar4car.com-Passwort, ein zweiter TSC mit derselben Installations-ID (angezeigt ganz unten auf der Startseite) oder ein längerer Ausfall Ihres TSC sein."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Your Backend Token is expired, which means it could not be refreshed automatically. Reasons could be a changed solar4car.com password, a second Solar4Car installation running with the same installation ID (displayed on the home page at the very bottom) or your Solar4Car installation was not running for quite a while."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Backend-Token ist abgelaufen und konnte nicht automatisch erneuert werden. Gründe können ein geändertes solar4car.com-Passwort, eine zweite Solar4Car-Installation mit derselben Installations-ID (angezeigt ganz unten auf der Startseite) oder ein längerer Ausfall Ihrer Solar4Car-Installation sein."));
 
         Register(TranslationKeys.CloudConnectionTokenStateUpToDate,
             new TextLocalizationTranslation(LanguageCodes.English, "You are connected to the backend, everything is working as expected."),
             new TextLocalizationTranslation(LanguageCodes.German, "Sie sind mit dem Backend verbunden, alles funktioniert wie erwartet."));
 
         Register(TranslationKeys.CloudConnectionFleetApiTokenStateMissingPrecondition,
-            new TextLocalizationTranslation(LanguageCodes.English, "A login to solar4car.com is required before requesting a Tesla Fleet API Token."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Eine Anmeldung bei solar4car.com ist erforderlich, bevor Sie ein Tesla-Fleet-API-Token anfordern können."));
+            new TextLocalizationTranslation(LanguageCodes.English, "A login to solar4car.com is required before requesting a Tesla cloud token."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Eine Anmeldung bei solar4car.com ist erforderlich, bevor Sie ein Tesla-Cloud-Token anfordern können."));
 
         Register(TranslationKeys.CloudConnectionFleetApiTokenStateNotAvailable,
-            new TextLocalizationTranslation(LanguageCodes.English, "You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben noch kein Fleet-API-Token angefordert. Fordern Sie ein neues Token an, gewähren Sie Zugriff auf alle Berechtigungen und aktivieren Sie den mobilen Zugriff in Ihrem Fahrzeug."));
+            new TextLocalizationTranslation(LanguageCodes.English, "You did not request a Tesla cloud token, yet. Request a new token, allow access to all scopes and enable mobile access in your car."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie haben noch kein Tesla-Cloud-Token angefordert. Fordern Sie ein neues Token an, gewähren Sie Zugriff auf alle Berechtigungen und aktivieren Sie den mobilen Zugriff in Ihrem Fahrzeug."));
 
         Register(TranslationKeys.CloudConnectionFleetApiTokenStateUnauthorized,
             new TextLocalizationTranslation(LanguageCodes.English, "Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car."),
@@ -87,8 +87,8 @@ public class CloudConnectionPageLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Ihrem Token fehlen Berechtigungen. Fordern Sie ein neues Token an und erlauben Sie alle Berechtigungen (es werden nur benötigte Berechtigungen angefordert)."));
 
         Register(TranslationKeys.CloudConnectionFleetApiTokenStateExpired,
-            new TextLocalizationTranslation(LanguageCodes.English, "Your Fleet API token is expired. Request a new Token and allow all scopes (only required scopes are requested)."),
-            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Fleet-API-Token ist abgelaufen. Fordern Sie ein neues Token an und erlauben Sie alle Berechtigungen (es werden nur benötigte Berechtigungen angefordert)."));
+            new TextLocalizationTranslation(LanguageCodes.English, "Your Tesla cloud token is expired. Request a new Token and allow all scopes (only required scopes are requested)."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ihr Tesla-Cloud-Token ist abgelaufen. Fordern Sie ein neues Token an und erlauben Sie alle Berechtigungen (es werden nur benötigte Berechtigungen angefordert)."));
 
         Register(TranslationKeys.CloudConnectionFleetApiTokenStateUpToDate,
             new TextLocalizationTranslation(LanguageCodes.English, "Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:"),
@@ -103,8 +103,8 @@ public class CloudConnectionPageLocalizationRegistry : TextLocalizationRegistry<
             new TextLocalizationTranslation(LanguageCodes.German, "Anmeldung erfolgreich"));
 
         Register(TranslationKeys.CloudConnectionFleetApiLoginRequirementNotification,
-            new TextLocalizationTranslation(LanguageCodes.English, "You need to be logged in to solar4car.com to generate a Fleet API Token"),
-            new TextLocalizationTranslation(LanguageCodes.German, "Sie müssen bei solar4car.com angemeldet sein, um ein Fleet-API-Token zu generieren"));
+            new TextLocalizationTranslation(LanguageCodes.English, "You need to be logged in to solar4car.com to generate a Tesla cloud token"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Sie müssen bei solar4car.com angemeldet sein, um ein Tesla-Cloud-Token zu generieren"));
 
         Register(TranslationKeys.CloudConnectionTeslaLoginUrlGenerationError,
             new TextLocalizationTranslation(LanguageCodes.English, "Could not generate Tesla Login URL"),

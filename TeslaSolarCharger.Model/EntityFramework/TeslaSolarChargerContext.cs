@@ -42,6 +42,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<PvValueLog> PvValueLogs { get; set; } = null!;
     public DbSet<ChargingStationConnectorAllowedCar> ChargingStationConnectorAllowedCars { get; set; } = null!;
     public DbSet<TemplateValueConfiguration> TemplateValueConfigurations { get; set; } = null!;
+    public DbSet<UsableEnergySample> UsableEnergySamples { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -267,6 +268,21 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<PvValueLog>()
             .Property(m => m.Timestamp)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<UsableEnergySample>(entity =>
+        {
+            entity.Property(s => s.StartTime)
+                .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+            entity.Property(s => s.EndTime)
+                .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+            entity.HasIndex(s => new { s.Kind, s.CarId, s.EndTime });
+            entity.HasIndex(s => s.ChargingProcessId)
+                .IsUnique();
+            entity.HasOne(s => s.Car)
+                .WithMany()
+                .HasForeignKey(s => s.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<SolarRadiation>()
             .Property(m => m.Start)

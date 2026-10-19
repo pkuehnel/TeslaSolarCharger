@@ -1,4 +1,6 @@
 using Autofac;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using PkSoftwareService.Custom.Backend.Ble;
 using System;
@@ -244,25 +246,6 @@ public class BleVehicleDataServiceTests : TestBase
         Assert.True(TeslaSolarCharger.Server.Services.BleVehicleDataService.DerivePluggedIn(chargeState));
     }
 
-    [Fact]
-    public async Task BeaconMissDoesNotChangeStateBeforeAwayIsConfirmed()
-    {
-        var dtoCar = SetupBleDataCollectionCar();
-        SetupPresence(present: false);
-        Mock.Mock<IBlePresenceStateService>().Setup(p => p.RegisterPresenceAge(dtoCar.Id, It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(BlePresenceDecision.Uncertain);
-
-        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
-        await service.RefreshBleCarData();
-
-        //A single miss can be a transient BLE failure of a car sitting in the garage: keep the last known state.
-        Assert.Null(dtoCar.IsHomeGeofence.Value);
-        Assert.Empty(Context.CarValueLogs.ToList());
-        //An absent car must not be connected to at all, that is what makes an away car cheap.
-        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
-        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
-    }
-
     /// <summary>
     /// The poll used to connect to a car that rejects TSC's key every few seconds forever, which filled the radio
     /// and the error list while the one thing that would fix it - adding the key - was never named.
@@ -307,17 +290,21 @@ public class BleVehicleDataServiceTests : TestBase
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
-    [Fact]
-    public async Task ConfirmedAwayCarIsSetNotAtHomeOfflineAndChargingValuesAreReset()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(null)]
+    public async Task UnheardCarIsSetNotAtHomeOfflineAndChargingValuesAreReset(bool? wasHome)
     {
         var dtoCar = SetupBleDataCollectionCar();
+        dtoCar.IsHomeGeofence.Update(DateTimeOffset.MinValue, wasHome);
         SetupPresence(present: false);
-        Mock.Mock<IBlePresenceStateService>().Setup(p => p.RegisterPresenceAge(dtoCar.Id, It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(BlePresenceDecision.JustConfirmedAway);
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
 
+        //An absent car must not be connected to at all, that is what makes an away car cheap.
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetChargeState(It.IsAny<string>()), Times.Never);
         Assert.False(dtoCar.IsHomeGeofence.Value);
         Assert.False(dtoCar.IsOnline.Value);
         var carValueLogs = Context.CarValueLogs.ToList();
@@ -330,34 +317,47 @@ public class BleVehicleDataServiceTests : TestBase
     }
 
     [Fact]
-    public async Task AlreadyConfirmedAwayCarDoesNotWriteValuesAgain()
+    public async Task AlreadyAwayCarDoesNotWriteValuesAgain()
     {
         var dtoCar = SetupBleDataCollectionCar();
+        dtoCar.IsHomeGeofence.Update(DateTimeOffset.MinValue, false);
         SetupPresence(present: false);
-        Mock.Mock<IBlePresenceStateService>().Setup(p => p.RegisterPresenceAge(dtoCar.Id, It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(BlePresenceDecision.AlreadyAway);
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
 
         Assert.Empty(Context.CarValueLogs.ToList());
+        Assert.False(dtoCar.IsHomeGeofence.Value);
+    }
+
+    /// <summary>
+    /// The Franzi case: the container restarted while the car was away and never heard it since. Once the scan has
+    /// been running for the max age, that is proof enough the car is gone.
+    /// </summary>
+    [Fact]
+    public async Task CarNeverHeardByAWarmScanIsSetAway()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        dtoCar.IsHomeGeofence.Update(DateTimeOffset.MinValue, true);
+        SetupPresence(present: false, lastSeenMsAgo: null);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Assert.False(dtoCar.IsHomeGeofence.Value);
     }
 
     /// <summary>
     /// A presence request that failed while the car was already gone used to leave an error open until the car came
-    /// back and was read successfully, which can be days: only the one shot away transition resolved it.
+    /// back and was read successfully, which can be days.
     /// </summary>
     [Theory]
-    [InlineData(BlePresenceDecision.JustConfirmedAway)]
-    [InlineData(BlePresenceDecision.AlreadyAway)]
-    [InlineData(BlePresenceDecision.Uncertain)]
-    [InlineData(BlePresenceDecision.Unknown)]
-    public async Task ACarThatIsNotReadHasNoOpenDataCollectionError(BlePresenceDecision decision)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ACarThatIsNotReadHasNoOpenDataCollectionError(bool warmingUp)
     {
         var dtoCar = SetupBleDataCollectionCar();
-        SetupPresence(present: false);
-        Mock.Mock<IBlePresenceStateService>().Setup(p => p.RegisterPresenceAge(dtoCar.Id, It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(decision);
+        SetupPresence(present: false, warmingUp: warmingUp);
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
@@ -382,7 +382,6 @@ public class BleVehicleDataServiceTests : TestBase
 
         Assert.Null(dtoCar.IsHomeGeofence.Value);
         Assert.Empty(Context.CarValueLogs.ToList());
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()), Times.Never);
         Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.AtLeastOnce);
     }
@@ -399,7 +398,6 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshBleCarData();
 
         Assert.Null(dtoCar.IsHomeGeofence.Value);
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()), Times.Never);
         Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<string>(), Mock.Create<IIssueKeys>().BleAdapterNotFound, TestVin, It.IsAny<string?>()), Times.Once);
     }
@@ -409,7 +407,6 @@ public class BleVehicleDataServiceTests : TestBase
     {
         var dtoCar = SetupBleDataCollectionCar();
         SetupPresence(present: true);
-        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(90);
         Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
             .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
 
@@ -418,8 +415,6 @@ public class BleVehicleDataServiceTests : TestBase
 
         Assert.True(dtoCar.IsHomeGeofence.Value);
         //The age the container reported has to be what the decision is made on, not a rounded or defaulted value.
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id,
-            TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(90)), Times.Once);
     }
 
     [Fact]
@@ -473,7 +468,6 @@ public class BleVehicleDataServiceTests : TestBase
 
         //The car must be left entirely alone: no reads, no state writes and no released slot it never acquired.
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()), Times.Never);
         Mock.Mock<IBleReadCoordinator>().Verify(c => c.EndRead(It.IsAny<int>()), Times.Never);
         Assert.Null(dtoCar.IsHomeGeofence.Value);
     }
@@ -584,7 +578,6 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshSingleCarData(dtoCar.Id);
 
         Assert.True(dtoCar.IsHomeGeofence.Value);
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id, It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()), Times.Once);
         //A single car read must not touch the container's warm window, that belongs to the scheduled poll alone.
         Mock.Mock<IBleService>().Verify(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(),
             It.Is<List<string>>(v => v.Contains(TestVin)), null, It.IsAny<int?>()), Times.Once);
@@ -665,17 +658,16 @@ public class BleVehicleDataServiceTests : TestBase
 
     /// <summary>
     /// The container answers how long ago the car was last heard. A present car is a few hundred milliseconds old,
-    /// an absent one far past any max age; the presence decision itself is the state service.s job and mocked
-    /// separately.
+    /// an absent one far past any max age (or never heard when <paramref name="lastSeenMsAgo"/> is null).
     /// </summary>
-    private void SetupPresence(bool present)
+    private void SetupPresence(bool present, bool warmingUp = false, long? lastSeenMsAgo = 600000)
     {
         Mock.Mock<IBleService>()
             .Setup(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBlePresenceResult
             {
                 ScannerRunning = true,
-                WarmingUp = false,
+                WarmingUp = warmingUp,
                 MaxAgeMs = 90000,
                 //Radio evidence: it no longer influences presence but still drives the radio silence warning.
                 AdvertisementsSeen = 4711,
@@ -686,15 +678,12 @@ public class BleVehicleDataServiceTests : TestBase
                     {
                         Vin = TestVin,
                         Heard = present,
-                        LastSeenMsAgo = present ? 300 : 600000,
+                        LastSeenMsAgo = present ? 300 : lastSeenMsAgo,
                         Rssi = present ? -63 : null,
                         LastSource = present ? "advertisement" : null,
                     },
                 },
             });
-        Mock.Mock<IBlePresenceStateService>()
-            .Setup(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(present ? BlePresenceDecision.Present : BlePresenceDecision.Uncertain);
     }
 
     private DtoCar SetupBleDataCollectionCar(bool useFleetTelemetry = false)
@@ -720,6 +709,7 @@ public class BleVehicleDataServiceTests : TestBase
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { dtoCar });
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataViaBle()).Returns(true);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.GetVehicleDataFromTesla()).Returns(true);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(180);
         //No concurrent read in these tests, so the coordinator always grants the read slot. Without this the
         //auto mocked coordinator returns false and every refresh would silently do nothing.
         Mock.Mock<IBleReadCoordinator>().Setup(c => c.TryBeginRead(It.IsAny<int>())).Returns(true);
@@ -773,7 +763,6 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshBleCarData();
 
         //Null age means "nothing is known", which the presence service turns into Unknown rather than a miss.
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id, null, It.IsAny<TimeSpan>()), Times.Once);
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
         Assert.Null(dtoCar.IsHomeGeofence.Value);
     }
@@ -793,7 +782,6 @@ public class BleVehicleDataServiceTests : TestBase
     public async Task FreshEvidenceProvesPresenceWhateverTheScannerReportsAboutItself(bool warmingUp, bool scannerRunning)
     {
         var dtoCar = SetupBleDataCollectionCar();
-        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(90);
         Mock.Mock<IBleService>()
             .Setup(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBlePresenceResult
@@ -807,17 +795,12 @@ public class BleVehicleDataServiceTests : TestBase
                     new() { Vin = TestVin, Heard = true, LastSeenMsAgo = 4, LastSource = "advertisement", Rssi = -65, },
                 },
             });
-        Mock.Mock<IBlePresenceStateService>()
-            .Setup(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(BlePresenceDecision.Present);
         Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
             .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
 
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
 
-        Mock.Mock<IBlePresenceStateService>().Verify(
-            p => p.RegisterPresenceAge(dtoCar.Id, TimeSpan.FromMilliseconds(4), It.IsAny<TimeSpan>()), Times.Once);
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
     }
 
@@ -829,7 +812,6 @@ public class BleVehicleDataServiceTests : TestBase
     public async Task StaleEvidenceConcludesNothingWhileTheScannerIsStillWarmingUp()
     {
         var dtoCar = SetupBleDataCollectionCar();
-        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(90);
         Mock.Mock<IBleService>()
             .Setup(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBlePresenceResult
@@ -846,8 +828,9 @@ public class BleVehicleDataServiceTests : TestBase
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
 
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id, null, It.IsAny<TimeSpan>()), Times.Once);
         Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(It.IsAny<string>()), Times.Never);
+        Assert.Null(dtoCar.IsHomeGeofence.Value);
+        Assert.Empty(Context.CarValueLogs.ToList());
     }
 
     /// <summary>
@@ -873,7 +856,6 @@ public class BleVehicleDataServiceTests : TestBase
         var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
         await service.RefreshBleCarData();
 
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id, null, It.IsAny<TimeSpan>()), Times.Once);
         Assert.Null(dtoCar.IsHomeGeofence.Value);
     }
 
@@ -885,7 +867,6 @@ public class BleVehicleDataServiceTests : TestBase
     public async Task ACarKeptPresentByCommandEvidenceIsStillRead()
     {
         var dtoCar = SetupBleDataCollectionCar();
-        Mock.Mock<IConfigurationWrapper>().Setup(c => c.BlePresenceMaxAgeSeconds()).Returns(90);
         Mock.Mock<IBleService>()
             .Setup(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new DtoBlePresenceResult
@@ -908,9 +889,6 @@ public class BleVehicleDataServiceTests : TestBase
                     },
                 },
             });
-        Mock.Mock<IBlePresenceStateService>()
-            .Setup(p => p.RegisterPresenceAge(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan>()))
-            .Returns(BlePresenceDecision.Present);
         Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
             .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
 
@@ -918,7 +896,493 @@ public class BleVehicleDataServiceTests : TestBase
         await service.RefreshBleCarData();
 
         Assert.True(dtoCar.IsHomeGeofence.Value);
-        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterPresenceAge(dtoCar.Id,
-            TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(90)), Times.Once);
+    }
+
+    private const string SecondVin = "TESTVIN123456789B";
+    private const string BleHost = "http://192.168.1.38:7210";
+    private const string RadioA = "A0:AD:9F:79:AD:13";
+    private const string RadioB = "BB:BB:BB:BB:BB:BB";
+
+    /// <summary>
+    /// Two BLE data collection cars with the given container URLs and adapters, both read as present whenever the
+    /// container answers. Presence answers themselves are set up per test.
+    /// </summary>
+    private (DtoCar First, DtoCar Second) SetupTwoBleDataCollectionCars(string? firstHost, string? firstAdapter,
+        string? secondHost, string? secondAdapter)
+    {
+        var first = SetupBleDataCollectionCar();
+        first.BleApiBaseUrl = firstHost;
+        first.BleAdapterAddress = firstAdapter;
+        Context.Cars.Add(new Car
+        {
+            Id = 2,
+            Vin = SecondVin,
+            CarType = CarType.Tesla,
+            ShouldBeManaged = true,
+            UseBle = true,
+            UseFleetTelemetry = false,
+            IncludeTrackingRelevantFields = false,
+        });
+        Context.SaveChangesAsync().GetAwaiter().GetResult();
+        DetachAllEntities();
+        var second = new DtoCar
+        {
+            Id = 2,
+            Vin = SecondVin,
+            BleApiBaseUrl = secondHost,
+            BleAdapterAddress = secondAdapter,
+        };
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar> { first, second });
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(It.IsAny<string>()))
+            .ReturnsAsync(new DtoBleCommandResult { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson });
+        return (first, second);
+    }
+
+    /// <summary>
+    /// A container answer that heard both cars just now, on the adapter the container resolved.
+    /// </summary>
+    private static DtoBlePresenceResult PresenceHeardOn(string? resolvedAdapter) => new()
+    {
+        Adapter = resolvedAdapter,
+        ScannerRunning = true,
+        WarmingUp = false,
+        MaxAgeMs = 90000,
+        LastAdvertisementMsAgo = 120,
+        Vehicles = new List<DtoBlePresenceVehicle>
+        {
+            new() { Vin = TestVin, Heard = true, LastSeenMsAgo = 300, LastSource = "advertisement", },
+            new() { Vin = SecondVin, Heard = true, LastSeenMsAgo = 300, LastSource = "advertisement", },
+        },
+    };
+
+    private void SetupPresenceAnswer(string? requestedAdapter, DtoBlePresenceResult answer)
+    {
+        Mock.Mock<IBleService>()
+            .Setup(b => b.GetPresence(It.IsAny<string?>(), It.Is<string?>(a => a == requestedAdapter), It.IsAny<List<string>>(),
+                It.IsAny<int?>(), It.IsAny<int?>()))
+            .ReturnsAsync(answer);
+    }
+
+    private void VerifyPresenceRequestedOnce(string? requestedAdapter)
+    {
+        Mock.Mock<IBleService>().Verify(b => b.GetPresence(It.IsAny<string?>(), It.Is<string?>(a => a == requestedAdapter),
+            It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// Keeps the read of the first car running until the returned source is completed, like a slow connect.
+    /// </summary>
+    private TaskCompletionSource<DtoBleCommandResult> BlockBodyControllerRead(string vin)
+    {
+        var read = new TaskCompletionSource<DtoBleCommandResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(vin)).Returns(read.Task);
+        return read;
+    }
+
+    private static DtoBleCommandResult AsleepRead() =>
+        new() { Success = true, Outcome = BleCommandOutcome.Ok, ResultMessage = AsleepBodyControllerStateJson };
+
+    /// <summary>
+    /// The instance a further radio group is handed to, resolved from the scope the refresh creates for it.
+    /// </summary>
+    private Mock<IServiceScope> SetupScopedService(IBleVehicleDataService scopedService)
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider.Setup(p => p.GetService(typeof(IBleVehicleDataService))).Returns(scopedService);
+        var scope = new Mock<IServiceScope>();
+        scope.Setup(s => s.ServiceProvider).Returns(serviceProvider.Object);
+        Mock.Mock<IServiceScopeFactory>().Setup(f => f.CreateScope()).Returns(scope.Object);
+        return scope;
+    }
+
+    /// <summary>
+    /// The customer setup behind the false read timeouts: one car without a selected adapter, one with the adapter
+    /// the container uses by default anyway. Two configured groups, one radio - their reads must queue in TSC, not in
+    /// the container where a read behind a slow connect runs out of TSC's HTTP timeout.
+    /// </summary>
+    [Fact]
+    public async Task CarsOnOneRadioAreNeverReadInParallel()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, BleHost + "/", RadioA);
+        SetupPresenceAnswer(null, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        var firstRead = BlockBodyControllerRead(TestVin);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var refresh = service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Never);
+        firstRead.SetResult(AsleepRead());
+        await refresh;
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Once);
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+        //The presence answer of phase 1 is reused, never fetched again for the read.
+        VerifyPresenceRequestedOnce(null);
+        VerifyPresenceRequestedOnce(RadioA);
+    }
+
+    [Fact]
+    public async Task CarsOnDifferentRadiosAreReadInParallelInTheirOwnScope()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, RadioA, BleHost, RadioB);
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioB, PresenceHeardOn(RadioB));
+        var firstRead = BlockBodyControllerRead(TestVin);
+        //A real instance, as a scope would resolve it, so the read of the second radio actually happens.
+        var scope = SetupScopedService(Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>());
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var refresh = service.RefreshBleCarData();
+
+        //The second radio is read while the first one is still busy.
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Once);
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Once);
+        firstRead.SetResult(AsleepRead());
+        await refresh;
+
+        scope.Verify(s => s.Dispose(), Times.Once);
+        VerifyPresenceRequestedOnce(RadioA);
+        VerifyPresenceRequestedOnce(RadioB);
+    }
+
+    [Fact]
+    public async Task ASecondRadioGroupIsHandedItsGroupsWithTheirPresence()
+    {
+        var (_, second) = SetupTwoBleDataCollectionCars(BleHost, RadioA, BleHost, RadioB);
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        var secondAnswer = PresenceHeardOn(RadioB);
+        SetupPresenceAnswer(RadioB, secondAnswer);
+        var scopedService = new Mock<IBleVehicleDataService>();
+        SetupScopedService(scopedService.Object);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        scopedService.Verify(s => s.RefreshRadioGroupSafely(It.Is<List<DtoBleGroupPresence>>(groups =>
+            groups.Count == 1
+            && groups[0].Host == BleHost
+            && groups[0].Adapter == RadioB
+            && groups[0].Cars.Single() == second
+            && groups[0].Presence == secondAnswer
+            && groups[0].PresenceException == null)), Times.Once);
+    }
+
+    public enum PresenceFailure
+    {
+        Throws,
+        ErrorMessage,
+        AdapterNotFound,
+    }
+
+    /// <summary>
+    /// A presence answer that does not name the radio tells nothing about which radio the group uses. Guessing wrong
+    /// reads one radio in parallel, so everything on that container is serialized - and the failure is still reported
+    /// as before.
+    /// </summary>
+    [Theory]
+    [InlineData(PresenceFailure.Throws)]
+    [InlineData(PresenceFailure.ErrorMessage)]
+    [InlineData(PresenceFailure.AdapterNotFound)]
+    public async Task AGroupWithoutAnswerIsSerializedWithItsContainerAndStillReported(PresenceFailure failure)
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, BleHost, RadioB);
+        SetupPresenceAnswer(null, PresenceHeardOn(RadioA));
+        var secondPresence = Mock.Mock<IBleService>()
+            .Setup(b => b.GetPresence(It.IsAny<string?>(), It.Is<string?>(a => a == RadioB), It.IsAny<List<string>>(),
+                It.IsAny<int?>(), It.IsAny<int?>()));
+        switch (failure)
+        {
+            case PresenceFailure.Throws:
+                secondPresence.ThrowsAsync(new HttpRequestException("container unreachable"));
+                break;
+            case PresenceFailure.ErrorMessage:
+                secondPresence.ReturnsAsync(new DtoBlePresenceResult { ErrorMessage = "hci1 is gone", });
+                break;
+            case PresenceFailure.AdapterNotFound:
+                secondPresence.ReturnsAsync(new DtoBlePresenceResult
+                {
+                    Adapter = RadioB,
+                    ErrorMessage = $"The configured Bluetooth adapter {RadioB} is not present on this host.",
+                });
+                break;
+        }
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+        VerifyPresenceRequestedOnce(null);
+        VerifyPresenceRequestedOnce(RadioB);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Never);
+        var expectedIssueKey = failure == PresenceFailure.AdapterNotFound
+            ? Mock.Create<IIssueKeys>().BleAdapterNotFound
+            : Mock.Create<IIssueKeys>().BleDataCollectionError;
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), expectedIssueKey, SecondVin, It.IsAny<string?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// A container too old to report the resolved adapter: the two groups may share a radio, so they are read one
+    /// after the other.
+    /// </summary>
+    [Fact]
+    public async Task AnAnswerWithoutResolvedAdapterIsSerializedWithItsContainer()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, RadioA, BleHost, RadioB);
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioB, PresenceHeardOn(null));
+        var firstRead = BlockBodyControllerRead(TestVin);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var refresh = service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Never);
+        firstRead.SetResult(AsleepRead());
+        await refresh;
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Once);
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+    }
+
+    [Fact]
+    public async Task OneRadioIsTrackedUnderOneSilenceKey()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, BleHost, RadioA.ToLowerInvariant());
+        SetupPresenceAnswer(null, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterRadioEvidence(RadioA, true,
+            It.IsAny<DateTimeOffset>()), Times.Exactly(2));
+        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterRadioEvidence(
+            It.Is<string>(k => k != RadioA), It.IsAny<bool>(), It.IsAny<DateTimeOffset>()), Times.Never);
+    }
+
+    /// <summary>
+    /// One container reached once by DNS name and once by IP address: the hosts differ, the radio does not.
+    /// </summary>
+    [Fact]
+    public async Task OneContainerUnderTwoHostNamesIsStillOneRadio()
+    {
+        SetupTwoBleDataCollectionCars("http://bleapi:7210", null, BleHost, null);
+        SetupPresenceAnswer(null, PresenceHeardOn(RadioA));
+        var firstRead = BlockBodyControllerRead(TestVin);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var refresh = service.RefreshBleCarData();
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Never);
+        firstRead.SetResult(AsleepRead());
+        await refresh;
+
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Once);
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+    }
+
+    /// <summary>
+    /// "hci:hci0" only names an adapter on its own container, so two containers reporting it are still two radios.
+    /// </summary>
+    [Fact]
+    public async Task AdapterKeysWithoutBluetoothAddressKeepTheirContainerApart()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, "http://192.168.1.39:7210", null);
+        SetupPresenceAnswer(null, PresenceHeardOn("hci:hci0"));
+        var scopedService = new Mock<IBleVehicleDataService>();
+        SetupScopedService(scopedService.Object);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        scopedService.Verify(s => s.RefreshRadioGroupSafely(It.Is<List<DtoBleGroupPresence>>(groups =>
+            groups.Count == 1 && groups[0].Host == "http://192.168.1.39:7210")), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(BleHost, RadioA, RadioA)]
+    [InlineData("http://bleapi:7210", RadioA, RadioA)]
+    [InlineData(BleHost, "HCI:HCI0", BleHost + "|HCI:HCI0")]
+    [InlineData(BleHost, "DEFAULT", BleHost + "|DEFAULT")]
+    [InlineData(BleHost, null, BleHost + "|")]
+    [InlineData(BleHost, "A0:AD:9F:79:AD", BleHost + "|A0:AD:9F:79:AD")]
+    [InlineData(BleHost, "A0:AD:9F:79:AD:13:14", BleHost + "|A0:AD:9F:79:AD:13:14")]
+    public void RadioKeyIsTheBluetoothAddressAloneWhenThereIsOne(string? host, string? adapter, string expected)
+    {
+        Assert.Equal(expected, TeslaSolarCharger.Server.Services.BleVehicleDataService.RadioKey(host, adapter));
+    }
+
+    [Fact]
+    public async Task ASingleGroupNeedsNoScopeOfItsOwn()
+    {
+        SetupBleDataCollectionCar();
+        SetupPresence(present: false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetPresence(It.IsAny<string?>(), It.IsAny<string?>(),
+            It.IsAny<List<string>>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// Seen at a customer: one car entered the container with a trailing slash, the other without. The configured
+    /// groups must not split one container and adapter in two.
+    /// </summary>
+    [Theory]
+    [InlineData(BleHost, BleHost + "/", "aa:bb:cc:dd:ee:ff", "AA:BB:CC:DD:EE:FF")]
+    [InlineData(BleHost + "/", " " + BleHost, null, "")]
+    [InlineData(BleHost, BleHost + "//", " AA:BB:CC:DD:EE:FF ", "AA:BB:CC:DD:EE:FF")]
+    public async Task CarsOnTheSameContainerAndAdapterShareOneGroup(string firstHost, string secondHost,
+        string? firstAdapter, string? secondAdapter)
+    {
+        SetupTwoBleDataCollectionCars(firstHost, firstAdapter, secondHost, secondAdapter);
+        SetupPresence(present: false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IServiceScopeFactory>().Verify(f => f.CreateScope(), Times.Never);
+        Mock.Mock<IBleService>().Verify(b => b.GetPresence(BleHost, It.IsAny<string?>(),
+            It.Is<List<string>>(v => v.SequenceEqual(new[] { TestVin, SecondVin })), It.IsAny<int?>(), It.IsAny<int?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// Different containers never share a radio, even when neither can say which adapter it resolved.
+    /// </summary>
+    [Fact]
+    public async Task CarsOnDifferentContainersAreDifferentRadioGroups()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, "http://192.168.1.39:7210", null);
+        SetupPresenceAnswer(null, PresenceHeardOn(null));
+        var scopedService = new Mock<IBleVehicleDataService>();
+        SetupScopedService(scopedService.Object);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        scopedService.Verify(s => s.RefreshRadioGroupSafely(It.Is<List<DtoBleGroupPresence>>(groups =>
+            groups.Count == 1 && groups[0].Host == "http://192.168.1.39:7210")), Times.Once);
+    }
+
+    /// <summary>
+    /// A failing configured group used to fail the whole job. On one radio the next group must still run.
+    /// </summary>
+    [Fact]
+    public async Task AFailingGroupDoesNotStopTheNextGroupOnTheSameRadio()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, null, BleHost, RadioA);
+        SetupPresenceAnswer(null, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        Mock.Mock<IErrorHandlingService>()
+            .Setup(e => e.HandleErrorResolved(It.IsAny<string>(), TestVin))
+            .ThrowsAsync(new InvalidOperationException("database gone"));
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var exception = await Record.ExceptionAsync(() => service.RefreshBleCarData());
+
+        Assert.Null(exception);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(SecondVin), Times.Once);
+    }
+
+    [Fact]
+    public async Task AFailingRadioGroupNeitherThrowsNorStopsTheOtherRadioGroups()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, RadioA, BleHost, RadioB);
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioB, PresenceHeardOn(RadioB));
+        var scopedService = new Mock<IBleVehicleDataService>();
+        SetupScopedService(scopedService.Object);
+        Mock.Mock<IErrorHandlingService>()
+            .Setup(e => e.HandleErrorResolved(It.IsAny<string>(), It.IsAny<string?>()))
+            .ThrowsAsync(new InvalidOperationException("database gone"));
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var exception = await Record.ExceptionAsync(() => service.RefreshBleCarData());
+
+        Assert.Null(exception);
+        scopedService.Verify(s => s.RefreshRadioGroupSafely(It.IsAny<List<DtoBleGroupPresence>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AScopeThatCannotBeCreatedDoesNotStopTheFirstRadioGroup()
+    {
+        SetupTwoBleDataCollectionCars(BleHost, RadioA, BleHost, RadioB);
+        SetupPresenceAnswer(RadioA, PresenceHeardOn(RadioA));
+        SetupPresenceAnswer(RadioB, PresenceHeardOn(RadioB));
+        Mock.Mock<IServiceScopeFactory>().Setup(f => f.CreateScope()).Throws(new ObjectDisposedException("provider"));
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var exception = await Record.ExceptionAsync(() => service.RefreshBleCarData());
+
+        Assert.Null(exception);
+        Mock.Mock<IBleService>().Verify(b => b.GetBodyControllerState(TestVin), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshRadioGroupSafelySwallowsAFailure()
+    {
+        Mock.Mock<IErrorHandlingService>()
+            .Setup(e => e.HandleErrorResolved(It.IsAny<string>(), It.IsAny<string?>()))
+            .ThrowsAsync(new InvalidOperationException("A second operation was started on this context instance"));
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        var exception = await Record.ExceptionAsync(() => service.RefreshRadioGroupSafely(new List<DtoBleGroupPresence>
+        {
+            new()
+            {
+                Host = BleHost,
+                Cars = new List<DtoCar> { new() { Id = 1, Vin = TestVin, }, },
+                Presence = new DtoBlePresenceResult { MaxAgeMs = 90000, LastAdvertisementMsAgo = 100, },
+            },
+        }));
+
+        Assert.Null(exception);
+    }
+
+    [Theory]
+    [InlineData(false, null, RadioA, RadioA)]
+    [InlineData(false, null, "a0:ad:9f:79:ad:13", RadioA)]
+    [InlineData(false, null, null, null)]
+    [InlineData(false, null, "", null)]
+    [InlineData(false, "adapter gone", RadioA, null)]
+    [InlineData(true, null, RadioA, null)]
+    public void ResolvedAdapterIsOnlyTakenFromASuccessfulAnswer(bool presenceThrew, string? errorMessage,
+        string? answeredAdapter, string? expected)
+    {
+        var group = new DtoBleGroupPresence
+        {
+            Presence = presenceThrew ? null : new DtoBlePresenceResult { Adapter = answeredAdapter, ErrorMessage = errorMessage, },
+            PresenceException = presenceThrew ? new HttpRequestException() : null,
+        };
+        Assert.Equal(expected, TeslaSolarCharger.Server.Services.BleVehicleDataService.ResolvedAdapter(group));
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    [InlineData("/", null)]
+    [InlineData(BleHost, BleHost)]
+    [InlineData(BleHost + "/", BleHost)]
+    [InlineData(" " + BleHost + "/ ", BleHost)]
+    public void NormalizesBleHost(string? host, string? expected)
+    {
+        Assert.Equal(expected, TeslaSolarCharger.Server.Services.BleVehicleDataService.NormalizeBleHost(host));
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("  ", null)]
+    [InlineData("a0:ad:9f:79:ad:13", "A0:AD:9F:79:AD:13")]
+    [InlineData(" A0:AD:9F:79:AD:13 ", "A0:AD:9F:79:AD:13")]
+    public void NormalizesBleAdapter(string? adapter, string? expected)
+    {
+        Assert.Equal(expected, TeslaSolarCharger.Server.Services.BleVehicleDataService.NormalizeBleAdapter(adapter));
     }
 }

@@ -272,6 +272,26 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = false,
             }
         },
+        { issueKeys.BleAdapterNotFound, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.BleRadioSilence, new DtoIssue
+            {
+                //Only a hint: at a site without any other Bluetooth device a fully silent radio is expected while the
+                //car is away.
+                IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
         { issueKeys.MultipleCarsMatchChargingConnector, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,

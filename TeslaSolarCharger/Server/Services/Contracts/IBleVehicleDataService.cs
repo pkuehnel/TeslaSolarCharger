@@ -1,3 +1,5 @@
+using TeslaSolarCharger.Server.Dtos.Ble;
+
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IBleVehicleDataService
@@ -14,4 +16,11 @@ public interface IBleVehicleDataService
     /// in progress.
     /// </summary>
     Task RefreshSingleCarData(int carId);
+
+    /// <summary>
+    /// Refreshes, one after the other, the configured groups that use one radio, from the presence answers already
+    /// fetched for them. Part of the interface only so <see cref="RefreshBleCarData"/> can run every further radio on
+    /// an instance from its own DI scope, and with it its own DbContext, in parallel. Never throws.
+    /// </summary>
+    Task RefreshRadioGroupSafely(List<DtoBleGroupPresence> groups);
 }

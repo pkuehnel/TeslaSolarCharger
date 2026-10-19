@@ -15,6 +15,8 @@ using System.Linq;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services;
@@ -73,6 +75,7 @@ public class TestBase : IDisposable
             builder.RegisterType<PossibleIssues>().As<IPossibleIssues>();
             builder.RegisterType<ResultValueCalculationService>().As<IResultValueCalculationService>();
             builder.RegisterType<Constants>().As<IConstants>();
+            builder.RegisterType<CarChargeRestartHysteresis>().As<ICarChargeRestartHysteresis>();
             builder.RegisterType<ValidFromToSplitter>().As<IValidFromToSplitter>();
             builder.RegisterInstance(new FakeDateTimeProvider(CurrentFakeDate.UtcDateTime)).As<IDateTimeProvider>();
             builder.RegisterInstance(configuration).As<IConfiguration>();
@@ -86,6 +89,7 @@ public class TestBase : IDisposable
                 b.Register((_, _) => _fake.Resolve<IPossibleIssues>());
                 b.Register((_, _) => _fake.Resolve<IResultValueCalculationService>());
                 b.Register((_, _) => _fake.Resolve<IConstants>());
+                b.Register((_, _) => _fake.Resolve<ICarChargeRestartHysteresis>());
                 b.Register((_, _) => _fake.Resolve<IValidFromToSplitter>());
                 b.Register((_, _) => _fake.Resolve<IConfiguration>());
                 b.RegisterType<FakeDateTimeProvider>();

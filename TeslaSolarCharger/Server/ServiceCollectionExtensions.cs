@@ -91,6 +91,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<WeatherDataRefreshJob>()
             .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
+            .AddTransient<UsableEnergyLearningJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
             .AddTransient<HomeBatteryModeJob>()
             .AddTransient<RefreshableValuesRefreshJob>()
@@ -169,6 +170,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IEnergyDataService, EnergyDataService>()
             .AddTransient<IMeterValueEstimationService, MeterValueEstimationService>()
             .AddTransient<IMeterValueMergeService, MeterValueMergeService>()
+            .AddTransient<IUsableEnergyLearningService, UsableEnergyLearningService>()
             .AddTransient<IOcppChargePointActionService, OcppChargePointActionService>()
             .AddTransient<IOcppChargePointConfigurationService, OcppChargePointConfigurationService>()
             .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
@@ -191,6 +193,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ICarValueEstimationService, CarValueEstimationService>()
             .AddTransient<IMqttClientSetupService, MqttClientSetupService>()
             .AddTransient<ISmartCarApiService, SmartCarApiService>()
+            .AddTransient<ICarChargeRestartHysteresis, CarChargeRestartHysteresis>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()

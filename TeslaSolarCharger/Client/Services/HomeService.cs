@@ -232,4 +232,21 @@ public class HomeService : IHomeService
         }
         return new(result.Data?.Value, result.ErrorMessage, result.ValidationProblemDetails);
     }
+
+    public async Task<Result<bool>> TestFleetApiAccess(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(TestFleetApiAccess), carId);
+        var result = await _httpClientHelper.SendGetRequestAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={carId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return new(result.Data?.Value == true, result.ErrorMessage, result.ValidationProblemDetails);
+    }
+
+    public async Task<Result<object?>> UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState)
+    {
+        _logger.LogTrace("{method}({carId}, {fleetApiState})", nameof(UpdateCarFleetApiState), carId, fleetApiState);
+        return await _httpClientHelper.SendPostRequestAsync<object?>($"api/Index/UpdateCarFleetApiState?carId={carId}&fleetApiState={fleetApiState}", null);
+    }
 }

@@ -33,7 +33,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     var hasFleetApiLicense = await GetFleetApiLicenseCachedAsync(context);
                     return hasFleetApiLicense || useBle;
                 })
-                .WithMessage("You need to use BLE on cars without Fleet API license.");
+                .WithMessage("You need to use BLE on cars without a Car License.");
 
 
 
@@ -65,7 +65,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                         var hasFleetApiLicense = await GetFleetApiLicenseCachedAsync(context);
                         return !includeTrackingRelevantFields || hasFleetApiLicense;
                     })
-                    .WithMessage("Car not licensed for Fleet API. Manage Fleet API subscriptions via https://solar4car.com/subscriptions.");
+                    .WithMessage("The car has no Car License. Manage your Car Licenses via https://solar4car.com/subscriptions.");
 
                 When(x => x.IncludeTrackingRelevantFields == false && isTeslaMateDataSource == false, () =>
                 {
@@ -83,7 +83,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     var tokenState = await tokenHelper.GetFleetApiTokenState(true);
                     if (tokenState != TokenState.UpToDate)
                     {
-                        context.AddFailure("You need a valid Fleet API token to use Fleet Telemetry. Go to BaseConfiguration to Generate a new Fleet API Token.");
+                        context.AddFailure("You need a valid Tesla cloud token to use Fleet Telemetry. Open the Cloud Connection page and request a new token.");
                     }
                     //Cars whose data is collected via BLE do not use Fleet Telemetry, so it must not be forced on for them.
                     if (fleetTelemetryEnabled != true && !IsBleDataCollectionConfigured(context.InstanceToValidate))

@@ -138,6 +138,7 @@ public class HomeService : IHomeService
                 c.MaximumSoc,
                 c.ChargeMode,
                 c.CarType,
+                c.UseBle,
             })
             .FirstAsync()
             .ConfigureAwait(false);
@@ -147,6 +148,7 @@ public class HomeService : IHomeService
             MaxSoc = dbCar.MaximumSoc,
             ChargeMode = dbCar.ChargeMode,
             CarType = dbCar.CarType,
+            UseBle = dbCar.UseBle,
         };
         return carOverView;
     }

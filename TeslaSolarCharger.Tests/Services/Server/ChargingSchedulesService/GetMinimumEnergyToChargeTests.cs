@@ -103,6 +103,63 @@ public class GetMinimumEnergyToChargeTests : TestBase
                 0 // 80 - 80 = 0
             };
 
+            // Restart hysteresis: a car that is not charging does not start again within 3% below the target
+            yield return new object[]
+            {
+                "Hysteresis: not charging, SoC 2% below target. Target counts as reached. Expected 0.",
+                baseDate,
+                new DtoTimeZonedChargingTarget { TargetSoc = 80, NextExecutionTime = targetTime },
+                CreateCar(soc: 78, socLimit: 80, isCharging: false),
+                50,
+                0,
+                new List<DtoChargingSchedule>(),
+                0
+            };
+            yield return new object[]
+            {
+                "Hysteresis: not charging, SoC 1% below target and car limit above target. Target counts as reached. Expected 0.",
+                baseDate,
+                new DtoTimeZonedChargingTarget { TargetSoc = 80, NextExecutionTime = targetTime },
+                CreateCar(soc: 79, socLimit: 90, isCharging: false),
+                50,
+                0,
+                new List<DtoChargingSchedule>(),
+                0
+            };
+            yield return new object[]
+            {
+                "Hysteresis: not charging, SoC exactly 3% below target. Car starts again, so charge to target. Expected 1500Wh.",
+                baseDate,
+                new DtoTimeZonedChargingTarget { TargetSoc = 80, NextExecutionTime = targetTime },
+                CreateCar(soc: 77, socLimit: 80, isCharging: false),
+                50,
+                0,
+                new List<DtoChargingSchedule>(),
+                1500 // 3% * 50kWh
+            };
+            yield return new object[]
+            {
+                "Hysteresis: unknown charging state counts as not charging. Expected 0.",
+                baseDate,
+                new DtoTimeZonedChargingTarget { TargetSoc = 80, NextExecutionTime = targetTime },
+                CreateCar(soc: 78, socLimit: 90, isCharging: null),
+                50,
+                0,
+                new List<DtoChargingSchedule>(),
+                0
+            };
+            yield return new object[]
+            {
+                "Hysteresis: charging car within 3% below target keeps charging to target. Expected 1000Wh.",
+                baseDate,
+                new DtoTimeZonedChargingTarget { TargetSoc = 80, NextExecutionTime = targetTime },
+                CreateCar(soc: 78, socLimit: 90, isCharging: true),
+                50,
+                0,
+                new List<DtoChargingSchedule>(),
+                1000 // 2% * 50kWh
+            };
+
             // 7. Full Schedule Overlap
             yield return new object[]
             {

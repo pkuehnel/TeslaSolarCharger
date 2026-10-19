@@ -21,9 +21,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IConstants _constants;
+    private readonly ICarChargeRestartHysteresis _carChargeRestartHysteresis;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
-    private readonly IBlePresenceStateService _blePresenceStateService;
 
     public TargetChargingValueCalculationService(ILogger<TargetChargingValueCalculationService> logger,
         ITeslaSolarChargerContext context,
@@ -32,8 +32,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         IConstants constants,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
         IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
-        IBlePresenceStateService blePresenceStateService)
+        ICarChargeRestartHysteresis carChargeRestartHysteresis)
     {
+        _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
         _context = context;
         _settings = settings;
@@ -41,7 +42,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _constants = constants;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
         _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
-        _blePresenceStateService = blePresenceStateService;
     }
 
     public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
@@ -257,18 +257,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             return null;
         }
 
-        //While BLE scans keep reporting the car as out of BLE range it is unknown whether the car is still at home
-        //(transient BLE failure) or already left. Suspend new charging commands until either a beacon hit proves the
-        //car is still there or it has been unreachable long enough to be confirmed as away (which sets IsHome false).
-        if (loadpoint.CarId != default
-            && _blePresenceStateService.IsPresenceUncertain(loadpoint.CarId.Value))
-        {
-            _logger.LogDebug("BLE presence of car {carId} is uncertain, suspending charging commands.", loadpoint.CarId);
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonBlePresenceUncertain));
-            return null;
-        }
-
         if (constraintValues.MaxCurrent < constraintValues.MinCurrent)
         {
             _logger.LogWarning("Max current {maxCurrent} is lower than min current {minCurrent} for loadpoint {@loadpoint}. Very likely due to low configured \"Max combined charging current\" in Base Configuration.", constraintValues.MaxCurrent, constraintValues.MinCurrent, loadpoint);
@@ -427,10 +415,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonMaxSocReached));
                     return null;
                 }
-                if (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference))
+                if (_carChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarSideSocLimitReached, _constants.MinimumSocDifference));
+                        new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarSideSocLimitReached, _carChargeRestartHysteresis.Percent));
                     return null;
                 }
                 if (constraintValues.IsCarFullyCharged == true
@@ -483,7 +471,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             // Check for maximum SOC reached is already done above, so we can skip it here
             if ((constraintValues.IsCharging == false)
-                && (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference)))
+                && _carChargeRestartHysteresis.PreventsChargeStart(constraintValues.Soc, constraintValues.CarSocLimit))
             {
                 return null;
             }

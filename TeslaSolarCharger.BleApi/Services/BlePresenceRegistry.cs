@@ -109,7 +109,24 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         /// </summary>
         public DateTimeOffset? ObservingSinceUtc;
         public string? LastScanError;
+        /// <summary>When the scan last reported running; how long it then lasted tells a working scan from a dead one.</summary>
+        public DateTimeOffset? ScanStartedUtc;
+        /// <summary>
+        /// When the current run of failing scans began, null while the scan works. A run only consists of scans that
+        /// failed within <see cref="HealthyScanDuration"/> of starting.
+        /// </summary>
+        public DateTimeOffset? ScanFailingSinceUtc;
+        /// <summary>How many scans in a row failed with <see cref="RepeatedScanError"/>.</summary>
+        public int RepeatedScanErrorCount;
+        public string? RepeatedScanError;
     }
+
+    /// <summary>
+    /// A scan that ran at least this long before failing worked in between, so its error starts a new run of failures
+    /// instead of extending one. The worker re-arms a failed scan after one second, and a stuck adapter fails within a
+    /// millisecond of every re-arm.
+    /// </summary>
+    public static readonly TimeSpan HealthyScanDuration = TimeSpan.FromSeconds(5);
 
     private AdapterState GetState(string adapterKey) => _adapters.GetOrAdd(adapterKey, _ => new AdapterState());
 
@@ -118,10 +135,13 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, at);
             state.AdvertisementsSeen += digest.Total;
             if (digest.Total > 0)
             {
                 state.LastAdvertisementUtc = at;
+                //Anything heard proves the scan works.
+                ClearScanFailures(state);
             }
             foreach (var device in digest.Devices ?? new List<WorkerDeviceObservation>())
             {
@@ -211,6 +231,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
                 case "running":
                     state.ScanRunning = true;
                     state.LastScanError = null;
+                    state.ScanStartedUtc = at;
                     //A pause for a command is not a break in observation - it lasts milliseconds and the command
                     //itself is presence evidence - so the observation window only starts when there is none yet.
                     if (state.ObservingSinceUtc is null)
@@ -221,6 +242,8 @@ public class BlePresenceRegistry : IBlePresenceRegistry
                     break;
                 case "paused":
                     //Deliberately keeps ObservingSinceUtc: see above.
+                    //Only a scan that was running can be handed over, so the scan worked.
+                    ClearScanFailures(state);
                     break;
                 default:
                     state.ScanRunning = false;
@@ -228,9 +251,83 @@ public class BlePresenceRegistry : IBlePresenceRegistry
                     if (scanState == "error")
                     {
                         state.LastScanError = reason;
+                        RegisterScanFailure(state, reason, at);
                     }
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// An observation window that starts in the future means the system clock was set back after it began, e.g. a
+    /// Raspberry Pi without a hardware clock whose time was corrected later. Seen on a live system: the window started
+    /// almost 33 days ahead, so the scan stayed "warming up" and TSC froze the car's last state, showing it charging
+    /// long after it stopped. Command pauses deliberately keep the window, so nothing else would ever reset it.
+    /// Treated as a new window starting now: one max age of "unknown", the same cost as a worker restart.
+    /// </summary>
+    private void RestartObservationIfClockWentBack(AdapterState state, string adapterKey, DateTimeOffset now)
+    {
+        if (state.ObservingSinceUtc is not { } observingSince || observingSince <= now)
+        {
+            return;
+        }
+        _logger.LogTrace("Observation window of adapter {adapter} started at {observingSince}, after the current time {now}: the clock went back, restarting the window",
+            adapterKey, observingSince, now);
+        state.ObservingSinceUtc = now;
+        state.AdvertisementsAtObservingStart = state.AdvertisementsSeen;
+    }
+
+    private static void RegisterScanFailure(AdapterState state, string? reason, DateTimeOffset at)
+    {
+        var ranHealthy = state.ScanStartedUtc is { } started && at - started >= HealthyScanDuration;
+        if (ranHealthy)
+        {
+            ClearScanFailures(state);
+        }
+        state.ScanFailingSinceUtc ??= at;
+        if (state.RepeatedScanErrorCount > 0 && string.Equals(state.RepeatedScanError, reason, StringComparison.Ordinal))
+        {
+            state.RepeatedScanErrorCount++;
+        }
+        else
+        {
+            state.RepeatedScanError = reason;
+            state.RepeatedScanErrorCount = 1;
+        }
+    }
+
+    private static void ClearScanFailures(AdapterState state)
+    {
+        state.ScanFailingSinceUtc = null;
+        state.RepeatedScanErrorCount = 0;
+        state.RepeatedScanError = null;
+    }
+
+    public string? GetStuckScanReason(string adapterKey, TimeSpan failingThreshold, int repeatedErrorLimit, DateTimeOffset now)
+    {
+        var state = GetState(adapterKey);
+        lock (state.Lock)
+        {
+            if (state.ScanFailingSinceUtc is not { } failingSince)
+            {
+                return null;
+            }
+            if (state.ScanRunning && state.ScanStartedUtc is { } started && now - started >= HealthyScanDuration)
+            {
+                //Re-armed and running fine since: the failures are over, the next pause or digest clears them.
+                return null;
+            }
+            if (repeatedErrorLimit > 0 && state.RepeatedScanErrorCount >= repeatedErrorLimit)
+            {
+                //A stuck HCI layer answers every re-arm with the error it stored, never a new one: go-ble keeps the
+                //error of a failed event and returns it for every later command until the adapter is bound again.
+                return $"the scan failed {state.RepeatedScanErrorCount} times in a row with the same error: {state.RepeatedScanError}";
+            }
+            if (now - failingSince > failingThreshold)
+            {
+                return $"the scan has been failing for {(int)(now - failingSince).TotalSeconds} s, last error: {state.LastScanError ?? state.RepeatedScanError}";
+            }
+            return null;
         }
     }
 
@@ -264,6 +361,8 @@ public class BlePresenceRegistry : IBlePresenceRegistry
             //The adapter wide stamp is not about this car: it records that the radio did something, which is what
             //tells a broken adapter apart from a quiet one.
             state.LastCommandSuccessUtc = at;
+            //A car answered through this adapter, so its HCI layer is alive whatever the scan reported.
+            ClearScanFailures(state);
         }
     }
 
@@ -272,6 +371,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, now);
             if (state.ObservingSinceUtc is not { } observingSince || now - observingSince < maxAge)
             {
                 //Not observing long enough to conclude anything. Never report "not heard" from ignorance.
@@ -299,6 +399,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, now);
             if (!state.ScanRunning || state.ObservingSinceUtc is not { } observingSince)
             {
                 return false;
@@ -324,6 +425,9 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         {
             state.ScanRunning = false;
             state.ObservingSinceUtc = null;
+            //The next worker binds the adapter afresh, so failures of the old one say nothing about it.
+            state.ScanStartedUtc = null;
+            ClearScanFailures(state);
         }
     }
 
@@ -332,6 +436,7 @@ public class BlePresenceRegistry : IBlePresenceRegistry
         var state = GetState(adapterKey);
         lock (state.Lock)
         {
+            RestartObservationIfClockWentBack(state, adapterKey, now);
             var observingMs = state.ObservingSinceUtc is { } since ? (long)(now - since).TotalMilliseconds : 0;
             var result = new DtoBlePresenceResult
             {

@@ -43,7 +43,8 @@ public class PvValueService(
     IAppStateNotifier appStateNotifier,
     IChangeTrackingService changeTrackingService,
     IIndexService indexService,
-    IFakeSolarValueHandlingService fakeSolarValueHandlingService)
+    IFakeSolarValueHandlingService fakeSolarValueHandlingService,
+    IGenericValueService genericValueService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -714,13 +715,26 @@ public class PvValueService(
     public async Task UpdatePvValues()
     {
         logger.LogTrace("{method}()", nameof(UpdatePvValues));
-        if (configurationWrapper.ShouldUseFakeSolarValues())
+        var useFakeSolarValues = configurationWrapper.ShouldUseFakeSolarValues();
+        if (useFakeSolarValues)
         {
             logger.LogWarning("Fake solar values are used.");
             fakeSolarValueHandlingService.SetValues(dateTimeProvider.DateTimeOffSetUtcNow(), GetFakeValues());
         }
 
-        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        //A device with an error is left out of the totals, so they are only up to date while every device delivers.
+        //Fake values replace every real device, so the errors of real devices do not matter then.
+        var anyDeviceHasError = !useFakeSolarValues && genericValueService
+            .GetAllByPredicate(v => v.SourceValueKey.ConfigurationType != ConfigurationType.FakeSolarValue && v.HasError)
+            .Count > 0;
+        if (anyDeviceHasError)
+        {
+            logger.LogTrace("Solar value age not updated as at least one device has an error.");
+        }
+        else
+        {
+            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        }
         var pvValues = await indexService.GetPvValues().ConfigureAwait(false);
         settings.InverterPower = pvValues.InverterPower;
         settings.Overage = pvValues.GridPower;

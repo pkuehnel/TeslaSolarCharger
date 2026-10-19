@@ -83,6 +83,30 @@ public class GetChargingScheduleRelevantDataTests : TestBase
         Assert.Equal(expectedMinCurrent, result.minCurrent);
     }
 
+    [Theory]
+    // A reliable learned value replaces the entered 50000 kWh while learning is enabled
+    [InlineData(true, 49_600, 50)]
+    [InlineData(false, 49_600, 50000)]
+    // Car 1 has nothing learned, so its entered value is used
+    [InlineData(true, null, 50000)]
+    public async Task GetChargingScheduleRelevantData_UsesTheLearnedUsableEnergyWhileEnabled(bool useLearned, int? learnedWh, int expectedUsableEnergy)
+    {
+        await SetupData();
+        var learned = new System.Collections.Concurrent.ConcurrentDictionary<int, int>();
+        learned[3] = 1_000;
+        if (learnedWh != null)
+        {
+            learned[1] = learnedWh.Value;
+        }
+        Mock.Mock<ISettings>().Setup(s => s.LearnedCarUsableEnergiesWh).Returns(learned);
+        Mock.Mock<TeslaSolarCharger.Shared.Contracts.IConfigurationWrapper>().Setup(c => c.UseLearnedUsableEnergy()).Returns(useLearned);
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+
+        var result = await service.GetChargingScheduleRelevantData(1, null);
+
+        Assert.Equal(expectedUsableEnergy, result.UsableEnergy);
+    }
+
     private async Task SetupData()
     {
         // Connectors

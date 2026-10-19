@@ -1,163 +1,163 @@
 using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
+using TeslaSolarCharger.Server.Enums;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit;
+using RateLimitService = TeslaSolarCharger.Server.Services.FleetApiRateLimitService;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
 public class FleetApiRateLimitServiceTests
 {
+    private const string Vin = "LRW3E7FS2NC000001";
     //Winter date so no DST change can occur within the tested time ranges
     private static readonly DateTime BaseTime = new(2026, 2, 2, 8, 0, 0);
+    private static readonly DateTime Now = new FakeDateTimeProvider(BaseTime).UtcNow();
+    private static readonly FleetApiBudgetKind[] CommandsKind = [FleetApiBudgetKind.Commands];
 
-    private static TeslaSolarCharger.Server.Services.FleetApiRateLimitService CreateService(DateTime currentTime)
-    {
-        return new(NullLogger<TeslaSolarCharger.Server.Services.FleetApiRateLimitService>.Instance, new FakeDateTimeProvider(currentTime));
-    }
+    private readonly Mock<IBackendApiService> _backendApiService = new();
 
-    private static DateTime UtcAt(DateTime currentTime)
+    [Fact]
+    public void ToBlocks_NothingLimited_BlocksNothing()
     {
-        return new FakeDateTimeProvider(currentTime).UtcNow();
+        var blocks = RateLimitService.ToBlocks(new DtoFleetApiCommandBudget(), Now);
+
+        Assert.Equal(new DtoFleetApiBudgetBlocks(), blocks);
     }
 
     [Fact]
-    public void AllowsFirstCommand()
+    public void ToBlocks_WithinGraceWindow_DoesNotBlockCommands()
     {
-        var car = new DtoCar();
-        var service = CreateService(BaseTime);
-        Assert.Null(service.GetNextAllowedUtc(car));
-    }
+        var blocks = RateLimitService.ToBlocks(new DtoFleetApiCommandBudget { GraceRemainingSeconds = 31, NextCommandInSeconds = 3500, }, Now);
 
-    [Fact]
-    public void GetNextAllowedUtcDoesNotConsumeBudget()
-    {
-        var car = new DtoCar();
-        var service = CreateService(BaseTime);
-        Assert.Null(service.GetNextAllowedUtc(car));
-        Assert.Null(service.GetNextAllowedUtc(car));
-        Assert.Null(car.LastCountedFleetApiCommand);
-    }
-
-    [Fact]
-    public void RecordedCommandConsumesHourlySlot()
-    {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        Assert.Equal(UtcAt(BaseTime), car.LastCountedFleetApiCommand);
+        Assert.Null(blocks.CommandsBlockedUntil);
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(4)]
-    public void AllowsCommandsWithinGraceWindow(int minutesAfterCountedCommand)
-    {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        var service = CreateService(BaseTime.AddMinutes(minutesAfterCountedCommand));
-        Assert.Null(service.GetNextAllowedUtc(car));
-    }
-
-    [Fact]
-    public void CommandsWithinGraceWindowDoNotExtendWindow()
-    {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        CreateService(BaseTime.AddMinutes(4)).RecordSuccessfulCommand(car);
-        Assert.Equal(UtcAt(BaseTime), car.LastCountedFleetApiCommand);
-    }
-
-    [Theory]
-    [InlineData(5)]
     [InlineData(30)]
-    [InlineData(59)]
-    public void BlocksCommandsAfterGraceWindowUntilHourIsOver(int minutesAfterCountedCommand)
+    [InlineData(1)]
+    [InlineData(null)]
+    public void ToBlocks_GraceWindowWithinSafetyMarginOrOver_BlocksCommandsUntilWindowEndPlusMargin(int? graceRemainingSeconds)
     {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        var service = CreateService(BaseTime.AddMinutes(minutesAfterCountedCommand));
-        Assert.Equal(UtcAt(BaseTime).AddMinutes(60), service.GetNextAllowedUtc(car));
+        var blocks = RateLimitService.ToBlocks(new DtoFleetApiCommandBudget { GraceRemainingSeconds = graceRemainingSeconds, NextCommandInSeconds = 1800, }, Now);
+
+        Assert.Equal(Now.AddSeconds(1800) + RateLimitService.SafetyMargin, blocks.CommandsBlockedUntil);
     }
 
     [Fact]
-    public void AllowsCommandAfterOneHour()
+    public void ToBlocks_WakeUpAndTestLimits_BlockUntilEndPlusMargin()
     {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        var service = CreateService(BaseTime.AddMinutes(60));
-        Assert.Null(service.GetNextAllowedUtc(car));
+        var blocks = RateLimitService.ToBlocks(new DtoFleetApiCommandBudget { NextWakeUpInSeconds = 600, NextFleetApiTestInSeconds = 40, }, Now);
+
+        Assert.Null(blocks.CommandsBlockedUntil);
+        Assert.Equal(Now.AddSeconds(600) + RateLimitService.SafetyMargin, blocks.WakeUpBlockedUntil);
+        Assert.Equal(Now.AddSeconds(40) + RateLimitService.SafetyMargin, blocks.FleetApiTestBlockedUntil);
     }
 
     [Fact]
-    public void CommandAfterOneHourConsumesNewSlot()
+    public async Task GetBlocks_NothingKnown_AsksBackendAndRemembersBlocks()
     {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        CreateService(BaseTime.AddMinutes(61)).RecordSuccessfulCommand(car);
-        Assert.Equal(UtcAt(BaseTime.AddMinutes(61)), car.LastCountedFleetApiCommand);
-        //The new slot opens its own grace window and blocks again afterwards
-        Assert.Null(CreateService(BaseTime.AddMinutes(63)).GetNextAllowedUtc(car));
-        Assert.Equal(UtcAt(BaseTime.AddMinutes(61)).AddMinutes(60), CreateService(BaseTime.AddMinutes(70)).GetNextAllowedUtc(car));
+        var car = new DtoCar { Vin = Vin, };
+        SetupBudget(new DtoFleetApiCommandBudget { NextCommandInSeconds = 1800, });
+
+        var result = await CreateService().GetBlocks(car, CommandsKind);
+
+        Assert.False(result.HasError);
+        Assert.Equal(Now.AddSeconds(1800) + RateLimitService.SafetyMargin, result.Data!.CommandsBlockedUntil);
+        Assert.Equal(result.Data, car.FleetApiBudgetBlocks);
+    }
+
+    [Fact]
+    public async Task GetBlocks_AllowedBudget_AsksBackendEveryTime()
+    {
+        //Anything allowed can be used up by the next command, so only blocks are remembered.
+        var car = new DtoCar { Vin = Vin, };
+        SetupBudget(new DtoFleetApiCommandBudget());
+        var service = CreateService();
+
+        await service.GetBlocks(car, CommandsKind);
+        await service.GetBlocks(car, CommandsKind);
+
+        _backendApiService.Verify(b => b.GetFleetApiCommandBudget(Vin), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task GetBlocks_RunningBlockOfRequestedKind_DoesNotAskBackend()
+    {
+        var knownBlocks = new DtoFleetApiBudgetBlocks(CommandsBlockedUntil: Now.AddMinutes(10));
+        var car = new DtoCar { Vin = Vin, FleetApiBudgetBlocks = knownBlocks, };
+
+        var result = await CreateService().GetBlocks(car, [FleetApiBudgetKind.Commands, FleetApiBudgetKind.WakeUp,]);
+
+        Assert.Equal(knownBlocks, result.Data);
+        _backendApiService.Verify(b => b.GetFleetApiCommandBudget(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetBlocks_RunningBlockOfOtherKind_AsksBackend()
+    {
+        var car = new DtoCar { Vin = Vin, FleetApiBudgetBlocks = new(WakeUpBlockedUntil: Now.AddMinutes(10)), };
+        SetupBudget(new DtoFleetApiCommandBudget { NextWakeUpInSeconds = 300, });
+
+        var result = await CreateService().GetBlocks(car, CommandsKind);
+
+        _backendApiService.Verify(b => b.GetFleetApiCommandBudget(Vin), Times.Once);
+        Assert.Equal(Now.AddSeconds(300) + RateLimitService.SafetyMargin, result.Data!.WakeUpBlockedUntil);
+    }
+
+    [Fact]
+    public async Task GetBlocks_BlockIsOver_AsksBackendAndReturnsNoBlock()
+    {
+        var car = new DtoCar { Vin = Vin, FleetApiBudgetBlocks = new(CommandsBlockedUntil: Now), };
+        SetupBudget(new DtoFleetApiCommandBudget());
+
+        var result = await CreateService().GetBlocks(car, CommandsKind);
+
+        _backendApiService.Verify(b => b.GetFleetApiCommandBudget(Vin), Times.Once);
+        Assert.Null(result.Data!.CommandsBlockedUntil);
+    }
+
+    [Fact]
+    public async Task GetBlocks_BackendError_ReturnsErrorAndKeepsKnownBlocks()
+    {
+        var knownBlocks = new DtoFleetApiBudgetBlocks(WakeUpBlockedUntil: Now.AddMinutes(10));
+        var car = new DtoCar { Vin = Vin, FleetApiBudgetBlocks = knownBlocks, };
+        var problemDetails = new ProblemDetails { Status = 403, Detail = "Not your car", };
+        _backendApiService.Setup(b => b.GetFleetApiCommandBudget(Vin))
+            .ReturnsAsync(new Result<DtoFleetApiCommandBudget>(null, "Not your car", problemDetails));
+
+        var result = await CreateService().GetBlocks(car, CommandsKind);
+
+        Assert.True(result.HasError);
+        Assert.Equal("Not your car", result.ErrorMessage);
+        Assert.Same(problemDetails, result.ProblemDetails);
+        Assert.Equal(knownBlocks, car.FleetApiBudgetBlocks);
     }
 
     [Theory]
-    [InlineData(10)]
-    [InlineData(59)]
-    public void CommandAfterGraceWindowButWithinCommandWindowDoesNotMoveTheSlot(int minutesAfterCountedCommand)
+    [InlineData(1, true)]
+    [InlineData(0, false)]
+    [InlineData(-1, false)]
+    public void IsKnownToBeBlocked_OnlyWhileBlockRuns(int blockEndsInSeconds, bool expected)
     {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        //Such a command can only happen when the local limit was bypassed, e.g. by a manual Fleet API test. The backend anchors
-        //its window the same way (see TeslaCommandRateLimitService.EnsureCommandAllowed), so moving the slot here would block
-        //locally until one hour after this command while the backend already allows one hour after the first command.
-        CreateService(BaseTime.AddMinutes(minutesAfterCountedCommand)).RecordSuccessfulCommand(car);
-        Assert.Equal(UtcAt(BaseTime), car.LastCountedFleetApiCommand);
-        Assert.Null(CreateService(BaseTime.AddMinutes(60)).GetNextAllowedUtc(car));
+        var car = new DtoCar { Vin = Vin, FleetApiBudgetBlocks = new(CommandsBlockedUntil: Now.AddSeconds(blockEndsInSeconds)), };
+
+        Assert.Equal(expected, CreateService().IsKnownToBeBlocked(car, FleetApiBudgetKind.Commands));
+        Assert.False(CreateService().IsKnownToBeBlocked(car, FleetApiBudgetKind.WakeUp));
+        _backendApiService.Verify(b => b.GetFleetApiCommandBudget(It.IsAny<string>()), Times.Never);
     }
 
-    [Fact]
-    public void RateLimitedByBackendBlocksCommandsWithoutKnownLocalSlot()
-    {
-        var car = new DtoCar();
-        //No locally counted command, e.g. after a restart, but the backend still blocks
-        CreateService(BaseTime).RecordRateLimited(car);
-        Assert.Equal(UtcAt(BaseTime).AddMinutes(55), CreateService(BaseTime.AddMinutes(54)).GetNextAllowedUtc(car));
-        Assert.Null(CreateService(BaseTime.AddMinutes(55)).GetNextAllowedUtc(car));
-    }
+    private RateLimitService CreateService() =>
+        new(NullLogger<RateLimitService>.Instance, new FakeDateTimeProvider(BaseTime), _backendApiService.Object);
 
-    [Fact]
-    public void RateLimitedByBackendDoesNotOpenGraceWindow()
-    {
-        var car = new DtoCar();
-        CreateService(BaseTime).RecordRateLimited(car);
-        Assert.NotNull(CreateService(BaseTime).GetNextAllowedUtc(car));
-        Assert.NotNull(CreateService(BaseTime.AddMinutes(2)).GetNextAllowedUtc(car));
-    }
-
-    [Fact]
-    public void RateLimitedByBackendDoesNotShortenKnownBlock()
-    {
-        var car = new DtoCar();
-        //Backend rejects a command sent within the local grace window, so the local block must stay anchored at the counted command
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        CreateService(BaseTime.AddMinutes(2)).RecordRateLimited(car);
-        Assert.Equal(UtcAt(BaseTime), car.LastCountedFleetApiCommand);
-        Assert.Equal(UtcAt(BaseTime).AddMinutes(60), CreateService(BaseTime.AddMinutes(30)).GetNextAllowedUtc(car));
-    }
-
-    [Fact]
-    public void WakeUpWithFollowUpCommandsScenario()
-    {
-        var car = new DtoCar();
-        //Wake up succeeds and consumes the hourly slot
-        CreateService(BaseTime).RecordSuccessfulCommand(car);
-        //Set charging amps two minutes later is allowed and does not consume the slot
-        Assert.Null(CreateService(BaseTime.AddMinutes(2)).GetNextAllowedUtc(car));
-        CreateService(BaseTime.AddMinutes(2)).RecordSuccessfulCommand(car);
-        //Charge start three minutes later is allowed and does not consume the slot
-        Assert.Null(CreateService(BaseTime.AddMinutes(3)).GetNextAllowedUtc(car));
-        CreateService(BaseTime.AddMinutes(3)).RecordSuccessfulCommand(car);
-        //Ten minutes later the grace window is over, the next command is only allowed one hour after the wake up
-        Assert.Equal(UtcAt(BaseTime).AddMinutes(60), CreateService(BaseTime.AddMinutes(10)).GetNextAllowedUtc(car));
-    }
+    private void SetupBudget(DtoFleetApiCommandBudget budget) =>
+        _backendApiService.Setup(b => b.GetFleetApiCommandBudget(Vin))
+            .ReturnsAsync(new Result<DtoFleetApiCommandBudget>(budget, null, null));
 }

@@ -157,7 +157,10 @@ public interface IConfigurationWrapper
     bool UseFakeEnergyPredictions();
     bool UseFakeEnergyHistory();
     TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
-    int? HomeBatteryUsableEnergy();
+    /// <summary>Metered Wh to charge the home battery from 0 to 100 %, learned or entered.</summary>
+    int? HomeBatteryChargingEnergy();
+    /// <summary>Metered Wh the home battery delivers from 100 to 0 %, learned or entered.</summary>
+    int? HomeBatteryDischargingEnergy();
     bool DynamicHomeBatteryMinSoc();
 
     /// <summary>
@@ -174,6 +177,7 @@ public interface IConfigurationWrapper
     int HomeBatteryMaxDynamicMinSoc();
     bool ForceFullHomeBatteryBySunset();
     int CarChargeLoss();
+    bool UseLearnedUsableEnergy();
     int? HomeBatteryDischargingPower();
     int DynamicMinSocCalculationBufferInPercent();
     bool DischargeHomeBatteryToMinSocDuringDay();

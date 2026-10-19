@@ -85,7 +85,7 @@ public class JobManagerTests(ITestOutputHelper outputHelper) : TestBase(outputHe
             Assert.Equal(-1, trigger.RepeatCount);
         }
 
-        foreach (var (triggerName, jobName) in new[] { ("triggerAtNight", nameof(BackendNotificationRefreshJob)), ("meterValueMergeTrigger", nameof(MeterValueMergeJob)), })
+        foreach (var (triggerName, jobName) in new[] { ("triggerAtNight", nameof(BackendNotificationRefreshJob)), ("meterValueMergeTrigger", nameof(MeterValueMergeJob)), ("usableEnergyLearningTrigger", nameof(UsableEnergyLearningJob)), })
         {
             var trigger = Assert.IsAssignableFrom<ICronTrigger>(await scheduler.GetTrigger(new TriggerKey(triggerName)));
             Assert.Equal(jobName, trigger.JobKey.Name);
@@ -96,6 +96,10 @@ public class JobManagerTests(ITestOutputHelper outputHelper) : TestBase(outputHe
         var triggerNow = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("triggerNow")));
         Assert.Equal(nameof(BackendNotificationRefreshJob), triggerNow.JobKey.Name);
         Assert.Equal(0, triggerNow.RepeatCount);
+
+        var learningAfterStartup = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("usableEnergyLearningAfterStartupTrigger")));
+        Assert.Equal(nameof(UsableEnergyLearningJob), learningAfterStartup.JobKey.Name);
+        Assert.Equal(0, learningAfterStartup.RepeatCount);
 
         var jobTypeNames = typeof(JobManager).Assembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false, } && typeof(IJob).IsAssignableFrom(t))
@@ -112,7 +116,7 @@ public class JobManagerTests(ITestOutputHelper outputHelper) : TestBase(outputHe
         await jobManager.StartJobs();
 
         var scheduledJobNames = await GetScheduledJobNames(await GetScheduler(provider));
-        Assert.Equal(16, scheduledJobNames.Count);
+        Assert.Equal(17, scheduledJobNames.Count);
         Assert.Empty(scheduledJobNames.Intersect(CarAndChargingJobNames));
     }
 

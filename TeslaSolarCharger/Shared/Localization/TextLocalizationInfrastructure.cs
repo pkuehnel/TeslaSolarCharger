@@ -9,6 +9,8 @@ public interface ITextLocalizationRegistry
 {
     Type TargetType { get; }
 
+    IReadOnlyCollection<string> Keys { get; }
+
     string? Get(string key, CultureInfo culture);
 }
 
@@ -23,6 +25,8 @@ public abstract class TextLocalizationRegistry<T> : ITextLocalizationRegistry
     }
 
     public Type TargetType => typeof(T);
+
+    public IReadOnlyCollection<string> Keys => _localizations.Keys;
 
     public string? Get(string key, CultureInfo culture)
     {

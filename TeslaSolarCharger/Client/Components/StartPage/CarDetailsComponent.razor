@@ -51,7 +51,7 @@ else
     }
     @if (CarSettings.CarType == CarType.Tesla)
     {
-        <FleetApiTestComponent CarId="CarId" />
+        <FleetApiTestComponent CarId="CarId" IsOptional="CarSettings.UseBle" />
     }
 
     @if (CarState.Soc != default)

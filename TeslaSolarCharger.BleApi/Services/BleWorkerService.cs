@@ -183,26 +183,31 @@ public class BleWorkerService : IBleWorkerService, IDisposable
         TimeSpan.FromSeconds(_configuration.GetValue<int?>("ScanDeafAfterSeconds") ?? 90);
 
     /// <summary>
-    /// Whether the adapter has gone deaf and enough time has passed since the last attempt to fix it. The cooldown
-    /// keeps a permanently broken adapter - a dead USB dongle, say - from restarting its worker every sweep forever;
-    /// each restart cycles the adapter, so retrying every few minutes is the most that is useful.
+    /// Why the adapter's worker has to be restarted - it went deaf, or its scan is stuck failing - or null when it
+    /// does not or the last attempt to fix it was too recent. The cooldown keeps a permanently broken adapter - a dead
+    /// USB dongle, say - from restarting its worker every sweep forever; each restart cycles the adapter, so retrying
+    /// every few minutes is the most that is useful.
     /// </summary>
-    private bool ShouldRestartForDeafness(WorkerInstance instance, DateTimeOffset now)
+    private string? RadioRestartReason(WorkerInstance instance, DateTimeOffset now)
     {
-        if (!_presenceRegistry.IsDeaf(instance.Key, DeafnessThreshold(), now))
+        var reason = _presenceRegistry.IsDeaf(instance.Key, DeafnessThreshold(), now)
+            ? "the adapter received no advertisement at all"
+            : _presenceRegistry.GetStuckScanReason(instance.Key, DeafnessThreshold(),
+                _configuration.GetValue<int?>("ScanRepeatedErrorsBeforeWorkerRestart") ?? 5, now);
+        if (reason == default)
         {
-            return false;
+            return null;
         }
         var cooldown = TimeSpan.FromSeconds(_configuration.GetValue<int?>("ScanDeafRestartCooldownSeconds") ?? 300);
         lock (instance.StateLock)
         {
             if (now - instance.LastDeafRestartUtc < cooldown)
             {
-                return false;
+                return null;
             }
             instance.LastDeafRestartUtc = now;
         }
-        return true;
+        return reason;
     }
 
     private TimeSpan PresenceMaxAge(int? maxAgeSeconds)
@@ -748,14 +753,14 @@ public class BleWorkerService : IBleWorkerService, IDisposable
             {
                 //Checked before the idle and keep warm exits below: a deaf adapter is almost always one that is
                 //being kept warm, so testing it after those would never run at all.
-                if (ShouldRestartForDeafness(instance, now))
+                if (RadioRestartReason(instance, now) is { } radioRestartReason)
                 {
                     _ = Task.Run(async () =>
                     {
-                        //The adapter is up and scanning but has received nothing at all. Only a fresh adapter bind
-                        //recovers from that, so the worker is restarted rather than the scan merely re-armed.
-                        AddEvent(instance, "deaf", "The adapter received no advertisement at all, restarting its worker");
-                        await RestartWorkers(instance.Key, "adapter heard nothing").ConfigureAwait(false);
+                        //The adapter hears nothing or cannot scan at all. Only a fresh adapter bind recovers from
+                        //either, so the worker is restarted rather than the scan merely re-armed.
+                        AddEvent(instance, "deaf", $"Restarting the worker: {radioRestartReason}");
+                        await RestartWorkers(instance.Key, radioRestartReason).ConfigureAwait(false);
                     });
                     continue;
                 }
