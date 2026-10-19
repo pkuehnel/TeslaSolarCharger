@@ -344,7 +344,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
             if (nextMeterValue != default && meterValue != default)
             {
-                var energyDifference = Convert.ToInt32((nextMeterValue.EstimatedEnergyWs - meterValue.EstimatedEnergyWs) / 3600);
+                var energyDifference = Convert.ToInt32((nextMeterValue.EstimatedEnergyWs - meterValue.EstimatedEnergyWs) / 3600.0);
                 createdWh.Add(slicedTimeStamp, energyDifference);
             }
         }
@@ -470,7 +470,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             var weightedSamples = kvp.Value;
             var weightedSum = weightedSamples.Sum(item => item.meterValueChange * item.weight);
             var weightTotal = weightedSamples.Sum(item => item.weight);
-            avgHourlyWeightedFactors[timeSpan] = (int)(weightedSum / weightTotal);
+            avgHourlyWeightedFactors[timeSpan] = Convert.ToInt32(weightedSum / weightTotal);
         }
 
         return avgHourlyWeightedFactors;
@@ -496,7 +496,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             // Fall back to the factor over all radiation bins if there is no historic data in the forecast's radiation bin
             var factor = radiationFactors.BinFactors[binIndex] ?? radiationFactors.OverallFactor;
             var predictedWh = radiationValue * factor;
-            predictedProduction[resultTimeStamp] = (int)predictedWh;
+            predictedProduction[resultTimeStamp] = Convert.ToInt32(predictedWh);
         }
         return predictedProduction;
     }
