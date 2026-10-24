@@ -21,6 +21,10 @@ public class HomeBatteryPlanningInput
     public int HoldTargetSocPercent { get; set; }
     /// <summary>SoC up to which grid charging may fill the battery (charge buffer, usually below the hold target).</summary>
     public int ChargeTargetSocPercent { get; set; }
+    /// <summary>Hold target without the battery capacity cap, can exceed 100 % when the deficit is larger than the battery.</summary>
+    public int UncappedHoldTargetSocPercent { get; set; }
+    /// <summary>Charge target without the battery capacity cap, can exceed 100 % when the deficit is larger than the battery.</summary>
+    public int UncappedChargeTargetSocPercent { get; set; }
     public DateTimeOffset SelfSufficiencyTime { get; set; }
     /// <summary>Additional costs per kWh taken from the battery (wear + charging losses).</summary>
     public decimal UsageCostsPerKwh { get; set; }

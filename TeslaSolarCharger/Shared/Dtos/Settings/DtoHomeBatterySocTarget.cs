@@ -13,6 +13,13 @@ public class DtoHomeBatterySocTarget
     public int RequiredInitialSocPercent { get; set; }
 
     /// <summary>
+    /// Like <see cref="RequiredInitialSocPercent"/> but neither capped by the battery headroom nor clamped to the
+    /// maximum dynamic min SoC, so it can exceed 100 %. Shows how much energy is really missing when the deficit is
+    /// larger than the battery: preserving energy by holding then still leaves the battery to be filled.
+    /// </summary>
+    public int UncappedRequiredInitialSocPercent { get; set; }
+
+    /// <summary>
     /// Earliest time the battery would fall below the minimum SoC when starting at the minimum SoC floor.
     /// As the simulation starts at the floor this is the earliest possible breach time; with a higher actual
     /// SoC the breach happens later. Null when the minimum is never breached.

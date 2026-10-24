@@ -383,9 +383,11 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         int dynamicMinSocCalculationBufferInPercent,
         double chargedEnergyFactor = 1)
     {
-        DtoHomeBatterySocTarget CreateResult(int requiredInitialSocPercent, DateTimeOffset? breachTime, int additionalEnergyRequiredWh) => new()
+        DtoHomeBatterySocTarget CreateResult(int requiredInitialSocPercent, DateTimeOffset? breachTime, int additionalEnergyRequiredWh,
+            int? uncappedRequiredInitialSocPercent = null) => new()
         {
             RequiredInitialSocPercent = requiredInitialSocPercent,
+            UncappedRequiredInitialSocPercent = uncappedRequiredInitialSocPercent ?? requiredInitialSocPercent,
             FirstBreachTime = breachTime,
             AdditionalEnergyRequiredWh = additionalEnergyRequiredWh,
             SelfSufficiencyTime = targetTime,
@@ -470,7 +472,10 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
 
         var requiredInitialSoc = (double)(minimumEnergy + finalMissingEnergy) / batteryUsableCapacityInWh;
         _logger.LogDebug("Required initial SoC: {requiredInitialSoc:P2}", requiredInitialSoc);
-        return CreateResult((int)(requiredInitialSoc * 100), firstBreachTime, (int)finalMissingEnergy);
+        //Same expression as above, so both values are identical when the headroom does not cap the missing energy
+        var uncappedRequiredInitialSoc = (double)(minimumEnergy + maxMissingEnergy * bufferFactor) / batteryUsableCapacityInWh;
+        _logger.LogTrace("Uncapped required initial SoC: {uncappedRequiredInitialSoc:P2}", uncappedRequiredInitialSoc);
+        return CreateResult((int)(requiredInitialSoc * 100), firstBreachTime, (int)finalMissingEnergy, (int)(uncappedRequiredInitialSoc * 100));
     }
 
 

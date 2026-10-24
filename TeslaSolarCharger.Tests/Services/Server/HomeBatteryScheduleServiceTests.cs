@@ -491,15 +491,18 @@ public class HomeBatteryScheduleServiceTests : TestBase
         return new DtoHomeBatterySocTarget
         {
             RequiredInitialSocPercent = requiredInitialSocPercent,
+            UncappedRequiredInitialSocPercent = requiredInitialSocPercent,
             SelfSufficiencyTime = SelfSufficiencyTime,
             CalculatedAt = calculatedAt,
         };
     }
 
     /// <summary>
-    /// Creates an input covering 20:00 until 08:00 the next day with 500 Wh house consumption per hour.
+    /// Creates an input covering 20:00 until 08:00 the next day with 500 Wh house consumption per hour. Without uncapped
+    /// targets the deficit fits into the battery, so the uncapped targets equal the targets.
     /// </summary>
-    private static HomeBatteryPlanningInput CreateNightInput(int currentSocPercent, int holdTargetSocPercent, int chargeTargetSocPercent)
+    private static HomeBatteryPlanningInput CreateNightInput(int currentSocPercent, int holdTargetSocPercent, int chargeTargetSocPercent,
+        int? uncappedHoldTargetSocPercent = null, int? uncappedChargeTargetSocPercent = null)
     {
         var input = new HomeBatteryPlanningInput
         {
@@ -510,6 +513,8 @@ public class HomeBatteryScheduleServiceTests : TestBase
             MaxChargingPowerW = 5000,
             HoldTargetSocPercent = holdTargetSocPercent,
             ChargeTargetSocPercent = chargeTargetSocPercent,
+            UncappedHoldTargetSocPercent = uncappedHoldTargetSocPercent ?? holdTargetSocPercent,
+            UncappedChargeTargetSocPercent = uncappedChargeTargetSocPercent ?? chargeTargetSocPercent,
             SelfSufficiencyTime = SelfSufficiencyTime,
             UsageCostsPerKwh = 0.05m,
         };
@@ -551,6 +556,117 @@ public class HomeBatteryScheduleServiceTests : TestBase
     {
         var input = new HomeBatteryPlanningInput { CurrentSocPercent = 40, ChargingEnergyWh = 10_000, DischargingEnergyWh = 5_000, };
 
-        Assert.Equal(expectedWh, HomeBatteryScheduleService.CalculateDeficitWh(60, input, alreadyPreservedWh, energyPer100PercentWh));
+        Assert.Equal(expectedWh, HomeBatteryScheduleService.CalculateDeficitWh(60, 60, input, alreadyPreservedWh, energyPer100PercentWh));
+    }
+
+    [Theory]
+    //Preserved energy is taken from the uncapped need: 200 - 40 - 40 % preserved leaves far more than the 20 % to the target.
+    [InlineData(200, 2_000, 2_000)]
+    //The uncapped need still exceeds the target after preserving: 70 - 40 - 10 = 20 %, capped to 60 - 40 = 20 %.
+    [InlineData(70, 500, 2_000)]
+    //The uncapped need is partially covered by preserved energy: 65 - 40 - 10 = 15 % < 20 % to the target.
+    [InlineData(65, 500, 1_500)]
+    //Nothing preserved: the target caps the need.
+    [InlineData(200, 0, 2_000)]
+    //Preserved energy covers the whole uncapped need.
+    [InlineData(70, 2_000, 0)]
+    public void CalculateDeficitWh_SubtractsPreservedEnergyFromUncappedNeedAndCapsAtTarget(int uncappedTargetSocPercent, int alreadyPreservedWh,
+        int expectedWh)
+    {
+        var input = new HomeBatteryPlanningInput { CurrentSocPercent = 40, ChargingEnergyWh = 10_000, DischargingEnergyWh = 5_000, };
+
+        Assert.Equal(expectedWh, HomeBatteryScheduleService.CalculateDeficitWh(60, uncappedTargetSocPercent, input, alreadyPreservedWh, 10_000));
+    }
+
+    //Regression for a deficit far larger than the battery (production log 2026-10-25): cheap night holds preserved as
+    //much as the capped charge target, so no grid charge was planned although the battery could never last until
+    //self sufficiency. With the uncapped need the battery is charged up to the charge target in the cheapest slice.
+    [Theory]
+    [InlineData(10, 2_000)]
+    //The SoC rising by one percent while charging must not remove the charge window again.
+    [InlineData(11, 1_900)]
+    public void CalculateWindows_DeficitLargerThanBattery_ChargesUpToChargeTargetDespiteHolds(int currentSocPercent, int expectedChargedWh)
+    {
+        var input = CreateNightInput(currentSocPercent, holdTargetSocPercent: 40, chargeTargetSocPercent: 30,
+            uncappedHoldTargetSocPercent: 200, uncappedChargeTargetSocPercent: 150);
+        //Cheap night until 01:00, expensive afterwards. Battery energy costs are 0.10 + 0.05 = 0.15.
+        AddHourlyPrices(input, new[] { 0.10m, 0.10m, 0.10m, 0.10m, 0.10m, 0.40m, 0.40m, 0.40m, 0.40m, 0.40m, 0.40m, 0.40m, });
+
+        var windows = HomeBatteryScheduleService.CalculateWindows(input);
+
+        Assert.Equal(2, windows.Count);
+        var chargeWindow = windows[0];
+        Assert.Equal(HomeBatteryMode.Charge, chargeWindow.Mode);
+        Assert.Equal(HomeBatteryScheduleWindowReason.GridChargeForDeficit, chargeWindow.Reason);
+        Assert.Equal(EveningDate, chargeWindow.ValidFrom);
+        Assert.Equal(EveningDate.AddHours(1), chargeWindow.ValidTo);
+        Assert.Equal(expectedChargedWh, chargeWindow.PlannedEnergyWh);
+        Assert.Equal(30, chargeWindow.TargetSocPercent);
+        //The other cheap slices are still held, the house runs on cheap grid energy there.
+        var holdWindow = windows[1];
+        Assert.Equal(HomeBatteryMode.Hold, holdWindow.Mode);
+        Assert.Equal(HomeBatteryScheduleWindowReason.PreserveForDeficit, holdWindow.Reason);
+        Assert.Equal(EveningDate.AddHours(1), holdWindow.ValidFrom);
+        Assert.Equal(EveningDate.AddHours(5), holdWindow.ValidTo);
+    }
+
+    //Same prices, but the deficit fits into the battery: holds preserve enough for the charge target, so no grid
+    //charge is planned (unchanged behavior).
+    [Fact]
+    public void CalculateWindows_DeficitFitsBattery_HoldsStillCoverChargeTarget()
+    {
+        var input = CreateNightInput(currentSocPercent: 10, holdTargetSocPercent: 40, chargeTargetSocPercent: 30);
+        AddHourlyPrices(input, new[] { 0.10m, 0.10m, 0.10m, 0.10m, 0.10m, 0.40m, 0.40m, 0.40m, 0.40m, 0.40m, 0.40m, 0.40m, });
+
+        var windows = HomeBatteryScheduleService.CalculateWindows(input);
+
+        var window = Assert.Single(windows);
+        Assert.Equal(HomeBatteryMode.Hold, window.Mode);
+        Assert.Equal(EveningDate, window.ValidFrom);
+        Assert.Equal(EveningDate.AddHours(5), window.ValidTo);
+        Assert.Equal(2500, window.PlannedEnergyWh);
+    }
+
+    //The uncapped targets stored by the energy calculator are passed into planning.
+    [Fact]
+    public async Task PlanScheduleWindows_UncappedTargets_PlanGridChargeWhenHoldsCoverCappedTarget()
+    {
+        var service = Mock.Create<HomeBatteryScheduleService>();
+        SetupPlanningConfiguration();
+        var settingsMock = Mock.Mock<ISettings>();
+        settingsMock.SetupAllProperties();
+        settingsMock.Object.HomeBatterySoc = 10;
+        settingsMock.Object.HomeBatteryScheduleWindows = new ConcurrentBag<DtoHomeBatteryScheduleWindow>();
+        var holdTarget = CreateSocTarget(20, EveningDate);
+        holdTarget.UncappedRequiredInitialSocPercent = 200;
+        settingsMock.Object.HomeBatteryHoldTarget = holdTarget;
+        var chargeTarget = CreateSocTarget(20, EveningDate);
+        chargeTarget.UncappedRequiredInitialSocPercent = 150;
+        settingsMock.Object.HomeBatteryChargeTarget = chargeTarget;
+
+        var selfSufficiencyTime = EveningDate.AddHours(3);
+        var surplus = new Dictionary<DateTimeOffset, int>
+        {
+            { EveningDate, -500 },
+            { EveningDate.AddHours(1), -500 },
+            { EveningDate.AddHours(2), -500 },
+        };
+        Mock.Mock<IHomeBatteryEnergyCalculator>()
+            .Setup(c => c.GetSurplusPrediction(EveningDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DtoHomeBatterySurplusPrediction(surplus, selfSufficiencyTime, true));
+        Mock.Mock<ITscOnlyChargingCostService>()
+            .Setup(s => s.GetPricesInTimeSpan(EveningDate, selfSufficiencyTime))
+            .ReturnsAsync(new List<Price>
+            {
+                new(EveningDate, EveningDate.AddHours(2), 0.10m, 0m, true),
+                new(EveningDate.AddHours(2), EveningDate.AddHours(3), 0.40m, 0m, true),
+            });
+
+        await service.PlanScheduleWindows(EveningDate, new List<DtoChargingSchedule>(), CancellationToken.None);
+
+        //Two held hours preserve 1000 Wh = the capped 10 % gap; without the uncapped need no charge would be planned.
+        var chargeWindow = Assert.Single(settingsMock.Object.HomeBatteryScheduleWindows, w => w.Mode == HomeBatteryMode.Charge);
+        Assert.Equal(EveningDate, chargeWindow.ValidFrom);
+        Assert.Equal(500, chargeWindow.PlannedEnergyWh);
     }
 }

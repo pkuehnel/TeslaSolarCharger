@@ -90,6 +90,8 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
             MaxChargingPowerW = _configurationWrapper.HomeBatteryChargingPower(),
             HoldTargetSocPercent = holdTarget.RequiredInitialSocPercent,
             ChargeTargetSocPercent = chargeTarget.RequiredInitialSocPercent,
+            UncappedHoldTargetSocPercent = holdTarget.UncappedRequiredInitialSocPercent,
+            UncappedChargeTargetSocPercent = chargeTarget.UncappedRequiredInitialSocPercent,
             SelfSufficiencyTime = surplusPrediction.SelfSufficiencyTime,
             UsageCostsPerKwh = _configurationWrapper.HomeBatteryUsageCostsPerKwh(),
             GridPrices = gridPrices,
@@ -122,11 +124,13 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
 
         var carHoldPreservedWh = slices.Where(s => s.CarGridChargeActive && s.NetEnergyWh < 0).Sum(s => -s.NetEnergyWh);
         //Holding replaces discharging, so the hold deficit is energy the battery would deliver.
-        var holdDeficitWh = CalculateDeficitWh(input.HoldTargetSocPercent, input, carHoldPreservedWh, input.DischargingEnergyWh);
+        var holdDeficitWh = CalculateDeficitWh(input.HoldTargetSocPercent, input.UncappedHoldTargetSocPercent, input,
+            carHoldPreservedWh, input.DischargingEnergyWh);
         var heldSlices = SelectHoldSlices(slices, holdDeficitWh, input);
         var economicHoldPreservedWh = heldSlices.Sum(s => -s.NetEnergyWh);
         //Grid charging puts energy in, so the charge deficit is energy taken from the grid.
-        var chargeDeficitWh = CalculateDeficitWh(input.ChargeTargetSocPercent, input, carHoldPreservedWh + economicHoldPreservedWh, input.ChargingEnergyWh);
+        var chargeDeficitWh = CalculateDeficitWh(input.ChargeTargetSocPercent, input.UncappedChargeTargetSocPercent, input,
+            carHoldPreservedWh + economicHoldPreservedWh, input.ChargingEnergyWh);
         var chargedEnergyBySlice = SelectChargeSlices(slices, heldSlices, chargeDeficitWh, input);
 
         var windows = BuildCarHoldWindows(carHoldIntervals, slices, input);
@@ -138,11 +142,16 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
     /// Energy still missing to reach <paramref name="targetSocPercent"/>. Preserved energy is energy the battery did not
     /// deliver, so it counts in discharging energy; the remaining SoC gap is then expressed in
     /// <paramref name="energyPer100PercentWh"/>, the energy of the direction that closes the gap.
+    /// Preserved energy reduces the real need (<paramref name="uncappedTargetSocPercent"/>), not the capped target: when
+    /// the deficit is larger than the battery, holding alone can not fill the gap and the battery still has to be filled
+    /// up to <paramref name="targetSocPercent"/>.
     /// </summary>
-    internal static int CalculateDeficitWh(int targetSocPercent, HomeBatteryPlanningInput input, int alreadyPreservedWh, int energyPer100PercentWh)
+    internal static int CalculateDeficitWh(int targetSocPercent, int uncappedTargetSocPercent, HomeBatteryPlanningInput input,
+        int alreadyPreservedWh, int energyPer100PercentWh)
     {
         var preservedSocPercent = alreadyPreservedWh * 100.0 / input.DischargingEnergyWh;
-        var missingSocPercent = targetSocPercent - input.CurrentSocPercent - preservedSocPercent;
+        var missingSocPercent = Math.Min(targetSocPercent - input.CurrentSocPercent,
+            uncappedTargetSocPercent - input.CurrentSocPercent - preservedSocPercent);
         return Math.Max(0, (int)(missingSocPercent * energyPer100PercentWh / 100));
     }
 
