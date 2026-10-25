@@ -7,31 +7,23 @@ namespace TeslaSolarCharger.Shared.Dtos.Settings;
 public class DtoHomeBatterySocTarget
 {
     /// <summary>
-    /// The SoC in percent the battery needs right now so it neither breaches the minimum SoC nor misses the
-    /// target SoC until <see cref="SelfSufficiencyTime"/>. Clamped to the configured maximum dynamic min SoC.
+    /// The SoC in percent the battery would need right now (including the buffer) so it neither breaches the minimum
+    /// SoC nor misses the target SoC until <see cref="SelfSufficiencyTime"/>. Not limited by the battery, so it exceeds
+    /// 100 % when the deficit is larger than the battery.
     /// </summary>
-    public int RequiredInitialSocPercent { get; set; }
+    public int NeedSocPercent { get; set; }
 
     /// <summary>
-    /// Like <see cref="RequiredInitialSocPercent"/> but neither capped by the battery headroom nor clamped to the
-    /// maximum dynamic min SoC, so it can exceed 100 %. Shows how much energy is really missing when the deficit is
-    /// larger than the battery: preserving energy by holding then still leaves the battery to be filled.
+    /// The highest SoC that is useful right now: limited by the battery capacity, by solar surplus that would otherwise
+    /// overflow the battery before <see cref="SelfSufficiencyTime"/> and by the configured maximum dynamic min SoC.
+    /// Only applies where a SoC is set or charged to, never to holding.
     /// </summary>
-    public int UncappedRequiredInitialSocPercent { get; set; }
+    public int MaxUsefulSocPercent { get; set; }
 
     /// <summary>
-    /// Earliest time the battery would fall below the minimum SoC when starting at the minimum SoC floor.
-    /// As the simulation starts at the floor this is the earliest possible breach time; with a higher actual
-    /// SoC the breach happens later. Null when the minimum is never breached.
+    /// <see cref="NeedSocPercent"/> limited to <see cref="MaxUsefulSocPercent"/>.
     /// </summary>
-    public DateTimeOffset? FirstBreachTime { get; set; }
-
-    /// <summary>
-    /// Energy in Wh (including the configured buffer) that is missing when starting at the minimum SoC floor.
-    /// Capped by the battery headroom before <see cref="SelfSufficiencyTime"/> but intentionally not reduced
-    /// when <see cref="RequiredInitialSocPercent"/> is clamped, so the full deficit stays visible.
-    /// </summary>
-    public int AdditionalEnergyRequiredWh { get; set; }
+    public int CappedSocPercent => Math.Min(NeedSocPercent, MaxUsefulSocPercent);
 
     /// <summary>
     /// The time the calculation targets: the next sunrise adjusted to the first positive surplus, or the next

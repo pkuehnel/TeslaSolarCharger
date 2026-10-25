@@ -46,14 +46,12 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
             slices, capacity, minSoc, minSoc, targetTime, buffer);
 
         // Assert
-        Assert.Equal(minSoc, result.RequiredInitialSocPercent);
-        Assert.Null(result.FirstBreachTime);
-        Assert.Equal(0, result.AdditionalEnergyRequiredWh);
+        Assert.Equal(minSoc, result.CappedSocPercent);
         Assert.Equal(targetTime, result.SelfSufficiencyTime);
     }
 
     [Fact]
-    public void CalculateRequiredInitialStateOfChargePercent_SimpleDeficit_CalculatesBreachAndAdditionalEnergy()
+    public void CalculateRequiredInitialStateOfChargePercent_SimpleDeficit_CalculatesNeed()
     {
         // Arrange
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
@@ -78,14 +76,12 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
             slices, capacity, minSoc, targetSoc, targetTime, buffer);
 
         // Assert
-        Assert.Equal(25, result.RequiredInitialSocPercent); // 500 + 2000 = 2500 / 10000 = 25%
-        Assert.Equal(new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero), result.FirstBreachTime);
-        Assert.Equal(2000, result.AdditionalEnergyRequiredWh);
+        Assert.Equal(25, result.CappedSocPercent); // 500 + 2000 = 2500 / 10000 = 25%
         Assert.Equal(targetTime, result.SelfSufficiencyTime);
     }
 
     [Fact]
-    public void CalculateRequiredInitialStateOfChargePercent_WithBuffer_IncludesBufferInAdditionalAndSoc()
+    public void CalculateRequiredInitialStateOfChargePercent_WithBuffer_IncludesBufferInNeed()
     {
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
@@ -105,13 +101,11 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(
             slices, capacity, minSoc, minSoc, targetTime, buffer);
 
-        Assert.Equal(20, result.RequiredInitialSocPercent);
-        Assert.Equal(1500, result.AdditionalEnergyRequiredWh);
-        Assert.NotNull(result.FirstBreachTime);
+        Assert.Equal(20, result.CappedSocPercent);
     }
 
     [Fact]
-    public void CalculateRequiredInitialStateOfChargePercent_MultipleSlices_FirstBreachIsEarliest()
+    public void CalculateRequiredInitialStateOfChargePercent_MultipleSlices_NeedCoversLargestDeficit()
     {
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
@@ -130,13 +124,14 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(
             slices, capacity, minSoc, minSoc, targetTime, buffer);
 
-        Assert.Equal(new DateTimeOffset(2023, 2, 2, 10, 0, 0, TimeSpan.Zero), result.FirstBreachTime);
         // Starting 500
         // t9: 500+500=1000, missing=0
         // t10: 1000-800=200 , missing=500-200=300
         // t11: 200-300= -100 , missing=600
-        // maxMissing=600
-        Assert.Equal(600, result.AdditionalEnergyRequiredWh);
+        // maxMissing=600 => (500 + 600) / 10000
+        Assert.Equal(11, result.NeedSocPercent);
+        // The battery is fullest at t9 with 1000 Wh, so starting more than 9000 Wh higher would overflow: (500 + 9000) / 10000
+        Assert.Equal(95, result.MaxUsefulSocPercent);
     }
 
     [Fact]
@@ -163,7 +158,7 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(
             slices, capacity, minSoc, targetSoc, targetTime, buffer);
 
-        Assert.Equal(50, result.RequiredInitialSocPercent);
+        Assert.Equal(50, result.CappedSocPercent);
     }
 
     [Fact]
@@ -187,8 +182,7 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(
             slices, capacity, minSoc, 5, targetTime, buffer);
 
-        Assert.Equal(5, result.RequiredInitialSocPercent);
-        Assert.Equal(0, result.AdditionalEnergyRequiredWh);
+        Assert.Equal(5, result.CappedSocPercent);
     }
 
     [Fact]
@@ -242,17 +236,13 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         // Floor 500 Wh, -1000 -> -500 => 1000 Wh missing at the breach slice
         var holdTarget = settings.HomeBatteryHoldTarget;
         Assert.NotNull(holdTarget);
-        Assert.Equal(20, holdTarget.RequiredInitialSocPercent); // (500 + 1000 * 1.5) / 10000
-        Assert.Equal(1500, holdTarget.AdditionalEnergyRequiredWh);
-        Assert.Equal(breachSlice, holdTarget.FirstBreachTime);
+        Assert.Equal(20, holdTarget.CappedSocPercent); // (500 + 1000 * 1.5) / 10000
         Assert.Equal(expectedSelfSufficiencyTime, holdTarget.SelfSufficiencyTime);
         Assert.Equal(CurrentFakeDate, holdTarget.CalculatedAt);
 
         var chargeTarget = settings.HomeBatteryChargeTarget;
         Assert.NotNull(chargeTarget);
-        Assert.Equal(25, chargeTarget.RequiredInitialSocPercent); // (500 + 1000 * 2) / 10000
-        Assert.Equal(2000, chargeTarget.AdditionalEnergyRequiredWh);
-        Assert.Equal(breachSlice, chargeTarget.FirstBreachTime);
+        Assert.Equal(25, chargeTarget.CappedSocPercent); // (500 + 1000 * 2) / 10000
         Assert.Equal(expectedSelfSufficiencyTime, chargeTarget.SelfSufficiencyTime);
         Assert.Equal(CurrentFakeDate, chargeTarget.CalculatedAt);
     }
@@ -361,16 +351,15 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         var result = calculator.CalculateDynamicBatteryTargetSoc(slices, breachSlice, true, 10000, 5, 5, 0);
 
         // Assert
-        Assert.Equal(30, result.RequiredInitialSocPercent);
-        Assert.Equal(55, result.UncappedRequiredInitialSocPercent);
-        Assert.Equal(5000, result.AdditionalEnergyRequiredWh);
-        Assert.Equal(breachSlice, result.FirstBreachTime);
+        Assert.Equal(30, result.CappedSocPercent);
+        Assert.Equal(55, result.NeedSocPercent);
+        Assert.Equal(30, result.MaxUsefulSocPercent);
         Assert.Equal(breachSlice, result.SelfSufficiencyTime);
         Assert.Equal(CurrentFakeDate, result.CalculatedAt);
     }
 
-    //The buffer is applied to the real need before it is capped at the battery headroom (9500 Wh above the 500 Wh floor),
-    //the uncapped SoC keeps the buffered real need.
+    //The need is never limited by the battery headroom (9500 Wh above the 500 Wh floor), only the capped SoC is. As the
+    //buffer only applies to the need, it can not change the limit.
     [Theory]
     //19500 Wh missing: (500 + 9500) / 10000 and (500 + 19500) / 10000
     [InlineData(-19500, 0, 100, 200)]
@@ -382,8 +371,8 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
     //Positive buffer: 8000 Wh missing fit, but the buffered 12000 Wh do not, so the required SoC can not exceed a full
     //battery: (500 + 9500) / 10000 instead of (500 + 9500 * 1.5) / 10000 = 147 %.
     [InlineData(-8000, 50, 100, 125)]
-    public void CalculateRequiredInitialStateOfChargePercent_DeficitLargerThanBattery_AppliesBufferBeforeCappingAtHeadroom(int energy,
-        int buffer, int expectedRequiredSoc, int expectedUncappedSoc)
+    public void CalculateRequiredInitialStateOfChargePercent_DeficitLargerThanBattery_KeepsNeedAndCapsOnlyCappedSoc(int energy,
+        int buffer, int expectedCappedSoc, int expectedNeedSoc)
     {
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
@@ -392,16 +381,19 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
 
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(slices, 10000, 5, 5, slice, buffer);
 
-        Assert.Equal(expectedRequiredSoc, result.RequiredInitialSocPercent);
-        Assert.Equal(expectedUncappedSoc, result.UncappedRequiredInitialSocPercent);
+        Assert.Equal(expectedCappedSoc, result.CappedSocPercent);
+        Assert.Equal(expectedNeedSoc, result.NeedSocPercent);
+        Assert.Equal(100, result.MaxUsefulSocPercent);
     }
 
-    //When the battery headroom does not limit the need, both values are identical, so planning behaves as before.
+    //When the battery headroom does not limit the need, need and capped SoC are identical.
     [Theory]
     [InlineData(-2000, 0, 25)]
     [InlineData(-1000, 50, 20)]
     [InlineData(1000, 0, 5)]
-    public void CalculateRequiredInitialStateOfChargePercent_DeficitFitsBattery_UncappedEqualsRequired(int energy, int buffer, int expectedSoc)
+    //A buffer of more than -100 % would result in a need below the minimum, the minimum is kept.
+    [InlineData(-1000, -150, 5)]
+    public void CalculateRequiredInitialStateOfChargePercent_DeficitFitsBattery_NeedEqualsCappedSoc(int energy, int buffer, int expectedSoc)
     {
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
@@ -410,8 +402,34 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
 
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(slices, 10000, 5, 5, slice, buffer);
 
-        Assert.Equal(expectedSoc, result.RequiredInitialSocPercent);
-        Assert.Equal(expectedSoc, result.UncappedRequiredInitialSocPercent);
+        Assert.Equal(expectedSoc, result.CappedSocPercent);
+        Assert.Equal(expectedSoc, result.NeedSocPercent);
+    }
+
+    //Solar surplus before the deficit limits the useful SoC: starting higher would let the battery overflow.
+    [Theory]
+    //+3000 Wh fill the battery to 3500 Wh, so at most 6500 Wh more are useful: (500 + 6500) / 10000 = 70 %.
+    //-6000 Wh then miss 500 - (3500 - 6000) = 3000 Wh: (500 + 3000) / 10000 = 35 %, below the limit.
+    [InlineData(-6000, 35, 35)]
+    //-12000 Wh miss 9000 Wh: (500 + 9000) / 10000 = 95 % is needed, but only 70 % are useful.
+    [InlineData(-12000, 95, 70)]
+    public void CalculateRequiredInitialStateOfChargePercent_SurplusBeforeDeficit_LimitsMaxUsefulSoc(int deficit, int expectedNeedSoc,
+        int expectedCappedSoc)
+    {
+        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
+        var slices = new Dictionary<DateTimeOffset, int>
+        {
+            { new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero), 3000 },
+            { new DateTimeOffset(2023, 2, 2, 10, 0, 0, TimeSpan.Zero), deficit },
+        };
+        var targetTime = new DateTimeOffset(2023, 2, 2, 10, 0, 0, TimeSpan.Zero);
+
+        var result = calculator.CalculateRequiredInitialStateOfChargePercent(slices, 10000, 5, 5, targetTime, 0);
+
+        Assert.Equal(70, result.MaxUsefulSocPercent);
+        Assert.Equal(expectedNeedSoc, result.NeedSocPercent);
+        Assert.Equal(expectedCappedSoc, result.CappedSocPercent);
     }
 
     //Test plan case 3: GetSurplusPrediction returns null when sun events can not be calculated and does not fetch any
@@ -506,7 +524,7 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
 
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(slices, 10_000, 0, 0, targetTime, 0, chargedEnergyFactor);
 
-        Assert.Equal(expectedSoc, result.RequiredInitialSocPercent);
+        Assert.Equal(expectedSoc, result.CappedSocPercent);
     }
 
     /// <summary>
@@ -547,7 +565,6 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         // Floor 5 % of 5000Wh = 250Wh, plus the 1000Wh night => 25 % (it would be 15 % of the 10000Wh charging energy)
         var holdTarget = Mock.Mock<ISettings>().Object.HomeBatteryHoldTarget;
         Assert.NotNull(holdTarget);
-        Assert.Equal(25, holdTarget.RequiredInitialSocPercent);
-        Assert.Equal(1_000, holdTarget.AdditionalEnergyRequiredWh);
+        Assert.Equal(25, holdTarget.CappedSocPercent);
     }
 }
