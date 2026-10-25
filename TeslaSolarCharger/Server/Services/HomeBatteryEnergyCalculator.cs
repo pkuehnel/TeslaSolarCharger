@@ -462,7 +462,10 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         _logger.LogTrace("Closest distance to max energy: {closestDistanceToMaxSoc} Wh", closestDistanceToMaxEnergy);
         _logger.LogTrace("Max missing energy: {maxMissingEnergy}", maxMissingEnergy);
 
-        var finalMissingEnergy = Math.Min(closestDistanceToMaxEnergy, maxMissingEnergy) * bufferFactor;
+        //The buffer is applied to the real need before capping at the headroom: when even the buffered need exceeds the
+        //headroom, the battery has to be filled completely, so a negative buffer must not reduce the headroom.
+        var bufferedMissingEnergy = maxMissingEnergy * bufferFactor;
+        var finalMissingEnergy = Math.Min(closestDistanceToMaxEnergy, bufferedMissingEnergy);
         _logger.LogTrace("Final missing energy after buffer: {finalMissingEnergy} Wh", finalMissingEnergy);
 
         if (finalMissingEnergy < 0)
@@ -473,7 +476,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var requiredInitialSoc = (double)(minimumEnergy + finalMissingEnergy) / batteryUsableCapacityInWh;
         _logger.LogDebug("Required initial SoC: {requiredInitialSoc:P2}", requiredInitialSoc);
         //Same expression as above, so both values are identical when the headroom does not cap the missing energy
-        var uncappedRequiredInitialSoc = (double)(minimumEnergy + maxMissingEnergy * bufferFactor) / batteryUsableCapacityInWh;
+        var uncappedRequiredInitialSoc = (double)(minimumEnergy + bufferedMissingEnergy) / batteryUsableCapacityInWh;
         _logger.LogTrace("Uncapped required initial SoC: {uncappedRequiredInitialSoc:P2}", uncappedRequiredInitialSoc);
         return CreateResult((int)(requiredInitialSoc * 100), firstBreachTime, (int)finalMissingEnergy, (int)(uncappedRequiredInitialSoc * 100));
     }

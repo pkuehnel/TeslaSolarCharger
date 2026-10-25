@@ -369,19 +369,26 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         Assert.Equal(CurrentFakeDate, result.CalculatedAt);
     }
 
-    //A deficit larger than the battery caps the required SoC at the headroom, the uncapped SoC keeps the real need.
+    //The buffer is applied to the real need before it is capped at the battery headroom (9500 Wh above the 500 Wh floor),
+    //the uncapped SoC keeps the buffered real need.
     [Theory]
-    //Start at 500 Wh, -19500 Wh => 19500 Wh missing, headroom 9500 Wh: (500 + 9500) / 10000 and (500 + 19500) / 10000
-    [InlineData(0, 100, 200)]
-    //Negative buffer (factor 0.75) as used for the charge target: (500 + 7125) / 10000 and (500 + 14625) / 10000
-    [InlineData(-25, 76, 151)]
-    public void CalculateRequiredInitialStateOfChargePercent_DeficitLargerThanBattery_KeepsUncappedNeed(int buffer,
-        int expectedRequiredSoc, int expectedUncappedSoc)
+    //19500 Wh missing: (500 + 9500) / 10000 and (500 + 19500) / 10000
+    [InlineData(-19500, 0, 100, 200)]
+    //Negative buffer (factor 0.75) as used for the charge target: even the buffered need of 14625 Wh exceeds the
+    //headroom, so the battery is filled completely instead of to (500 + 9500 * 0.75) / 10000 = 76 %.
+    [InlineData(-19500, -25, 100, 151)]
+    //11000 Wh missing exceed the headroom, but the buffered need of 8250 Wh fits: (500 + 8250) / 10000.
+    [InlineData(-11000, -25, 87, 87)]
+    //Positive buffer: 8000 Wh missing fit, but the buffered 12000 Wh do not, so the required SoC can not exceed a full
+    //battery: (500 + 9500) / 10000 instead of (500 + 9500 * 1.5) / 10000 = 147 %.
+    [InlineData(-8000, 50, 100, 125)]
+    public void CalculateRequiredInitialStateOfChargePercent_DeficitLargerThanBattery_AppliesBufferBeforeCappingAtHeadroom(int energy,
+        int buffer, int expectedRequiredSoc, int expectedUncappedSoc)
     {
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
         var slice = new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero);
-        var slices = new Dictionary<DateTimeOffset, int> { { slice, -19500 }, };
+        var slices = new Dictionary<DateTimeOffset, int> { { slice, energy }, };
 
         var result = calculator.CalculateRequiredInitialStateOfChargePercent(slices, 10000, 5, 5, slice, buffer);
 
