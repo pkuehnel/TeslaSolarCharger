@@ -184,7 +184,7 @@ public class HttpsUrlConfiguratorTests
             new HttpsUrlDecision(HttpsUrlOutcome.Added, "http://+:7190;https://+:7443", 7443, usesDefaultUrls));
 
         logger.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("http://+:7190;https://+:7443")), It.IsAny<Exception?>(),
+            It.Is<It.IsAnyType>((state, _) => state!.ToString()!.Contains("http://+:7190;https://+:7443")), It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Exactly(expectedCount));
     }
 }
