@@ -17,10 +17,12 @@ public class HomeBatteryPlanningInput
     public int DischargingEnergyWh { get; set; }
     /// <summary>Max power the battery can charge with. Null disables grid charge planning (hold only).</summary>
     public int? MaxChargingPowerW { get; set; }
-    /// <summary>SoC the battery needs right now to last until self sufficiency (hold buffer).</summary>
-    public int HoldTargetSocPercent { get; set; }
-    /// <summary>SoC up to which grid charging may fill the battery (charge buffer, usually below the hold target).</summary>
-    public int ChargeTargetSocPercent { get; set; }
+    /// <summary>SoC the battery needs right now to last until self sufficiency (hold buffer), can exceed 100 %.</summary>
+    public int HoldNeedSocPercent { get; set; }
+    /// <summary>SoC grid charging is worth it for (charge buffer, usually below the hold need), can exceed 100 %.</summary>
+    public int ChargeNeedSocPercent { get; set; }
+    /// <summary>Highest SoC grid charging may fill the battery to.</summary>
+    public int MaxChargeSocPercent { get; set; }
     public DateTimeOffset SelfSufficiencyTime { get; set; }
     /// <summary>Additional costs per kWh taken from the battery (wear + charging losses).</summary>
     public decimal UsageCostsPerKwh { get; set; }

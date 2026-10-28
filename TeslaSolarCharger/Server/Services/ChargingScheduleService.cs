@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -284,7 +285,7 @@ public class ChargingScheduleService : IChargingScheduleService
             if (minCurrent != default)
             {
                 var minChargingPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, minCurrent.Value, voltage);
-                var isCurrentlyCharging = loadpoint.ChargingPower > 0;
+                var isCurrentlyCharging = loadpoint.IsDrawingPower();
 
                 schedules = OptimizeChargingSchedules(schedules, currentDate, isCurrentlyCharging, minChargingPower, voltage, maxPhases.Value);
             }
@@ -317,7 +318,7 @@ public class ChargingScheduleService : IChargingScheduleService
         var chargingSwitchCosts = _configurationWrapper.ChargingSwitchCosts();
         _logger.LogTrace("Charging switch costs: {chargingSwitchCosts}", chargingSwitchCosts);
         //Do not use car is charging here as also when it is preconditioning switching already happend
-        var isCurrentlyCharging = loadpoint.ChargingPower > 0;
+        var isCurrentlyCharging = loadpoint.IsDrawingPower();
         _logger.LogTrace("Is currently charging at loadpoint {carId}_{connectorId}: {isCurrentlyCharging}, currentChargingPower={chargingPower}", loadpoint.CarId, loadpoint.ChargingConnectorId, isCurrentlyCharging, loadpoint.ChargingPower);
         // CHANGED: Value tuple now includes 'int remainingEnergy' to track if the schedule was fulfilled
         var chargePricesIncludingSchedules = new Dictionary<int, (decimal chargeCost, List<DtoChargingSchedule> chargingSchedules, int remainingEnergy)>();

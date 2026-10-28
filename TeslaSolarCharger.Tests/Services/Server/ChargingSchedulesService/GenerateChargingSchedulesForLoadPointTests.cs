@@ -321,6 +321,54 @@ public class GenerateChargingSchedulesForLoadPointTests : TestBase
             Assert.Equal(HomeBatteryDischargePower - 500, s.EstimatedHomeBatteryPowerForCar));
     }
 
+    /// <summary>
+    /// Logfile 2026-10-25: an idle charger reported 4W standby power, so the loadpoint counted as charging and the gap
+    /// until the first grid schedule was bridged with min power, starting the car about 20 minutes too early.
+    /// Only a loadpoint that draws real power may get the leading bridge schedule.
+    /// </summary>
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(4, false)]
+    [InlineData(1_374, true)]
+    public async Task LeadingGap_IsBridged_OnlyWhenLoadPointDrawsPower(int chargingPower, bool expectBridgeSchedule)
+    {
+        // Car needs 19200Wh => ~104 minutes at max power, so the grid schedule starts ~16 minutes from now, which is a
+        // gap small enough to be bridged
+        await SetupScenario(carSoc: 38);
+        // The current slot is expensive, so grid charging can not start before the cheap slot in 15 minutes
+        Mock.Mock<ITscOnlyChargingCostService>()
+            .Setup(t => t.GetPricesInTimeSpan(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>()))
+            .ReturnsAsync(new List<Price>
+            {
+                new()
+                {
+                    ValidFrom = CurrentFakeDate.AddHours(-1),
+                    ValidTo = CurrentFakeDate.AddMinutes(15),
+                    GridPrice = 0.50m,
+                    SolarPrice = 0m,
+                    IsSpotPriceBased = false,
+                },
+                new()
+                {
+                    ValidFrom = CurrentFakeDate.AddMinutes(15),
+                    ValidTo = CurrentFakeDate.AddHours(3),
+                    GridPrice = 0.10m,
+                    SolarPrice = 0m,
+                    IsSpotPriceBased = false,
+                },
+            });
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var loadPoint = CreateLoadPoint();
+        loadPoint.ChargingPower = chargingPower;
+
+        var schedules = await service.GenerateChargingSchedulesForLoadPoint(loadPoint, CreateTargets(targetSoc: 70, dischargeHomeBatteryToMinSoc: false),
+            new(), CurrentFakeDate, CancellationToken.None, new());
+
+        Assert.NotEmpty(schedules);
+        Assert.DoesNotContain(schedules, s => s.ValidFrom < CurrentFakeDate.AddMinutes(15) && !s.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules));
+        Assert.Equal(expectBridgeSchedule, schedules.Any(s => s.ValidFrom == CurrentFakeDate && s.ScheduleReasons.Contains(ScheduleReason.BridgeSchedules)));
+    }
+
     private async Task SetupScenario(int carSoc)
     {
         Context.Cars.Add(new Car
