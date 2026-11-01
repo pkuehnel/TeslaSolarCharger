@@ -42,6 +42,9 @@ public class PilotCurrentProbeServiceTests : TestBase
         var configurationWrapper = Mock.Mock<IConfigurationWrapper>();
         configurationWrapper.Setup(c => c.GetVehicleDataFromTesla()).Returns(true);
         configurationWrapper.Setup(c => c.GetVehicleDataViaBle()).Returns(true);
+        //What the configuration wrapper returns when no max combined current is set.
+        configurationWrapper.Setup(c => c.MaxCombinedCurrent()).Returns(int.MaxValue);
+        SetChargingCurrents();
         var actionService = Mock.Mock<IOcppChargePointActionService>();
         actionService.Setup(a => a.StartCharging(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .Callback((int _, decimal current, int? _, CancellationToken _) => _startedCurrents.Add((int)current))
@@ -403,6 +406,110 @@ public class PilotCurrentProbeServiceTests : TestBase
 
         Assert.Empty(_startedCurrents);
         Assert.True(_settings.LastPilotCurrentProbes.ContainsKey(ConnectorId));
+    }
+
+    [Theory]
+    [InlineData(10, true)]
+    [InlineData(11, false)]
+    public async Task ProbeUnassignedConnectors_OnlyProbes_WhenProbeCurrentFitsIntoMaxCombinedCurrent(int currentUsedByOtherCar, bool expectedProbe)
+    {
+        await SeedConnector(ConnectorId, CarA);
+        await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
+        SetChargingCurrents((CarB, null, currentUsedByOtherCar));
+
+        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(expectedProbe, _startedCurrents.Count == 1);
+        Assert.Equal(expectedProbe ? 0 : 6, currentToReserve);
+        Assert.Equal(expectedProbe, _settings.LastPilotCurrentProbes.ContainsKey(ConnectorId));
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_ProbesPostponedConnector_OnceOtherLoadPointsReducedTheirCurrent()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        ReactOnProbe(ConnectorId, carA);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
+        SetChargingCurrents((CarB, null, 16m));
+        var service = CreateService();
+
+        var firstReservation = await service.ProbeUnassignedConnectors(CancellationToken.None);
+        SetChargingCurrents((CarB, null, 10m));
+        var secondReservation = await service.ProbeUnassignedConnectors(CancellationToken.None);
+        var thirdReservation = await service.ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(6, firstReservation);
+        Assert.Equal(0, secondReservation);
+        Assert.Equal(0, thirdReservation);
+        Assert.Equal(new List<int> { 6 }, _startedCurrents);
+        Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_DoesNotCountCurrentOfTheProbedConnector()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
+        //A guest car charging on the probed connector: the probe replaces its current instead of adding to it.
+        SetChargingCurrents((null, ConnectorId, 16m));
+
+        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Single(_startedCurrents);
+        Assert.Equal(0, currentToReserve);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_ReservesTheLargestPostponedProbeCurrent()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        await SeedConnector(SecondConnectorId, CarB);
+        await SeedCar(CarA);
+        var carB = await SeedCar(CarB);
+        carB.ChargerPilotCurrent.Update(_plugInTime, 6);
+        SetUnassigned(ConnectorId, SecondConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        AddPluggedInConnectorState(SecondConnectorId);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
+        SetChargingCurrents((99, null, 16m));
+
+        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Empty(_startedCurrents);
+        Assert.Equal(7, currentToReserve);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_ReservesNothing_WhenNoConnectorNeedsAProbe()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        _settings.ConfirmedLoadPointCarCombinations[ConnectorId] = (null, _plugInTime.AddMinutes(1));
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
+        SetChargingCurrents((CarB, null, 16m));
+
+        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(0, currentToReserve);
+    }
+
+    private void SetChargingCurrents(params (int? carId, int? connectorId, decimal current)[] loadPoints)
+    {
+        Mock.Mock<ILoadPointManagementService>().Setup(l => l.GetLoadPointsWithChargingDetails())
+            .ReturnsAsync(loadPoints
+                .Select(l => new DtoLoadPointWithCurrentChargingValues { CarId = l.carId, ChargingConnectorId = l.connectorId, ChargingCurrent = l.current, })
+                .ToList());
     }
 
     private PilotCurrentProbeService CreateService()

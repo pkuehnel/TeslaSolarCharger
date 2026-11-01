@@ -150,7 +150,7 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<IPilotCurrentProbeService>()
             .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add(nameof(IPilotCurrentProbeService.ProbeUnassignedConnectors)))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(0);
         Mock.Mock<ILoadPointManagementService>()
             .Setup(s => s.GetLoadPointsToManage())
             .Callback(() => calls.Add(nameof(ILoadPointManagementService.GetLoadPointsToManage)))
@@ -171,6 +171,32 @@ public class ChargingServiceV2Tests : TestBase
             nameof(IPilotCurrentProbeService.ProbeUnassignedConnectors),
             nameof(ILoadPointManagementService.GetLoadPointsToManage),
         }, calls);
+    }
+
+    [Fact]
+    public async Task SetNewChargingValues_LeavesCurrentReservedForProbesFree()
+    {
+        Mock.Mock<IBackendApiService>()
+            .Setup(s => s.IsBaseAppLicensed(true))
+            .ReturnsAsync(new Result<bool?>(true, null, null));
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
+        Mock.Mock<IPilotCurrentProbeService>()
+            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(6);
+        Mock.Mock<ILoadPointManagementService>()
+            .Setup(s => s.GetLoadPointsToManage())
+            .ReturnsAsync(new List<DtoLoadPointOverview>());
+        Mock.Mock<ILoadPointManagementService>()
+            .Setup(s => s.GetLoadPointsWithChargingDetails())
+            .ReturnsAsync(new List<DtoLoadPointWithCurrentChargingValues>());
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        await service.SetNewChargingValues(CancellationToken.None);
+
+        Mock.Mock<ITargetChargingValueCalculationService>().Verify(s => s.AppendTargetValues(It.IsAny<List<DtoTargetChargingValues>>(),
+            It.IsAny<List<DtoChargingSchedule>>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>(), 6, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

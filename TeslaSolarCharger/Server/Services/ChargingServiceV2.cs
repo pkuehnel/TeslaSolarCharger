@@ -99,11 +99,12 @@ public class ChargingServiceV2 : IChargingServiceV2
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
+        var currentToReserveForProbes = 0;
         try
         {
             //Runs inside the charging cycle, which never runs twice at the same time, so nothing else sets charging
             //values while a probe offers its current.
-            await _pilotCurrentProbeService.ProbeUnassignedConnectors(cancellationToken).ConfigureAwait(false);
+            currentToReserveForProbes = await _pilotCurrentProbeService.ProbeUnassignedConnectors(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -119,19 +120,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         AddNotChargingReasons();
-        //reduce current for the remaining loadpoints as this loadpoint might start charging with max current
-        foreach (var loadpoint in loadPointsToManage)
-        {
-            if (loadpoint.ChargingConnectorId == default)
-            {
-                continue;
-            }
-            var stateAvailable = _settings.OcppConnectorStates.TryGetValue(loadpoint.ChargingConnectorId.Value, out _);
-            if (!stateAvailable)
-            {
-                continue;
-            }
-        }
 
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         _logger.LogTrace("Generated charging schedules: {@chargingSchedules}", chargingSchedules);
@@ -162,7 +150,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             .Select(l => new DtoTargetChargingValues(l))
             .ToList();
 
-        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, 0, cancellationToken);
+        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, currentToReserveForProbes, cancellationToken);
         foreach (var targetChargingValue in targetChargingValues)
         {
             if (targetChargingValue.TargetValues == default)

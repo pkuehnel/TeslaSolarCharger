@@ -50,7 +50,7 @@ public class PilotCurrentProbeService(
         return useFleetTelemetry || (useBle && configurationWrapper.GetVehicleDataViaBle());
     }
 
-    public async Task ProbeUnassignedConnectors(CancellationToken cancellationToken)
+    public async Task<int> ProbeUnassignedConnectors(CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}()", nameof(ProbeUnassignedConnectors));
         var combinations = await loadPointManagementService.GetCombinationsToManage().ConfigureAwait(false);
@@ -60,7 +60,7 @@ public class PilotCurrentProbeService(
             .ToHashSet();
         if (unassignedConnectorIds.Count < 1)
         {
-            return;
+            return 0;
         }
         var assignedCarIds = combinations
             .Where(c => c.ChargingConnectorId != default && c.CarId != default)
@@ -83,6 +83,9 @@ public class PilotCurrentProbeService(
                 AllowedCarIds = c.AllowedCars.Select(ac => ac.CarId).ToList(),
             })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var maxCombinedCurrent = configurationWrapper.MaxCombinedCurrent();
+        var chargingLoadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
+        var currentToReserve = 0;
         foreach (var connector in connectors)
         {
             if (!settings.OcppConnectorStates.TryGetValue(connector.Id, out var connectorState)
@@ -106,13 +109,32 @@ public class PilotCurrentProbeService(
             {
                 continue;
             }
-            var matchedCarId = await ProbeConnector(connector.Id, connector.MinCurrent, connector.MaxCurrent,
-                connectorState, candidates, cancellationToken).ConfigureAwait(false);
+            var probeCurrent = SelectProbeCurrent(connector.MinCurrent, connector.MaxCurrent, candidates.Select(c => c.ChargerPilotCurrent.Value));
+            if (probeCurrent == default)
+            {
+                settings.LastPilotCurrentProbes[connector.Id] = dateTimeProvider.DateTimeOffSetUtcNow();
+                logger.LogWarning("Can not probe connector {connectorId}: every current it can offer is already reported as pilot current by a candidate car", connector.Id);
+                continue;
+            }
+            //The charging cycle waits for the probe, so no other load point draws more than it does now until the probe ends.
+            var currentUsedByOtherLoadPoints = chargingLoadPoints
+                .Where(l => l.ChargingConnectorId != connector.Id)
+                .Sum(l => l.ChargingCurrent);
+            if (currentUsedByOtherLoadPoints + probeCurrent.Value > maxCombinedCurrent)
+            {
+                logger.LogTrace("Probe current of {probeCurrent} A on connector {connectorId} would exceed the max combined current of {maxCombinedCurrent} A as other load points use {usedCurrent} A, reserve it",
+                    probeCurrent, connector.Id, maxCombinedCurrent, currentUsedByOtherLoadPoints);
+                currentToReserve = Math.Max(currentToReserve, probeCurrent.Value);
+                continue;
+            }
+            var matchedCarId = await ProbeConnector(connector.Id, probeCurrent.Value, connectorState, candidates, cancellationToken)
+                .ConfigureAwait(false);
             if (matchedCarId != default)
             {
                 assignedCarIds.Add(matchedCarId.Value);
             }
         }
+        return currentToReserve;
     }
 
     private bool IsSetToGuestCarByUser(int connectorId, DtoOcppConnectorState connectorState)
@@ -133,28 +155,22 @@ public class PilotCurrentProbeService(
     }
 
     /// <returns>The id of the car plugged into the connector, or null if no single candidate reacted.</returns>
-    private async Task<int?> ProbeConnector(int connectorId, int? minCurrent, int? maxCurrent,
+    private async Task<int?> ProbeConnector(int connectorId, int probeCurrent,
         DtoOcppConnectorState connectorState, List<DtoCar> candidates, CancellationToken cancellationToken)
     {
         settings.LastPilotCurrentProbes[connectorId] = dateTimeProvider.DateTimeOffSetUtcNow();
-        var probeCurrent = SelectProbeCurrent(minCurrent, maxCurrent, candidates.Select(c => c.ChargerPilotCurrent.Value));
-        if (probeCurrent == default)
-        {
-            logger.LogWarning("Can not probe connector {connectorId}: every current it can offer is already reported as pilot current by a candidate car", connectorId);
-            return null;
-        }
         logger.LogTrace("Probing connector {connectorId} with {probeCurrent} A to find out which of the cars {@carIds} is plugged into it",
             connectorId, probeCurrent, candidates.Select(c => c.Id));
         var wasCharging = connectorState.IsCharging.Value;
         var lastSetCurrent = connectorState.LastSetCurrent.Value;
         var startResult = await ocppChargePointActionService
-            .StartCharging(connectorId, probeCurrent.Value, null, cancellationToken).ConfigureAwait(false);
+            .StartCharging(connectorId, probeCurrent, null, cancellationToken).ConfigureAwait(false);
         if (startResult.HasError)
         {
             logger.LogWarning("Could not offer probe current on connector {connectorId}: {error}", connectorId, startResult.ErrorMessage);
             return null;
         }
-        var matchedCarId = await WaitForReaction(candidates, probeCurrent.Value, cancellationToken).ConfigureAwait(false);
+        var matchedCarId = await WaitForReaction(candidates, probeCurrent, cancellationToken).ConfigureAwait(false);
         await RestoreConnector(connectorId, wasCharging, lastSetCurrent, cancellationToken).ConfigureAwait(false);
         if (matchedCarId == default)
         {
