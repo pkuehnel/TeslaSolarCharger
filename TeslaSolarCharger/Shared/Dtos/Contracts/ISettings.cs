@@ -42,7 +42,15 @@ public interface ISettings
     ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; }
     ConcurrentBag<NotChargingWithExpectedPowerReasonTemplate> GenericNotChargingWithExpectedPowerReasons { get; set; }
     ConcurrentDictionary<(int? carId, int? connectorId), List<NotChargingWithExpectedPowerReasonTemplate>> LoadPointSpecificNotChargingWithExpectedPowerReasons { get; set; }
-    ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; }
+    /// <summary>
+    /// Car per charging connector that was either chosen by the user or identified by a pilot current probe. Valid as
+    /// long as neither the car nor the connector was unplugged since.
+    /// </summary>
+    ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ConfirmedLoadPointCarCombinations { get; set; }
+    /// <summary>
+    /// When each charging connector was last probed for the car plugged into it.
+    /// </summary>
+    ConcurrentDictionary<int, DateTimeOffset> LastPilotCurrentProbes { get; set; }
     HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; }
     int? LastLoggedHomeBatterySoc { get; set; }
     int? LearnedHomeBatteryChargingEnergyWh { get; set; }
