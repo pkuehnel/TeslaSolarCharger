@@ -8,6 +8,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -114,10 +115,53 @@ public class PilotCurrentProbeServiceTests : TestBase
 
         await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
 
-        Assert.Equal(new List<int> { 6 }, _startedCurrents);
+        //The probe current, then the connector's max current for the car that was stopped via the Tesla API or BLE.
+        Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
         Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
         Assert.Equal(CurrentFakeDate, _settings.LastPilotCurrentProbes[ConnectorId]);
+        Mock.Mock<ITeslaService>().Verify(t => t.StopCharging(CarA), Times.Once);
+        Mock.Mock<IOcppChargePointActionService>().Verify(a => a.StopCharging(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_OpensConnectorToMax_OnlyAfterTheMatchedCarStoppedCharging()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        ReactOnProbe(ConnectorId, carA);
+        carA.IsCharging.Update(_plugInTime, true);
+        var isChargingWhenOpened = new List<bool?>();
+        Mock.Mock<ITeslaService>().Setup(t => t.StopCharging(CarA))
+            .Callback(() => carA.IsCharging.Update(CurrentFakeDate, false))
+            .Returns(Task.CompletedTask);
+        Mock.Mock<IOcppChargePointActionService>()
+            .Setup(a => a.StartCharging(ConnectorId, 16m, It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .Callback(() => isChargingWhenOpened.Add(carA.IsCharging.Value))
+            .ReturnsAsync(new Result<RemoteStartTransactionResponse?>(new RemoteStartTransactionResponse(), null, null));
+
+        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<bool?> { false }, isChargingWhenOpened);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_StopsConnector_WhenMatchedCarDoesNotStopCharging()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        ReactOnProbe(ConnectorId, carA);
+        carA.IsCharging.Update(_plugInTime, true);
+
+        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<int> { 6 }, _startedCurrents);
         Mock.Mock<IOcppChargePointActionService>().Verify(a => a.StopCharging(ConnectorId, It.IsAny<CancellationToken>()), Times.Once);
+        //The car still is the one on the connector.
+        Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
     }
 
     [Fact]
@@ -134,7 +178,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
 
         //6 A is what the other wallbox already offers car B, so a car showing it would prove nothing.
-        Assert.Equal(new List<int> { 7 }, _startedCurrents);
+        Assert.Equal(new List<int> { 7, 16 }, _startedCurrents);
         Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
         Assert.Equal(6, carB.ChargerPilotCurrent.Value);
     }
@@ -171,7 +215,7 @@ public class PilotCurrentProbeServiceTests : TestBase
 
         await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
 
-        Assert.Single(_startedCurrents);
+        Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
         Assert.False(_settings.ConfirmedLoadPointCarCombinations.ContainsKey(SecondConnectorId));
     }
 
@@ -447,7 +491,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         Assert.Equal(6, firstReservation);
         Assert.Equal(0, secondReservation);
         Assert.Equal(0, thirdReservation);
-        Assert.Equal(new List<int> { 6 }, _startedCurrents);
+        Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
         Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
     }
 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -23,7 +24,8 @@ public class PilotCurrentProbeService(
     IDateTimeProvider dateTimeProvider,
     ILoadPointManagementService loadPointManagementService,
     IOcppChargePointActionService ocppChargePointActionService,
-    IBleVehicleDataService bleVehicleDataService) : IPilotCurrentProbeService
+    IBleVehicleDataService bleVehicleDataService,
+    ITeslaService teslaService) : IPilotCurrentProbeService
 {
     /// <summary>
     /// The lowest current IEC 61851 allows a charge point to offer. Below it the connector offers nothing, which a car
@@ -127,7 +129,7 @@ public class PilotCurrentProbeService(
                 currentToReserve = Math.Max(currentToReserve, probeCurrent.Value);
                 continue;
             }
-            var matchedCarId = await ProbeConnector(connector.Id, probeCurrent.Value, connectorState, candidates, cancellationToken)
+            var matchedCarId = await ProbeConnector(connector.Id, probeCurrent.Value, connector.MaxCurrent!.Value, connectorState, candidates, cancellationToken)
                 .ConfigureAwait(false);
             if (matchedCarId != default)
             {
@@ -155,7 +157,7 @@ public class PilotCurrentProbeService(
     }
 
     /// <returns>The id of the car plugged into the connector, or null if no single candidate reacted.</returns>
-    private async Task<int?> ProbeConnector(int connectorId, int probeCurrent,
+    private async Task<int?> ProbeConnector(int connectorId, int probeCurrent, int maxCurrent,
         DtoOcppConnectorState connectorState, List<DtoCar> candidates, CancellationToken cancellationToken)
     {
         settings.LastPilotCurrentProbes[connectorId] = dateTimeProvider.DateTimeOffSetUtcNow();
@@ -171,13 +173,21 @@ public class PilotCurrentProbeService(
             return null;
         }
         var matchedCarId = await WaitForReaction(candidates, probeCurrent, cancellationToken).ConfigureAwait(false);
-        await RestoreConnector(connectorId, wasCharging, lastSetCurrent, cancellationToken).ConfigureAwait(false);
         if (matchedCarId == default)
         {
             logger.LogTrace("No single car reacted to the probe of connector {connectorId}", connectorId);
+            await RestoreConnector(connectorId, wasCharging, lastSetCurrent, cancellationToken).ConfigureAwait(false);
             return null;
         }
         logger.LogTrace("Car {carId} is plugged into connector {connectorId}", matchedCarId, connectorId);
+        if (wasCharging)
+        {
+            await RestoreConnector(connectorId, wasCharging, lastSetCurrent, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await HandOverToCar(connectorId, maxCurrent, matchedCarId.Value, cancellationToken).ConfigureAwait(false);
+        }
         settings.ConfirmedLoadPointCarCombinations[connectorId] = (matchedCarId, dateTimeProvider.DateTimeOffSetUtcNow());
         return matchedCarId;
     }
@@ -205,30 +215,62 @@ public class PilotCurrentProbeService(
 
     private async Task<int?> WaitForReaction(List<DtoCar> candidates, int probeCurrent, CancellationToken cancellationToken)
     {
+        await WaitUntil(candidates, () => candidates.Any(c => c.ChargerPilotCurrent.Value == probeCurrent), cancellationToken)
+            .ConfigureAwait(false);
+        var reactedCars = candidates.Where(c => c.ChargerPilotCurrent.Value == probeCurrent).ToList();
+        if (reactedCars.Count > 1)
+        {
+            logger.LogWarning("Cars {@carIds} all report the probe current of {probeCurrent} A, can not decide which one is plugged in",
+                reactedCars.Select(c => c.Id), probeCurrent);
+            return null;
+        }
+        return reactedCars.SingleOrDefault()?.Id;
+    }
+
+    /// <returns>Whether the condition was met before the wait timed out.</returns>
+    private async Task<bool> WaitUntil(List<DtoCar> cars, Func<bool> condition, CancellationToken cancellationToken)
+    {
         for (var poll = 1; poll <= MaxPolls; poll++)
         {
             await Task.Delay(PollInterval, cancellationToken).ConfigureAwait(false);
             if (poll % PollsBetweenBleRefreshes == 0)
             {
-                foreach (var candidate in candidates)
+                foreach (var car in cars)
                 {
                     //Does nothing for cars that do not collect their data via BLE.
-                    await bleVehicleDataService.RefreshSingleCarData(candidate.Id).ConfigureAwait(false);
+                    await bleVehicleDataService.RefreshSingleCarData(car.Id).ConfigureAwait(false);
                 }
             }
-            var reactedCars = candidates.Where(c => c.ChargerPilotCurrent.Value == probeCurrent).ToList();
-            if (reactedCars.Count == 1)
+            if (condition())
             {
-                return reactedCars[0].Id;
-            }
-            if (reactedCars.Count > 1)
-            {
-                logger.LogWarning("Cars {@carIds} all report the probe current of {probeCurrent} A, can not decide which one is plugged in",
-                    reactedCars.Select(c => c.Id), probeCurrent);
-                return null;
+                return true;
             }
         }
-        return null;
+        return false;
+    }
+
+    /// <summary>
+    /// Leaves the connector the way the charging cycle leaves it for a Tesla it stopped: the car is stopped via the
+    /// Tesla API or BLE and the connector offers its max current, so the car can use grid power e.g. for preconditioning.
+    /// </summary>
+    private async Task HandOverToCar(int connectorId, int maxCurrent, int carId, CancellationToken cancellationToken)
+    {
+        await teslaService.StopCharging(carId).ConfigureAwait(false);
+        var car = settings.Cars.First(c => c.Id == carId);
+        //The stop command does not report whether the car stopped, and opening the connector before it did lets the
+        //car charge with the max current.
+        if (!await WaitUntil([car], () => car.IsCharging.Value != true, cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogWarning("Car {carId} did not stop charging after the probe of connector {connectorId}, stop the connector instead", carId, connectorId);
+            await RestoreConnector(connectorId, false, null, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        var startResult = await ocppChargePointActionService
+            .StartCharging(connectorId, maxCurrent, null, cancellationToken).ConfigureAwait(false);
+        if (startResult.HasError)
+        {
+            logger.LogWarning("Could not set connector {connectorId} to its max current of {maxCurrent} A: {error}", connectorId, maxCurrent, startResult.ErrorMessage);
+        }
     }
 
     private async Task RestoreConnector(int connectorId, bool wasCharging, decimal? lastSetCurrent, CancellationToken cancellationToken)
