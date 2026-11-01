@@ -762,6 +762,7 @@ public static class TranslationKeys
     public static string NotChargingReasonCarNotPluggedIn => nameof(NotChargingReasonCarNotPluggedIn);
     public static string NotChargingReasonConnectorNotPluggedIn => nameof(NotChargingReasonConnectorNotPluggedIn);
     public static string NotChargingReasonCarNotAllowing => nameof(NotChargingReasonCarNotAllowing);
+    public static string NotChargingReasonChargerNotSupplyingPower => nameof(NotChargingReasonChargerNotSupplyingPower);
     public static string NotChargingReasonWaitingPhaseSwitchCooldown => nameof(NotChargingReasonWaitingPhaseSwitchCooldown);
     public static string NotChargingReasonWaitingPhaseIncrease => nameof(NotChargingReasonWaitingPhaseIncrease);
     public static string NotChargingReasonWaitingPhaseReduction => nameof(NotChargingReasonWaitingPhaseReduction);

@@ -51,6 +51,20 @@ public class DtoCar
 
     public DateTimeOffset? LastMatchedToChargingConnector { get; set; }
 
+    /// <summary>
+    /// When the car last refused a charge start because the charger does not supply power.
+    /// </summary>
+    public DateTimeOffset? ChargeStartRefusedForMissingPower { get; set; }
+
+    /// <summary>
+    /// The car wants to charge but waits for the charger to supply power, so sending another charge start is useless.
+    /// Ends as soon as the charger offers a different current, the car is unplugged or the car starts charging.
+    /// </summary>
+    public bool IsWaitingForChargerPower => ChargeStartRefusedForMissingPower is { } refusedAt
+                                            && IsCharging.Value != true
+                                            && !(PluggedIn.LastChanged > refusedAt)
+                                            && !(ChargerPilotCurrent.LastChanged > refusedAt);
+
     public int? ChargingPowerAtHome
     {
         get

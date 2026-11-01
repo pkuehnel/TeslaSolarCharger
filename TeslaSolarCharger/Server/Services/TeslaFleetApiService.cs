@@ -50,6 +50,8 @@ public class TeslaFleetApiService(
 {
     private const string IsChargingErrorMessage = "is_charging";
     private const string IsNotChargingErrorMessage = "not_charging";
+    private const string ChargeStartRequestedErrorMessage = "requested";
+    private const string NoPowerErrorMessage = "no_power";
     internal const string WakeUpThrottledError = "WakeUpThrottled";
     internal const string FleetApiCommandRateLimitedError = "FleetApiCommandRateLimited";
     internal const string FleetApiTestRateLimitedError = "FleetApiTestRateLimited";
@@ -123,6 +125,11 @@ public class TeslaFleetApiService(
         if (WasSentWithinLastMinute(car.ChargeStartCalls))
         {
             logger.LogDebug("Last charge start call is less than a minute old. Do not send command again.");
+            return;
+        }
+        if (car.IsWaitingForChargerPower)
+        {
+            logger.LogDebug("Car {carId} waits for the charger to supply power. Do not send charge start again.", carId);
             return;
         }
         if (startAmp == 0)
@@ -849,6 +856,10 @@ public class TeslaFleetApiService(
                 if (IsBleCommandFulfilled(result, fleetApiRequest.RequestUrl))
                 {
                     AddRequestToCar(vin, fleetApiRequest);
+                    if (!result.Success && IsChargeStartRefusedForMissingPower(fleetApiRequest.RequestUrl, result.CarErrorMessage))
+                    {
+                        RememberChargeStartRefusedForMissingPower(car, result.CarErrorMessage);
+                    }
                     await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
                     if (typeof(T) == typeof(DtoVehicleCommandResult))
                     {
@@ -999,9 +1010,12 @@ public class TeslaFleetApiService(
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(backendApiResponse.JsonResponse);
         if ((backendApiResponse.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices) && (teslaCommandResultResponse?.Response is DtoVehicleCommandResult vehicleCommandResult))
         {
+            var isRefusedForMissingPower = (vehicleCommandResult.Result != true)
+                                           && IsChargeStartRefusedForMissingPower(fleetApiRequest.RequestUrl, vehicleCommandResult.Reason);
             if (vehicleCommandResult.Result != true
                 && !((fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl) && backendApiResponse.JsonResponse.Contains(IsChargingErrorMessage))
-                && !((fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl) && backendApiResponse.JsonResponse.Contains(IsNotChargingErrorMessage)))
+                && !((fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl) && backendApiResponse.JsonResponse.Contains(IsNotChargingErrorMessage))
+                && !isRefusedForMissingPower)
             {
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Car {car.Vin} could not handle command",
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {intParam}. Response string: {backendApiResponse.JsonResponse}",
@@ -1013,6 +1027,10 @@ public class TeslaFleetApiService(
             else
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + fleetApiRequest.RequestUrl, car.Vin);
+                if (isRefusedForMissingPower)
+                {
+                    RememberChargeStartRefusedForMissingPower(car, vehicleCommandResult.Reason);
+                }
                 await HandleSuccessfulFleetApiCommand(car, fleetApiRequest).ConfigureAwait(false);
             }
         }
@@ -1128,8 +1146,9 @@ public class TeslaFleetApiService(
 
     /// <summary>
     /// Whether a BLE command achieved what it was sent for. A car that refuses charging-start because it is already
-    /// charging (or charging-stop because it is not charging) did what was asked of it, so this counts as fulfilled
-    /// and no Fleet API fallback is needed. <see cref="DtoBleCommandResult.Outcome"/> is the structured
+    /// charging (or charging-stop because it is not charging) did what was asked of it, as does a car that refuses
+    /// charging-start because it already waits for power the charger does not supply (the Fleet API would get the same
+    /// answer), so this counts as fulfilled and no Fleet API fallback is needed. <see cref="DtoBleCommandResult.Outcome"/> is the structured
     /// classification; the legacy ErrorType check stays as a fallback for BLE containers that do not send an outcome
     /// yet.
     /// </summary>
@@ -1147,13 +1166,31 @@ public class TeslaFleetApiService(
         }
         if (requestUrl == ChargeStartRequest.RequestUrl)
         {
-            return result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true;
+            return result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true
+                   || IsChargeStartRefusedForMissingPower(requestUrl, result.CarErrorMessage);
         }
         if (requestUrl == ChargeStopRequest.RequestUrl)
         {
             return result.CarErrorMessage?.Contains(IsNotChargingErrorMessage) == true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// The car refused to start charging because it already waits for power the charger does not supply.
+    /// </summary>
+    private bool IsChargeStartRefusedForMissingPower(string requestUrl, string? carErrorMessage)
+    {
+        return (requestUrl == ChargeStartRequest.RequestUrl)
+               && ((carErrorMessage?.Contains(ChargeStartRequestedErrorMessage) == true)
+                   || (carErrorMessage?.Contains(NoPowerErrorMessage) == true));
+    }
+
+    private void RememberChargeStartRefusedForMissingPower(DtoCar car, string? carErrorMessage)
+    {
+        logger.LogWarning("Car {vin} refused to start charging as the charger does not supply power ({reason}). Do not send charge start again until the charger offers a different current, the car is unplugged or starts charging.",
+            car.Vin, carErrorMessage);
+        car.ChargeStartRefusedForMissingPower = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 
     private void AddRequestToCar(string vin, DtoFleetApiRequest fleetApiRequest)
