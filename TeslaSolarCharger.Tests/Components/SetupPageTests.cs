@@ -670,7 +670,7 @@ public class SetupPageTests : Bunit.TestContext
             .Where(i => i.Method.Name == nameof(ISetupService.UpdateSetupState))
             .ToList();
         Assert.NotEmpty(invocations);
-        return (DtoSetupState)invocations.Last().Arguments[0];
+        return (DtoSetupState)invocations.Last().Arguments[0]!;
     }
 
     private static AngleSharp.Dom.IElement ButtonWithText(IRenderedComponent<Setup> page, string text)
@@ -1402,7 +1402,7 @@ public class SetupPageTests : Bunit.TestContext
 
     private IEnumerable<DtoSetupCarDraft> AllSavedCarDrafts() => _setupService.Invocations
         .Where(i => i.Method.Name == nameof(ISetupService.UpdateSetupState))
-        .SelectMany(i => ((DtoSetupState)i.Arguments[0]).CarDrafts);
+        .SelectMany(i => ((DtoSetupState)i.Arguments[0]!).CarDrafts);
 
     [Fact]
     public void ABluetoothCarIsOfferedTheTeslaCloudFallbackWithoutTestingIt()
