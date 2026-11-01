@@ -123,6 +123,25 @@ public class AppendTargetValuesTests : TestBase
             "The day discharge power and the schedule discharge budget must not be added up as both are delivered by the same home battery.");
     }
 
+    /// <summary>
+    /// A pilot current probe that does not fit into the max combined current reserves its current, which the load
+    /// points have to leave free.
+    /// </summary>
+    [Theory]
+    [InlineData(0, MaxCurrent)]
+    [InlineData(20, 12)]
+    public async Task AppendTargetValues_LeavesReservedCurrentFree(int reduceMaxCombinedCurrentBy, int expectedTargetCurrent)
+    {
+        await SetupLogfileScenario();
+        var targetChargingValues = CreateTargetChargingValues();
+        var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
+
+        await sut.AppendTargetValues(targetChargingValues, CreateActiveChargingSchedules(), CurrentFakeDate, 50_000,
+            reduceMaxCombinedCurrentBy, CancellationToken.None);
+
+        Assert.Equal(expectedTargetCurrent, targetChargingValues[0].TargetValues?.TargetCurrent);
+    }
+
     private decimal GetEstimatedChargingPower(DtoTargetChargingValues targetChargingValues)
     {
         var targetValues = targetChargingValues.TargetValues;
