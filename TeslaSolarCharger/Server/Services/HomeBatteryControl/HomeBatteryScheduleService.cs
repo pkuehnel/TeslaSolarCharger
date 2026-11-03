@@ -6,20 +6,16 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.HomeBatteryControl;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services.HomeBatteryControl;
 
 /// <summary>
 /// Plans time windows in which the home battery should hold its charge or charge from the grid so overall energy
-/// costs are minimized:
-/// <list type="bullet">
-/// <item>While a car is intentionally charged from the grid, the battery is held so it does not discharge into the car.</item>
-/// <item>When the battery would not last until solar self sufficiency, the house runs on grid (hold) during hours that
-/// are cheaper than energy from the battery, and the battery is charged from the grid during the cheapest hours if
-/// holds do not close the gap.</item>
-/// </list>
+/// costs are minimized. House consumption and the grid energy of planned car charging are treated as one demand per
+/// time slice: the most expensive demand is covered by the battery first, either with energy already stored or with
+/// energy charged from the grid in a cheaper, earlier slice, as long as that is cheaper including the battery usage
+/// costs and the battery stays between the min SoC and the max charge SoC. Car charging schedules are not changed.
 /// </summary>
 public class HomeBatteryScheduleService : IHomeBatteryScheduleService
 {
@@ -28,21 +24,18 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
     private readonly ISettings _settings;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
     private readonly IHomeBatteryEnergyCalculator _homeBatteryEnergyCalculator;
-    private readonly IConstants _constants;
 
     public HomeBatteryScheduleService(ILogger<HomeBatteryScheduleService> logger,
         IConfigurationWrapper configurationWrapper,
         ISettings settings,
         ITscOnlyChargingCostService tscOnlyChargingCostService,
-        IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator,
-        IConstants constants)
+        IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
         _settings = settings;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
         _homeBatteryEnergyCalculator = homeBatteryEnergyCalculator;
-        _constants = constants;
     }
 
     public async Task PlanScheduleWindows(DateTimeOffset currentDate, List<DtoChargingSchedule> chargingSchedules, CancellationToken cancellationToken)
@@ -56,19 +49,9 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         var currentSoc = _settings.HomeBatterySoc;
         var chargingEnergy = _configurationWrapper.HomeBatteryChargingEnergy();
         var dischargingEnergy = _configurationWrapper.HomeBatteryDischargingEnergy();
-        var holdTarget = _settings.HomeBatteryHoldTarget;
-        var chargeTarget = _settings.HomeBatteryChargeTarget;
-        if (currentSoc == default || chargingEnergy == default || dischargingEnergy == default || holdTarget == default || chargeTarget == default)
+        if (currentSoc == default || chargingEnergy == default || dischargingEnergy == default)
         {
-            _logger.LogDebug("Can not plan home battery schedule windows: SoC, usable energy or SoC targets are unknown.");
-            ClearWindows();
-            return;
-        }
-        var maxTargetAge = TimeSpan.FromMinutes(_constants.HomeBatteryMinSocRefreshIntervalMinutes * 3);
-        if (currentDate - holdTarget.CalculatedAt > maxTargetAge || currentDate - chargeTarget.CalculatedAt > maxTargetAge)
-        {
-            _logger.LogWarning("Can not plan home battery schedule windows: SoC targets are stale (hold: {holdCalculatedAt}, charge: {chargeCalculatedAt}).",
-                holdTarget.CalculatedAt, chargeTarget.CalculatedAt);
+            _logger.LogDebug("Can not plan home battery schedule windows: SoC or usable energy is unknown.");
             ClearWindows();
             return;
         }
@@ -88,9 +71,10 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
             ChargingEnergyWh = chargingEnergy.Value,
             DischargingEnergyWh = dischargingEnergy.Value,
             MaxChargingPowerW = _configurationWrapper.HomeBatteryChargingPower(),
-            HoldNeedSocPercent = holdTarget.NeedSocPercent,
-            ChargeNeedSocPercent = chargeTarget.NeedSocPercent,
-            MaxChargeSocPercent = chargeTarget.MaxUsefulSocPercent,
+            MaxDischargingPowerW = _configurationWrapper.HomeBatteryDischargingPower(),
+            MinSocPercent = GetMinSocPercent(),
+            MaxChargeSocPercent = _configurationWrapper.HomeBatteryMaxChargeSoc(),
+            ChargeBufferPercent = _configurationWrapper.ChargeHomeBatterySocBufferInPercent(),
             SelfSufficiencyTime = surplusPrediction.SelfSufficiencyTime,
             UsageCostsPerKwh = _configurationWrapper.HomeBatteryUsageCostsPerKwh(),
             GridPrices = gridPrices,
@@ -100,6 +84,15 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         var windows = CalculateWindows(input);
         _logger.LogTrace("Planned home battery schedule windows: {@windows}", windows);
         _settings.HomeBatteryScheduleWindows = new(windows);
+    }
+
+    private int GetMinSocPercent()
+    {
+        //With dynamic min SoC the configured min SoC is overwritten with the SoC needed until sunrise, which would forbid
+        //any planned discharge at night, so its lower limit is used instead.
+        return _configurationWrapper.DynamicHomeBatteryMinSoc()
+            ? _configurationWrapper.HomeBatteryMinDynamicMinSoc()
+            : _configurationWrapper.HomeBatteryMinSoc() ?? 0;
     }
 
     private void ClearWindows()
@@ -112,194 +105,152 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
 
     /// <summary>
     /// Pure planning core. Deterministic and side effect free so it can be tested without mocks.
-    /// Known simplifications (windows are replanned every few seconds, SoC guards limit the impact of wrong plans):
-    /// grid charge windows are not required to lie before the deficit hours they cover, and battery grid charging is
-    /// not counted against combined grid current limits together with car charging.
+    /// Known simplifications (windows are replanned every few seconds): car charging is not slowed down to the battery
+    /// discharge power, battery grid charging is not counted against grid current limits together with car charging and
+    /// the planning ends at solar self sufficiency.
     /// </summary>
     internal static List<DtoHomeBatteryScheduleWindow> CalculateWindows(HomeBatteryPlanningInput input)
     {
-        var carHoldIntervals = GetCarHoldIntervals(input);
         var slices = BuildPlanningSlices(input);
-
-        var carHoldPreservedWh = slices.Where(s => s.CarGridChargeActive && s.NetEnergyWh < 0).Sum(s => -s.NetEnergyWh);
-        //Holding replaces discharging, so the hold deficit is energy the battery would deliver. Holding does not fill the
-        //battery, so it is not limited by the battery.
-        var holdDeficitWh = CalculateDeficitWh(input.HoldNeedSocPercent, null, input, carHoldPreservedWh, input.DischargingEnergyWh);
-        var heldSlices = SelectHoldSlices(slices, holdDeficitWh, input);
-        var economicHoldPreservedWh = heldSlices.Sum(s => -s.NetEnergyWh);
-        //Grid charging puts energy in, so the charge deficit is energy taken from the grid, limited by the battery.
-        var chargeDeficitWh = CalculateDeficitWh(input.ChargeNeedSocPercent, input.MaxChargeSocPercent, input,
-            carHoldPreservedWh + economicHoldPreservedWh, input.ChargingEnergyWh);
-        var chargedEnergyBySlice = SelectChargeSlices(slices, heldSlices, chargeDeficitWh, input);
-
-        var windows = BuildCarHoldWindows(carHoldIntervals, slices, input);
-        windows.AddRange(BuildEconomicWindows(slices, heldSlices, chargedEnergyBySlice, input));
-        return windows.OrderBy(w => w.ValidFrom).ToList();
-    }
-
-    /// <summary>
-    /// Energy still missing to reach <paramref name="needSocPercent"/>. Preserved energy is energy the battery did not
-    /// deliver, so it counts in discharging energy and reduces the need. The remaining need is limited to
-    /// <paramref name="maxSocPercent"/> (null: unlimited) and expressed in <paramref name="energyPer100PercentWh"/>, the
-    /// energy of the direction that closes the gap.
-    /// </summary>
-    internal static int CalculateDeficitWh(int needSocPercent, int? maxSocPercent, HomeBatteryPlanningInput input,
-        int alreadyPreservedWh, int energyPer100PercentWh)
-    {
-        var preservedSocPercent = alreadyPreservedWh * 100.0 / input.DischargingEnergyWh;
-        var targetSocPercent = Math.Min(maxSocPercent ?? double.MaxValue, needSocPercent - preservedSocPercent);
-        var missingSocPercent = targetSocPercent - input.CurrentSocPercent;
-        return Math.Max(0, (int)(missingSocPercent * energyPer100PercentWh / 100));
-    }
-
-    /// <summary>
-    /// Selects the discharge slices the house should run on grid (hold) instead of draining the battery: the cheapest
-    /// slices first, as long as they are cheaper than energy from the battery (cheapest chargeable price + usage
-    /// costs) and cheaper than the most expensive slice the preserved energy will cover instead.
-    /// </summary>
-    private static HashSet<PlanningSlice> SelectHoldSlices(List<PlanningSlice> slices, int holdDeficitWh, HomeBatteryPlanningInput input)
-    {
-        var heldSlices = new HashSet<PlanningSlice>();
-        if (holdDeficitWh <= 0)
-        {
-            return heldSlices;
-        }
-        var dischargeSlices = slices
-            .Where(s => s.NetEnergyWh < 0 && !s.CarGridChargeActive && !s.DeliberateBatteryDischargeActive)
-            .ToList();
-        var batteryEnergyCostPerKwh = GetBatteryEnergyCostPerKwh(slices, input);
-        var remainingDeficitWh = holdDeficitWh;
-        foreach (var slice in dischargeSlices.OrderBy(s => s.GridPricePerKwh).ThenBy(s => s.From))
-        {
-            if (remainingDeficitWh <= 0)
-            {
-                break;
-            }
-            if (slice.GridPricePerKwh >= batteryEnergyCostPerKwh)
-            {
-                //Slices are ordered by price, so no cheaper slice follows. Covering more expensive times is up to grid charging.
-                break;
-            }
-            var maxUncoveredPrice = dischargeSlices
-                .Where(s => !heldSlices.Contains(s) && s != slice)
-                .Select(s => s.GridPricePerKwh)
-                .DefaultIfEmpty(decimal.MinValue)
-                .Max();
-            if (slice.GridPricePerKwh >= maxUncoveredPrice)
-            {
-                //Holding is only beneficial if the preserved energy covers a more expensive time, e.g. with flat prices holding never helps.
-                break;
-            }
-            heldSlices.Add(slice);
-            remainingDeficitWh -= -slice.NetEnergyWh;
-        }
-        return heldSlices;
-    }
-
-    /// <summary>
-    /// Plans grid charge energy on the cheapest slices as long as the bought energy (price + usage costs) is cheaper
-    /// than the most expensive unheld discharge slice it will cover.
-    /// </summary>
-    private static Dictionary<PlanningSlice, int> SelectChargeSlices(List<PlanningSlice> slices, HashSet<PlanningSlice> heldSlices,
-        int chargeDeficitWh, HomeBatteryPlanningInput input)
-    {
-        var chargedEnergyBySlice = new Dictionary<PlanningSlice, int>();
-        if (chargeDeficitWh <= 0 || !(input.MaxChargingPowerW > 0))
-        {
-            return chargedEnergyBySlice;
-        }
-        //Highest prices first: grid charged energy replaces the most expensive uncovered consumption.
-        var uncoveredDemand = slices
-            .Where(s => s.NetEnergyWh < 0 && !s.CarGridChargeActive && !s.DeliberateBatteryDischargeActive && !heldSlices.Contains(s))
+        var battery = new BatteryLimits(input);
+        var houseGridChargeBudgetWh = GetHouseGridChargeBudgetWh(slices, battery, input);
+        var demandSlices = slices
+            .Where(s => !s.DeliberateDischarge && s.DemandWh > 0)
             .OrderByDescending(s => s.GridPricePerKwh)
-            .Select(s => new SliceDemand(s.GridPricePerKwh, -s.NetEnergyWh))
+            .ThenBy(s => s.From)
             .ToList();
-        var chargeCandidates = slices
-            .Where(s => s.NetEnergyWh <= 0 && !s.DeliberateBatteryDischargeActive)
-            .OrderBy(s => s.GridPricePerKwh)
-            .ThenBy(s => s.From);
-        var remainingDeficitWh = chargeDeficitWh;
-        var noFurtherMatchPossible = false;
-        foreach (var chargeSlice in chargeCandidates)
+        foreach (var slice in demandSlices)
         {
-            if (remainingDeficitWh <= 0 || noFurtherMatchPossible)
+            if (slice.ChargeWh > 0)
             {
-                break;
+                //The battery is charged during this slice, so the demand is covered by the grid.
+                continue;
             }
-            var sliceCapacityWh = (int)(input.MaxChargingPowerW.Value * chargeSlice.Duration.TotalHours);
-            var chargedWh = 0;
-            while (sliceCapacityWh > 0 && remainingDeficitWh > 0 && uncoveredDemand.Count > 0)
-            {
-                var mostExpensiveDemand = uncoveredDemand[0];
-                if (chargeSlice.GridPricePerKwh + input.UsageCostsPerKwh >= mostExpensiveDemand.GridPricePerKwh)
-                {
-                    //Charge slices are ordered by price and remaining demand is cheaper, so no further match is possible at all.
-                    noFurtherMatchPossible = true;
-                    break;
-                }
-                var energyWh = Math.Min(Math.Min(sliceCapacityWh, remainingDeficitWh), mostExpensiveDemand.RemainingEnergyWh);
-                chargedWh += energyWh;
-                sliceCapacityWh -= energyWh;
-                remainingDeficitWh -= energyWh;
-                mostExpensiveDemand.RemainingEnergyWh -= energyWh;
-                if (mostExpensiveDemand.RemainingEnergyWh <= 0)
-                {
-                    uncoveredDemand.RemoveAt(0);
-                }
-            }
-            if (chargedWh > 0)
-            {
-                chargedEnergyBySlice[chargeSlice] = chargedWh;
-            }
+            CoverFromStoredEnergy(slices, slice, battery, input);
+            houseGridChargeBudgetWh = CoverFromGridCharge(slices, slice, battery, input, houseGridChargeBudgetWh);
         }
-        return chargedEnergyBySlice;
+        return BuildWindows(slices, battery, input);
     }
 
-    private static decimal GetBatteryEnergyCostPerKwh(List<PlanningSlice> slices, HomeBatteryPlanningInput input)
+    /// <summary>
+    /// Energy grid charging may buy for house consumption: the predicted consumption plus the charge buffer minus the
+    /// energy already stored above the min SoC. Car consumption is not limited by this budget.
+    /// </summary>
+    private static int GetHouseGridChargeBudgetWh(IEnumerable<PlanningSlice> slices, BatteryLimits battery, HomeBatteryPlanningInput input)
+    {
+        var houseDemandWh = slices.Where(s => !s.DeliberateDischarge).Sum(s => s.HouseDemandWh);
+        var bufferWh = input.ChargeBufferPercent * input.DischargingEnergyWh / 100.0;
+        var storedWh = Math.Max(0, battery.InitialContentWh - battery.MinContentWh);
+        return (int)Math.Max(0, houseDemandWh + bufferWh - storedWh);
+    }
+
+    /// <summary>
+    /// Covers the demand of the slice with energy already in the battery, as far as the battery does not drop below the
+    /// min SoC in this or any later slice. House consumption is covered first as the house always draws first.
+    /// </summary>
+    private static void CoverFromStoredEnergy(List<PlanningSlice> slices, PlanningSlice slice, BatteryLimits battery,
+        HomeBatteryPlanningInput input)
+    {
+        if (slice.GridPricePerKwh <= input.UsageCostsPerKwh)
+        {
+            return;
+        }
+        var contentAtEnd = SimulateContentAtEnd(slices, battery);
+        var index = slices.IndexOf(slice);
+        var availableWh = contentAtEnd.Skip(index).Min() - battery.MinContentWh;
+        if (availableWh <= 0)
+        {
+            return;
+        }
+        var houseWh = (int)Math.Min(availableWh, slice.HouseDemandWh - slice.HouseCoveredWh);
+        slice.HouseCoveredWh += houseWh;
+        availableWh -= houseWh;
+        slice.CarCoveredWh += (int)Math.Min(availableWh, slice.CarDemandWh - slice.CarCoveredWh);
+    }
+
+    /// <summary>
+    /// Covers the remaining demand of the slice with energy charged from the grid in earlier slices, cheapest first, as
+    /// long as the grid price plus the usage costs is below the price of the covered slice and the battery does not
+    /// exceed the max charge SoC until the energy is used.
+    /// </summary>
+    /// <returns>The remaining house grid charge budget.</returns>
+    private static int CoverFromGridCharge(List<PlanningSlice> slices, PlanningSlice slice, BatteryLimits battery,
+        HomeBatteryPlanningInput input, int houseGridChargeBudgetWh)
     {
         if (!(input.MaxChargingPowerW > 0))
         {
-            //Without the ability to charge from grid, energy in the battery can not be replaced, so holds are only
-            //limited by the deficit and the covered prices.
-            return decimal.MaxValue;
+            return houseGridChargeBudgetWh;
         }
-        var chargeableSlices = slices.Where(s => s.NetEnergyWh <= 0 && !s.DeliberateBatteryDischargeActive).ToList();
-        if (chargeableSlices.Count == 0)
+        var index = slices.IndexOf(slice);
+        var chargeCandidates = slices
+            .Take(index)
+            .Where(s => !s.DeliberateDischarge && s.CoveredWh == 0)
+            .Where(s => s.GridPricePerKwh + input.UsageCostsPerKwh < slice.GridPricePerKwh)
+            .OrderBy(s => s.GridPricePerKwh)
+            .ThenBy(s => s.From)
+            .ToList();
+        foreach (var chargeSlice in chargeCandidates)
         {
-            return decimal.MaxValue;
-        }
-        return chargeableSlices.Min(s => s.GridPricePerKwh) + input.UsageCostsPerKwh;
-    }
-
-    private static List<DtoHomeBatteryScheduleWindow> BuildCarHoldWindows(List<TimeInterval> carHoldIntervals,
-        List<PlanningSlice> slices, HomeBatteryPlanningInput input)
-    {
-        var windows = new List<DtoHomeBatteryScheduleWindow>();
-        foreach (var interval in carHoldIntervals)
-        {
-            var overlappingSlices = slices.Where(s => s.From < interval.To && s.To > interval.From).ToList();
-            windows.Add(new DtoHomeBatteryScheduleWindow
+            var carMissingWh = slice.CarDemandWh - slice.CarCoveredWh;
+            var houseMissingWh = Math.Min(slice.HouseDemandWh - slice.HouseCoveredWh, houseGridChargeBudgetWh);
+            var missingWh = carMissingWh + houseMissingWh;
+            if (missingWh <= 0)
             {
-                ValidFrom = interval.From,
-                ValidTo = interval.To,
-                Mode = HomeBatteryMode.Hold,
-                Reason = HomeBatteryScheduleWindowReason.CarGridCharging,
-                OnlyWhileSocAtOrBelowPercent = input.HoldNeedSocPercent,
-                PlannedEnergyWh = overlappingSlices.Where(s => s.NetEnergyWh < 0).Sum(s => -s.NetEnergyWh),
-                GridPricePerKwh = GetDurationWeightedPrice(overlappingSlices),
-            });
+                break;
+            }
+            var contentAtEnd = SimulateContentAtEnd(slices, battery);
+            var chargeIndex = slices.IndexOf(chargeSlice);
+            //The bought energy stays in the battery from the charge slice until it is used.
+            var roomWh = battery.MaxChargeContentWh - contentAtEnd.Skip(chargeIndex).Take(index - chargeIndex).Max();
+            var chargeCapacityWh = input.MaxChargingPowerW!.Value * chargeSlice.Duration.TotalHours / battery.GridWhPerStoredWh
+                                   - chargeSlice.ChargeWh;
+            var chargedWh = (int)Math.Min(missingWh, Math.Min(roomWh, chargeCapacityWh));
+            if (chargedWh <= 0)
+            {
+                continue;
+            }
+            chargeSlice.ChargeWh += chargedWh;
+            var carWh = Math.Min(chargedWh, carMissingWh);
+            slice.CarCoveredWh += carWh;
+            slice.HouseCoveredWh += chargedWh - carWh;
+            houseGridChargeBudgetWh -= chargedWh - carWh;
         }
-        return windows;
+        return houseGridChargeBudgetWh;
     }
 
-    private static List<DtoHomeBatteryScheduleWindow> BuildEconomicWindows(List<PlanningSlice> slices,
-        HashSet<PlanningSlice> heldSlices, Dictionary<PlanningSlice, int> chargedEnergyBySlice, HomeBatteryPlanningInput input)
+    /// <summary>
+    /// Battery content in stored Wh at the end of each slice with the planned charging and discharging. Solar surplus
+    /// charges the battery up to 100 %, deliberate discharging into cars stops at the min SoC.
+    /// </summary>
+    private static double[] SimulateContentAtEnd(List<PlanningSlice> slices, BatteryLimits battery)
     {
+        var result = new double[slices.Count];
+        var contentWh = battery.InitialContentWh;
+        for (var i = 0; i < slices.Count; i++)
+        {
+            var slice = slices[i];
+            contentWh = Math.Min(battery.FullContentWh, contentWh + slice.SolarSurplusWh / battery.GridWhPerStoredWh + slice.ChargeWh);
+            contentWh -= slice.CoveredWh;
+            contentWh -= Math.Min(slice.DeliberateDischargeWh, Math.Max(0, contentWh - battery.MinContentWh));
+            result[i] = contentWh;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Charge slices become charge windows. Slices with demand the battery should not cover become hold windows while
+    /// the battery has energy that would otherwise be discharged. All other slices keep the vendor default behavior.
+    /// </summary>
+    private static List<DtoHomeBatteryScheduleWindow> BuildWindows(List<PlanningSlice> slices, BatteryLimits battery,
+        HomeBatteryPlanningInput input)
+    {
+        var contentAtEnd = SimulateContentAtEnd(slices, battery);
         var windows = new List<DtoHomeBatteryScheduleWindow>();
         DtoHomeBatteryScheduleWindow? currentWindow = null;
-        foreach (var slice in slices.OrderBy(s => s.From))
+        for (var i = 0; i < slices.Count; i++)
         {
-            var window = CreateEconomicWindow(slice, heldSlices, chargedEnergyBySlice, input);
+            var contentAtStart = i == 0 ? battery.InitialContentWh : contentAtEnd[i - 1];
+            var window = CreateWindow(slices[i], contentAtStart, contentAtEnd[i], battery, input);
             if (window == default)
             {
                 currentWindow = null;
@@ -317,6 +268,10 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
                                                 / (currentDuration + addedDuration);
                 currentWindow.ValidTo = window.ValidTo;
                 currentWindow.PlannedEnergyWh += window.PlannedEnergyWh;
+                if (window.TargetSocPercent > currentWindow.TargetSocPercent)
+                {
+                    currentWindow.TargetSocPercent = window.TargetSocPercent;
+                }
                 continue;
             }
             windows.Add(window);
@@ -325,10 +280,10 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         return windows;
     }
 
-    private static DtoHomeBatteryScheduleWindow? CreateEconomicWindow(PlanningSlice slice, HashSet<PlanningSlice> heldSlices,
-        Dictionary<PlanningSlice, int> chargedEnergyBySlice, HomeBatteryPlanningInput input)
+    private static DtoHomeBatteryScheduleWindow? CreateWindow(PlanningSlice slice, double contentAtStart, double contentAtEnd,
+        BatteryLimits battery, HomeBatteryPlanningInput input)
     {
-        if (chargedEnergyBySlice.TryGetValue(slice, out var chargedEnergyWh))
+        if (slice.ChargeWh > 0)
         {
             return new DtoHomeBatteryScheduleWindow
             {
@@ -336,55 +291,25 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
                 ValidTo = slice.To,
                 Mode = HomeBatteryMode.Charge,
                 Reason = HomeBatteryScheduleWindowReason.GridChargeForDeficit,
-                TargetSocPercent = Math.Min(input.ChargeNeedSocPercent, input.MaxChargeSocPercent),
-                PlannedEnergyWh = chargedEnergyWh,
+                TargetSocPercent = Math.Min(input.MaxChargeSocPercent, (int)Math.Ceiling(contentAtEnd * 100 / input.DischargingEnergyWh)),
+                PlannedEnergyWh = (int)Math.Round(slice.ChargeWh * battery.GridWhPerStoredWh),
                 GridPricePerKwh = slice.GridPricePerKwh,
             };
         }
-        if (heldSlices.Contains(slice))
+        //Less than 1 Wh above the min SoC is nothing worth holding.
+        if (slice.DeliberateDischarge || slice.DemandWh <= 0 || slice.CoveredWh > 0 || contentAtStart < battery.MinContentWh + 1)
         {
-            return new DtoHomeBatteryScheduleWindow
-            {
-                ValidFrom = slice.From,
-                ValidTo = slice.To,
-                Mode = HomeBatteryMode.Hold,
-                Reason = HomeBatteryScheduleWindowReason.PreserveForDeficit,
-                OnlyWhileSocAtOrBelowPercent = input.HoldNeedSocPercent,
-                PlannedEnergyWh = -slice.NetEnergyWh,
-                GridPricePerKwh = slice.GridPricePerKwh,
-            };
+            return null;
         }
-        return null;
-    }
-
-    private static decimal GetDurationWeightedPrice(List<PlanningSlice> slices)
-    {
-        var totalHours = (decimal)slices.Sum(s => s.Duration.TotalHours);
-        if (totalHours == 0)
+        return new DtoHomeBatteryScheduleWindow
         {
-            return 0;
-        }
-        return slices.Sum(s => s.GridPricePerKwh * (decimal)s.Duration.TotalHours) / totalHours;
-    }
-
-    /// <summary>
-    /// Time ranges in which a car is intentionally charged from the grid, so the battery should be held. Ranges where
-    /// the battery is intentionally discharged into a car are excluded.
-    /// </summary>
-    private static List<TimeInterval> GetCarHoldIntervals(HomeBatteryPlanningInput input)
-    {
-        var gridChargeIntervals = MergeIntervals(input.ChargingSchedules
-            .Where(s => s.ValidTo > input.CurrentDate && s.TargetMinPower > 0 && !(s.TargetHomeBatteryPower > 0))
-            .Select(s => new TimeInterval(Max(s.ValidFrom, input.CurrentDate), s.ValidTo)));
-        var deliberateDischargeIntervals = GetDeliberateDischargeIntervals(input);
-        return SubtractIntervals(gridChargeIntervals, deliberateDischargeIntervals);
-    }
-
-    private static List<TimeInterval> GetDeliberateDischargeIntervals(HomeBatteryPlanningInput input)
-    {
-        return MergeIntervals(input.ChargingSchedules
-            .Where(s => s.ValidTo > input.CurrentDate && s.TargetHomeBatteryPower > 0)
-            .Select(s => new TimeInterval(Max(s.ValidFrom, input.CurrentDate), s.ValidTo)));
+            ValidFrom = slice.From,
+            ValidTo = slice.To,
+            Mode = HomeBatteryMode.Hold,
+            Reason = slice.CarDemandWh > 0 ? HomeBatteryScheduleWindowReason.CarGridCharging : HomeBatteryScheduleWindowReason.PreserveForDeficit,
+            PlannedEnergyWh = slice.DemandWh,
+            GridPricePerKwh = slice.GridPricePerKwh,
+        };
     }
 
     /// <summary>
@@ -418,8 +343,6 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
             AddBoundaryIfInRange(boundaries, schedule.ValidFrom, input.CurrentDate, planEnd);
             AddBoundaryIfInRange(boundaries, schedule.ValidTo, input.CurrentDate, planEnd);
         }
-        var carHoldIntervals = GetCarHoldIntervals(input);
-        var deliberateDischargeIntervals = GetDeliberateDischargeIntervals(input);
         var boundaryList = boundaries.ToList();
         for (var i = 0; i < boundaryList.Count - 1; i++)
         {
@@ -431,17 +354,38 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
                 //Without a known price no economic decision is possible for this slice.
                 continue;
             }
-            result.Add(new PlanningSlice
-            {
-                From = from,
-                To = to,
-                GridPricePerKwh = price.GridPrice,
-                NetEnergyWh = GetNetEnergyOfSlice(input.SurplusPerSlice, from, to),
-                CarGridChargeActive = carHoldIntervals.Any(c => c.From < to && c.To > from),
-                DeliberateBatteryDischargeActive = deliberateDischargeIntervals.Any(d => d.From < to && d.To > from),
-            });
+            result.Add(CreatePlanningSlice(input, from, to, price.GridPrice));
         }
         return result;
+    }
+
+    private static PlanningSlice CreatePlanningSlice(HomeBatteryPlanningInput input, DateTimeOffset from, DateTimeOffset to, decimal gridPrice)
+    {
+        var hours = (to - from).TotalHours;
+        var netEnergyWh = GetNetEnergyOfSlice(input.SurplusPerSlice, from, to);
+        var overlappingSchedules = input.ChargingSchedules.Where(s => s.ValidFrom < to && s.ValidTo > from).ToList();
+        var deliberateDischargePower = overlappingSchedules.Where(s => s.TargetHomeBatteryPower > 0).Sum(s => s.TargetHomeBatteryPower!.Value);
+        var carGridPower = overlappingSchedules.Where(s => s.TargetMinPower > 0 && !(s.TargetHomeBatteryPower > 0)).Sum(s => s.TargetMinPower);
+        //The battery can only cover demand up to its discharge power, the house draws first.
+        var maxDischargeWh = input.MaxDischargingPowerW > 0 ? (int)(input.MaxDischargingPowerW.Value * hours) : int.MaxValue;
+        var houseDemandWh = Math.Min(Math.Max(0, -netEnergyWh), maxDischargeWh);
+        var slice = new PlanningSlice
+        {
+            From = from,
+            To = to,
+            GridPricePerKwh = gridPrice,
+            SolarSurplusWh = Math.Max(0, netEnergyWh),
+        };
+        if (deliberateDischargePower > 0)
+        {
+            //The battery is deliberately discharged into a car, so the slice is not planned but drains the battery.
+            slice.DeliberateDischarge = true;
+            slice.DeliberateDischargeWh = Math.Min(maxDischargeWh, houseDemandWh + (int)(deliberateDischargePower * hours));
+            return slice;
+        }
+        slice.HouseDemandWh = houseDemandWh;
+        slice.CarDemandWh = Math.Min((int)(carGridPower * hours), maxDischargeWh - houseDemandWh);
+        return slice;
     }
 
     /// <summary>
@@ -468,69 +412,28 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         }
     }
 
-    private static List<TimeInterval> MergeIntervals(IEnumerable<TimeInterval> intervals)
-    {
-        var result = new List<TimeInterval>();
-        foreach (var interval in intervals.Where(i => i.To > i.From).OrderBy(i => i.From))
-        {
-            var last = result.LastOrDefault();
-            if (last != default && interval.From <= last.To)
-            {
-                last.To = Max(last.To, interval.To);
-                continue;
-            }
-            result.Add(new TimeInterval(interval.From, interval.To));
-        }
-        return result;
-    }
-
-    private static List<TimeInterval> SubtractIntervals(List<TimeInterval> minuends, List<TimeInterval> subtrahends)
-    {
-        var result = new List<TimeInterval>();
-        foreach (var minuend in minuends)
-        {
-            var remainingFrom = minuend.From;
-            foreach (var subtrahend in subtrahends.Where(s => s.From < minuend.To && s.To > minuend.From).OrderBy(s => s.From))
-            {
-                if (subtrahend.From > remainingFrom)
-                {
-                    result.Add(new TimeInterval(remainingFrom, subtrahend.From));
-                }
-                remainingFrom = Max(remainingFrom, subtrahend.To);
-            }
-            if (remainingFrom < minuend.To)
-            {
-                result.Add(new TimeInterval(remainingFrom, minuend.To));
-            }
-        }
-        return result;
-    }
-
     private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) => first < second ? first : second;
-    private static DateTimeOffset Max(DateTimeOffset first, DateTimeOffset second) => first > second ? first : second;
 
-    private sealed class TimeInterval
+    /// <summary>
+    /// Battery content limits in stored Wh: the energy the battery delivers, so 100 % equals the discharging energy.
+    /// </summary>
+    private sealed class BatteryLimits
     {
-        public TimeInterval(DateTimeOffset from, DateTimeOffset to)
+        public BatteryLimits(HomeBatteryPlanningInput input)
         {
-            From = from;
-            To = to;
+            FullContentWh = input.DischargingEnergyWh;
+            InitialContentWh = input.CurrentSocPercent * FullContentWh / 100.0;
+            MinContentWh = input.MinSocPercent * FullContentWh / 100.0;
+            MaxChargeContentWh = input.MaxChargeSocPercent * FullContentWh / 100.0;
+            GridWhPerStoredWh = (double)input.ChargingEnergyWh / input.DischargingEnergyWh;
         }
 
-        public DateTimeOffset From { get; }
-        public DateTimeOffset To { get; set; }
-    }
-
-    private sealed class SliceDemand
-    {
-        public SliceDemand(decimal gridPricePerKwh, int remainingEnergyWh)
-        {
-            GridPricePerKwh = gridPricePerKwh;
-            RemainingEnergyWh = remainingEnergyWh;
-        }
-
-        public decimal GridPricePerKwh { get; }
-        public int RemainingEnergyWh { get; set; }
+        public double FullContentWh { get; }
+        public double InitialContentWh { get; }
+        public double MinContentWh { get; }
+        public double MaxChargeContentWh { get; }
+        /// <summary>Grid energy needed to store 1 Wh the battery can deliver again (charging and discharging losses).</summary>
+        public double GridWhPerStoredWh { get; }
     }
 
     private sealed class PlanningSlice
@@ -538,10 +441,20 @@ public class HomeBatteryScheduleService : IHomeBatteryScheduleService
         public DateTimeOffset From { get; init; }
         public DateTimeOffset To { get; init; }
         public decimal GridPricePerKwh { get; init; }
-        /// <summary>Predicted surplus in Wh, negative when the house draws energy.</summary>
-        public int NetEnergyWh { get; init; }
-        public bool CarGridChargeActive { get; init; }
-        public bool DeliberateBatteryDischargeActive { get; init; }
+        /// <summary>Predicted solar energy exceeding the house consumption, charges the battery.</summary>
+        public int SolarSurplusWh { get; init; }
+        /// <summary>Predicted house consumption the battery could cover, limited by its discharge power.</summary>
+        public int HouseDemandWh { get; set; }
+        /// <summary>Planned car grid charging energy the battery could cover, limited by its remaining discharge power.</summary>
+        public int CarDemandWh { get; set; }
+        public bool DeliberateDischarge { get; set; }
+        public int DeliberateDischargeWh { get; set; }
+        public int HouseCoveredWh { get; set; }
+        public int CarCoveredWh { get; set; }
+        /// <summary>Stored Wh planned to be charged from the grid in this slice.</summary>
+        public int ChargeWh { get; set; }
+        public int DemandWh => HouseDemandWh + CarDemandWh;
+        public int CoveredWh => HouseCoveredWh + CarCoveredWh;
         public TimeSpan Duration => To - From;
     }
 }
