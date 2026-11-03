@@ -26,6 +26,10 @@ public class NotChargingWithExpectedPowerReasonLocalizationRegistry : TextLocali
             new TextLocalizationTranslation(LanguageCodes.English, "Charging can't start because the car isn't allowing it. This may happen if the battery is already full, charging was stopped in the car or the app, the car is in standby or sleep mode, or has a delayed charging schedule."),
             new TextLocalizationTranslation(LanguageCodes.German, "Das Laden kann nicht gestartet werden, da das Fahrzeug es nicht zulässt. Mögliche Gründe sind, dass die Batterie bereits voll ist, das Laden im Fahrzeug oder in der App gestoppt wurde, das Fahrzeug im Standby- oder Ruhemodus ist oder eine Ladezeit geplant wurde."));
 
+        Register(TranslationKeys.NotChargingReasonChargerNotSupplyingPower,
+            new TextLocalizationTranslation(LanguageCodes.English, "The car wants to charge but the charging station does not supply power, so Solar4Car does not send further start commands. Check whether the charging station needs an authorization or has a charging schedule. Solar4Car tries again once the charging station offers a different current or the car is plugged in again."),
+            new TextLocalizationTranslation(LanguageCodes.German, "Das Fahrzeug möchte laden, aber die Ladestation liefert keinen Strom, daher sendet Solar4Car keine weiteren Startbefehle. Prüfe, ob die Ladestation eine Freigabe benötigt oder einen Ladezeitplan hat. Solar4Car versucht es erneut, sobald die Ladestation einen anderen Strom anbietet oder das Fahrzeug neu eingesteckt wird."));
+
         Register(TranslationKeys.NotChargingReasonWaitingPhaseSwitchCooldown,
             new TextLocalizationTranslation(LanguageCodes.English, "Waiting phase switch cooldown time before starting to charge"),
             new TextLocalizationTranslation(LanguageCodes.German, "Warten auf Abkühlzeit für Phasenumschaltung, bevor mit dem Laden begonnen wird"));

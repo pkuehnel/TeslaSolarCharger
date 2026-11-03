@@ -705,7 +705,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             }
             if (ocppConnectorState.IsPluggedIn.Value == false)
             {
-                settings.ManualSetLoadPointCarCombinations.Remove(databaseChargePointId, out _);
+                settings.ConfirmedLoadPointCarCombinations.Remove(databaseChargePointId, out _);
             }
         }
 
@@ -924,7 +924,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var carId = loadpointCombination?.CarId;
 
         if (carId == default
-            && settings.ManualSetLoadPointCarCombinations.TryGetValue(chargingConnectorId, out var manualCombination))
+            && settings.ConfirmedLoadPointCarCombinations.TryGetValue(chargingConnectorId, out var manualCombination))
         {
             carId = manualCombination.carId;
         }

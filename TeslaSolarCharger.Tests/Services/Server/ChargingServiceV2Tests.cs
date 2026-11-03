@@ -138,6 +138,101 @@ public class ChargingServiceV2Tests : TestBase
     }
 
     [Fact]
+    public async Task SetNewChargingValues_ProbesUnassignedConnectorsBeforeGettingLoadPoints()
+    {
+        Mock.Mock<IBackendApiService>()
+            .Setup(s => s.IsBaseAppLicensed(true))
+            .ReturnsAsync(new Result<bool?>(true, null, null));
+        var calls = new List<string>();
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
+        Mock.Mock<IPilotCurrentProbeService>()
+            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add(nameof(IPilotCurrentProbeService.ProbeUnassignedConnectors)))
+            .ReturnsAsync(0);
+        Mock.Mock<ILoadPointManagementService>()
+            .Setup(s => s.GetLoadPointsToManage())
+            .Callback(() => calls.Add(nameof(ILoadPointManagementService.GetLoadPointsToManage)))
+            .ReturnsAsync(new List<DtoLoadPointOverview>());
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        try
+        {
+            await service.SetNewChargingValues(CancellationToken.None);
+        }
+        catch
+        {
+            //Only the order of the two calls matters, mocking everything for a full run is complex.
+        }
+
+        Assert.Equal(new List<string>
+        {
+            nameof(IPilotCurrentProbeService.ProbeUnassignedConnectors),
+            nameof(ILoadPointManagementService.GetLoadPointsToManage),
+        }, calls);
+    }
+
+    [Fact]
+    public async Task SetNewChargingValues_LeavesCurrentReservedForProbesFree()
+    {
+        Mock.Mock<IBackendApiService>()
+            .Setup(s => s.IsBaseAppLicensed(true))
+            .ReturnsAsync(new Result<bool?>(true, null, null));
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
+        Mock.Mock<IPilotCurrentProbeService>()
+            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(6);
+        Mock.Mock<ILoadPointManagementService>()
+            .Setup(s => s.GetLoadPointsToManage())
+            .ReturnsAsync(new List<DtoLoadPointOverview>());
+        Mock.Mock<ILoadPointManagementService>()
+            .Setup(s => s.GetLoadPointsWithChargingDetails())
+            .ReturnsAsync(new List<DtoLoadPointWithCurrentChargingValues>());
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        await service.SetNewChargingValues(CancellationToken.None);
+
+        Mock.Mock<ITargetChargingValueCalculationService>().Verify(s => s.AppendTargetValues(It.IsAny<List<DtoTargetChargingValues>>(),
+            It.IsAny<List<DtoChargingSchedule>>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>(), 6, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetNewChargingValues_KeepsControllingCharging_WhenProbeFails()
+    {
+        Mock.Mock<IBackendApiService>()
+            .Setup(s => s.IsBaseAppLicensed(true))
+            .ReturnsAsync(new Result<bool?>(true, null, null));
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
+        Mock.Mock<IPilotCurrentProbeService>()
+            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Probe failed"));
+        Mock.Mock<ILoadPointManagementService>()
+            .Setup(s => s.GetLoadPointsToManage())
+            .ReturnsAsync(new List<DtoLoadPointOverview>());
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        try
+        {
+            await service.SetNewChargingValues(CancellationToken.None);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "Probe failed")
+        {
+            Assert.Fail("A failing probe must not stop the charging cycle");
+        }
+        catch
+        {
+            //Errors after getting the load points come from incomplete mocks.
+        }
+
+        Mock.Mock<ILoadPointManagementService>().Verify(s => s.GetLoadPointsToManage(), Times.Once);
+    }
+
+    [Fact]
     public async Task SetNewChargingValues_UpdatesManualCarsHomeStatus()
     {
         // Arrange
