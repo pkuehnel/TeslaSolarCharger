@@ -378,6 +378,12 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
                     new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarNotPluggedIn));
             }
+
+            if (dtoCar.IsWaitingForChargerPower)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonChargerNotSupplyingPower));
+            }
         }
 
         foreach (var settingsOcppConnectorState in _settings.OcppConnectorStates)

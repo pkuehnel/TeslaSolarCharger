@@ -116,4 +116,43 @@ public class AddNotChargingReasonsTests : TestBase
                 Times.Once);
         }
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNotChargingReasons_CarWaitingForChargerPower(bool isWaitingForChargerPower)
+    {
+        // Arrange
+        var carId = 1;
+        var refusedAt = new DateTimeOffset(2026, 11, 1, 2, 30, 0, TimeSpan.Zero);
+        var car = new DtoCar
+        {
+            Id = carId,
+            IsHomeGeofence = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, true),
+            PluggedIn = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, true),
+            ChargeStartRefusedForMissingPower = refusedAt,
+        };
+        if (!isWaitingForChargerPower)
+        {
+            car.ChargerPilotCurrent.Update(refusedAt.AddMinutes(1), 16);
+        }
+
+        var settingsMock = Mock.Mock<ISettings>();
+        settingsMock.Setup(x => x.CarsToManage).Returns(new List<DtoCar> { car });
+        settingsMock.Setup(x => x.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
+
+        var reasonHelperMock = Mock.Mock<INotChargingWithExpectedPowerReasonHelper>();
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        // Act
+        service.AddNotChargingReasons();
+
+        // Assert
+        reasonHelperMock.Verify(x => x.AddLoadPointSpecificReason(
+                carId,
+                null,
+                It.Is<NotChargingWithExpectedPowerReasonTemplate>(r => r.LocalizationKey == TranslationKeys.NotChargingReasonChargerNotSupplyingPower)),
+            isWaitingForChargerPower ? Times.Once() : Times.Never());
+    }
 }
