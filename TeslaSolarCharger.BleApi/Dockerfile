@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Pinned so an upstream change can only ever break the image build, never a user's runtime. Bump deliberately after
 # reviewing the upstream changes; the go test gate below re-validates the injected code against the new version.
-ARG VEHICLE_COMMAND_REF=724d8c85e3c5c948dbf04ca6b6022ad4d5f4be02
+ARG VEHICLE_COMMAND_REF=0a582da430c4aca6d397fb6cbed5b4d6bb380125
 
 RUN apt-get update \
     && apt-get install -y curl
