@@ -52,6 +52,20 @@ public class ChargeStartRefusedForMissingPowerTests(ITestOutputHelper outputHelp
         VerifyCommandFailedIssueRaised(Times.Never());
     }
 
+    [Theory]
+    [InlineData("charge_requested_by_schedule")]
+    [InlineData("no_power_available")]
+    public async Task FleetApiRefusalOnlyContainingTheWord_IsNotRememberedAndRaisesIssue(string reason)
+    {
+        var car = SetupCarReadyToStart();
+        SetupBackendResponse(Constants.ChargeStartRequestUrl, TeslaResponse(RefusedCommandJson(reason)));
+
+        await CreateService().StartCharging(car.Id, 10);
+
+        Assert.Null(car.ChargeStartRefusedForMissingPower);
+        VerifyCommandFailedIssueRaised(Times.Once());
+    }
+
     [Fact]
     public async Task FleetApiRefusalForOtherReason_IsNotRememberedAndRaisesIssue()
     {
@@ -134,6 +148,24 @@ public class ChargeStartRefusedForMissingPowerTests(ITestOutputHelper outputHelp
         car.ChargeStartCalls.Add(Clock.UtcNow().AddMinutes(-2));
         car.ChargeStartRefusedForMissingPower = Clock.DateTimeOffSetUtcNow().AddMinutes(-2);
         car.ChargerPilotCurrent.Update(Clock.DateTimeOffSetUtcNow().AddMinutes(-1), 16);
+        SetupBackendResponse(Constants.ChargeStartRequestUrl, Successful());
+
+        await CreateService().StartCharging(car.Id, 10);
+
+        VerifyBackendCalled(Constants.ChargeStartRequestUrl, Times.Once());
+    }
+
+    [Fact]
+    public async Task ChargedAndStoppedAfterRefusal_StartsAgain()
+    {
+        //The charger started supplying power without changing its pilot current, the car charged and TSC stopped it.
+        var car = SetupCarReadyToStart();
+        var now = Clock.DateTimeOffSetUtcNow();
+        car.ChargeStartCalls.Add(Clock.UtcNow().AddMinutes(-30));
+        car.IsCharging.Update(now.AddMinutes(-40), false);
+        car.ChargeStartRefusedForMissingPower = now.AddMinutes(-30);
+        car.IsCharging.Update(now.AddMinutes(-20), true);
+        car.IsCharging.Update(now.AddMinutes(-5), false);
         SetupBackendResponse(Constants.ChargeStartRequestUrl, Successful());
 
         await CreateService().StartCharging(car.Id, 10);

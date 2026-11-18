@@ -58,10 +58,13 @@ public class DtoCar
 
     /// <summary>
     /// The car wants to charge but waits for the charger to supply power, so sending another charge start is useless.
-    /// Ends as soon as the charger offers a different current, the car is unplugged or the car starts charging.
+    /// Ends as soon as the charger offers a different current, the car is unplugged or the car starts charging. A
+    /// charging state that changed after the refusal ends it for good, so a charge that stops again does not bring the
+    /// old refusal back.
     /// </summary>
     public bool IsWaitingForChargerPower => ChargeStartRefusedForMissingPower is { } refusedAt
                                             && IsCharging.Value != true
+                                            && !(IsCharging.LastChanged > refusedAt)
                                             && !(PluggedIn.LastChanged > refusedAt)
                                             && !(ChargerPilotCurrent.LastChanged > refusedAt);
 

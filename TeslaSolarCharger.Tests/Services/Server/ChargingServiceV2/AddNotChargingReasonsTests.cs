@@ -132,9 +132,12 @@ public class AddNotChargingReasonsTests : TestBase
             PluggedIn = new DtoTimeStampedValue<bool?>(DateTimeOffset.MinValue, true),
             ChargeStartRefusedForMissingPower = refusedAt,
         };
+        car.IsCharging.Update(refusedAt.AddMinutes(-10), false);
         if (!isWaitingForChargerPower)
         {
-            car.ChargerPilotCurrent.Update(refusedAt.AddMinutes(1), 16);
+            //Charged after the refusal and stopped again without a pilot current change.
+            car.IsCharging.Update(refusedAt.AddMinutes(1), true);
+            car.IsCharging.Update(refusedAt.AddMinutes(20), false);
         }
 
         var settingsMock = Mock.Mock<ISettings>();

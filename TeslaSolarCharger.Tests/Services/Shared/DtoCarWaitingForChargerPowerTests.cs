@@ -89,4 +89,57 @@ public class DtoCarWaitingForChargerPowerTests
 
         Assert.False(car.IsWaitingForChargerPower);
     }
+
+    [Fact]
+    public void ChargedAndStoppedAfterRefusal_IsNotWaiting()
+    {
+        //The charger supplied power without changing its pilot current; the old refusal must not come back after the stop.
+        var car = CreateRefusedCar();
+        car.IsCharging.Update(RefusedAt.AddMinutes(1), true);
+        car.IsCharging.Update(RefusedAt.AddMinutes(30), false);
+
+        Assert.False(car.IsWaitingForChargerPower);
+    }
+
+    [Fact]
+    public void SeveralChargesAfterRefusal_IsNotWaiting()
+    {
+        var car = CreateRefusedCar();
+        car.IsCharging.Update(RefusedAt.AddMinutes(1), true);
+        car.IsCharging.Update(RefusedAt.AddMinutes(10), false);
+        car.IsCharging.Update(RefusedAt.AddMinutes(20), true);
+        car.IsCharging.Update(RefusedAt.AddMinutes(30), false);
+
+        Assert.False(car.IsWaitingForChargerPower);
+    }
+
+    [Fact]
+    public void ChargedAndStoppedBeforeRefusal_IsWaiting()
+    {
+        var car = CreateRefusedCar();
+        car.IsCharging.Update(RefusedAt.AddMinutes(-5), true);
+        car.IsCharging.Update(RefusedAt.AddMinutes(-1), false);
+
+        Assert.True(car.IsWaitingForChargerPower);
+    }
+
+    [Fact]
+    public void StaleChargingValueFromBeforeRefusal_IsNotWaiting()
+    {
+        var car = CreateRefusedCar();
+        car.IsCharging.Update(RefusedAt.AddMinutes(-1), true);
+
+        Assert.False(car.IsWaitingForChargerPower);
+    }
+
+    [Fact]
+    public void NewRefusalAfterCharge_IsWaitingAgain()
+    {
+        var car = CreateRefusedCar();
+        car.IsCharging.Update(RefusedAt.AddMinutes(1), true);
+        car.IsCharging.Update(RefusedAt.AddMinutes(30), false);
+        car.ChargeStartRefusedForMissingPower = RefusedAt.AddMinutes(31);
+
+        Assert.True(car.IsWaitingForChargerPower);
+    }
 }
