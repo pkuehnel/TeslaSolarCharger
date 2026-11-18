@@ -13,6 +13,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.HomeBatteryControl.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
@@ -428,6 +429,73 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(It.IsAny<StateUpdateDto>()), Times.Once);
         Mock.Mock<IHomeBatteryScheduleService>().Verify(s => s.PlanScheduleWindows(currentDate,
             It.Is<List<DtoChargingSchedule>>(schedules => schedules.Count == 1), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    // Charging: the connector keeps its phases, they only change on a charge start after the phase switch cooldown
+    [InlineData(false, 1, 3, true, 3)]
+    [InlineData(false, 3, 1, true, 1)]
+    [InlineData(false, 3, 3, true, 3)]
+    // Unknown last set phases, e.g. after a restart of TSC
+    [InlineData(false, 1, null, true, 1)]
+    [InlineData(false, 1, null, false, 1)]
+    // No target phases: the connector has no automatic phase switching and might reject a number of phases
+    [InlineData(false, null, 3, true, null)]
+    // A charge start may switch phases
+    [InlineData(true, 1, 3, true, 1)]
+    [InlineData(true, null, 3, true, null)]
+    public async Task SetNewChargingValues_OcppConnectorOnlySwitchesPhasesOnChargeStart(bool startCharging, int? targetPhases,
+        int? lastSetPhases, bool hasConnectorState, int? expectedPhases)
+    {
+        const int connectorId = 5;
+        var currentDate = new DateTimeOffset(2025, 5, 26, 12, 0, 0, TimeSpan.Zero);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(currentDate);
+        Mock.Mock<IBackendApiService>().Setup(s => s.IsBaseAppLicensed(true)).ReturnsAsync(new Result<bool?>(true, null, null));
+        Mock.Mock<ILoadPointManagementService>().Setup(s => s.GetLoadPointsToManage())
+            .ReturnsAsync(new List<DtoLoadPointOverview>
+            {
+                new DtoLoadPointOverview { ChargingConnectorId = connectorId, ChargingPriority = 1, ManageChargingPowerByCar = false, },
+            });
+        Mock.Mock<ILoadPointManagementService>().Setup(s => s.GetLoadPointsWithChargingDetails())
+            .ReturnsAsync(new List<DtoLoadPointWithCurrentChargingValues>());
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.SkipPowerChangesOnLastAdjustmentNewerThan()).Returns(TimeSpan.FromSeconds(10));
+        var ocppConnectorStates = new ConcurrentDictionary<int, DtoOcppConnectorState>();
+        if (hasConnectorState)
+        {
+            var state = new DtoOcppConnectorState();
+            state.IsCharging.Update(currentDate.AddHours(-1), !startCharging);
+            state.LastSetPhases.Update(currentDate.AddHours(-1), lastSetPhases);
+            ocppConnectorStates[connectorId] = state;
+        }
+        Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(ocppConnectorStates);
+        Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(new List<DtoCar>());
+        Mock.Mock<IChargingScheduleService>().Setup(s => s.GenerateChargingSchedulesForLoadPoint(It.IsAny<DtoLoadPointOverview>(), It.IsAny<List<DtoTimeZonedChargingTarget>>(), It.IsAny<Dictionary<DateTimeOffset, int>>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>(), It.IsAny<List<DtoChargingSchedule>>()))
+            .ReturnsAsync(new List<DtoChargingSchedule>());
+        Mock.Mock<ITargetChargingValueCalculationService>()
+            .Setup(s => s.AppendTargetValues(It.IsAny<List<DtoTargetChargingValues>>(), It.IsAny<List<DtoChargingSchedule>>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<List<DtoTargetChargingValues>, List<DtoChargingSchedule>, DateTimeOffset, int, int, CancellationToken>((targets, _, _, _, _, _) =>
+            {
+                foreach (var t in targets)
+                {
+                    t.TargetValues = new TargetValues { StartCharging = startCharging, TargetCurrent = 10, TargetPhases = targetPhases, };
+                }
+            });
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
+
+        await service.SetNewChargingValues(CancellationToken.None);
+
+        var actionService = Mock.Mock<IOcppChargePointActionService>();
+        if (startCharging)
+        {
+            actionService.Verify(a => a.StartCharging(connectorId, 10m, expectedPhases, It.IsAny<CancellationToken>()), Times.Once);
+            actionService.Verify(a => a.SetChargingCurrent(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        else
+        {
+            actionService.Verify(a => a.SetChargingCurrent(connectorId, 10m, expectedPhases, It.IsAny<CancellationToken>()), Times.Once);
+            actionService.Verify(a => a.StartCharging(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 
     //Test plan case 13: home battery schedule planning must never prevent car charging control. When it throws, the

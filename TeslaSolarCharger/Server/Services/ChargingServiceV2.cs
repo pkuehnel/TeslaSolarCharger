@@ -214,7 +214,13 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                 if (targetChargingValue.TargetValues.TargetCurrent != default)
                 {
-                    await _ocppChargePointActionService.SetChargingCurrent(connectorId, targetChargingValue.TargetValues.TargetCurrent.Value, targetChargingValue.TargetValues.TargetPhases, cancellationToken)
+                    //The connector is charging, so it keeps its phases: they only change on a charge start after the phase
+                    //switch cooldown. Target phases are only set for connectors with automatic phase switching.
+                    var targetPhases = targetChargingValue.TargetValues.TargetPhases;
+                    var phasesToSet = _settings.OcppConnectorStates.TryGetValue(connectorId, out var ocppState)
+                        ? ocppState.PhasesToKeepWhileCharging(targetPhases != default, targetPhases)
+                        : targetPhases;
+                    await _ocppChargePointActionService.SetChargingCurrent(connectorId, targetChargingValue.TargetValues.TargetCurrent.Value, phasesToSet, cancellationToken)
                         .ConfigureAwait(false);
                     continue;
                 }
@@ -241,7 +247,8 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     /// <summary>
     /// Makes sure a wallbox never limits a car that manages its own charging power: the connector is opened to its
-    /// maximum whenever the car wants more than the connector was last set to.
+    /// maximum whenever the car wants more than the connector was last set to, or when it does not charge on the
+    /// phases a car managed load point uses.
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <param name="targetChargingValue"></param>
@@ -265,17 +272,43 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _logger.LogDebug("OCPP connector {connectorId} has no target current, leaving it as it is.", targetChargingValue.LoadPoint.ChargingConnectorId);
                 return true;
             }
+            var connectorId = targetChargingValue.LoadPoint.ChargingConnectorId.Value;
             //A connector that was never set has to be opened up as well, so the missing value counts as too low.
-            if (ocppState.LastSetCurrent.Value is not { } lastSetCurrent || lastSetCurrent < targetCurrent)
+            if (ocppState.LastSetCurrent.Value is not { } lastSetCurrent || lastSetCurrent < targetCurrent
+                || await HasToSwitchPhasesOnNextChargeStart(connectorId, ocppState, cancellationToken).ConfigureAwait(false))
             {
-                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetCurrent);
-                if (!await SetChargingConnectorToMaxPowerAndMaxPhases(targetChargingValue.LoadPoint.ChargingConnectorId.Value, currentDate, cancellationToken, ocppState).ConfigureAwait(false))
+                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent} or phases {phases} need to be switched. Set new current.", connectorId, ocppState.LastSetCurrent.Value, targetCurrent, ocppState.LastSetPhases.Value);
+                if (!await SetChargingConnectorToMaxPowerAndMaxPhases(connectorId, currentDate, cancellationToken, ocppState).ConfigureAwait(false))
                 {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// A charging connector keeps its phases, e.g. the phases it was charging a car on before the car was identified.
+    /// Once it stopped charging, it is switched to the phases a car managed load point uses on the next charge start,
+    /// which waits for the phase switch cooldown.
+    /// </summary>
+    internal async Task<bool> HasToSwitchPhasesOnNextChargeStart(int chargingConnectorId, DtoOcppConnectorState ocppState,
+        CancellationToken cancellationToken)
+    {
+        if (ocppState.IsCharging.Value)
+        {
+            return false;
+        }
+        var connectorConfig = await _context.OcppChargingStationConnectors
+            .Where(c => c.Id == chargingConnectorId)
+            .Select(c => new
+            {
+                c.ConnectedPhasesCount,
+                c.AutoSwitchBetween1And3PhasesEnabled,
+            })
+            .FirstAsync(cancellationToken).ConfigureAwait(false);
+        return connectorConfig.AutoSwitchBetween1And3PhasesEnabled
+               && ocppState.LastSetPhases.Value != connectorConfig.ConnectedPhasesCount;
     }
 
     internal async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
