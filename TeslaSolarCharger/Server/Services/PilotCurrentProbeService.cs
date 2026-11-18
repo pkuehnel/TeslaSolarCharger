@@ -83,6 +83,8 @@ public class PilotCurrentProbeService(
                 c.Id,
                 c.MinCurrent,
                 c.MaxCurrent,
+                c.AutoSwitchBetween1And3PhasesEnabled,
+                c.ConnectedPhasesCount,
                 AllowedCarIds = c.AllowedCars.Select(ac => ac.CarId).ToList(),
             })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
@@ -130,7 +132,11 @@ public class PilotCurrentProbeService(
                 currentToReserve = Math.Max(currentToReserve, probeCurrent.Value);
                 continue;
             }
-            var matchedCarId = await ProbeConnector(connector.Id, probeCurrent.Value, connector.MaxCurrent!.Value, connectorState, candidates, cancellationToken)
+            //The phases a car managed load point is started with, see ChargingServiceV2.SetChargingConnectorToMaxPowerAndMaxPhases
+            var chargeStartPhases = connector.AutoSwitchBetween1And3PhasesEnabled ? connector.ConnectedPhasesCount : null;
+            var phasesWhileCharging = connectorState.PhasesToKeepWhileCharging(connector.AutoSwitchBetween1And3PhasesEnabled, connector.ConnectedPhasesCount);
+            var matchedCarId = await ProbeConnector(connector.Id, probeCurrent.Value, connector.MaxCurrent!.Value, chargeStartPhases, phasesWhileCharging,
+                    connectorState, candidates, cancellationToken)
                 .ConfigureAwait(false);
             if (matchedCarId != default)
             {
@@ -169,8 +175,12 @@ public class PilotCurrentProbeService(
                && car.IsOnline.LastChanged <= lastProbe + ProbeWakeUpWindow;
     }
 
+    /// <summary>
+    /// The probe must not change the phases of the connector: a charging connector keeps its last set phases, one that
+    /// is not charging gets the phases the charging cycle would start it with for the car.
+    /// </summary>
     /// <returns>The id of the car plugged into the connector, or null if no single candidate reacted.</returns>
-    private async Task<int?> ProbeConnector(int connectorId, int probeCurrent, int maxCurrent,
+    private async Task<int?> ProbeConnector(int connectorId, int probeCurrent, int maxCurrent, int? chargeStartPhases, int? phasesWhileCharging,
         DtoOcppConnectorState connectorState, List<DtoCar> candidates, CancellationToken cancellationToken)
     {
         settings.LastPilotCurrentProbes[connectorId] = dateTimeProvider.DateTimeOffSetUtcNow();
@@ -179,7 +189,7 @@ public class PilotCurrentProbeService(
         var wasCharging = connectorState.IsCharging.Value;
         var lastSetCurrent = connectorState.LastSetCurrent.Value;
         var startResult = await ocppChargePointActionService
-            .StartCharging(connectorId, probeCurrent, null, cancellationToken).ConfigureAwait(false);
+            .StartCharging(connectorId, probeCurrent, wasCharging ? phasesWhileCharging : chargeStartPhases, cancellationToken).ConfigureAwait(false);
         if (startResult.HasError)
         {
             logger.LogWarning("Could not offer probe current on connector {connectorId}: {error}", connectorId, startResult.ErrorMessage);
@@ -189,17 +199,17 @@ public class PilotCurrentProbeService(
         if (matchedCarId == default)
         {
             logger.LogTrace("No single car reacted to the probe of connector {connectorId}", connectorId);
-            await RestoreConnector(connectorId, wasCharging, lastSetCurrent, cancellationToken).ConfigureAwait(false);
+            await RestoreConnector(connectorId, wasCharging, lastSetCurrent, phasesWhileCharging, cancellationToken).ConfigureAwait(false);
             return null;
         }
         logger.LogTrace("Car {carId} is plugged into connector {connectorId}", matchedCarId, connectorId);
         if (wasCharging)
         {
-            await RestoreConnector(connectorId, wasCharging, lastSetCurrent, cancellationToken).ConfigureAwait(false);
+            await RestoreConnector(connectorId, wasCharging, lastSetCurrent, phasesWhileCharging, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            await HandOverToCar(connectorId, maxCurrent, matchedCarId.Value, cancellationToken).ConfigureAwait(false);
+            await HandOverToCar(connectorId, maxCurrent, chargeStartPhases, matchedCarId.Value, cancellationToken).ConfigureAwait(false);
         }
         settings.ConfirmedLoadPointCarCombinations[connectorId] = (matchedCarId, dateTimeProvider.DateTimeOffSetUtcNow());
         return matchedCarId;
@@ -266,7 +276,7 @@ public class PilotCurrentProbeService(
     /// Leaves the connector the way the charging cycle leaves it for a Tesla it stopped: the car is stopped via the
     /// Tesla API or BLE and the connector offers its max current, so the car can use grid power e.g. for preconditioning.
     /// </summary>
-    private async Task HandOverToCar(int connectorId, int maxCurrent, int carId, CancellationToken cancellationToken)
+    private async Task HandOverToCar(int connectorId, int maxCurrent, int? phases, int carId, CancellationToken cancellationToken)
     {
         await teslaService.StopCharging(carId).ConfigureAwait(false);
         var car = settings.Cars.First(c => c.Id == carId);
@@ -275,18 +285,18 @@ public class PilotCurrentProbeService(
         if (!await WaitUntil([car], () => car.IsCharging.Value != true, cancellationToken).ConfigureAwait(false))
         {
             logger.LogWarning("Car {carId} did not stop charging after the probe of connector {connectorId}, stop the connector instead", carId, connectorId);
-            await RestoreConnector(connectorId, false, null, cancellationToken).ConfigureAwait(false);
+            await RestoreConnector(connectorId, false, null, null, cancellationToken).ConfigureAwait(false);
             return;
         }
         var startResult = await ocppChargePointActionService
-            .StartCharging(connectorId, maxCurrent, null, cancellationToken).ConfigureAwait(false);
+            .StartCharging(connectorId, maxCurrent, phases, cancellationToken).ConfigureAwait(false);
         if (startResult.HasError)
         {
             logger.LogWarning("Could not set connector {connectorId} to its max current of {maxCurrent} A: {error}", connectorId, maxCurrent, startResult.ErrorMessage);
         }
     }
 
-    private async Task RestoreConnector(int connectorId, bool wasCharging, decimal? lastSetCurrent, CancellationToken cancellationToken)
+    private async Task RestoreConnector(int connectorId, bool wasCharging, decimal? lastSetCurrent, int? phases, CancellationToken cancellationToken)
     {
         if (!wasCharging)
         {
@@ -302,7 +312,7 @@ public class PilotCurrentProbeService(
             return;
         }
         var setResult = await ocppChargePointActionService
-            .SetChargingCurrent(connectorId, lastSetCurrent.Value, null, cancellationToken).ConfigureAwait(false);
+            .SetChargingCurrent(connectorId, lastSetCurrent.Value, phases, cancellationToken).ConfigureAwait(false);
         if (setResult.HasError)
         {
             logger.LogWarning("Could not restore current {current} A on connector {connectorId}: {error}", lastSetCurrent, connectorId, setResult.ErrorMessage);

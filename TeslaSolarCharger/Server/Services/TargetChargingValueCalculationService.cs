@@ -494,7 +494,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 StartCharging = constraintValues.IsCharging != true,
                 TargetCurrent = constraintValues.MaxCurrent,
-                TargetPhases = constraintValues.MaxPhases,
+                //Connectors without automatic phase switching might reject a number of phases. Load points without a
+                //connector keep their phases as the power usage estimation is based on them.
+                TargetPhases = constraintValues.PhaseSwitchingEnabled == false ? null : constraintValues.MaxPhases,
             };
         }
         return null;

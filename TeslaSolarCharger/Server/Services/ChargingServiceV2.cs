@@ -317,7 +317,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             _logger.LogDebug("OCPP connector {connectorId} is charging. Set charging current to {targetCurrent}.", chargingConnectorId, connectorConfig.MaxCurrent);
             // Max current can not be null as otherwise target values would be null.
             var result = await _ocppChargePointActionService.SetChargingCurrent(chargingConnectorId,
-                (decimal)connectorConfig.MaxCurrent!, null, cancellationToken).ConfigureAwait(false);
+                (decimal)connectorConfig.MaxCurrent!,
+                ocppState.PhasesToKeepWhileCharging(connectorConfig.AutoSwitchBetween1And3PhasesEnabled, connectorConfig.ConnectedPhasesCount),
+                cancellationToken).ConfigureAwait(false);
             if (result.HasError)
             {
                 _logger.LogError("Could not start update charging current for ocpp connector {ocppConnectorId}", chargingConnectorId);

@@ -30,6 +30,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     private readonly Settings _settings = new();
     private readonly DateTimeOffset _plugInTime;
     private readonly List<int> _startedCurrents = new();
+    private readonly List<int?> _startedPhases = new();
     private DateTimeOffset _now;
 
     public PilotCurrentProbeServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
@@ -50,7 +51,11 @@ public class PilotCurrentProbeServiceTests : TestBase
         SetChargingCurrents();
         var actionService = Mock.Mock<IOcppChargePointActionService>();
         actionService.Setup(a => a.StartCharging(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
-            .Callback((int _, decimal current, int? _, CancellationToken _) => _startedCurrents.Add((int)current))
+            .Callback((int _, decimal current, int? phases, CancellationToken _) =>
+            {
+                _startedCurrents.Add((int)current);
+                _startedPhases.Add(phases);
+            })
             .ReturnsAsync(new Result<RemoteStartTransactionResponse?>(new RemoteStartTransactionResponse(), null, null));
         actionService.Setup(a => a.StopCharging(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Result<RemoteStopTransactionResponse?>(new RemoteStopTransactionResponse(), null, null));
@@ -520,6 +525,49 @@ public class PilotCurrentProbeServiceTests : TestBase
         Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
     }
 
+    [Theory]
+    // Not charging: the phases a car managed load point is started with, whatever was set before
+    [InlineData(true, false, 1, true, 3)]
+    [InlineData(true, false, null, false, 3)]
+    [InlineData(false, false, 1, true, null)]
+    [InlineData(false, false, null, false, null)]
+    // Charging: the connector keeps its phases during probe and restore
+    [InlineData(true, true, 1, true, 1)]
+    [InlineData(true, true, 1, false, 1)]
+    [InlineData(true, true, 3, true, 3)]
+    // Charging with unknown last set phases, e.g. after a restart of TSC
+    [InlineData(true, true, null, true, 3)]
+    // Connectors without automatic phase switching never get a number of phases as they might reject the message
+    [InlineData(false, true, 1, true, null)]
+    [InlineData(false, true, 3, false, null)]
+    public async Task ProbeUnassignedConnectors_DoesNotChangeThePhasesOfTheConnector(bool autoSwitchEnabled, bool isCharging,
+        int? lastSetPhases, bool carReacts, int? expectedPhases)
+    {
+        await SeedConnector(ConnectorId, new[] { CarA }, 16, autoSwitchEnabled);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        var state = AddPluggedInConnectorState(ConnectorId);
+        state.IsCharging.Update(_plugInTime, isCharging);
+        state.LastSetCurrent.Update(_plugInTime, 10m);
+        state.LastSetPhases.Update(_plugInTime, lastSetPhases);
+        carA.ChargerPilotCurrent.Update(_plugInTime, 10);
+        if (carReacts)
+        {
+            ReactOnProbe(ConnectorId, carA);
+        }
+
+        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        var actionService = Mock.Mock<IOcppChargePointActionService>();
+        //The probe, and for a matched car that was not charging the hand over with the max current.
+        Assert.Equal(carReacts && !isCharging ? 2 : 1, _startedPhases.Count);
+        Assert.All(_startedPhases, phases => Assert.Equal(expectedPhases, phases));
+        actionService.Verify(a => a.SetChargingCurrent(ConnectorId, 10m, expectedPhases, It.IsAny<CancellationToken>()),
+            isCharging ? Times.Once() : Times.Never());
+        actionService.Verify(a => a.SetChargingCurrent(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
+            isCharging ? Times.Once() : Times.Never());
+    }
+
     [Fact]
     public async Task ProbeUnassignedConnectors_DoesNotWaitOrRestore_WhenProbeCurrentCouldNotBeOffered()
     {
@@ -667,7 +715,7 @@ public class PilotCurrentProbeServiceTests : TestBase
 
     private Task SeedConnector(int connectorId, params int[] allowedCarIds) => SeedConnector(connectorId, allowedCarIds, 16);
 
-    private async Task SeedConnector(int connectorId, int[] allowedCarIds, int maxCurrent)
+    private async Task SeedConnector(int connectorId, int[] allowedCarIds, int maxCurrent, bool autoSwitchBetween1And3PhasesEnabled = false)
     {
         var connector = new OcppChargingStationConnector($"Connector {connectorId}")
         {
@@ -677,6 +725,7 @@ public class PilotCurrentProbeServiceTests : TestBase
             MinCurrent = 6,
             MaxCurrent = maxCurrent,
             ConnectedPhasesCount = 3,
+            AutoSwitchBetween1And3PhasesEnabled = autoSwitchBetween1And3PhasesEnabled,
         };
         foreach (var carId in allowedCarIds)
         {
@@ -733,9 +782,10 @@ public class PilotCurrentProbeServiceTests : TestBase
     {
         Mock.Mock<IOcppChargePointActionService>()
             .Setup(a => a.StartCharging(connectorId, It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
-            .Callback((int _, decimal current, int? _, CancellationToken _) =>
+            .Callback((int _, decimal current, int? phases, CancellationToken _) =>
             {
                 _startedCurrents.Add((int)current);
+                _startedPhases.Add(phases);
                 foreach (var car in cars)
                 {
                     car.ChargerPilotCurrent.Update(CurrentFakeDate, (int)current);
