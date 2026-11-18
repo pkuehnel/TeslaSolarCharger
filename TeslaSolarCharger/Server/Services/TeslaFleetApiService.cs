@@ -1177,13 +1177,23 @@ public class TeslaFleetApiService(
     }
 
     /// <summary>
-    /// The car refused to start charging because it already waits for power the charger does not supply.
+    /// The car refused to start charging because it already waits for power the charger does not supply. The reason
+    /// must be exactly one of the tokens (optionally after a "...: " prefix as older BLE containers send it), so other
+    /// refusals that merely contain the word are not mistaken for it.
     /// </summary>
     private bool IsChargeStartRefusedForMissingPower(string requestUrl, string? carErrorMessage)
     {
         return (requestUrl == ChargeStartRequest.RequestUrl)
-               && ((carErrorMessage?.Contains(ChargeStartRequestedErrorMessage) == true)
-                   || (carErrorMessage?.Contains(NoPowerErrorMessage) == true));
+               && (IsRefusalReason(carErrorMessage, ChargeStartRequestedErrorMessage)
+                   || IsRefusalReason(carErrorMessage, NoPowerErrorMessage));
+    }
+
+    private static bool IsRefusalReason(string? carErrorMessage, string reason)
+    {
+        var message = carErrorMessage?.Trim();
+        return message != null
+               && (string.Equals(message, reason, StringComparison.Ordinal)
+                   || message.EndsWith(": " + reason, StringComparison.Ordinal));
     }
 
     private void RememberChargeStartRefusedForMissingPower(DtoCar car, string? carErrorMessage)
