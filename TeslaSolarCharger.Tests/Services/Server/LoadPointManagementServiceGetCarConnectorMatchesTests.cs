@@ -16,6 +16,7 @@ public class LoadPointManagementServiceGetCarConnectorMatchesTests : TestBase
 {
     private const int ConnectorId = 2;
     private const int CarId = 10;
+    private const int SecondCarId = 11;
 
     private readonly Settings _settings = new();
     private readonly DateTimeOffset _plugInTime;
@@ -76,7 +77,29 @@ public class LoadPointManagementServiceGetCarConnectorMatchesTests : TestBase
         Assert.Null(matches.Single(m => m.ChargingConnectorId == ConnectorId).CarId);
     }
 
-    private async Task Seed(CarType carType, bool useFleetTelemetry, bool useBle)
+    [Theory]
+    [InlineData(false, false, true, true, CarId)]
+    [InlineData(true, false, true, true, null)]
+    [InlineData(false, true, true, true, null)]
+    [InlineData(false, false, false, true, null)]
+    [InlineData(false, false, true, false, null)]
+    public async Task GetCarConnectorMatches_MatchesOnlyAllowedTeslaWithoutProbe_WhenGuestCarsAreNotAllowed(bool allowGuestCars,
+        bool allowSecondCar, bool isPluggedIn, bool isHome, int? expectedCarId)
+    {
+        await Seed(CarType.Tesla, true, false, allowGuestCars, allowSecondCar);
+        var car = _settings.Cars.Single();
+        //Plugged in long before the connector, e.g. a TSC restart while the car slept: the plug in times do not match.
+        car.PluggedIn.Update(_plugInTime.AddHours(-2), false, true);
+        car.PluggedIn.Update(_plugInTime.AddHours(-1), isPluggedIn, true);
+        car.IsHomeGeofence.Update(_plugInTime, isHome);
+
+        var matches = await Mock.Create<LoadPointManagementService>()
+            .GetCarConnectorMatches(new[] { CarId }, new[] { ConnectorId }, false);
+
+        Assert.Equal(expectedCarId, matches.Single(m => m.ChargingConnectorId == ConnectorId).CarId);
+    }
+
+    private async Task Seed(CarType carType, bool useFleetTelemetry, bool useBle, bool allowGuestCars = true, bool allowSecondCar = false)
     {
         Context.Cars.Add(new Car
         {
@@ -92,9 +115,14 @@ public class LoadPointManagementServiceGetCarConnectorMatchesTests : TestBase
             Id = ConnectorId,
             ConnectorId = 1,
             ShouldBeManaged = true,
-            AllowGuestCars = true,
+            AllowGuestCars = allowGuestCars,
         };
         connector.AllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = CarId, OcppChargingStationConnectorId = ConnectorId, });
+        if (allowSecondCar)
+        {
+            Context.Cars.Add(new Car { Id = SecondCarId, Vin = "VIN2", CarType = CarType.Tesla, ShouldBeManaged = true, UseFleetTelemetry = true, });
+            connector.AllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = SecondCarId, OcppChargingStationConnectorId = ConnectorId, });
+        }
         Context.OcppChargingStationConnectors.Add(connector);
         await Context.SaveChangesAsync();
         DetachAllEntities();
