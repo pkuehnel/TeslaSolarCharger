@@ -34,6 +34,7 @@ public class PilotCurrentProbeService(
     private const int MinimumProbeCurrent = 6;
     private const int MaxPolls = 30;
     private const int PollsBetweenBleRefreshes = 5;
+    private static readonly TimeSpan ProbeWakeUpWindow = TimeSpan.FromMinutes(5);
 
     internal TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(1);
 
@@ -153,7 +154,19 @@ public class PilotCurrentProbeService(
             return false;
         }
         return lastProbe >= connectorState.IsPluggedIn.LastChanged
-               && candidates.All(c => lastProbe >= c.PluggedIn.LastChanged);
+               && candidates.All(c => lastProbe >= c.PluggedIn.LastChanged && !CameOnlineShortlyAfter(c, lastProbe));
+    }
+
+    /// <summary>
+    /// A sleeping car can not report the probe current, but the probe can wake it up (measured: 47 s after the probe
+    /// started). Probing again once it is online identifies it e.g. after a restart of TSC. Later wake ups have
+    /// nothing to do with the probe, so they do not trigger another probe that would interrupt a guest car's charging.
+    /// </summary>
+    private static bool CameOnlineShortlyAfter(DtoCar car, DateTimeOffset lastProbe)
+    {
+        return car.IsOnline.Value == true
+               && car.IsOnline.LastChanged > lastProbe
+               && car.IsOnline.LastChanged <= lastProbe + ProbeWakeUpWindow;
     }
 
     /// <returns>The id of the car plugged into the connector, or null if no single candidate reacted.</returns>

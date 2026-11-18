@@ -30,16 +30,18 @@ public class PilotCurrentProbeServiceTests : TestBase
     private readonly Settings _settings = new();
     private readonly DateTimeOffset _plugInTime;
     private readonly List<int> _startedCurrents = new();
+    private DateTimeOffset _now;
 
     public PilotCurrentProbeServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
     {
         _plugInTime = CurrentFakeDate.AddMinutes(-5);
+        _now = CurrentFakeDate;
         var settingsMock = Mock.Mock<ISettings>();
         settingsMock.Setup(s => s.Cars).Returns(_settings.Cars);
         settingsMock.Setup(s => s.OcppConnectorStates).Returns(_settings.OcppConnectorStates);
         settingsMock.Setup(s => s.ConfirmedLoadPointCarCombinations).Returns(_settings.ConfirmedLoadPointCarCombinations);
         settingsMock.Setup(s => s.LastPilotCurrentProbes).Returns(_settings.LastPilotCurrentProbes);
-        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(() => _now);
         var configurationWrapper = Mock.Mock<IConfigurationWrapper>();
         configurationWrapper.Setup(c => c.GetVehicleDataFromTesla()).Returns(true);
         configurationWrapper.Setup(c => c.GetVehicleDataViaBle()).Returns(true);
@@ -307,6 +309,106 @@ public class PilotCurrentProbeServiceTests : TestBase
         await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
+    }
+
+    [Theory]
+    [InlineData(47, true)]
+    [InlineData(300, true)]
+    [InlineData(301, false)]
+    [InlineData(0, false)]
+    public async Task ProbeUnassignedConnectors_ProbesAgain_OnlyWhenACandidateCameOnlineWithinFiveMinutesAfterTheLastProbe(
+        int secondsAfterProbe, bool expectedProbe)
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        var lastProbe = _plugInTime.AddSeconds(10);
+        _settings.LastPilotCurrentProbes[ConnectorId] = lastProbe;
+        carA.IsOnline.Update(_plugInTime, false);
+        carA.IsOnline.Update(lastProbe.AddSeconds(secondsAfterProbe), true);
+        _now = lastProbe.AddSeconds(secondsAfterProbe + 1);
+
+        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(expectedProbe, _startedCurrents.Count == 1);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_DoesNotProbeAgain_WhenCandidateWasAlreadyOnlineDuringTheLastProbe()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        carA.IsOnline.Update(_plugInTime, true);
+        _settings.LastPilotCurrentProbes[ConnectorId] = _plugInTime.AddSeconds(10);
+
+        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Empty(_startedCurrents);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_DoesNotProbeAgain_WhenCandidateFellAsleepAgainAfterWakingUp()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        var lastProbe = _plugInTime.AddSeconds(10);
+        _settings.LastPilotCurrentProbes[ConnectorId] = lastProbe;
+        carA.IsOnline.Update(_plugInTime, false);
+        carA.IsOnline.Update(lastProbe.AddSeconds(47), true);
+        carA.IsOnline.Update(lastProbe.AddSeconds(100), false);
+
+        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Empty(_startedCurrents);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_IdentifiesSleepingCar_WithASecondProbeOnceTheFirstProbeWokeItUp()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        carA.IsOnline.Update(_plugInTime, false);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        var service = CreateService();
+
+        //Asleep: the car can not report the probe current.
+        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        Assert.Empty(_settings.ConfirmedLoadPointCarCombinations);
+
+        carA.IsOnline.Update(_now.AddSeconds(47), true);
+        _now = _now.AddSeconds(60);
+        ReactOnProbe(ConnectorId, carA);
+        await service.ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<int> { 6, 6, 16 }, _startedCurrents);
+        Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
+    }
+
+    [Fact]
+    public async Task ProbeUnassignedConnectors_DoesNotProbeAThirdTime_WhenTheCarDoesNotReactAfterWakingUp()
+    {
+        await SeedConnector(ConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        carA.IsOnline.Update(_plugInTime, false);
+        SetUnassigned(ConnectorId);
+        AddPluggedInConnectorState(ConnectorId);
+        var service = CreateService();
+
+        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        carA.IsOnline.Update(_now.AddSeconds(47), true);
+        _now = _now.AddSeconds(60);
+        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        _now = _now.AddSeconds(60);
+        await service.ProbeUnassignedConnectors(CancellationToken.None);
+
+        Assert.Equal(2, _startedCurrents.Count);
+        Assert.Empty(_settings.ConfirmedLoadPointCarCombinations);
     }
 
     [Fact]
