@@ -315,8 +315,8 @@ public class GetTargetValueTests : TestBase
     [InlineData(true, 3)]
     // Connectors without automatic phase switching might reject a number of phases
     [InlineData(false, null)]
-    // Load points without a connector keep their phases for the power usage estimation
-    [InlineData(null, 3)]
+    // Load points without a connector have nothing to send phases to
+    [InlineData(null, null)]
     public void GetTargetValue_MaxPower_SendsPhasesOnlyToConnectorsWithPhaseSwitching(bool? phaseSwitchingEnabled, int? expectedPhases)
     {
         var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
