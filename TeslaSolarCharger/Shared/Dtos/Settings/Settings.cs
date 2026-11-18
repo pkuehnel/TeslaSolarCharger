@@ -53,7 +53,9 @@ public class Settings : ISettings
     public ConcurrentDictionary<(int? carId, int? connectorId), List<NotChargingWithExpectedPowerReasonTemplate>> LoadPointSpecificNotChargingWithExpectedPowerReasons
     { get; set; } = new();
 
-    public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; } = new();
+    public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ConfirmedLoadPointCarCombinations { get; set; } = new();
+
+    public ConcurrentDictionary<int, DateTimeOffset> LastPilotCurrentProbes { get; set; } = new();
 
     public ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; } = new();
     public ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; } = new();

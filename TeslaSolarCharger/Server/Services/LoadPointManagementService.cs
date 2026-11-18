@@ -390,6 +390,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 c.PluggedIn,
                 c.IsHomeGeofence,
             }).ToList();
+        bool IsPluggedInAtHome(int carId) => plugInRelevantCarData
+            .Any(c => c.Id == carId && c.IsHomeGeofence.Value == true && c.PluggedIn.Value == true);
         _logger.LogTrace("Logging states of carIds.");
         foreach (var plugInRelevantCarDatum in plugInRelevantCarData)
         {
@@ -413,9 +415,9 @@ public class LoadPointManagementService : ILoadPointManagementService
                 continue;
             }
 
-            if (_settings.ManualSetLoadPointCarCombinations.TryGetValue(connectorId, out var value))
+            if (_settings.ConfirmedLoadPointCarCombinations.TryGetValue(connectorId, out var value))
             {
-                _logger.LogDebug("Found match in {settings}.{manualSetCombinations} for connector {connectorId}", nameof(_settings), nameof(_settings.ManualSetLoadPointCarCombinations), connectorId);
+                _logger.LogDebug("Found match in {settings}.{manualSetCombinations} for connector {connectorId}", nameof(_settings), nameof(_settings.ConfirmedLoadPointCarCombinations), connectorId);
                 var matchValid = true;
                 var carId = value.carId;
                 if (carId != default)
@@ -467,18 +469,22 @@ public class LoadPointManagementService : ILoadPointManagementService
                         {
                             ac.CarId,
                             ac.Car.CarType,
+                            ac.Car.UseFleetTelemetry,
+                            ac.Car.UseBle,
                         }).ToHashSet(),
                     c.AllowGuestCars,
                 })
                 .FirstAsync().ConfigureAwait(false);
 
 
+            //Cars whose pilot current can be observed are only matched by a pilot current probe: a plug in time also
+            //matches a car plugged into another wallbox at the same time.
             var matchingCars = plugInRelevantCarData
                 .Where(car => car.PluggedIn.LastChanged >= matchWindowStart
                               && car.PluggedIn.LastChanged <= matchWindowEnd
-                              && car.IsHomeGeofence.Value == true
-                              && car.PluggedIn.Value == true
-                              && chargerDatabaseInformation.AllowedCars.Any(ac => ac.CarId == car.Id))
+                              && IsPluggedInAtHome(car.Id)
+                              && chargerDatabaseInformation.AllowedCars.Any(ac => ac.CarId == car.Id
+                                  && !PilotCurrentProbeService.CanObservePilotCurrent(ac.CarType, ac.UseFleetTelemetry, ac.UseBle, _configurationWrapper)))
                 .ToList();
 
             if (matchingCars.Count == 1)
@@ -499,6 +505,15 @@ public class LoadPointManagementService : ILoadPointManagementService
                 {
                     _logger.LogTrace("Guest cars are allowed for charging connector {connectorId}, therefore no manual car can be estimated as connected", connectorId);
                     matches.Add(new(null, connectorId));
+                }
+                else if (chargerDatabaseInformation.AllowedCars.Count == 1
+                         && chargerDatabaseInformation.AllowedCars.Single() is var onlyAllowedCar
+                         && onlyAllowedCar.CarType == CarType.Tesla
+                         && IsPluggedInAtHome(onlyAllowedCar.CarId))
+                {
+                    //No other car may be plugged in, so a pilot current probe that might have to wake the car is not needed.
+                    _logger.LogTrace("Only Tesla {carId} is allowed on connector {connectorId} and it is plugged in at home, use it", onlyAllowedCar.CarId, connectorId);
+                    matches.Add(new(onlyAllowedCar.CarId, connectorId));
                 }
                 else
                 {
@@ -651,7 +666,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
 
         }
-        _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
+        _settings.ConfirmedLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
         await GetLoadPointsToManage().ConfigureAwait(false);
         if (carIdBeforeChange != default)
         {

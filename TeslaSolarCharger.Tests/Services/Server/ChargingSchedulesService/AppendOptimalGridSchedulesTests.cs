@@ -266,6 +266,46 @@ public class AppendOptimalGridSchedulesTests : TestBase
         Assert.DoesNotContain(ScheduleReason.LatestPossibleTime, newSchedule.ScheduleReasons);
     }
 
+    /// <summary>
+    /// Only a loadpoint that already draws power saves the switch costs of the current slot. Standby power of an idle
+    /// charger (4W in logfile 2026-10-25) must not, as otherwise charging starts now instead of in the cheaper slot.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(4, 1)]
+    [InlineData(1_374, 0)]
+    public async Task AppendOptimalGridSchedules_SavesSwitchCostsOfCurrentSlot_OnlyWhenLoadPointDrawsPower(int chargingPower, int expectedStartOffsetHours)
+    {
+        // Arrange
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.ChargingScheduleService>();
+        var currentDate = CurrentFakeDate;
+        var nextTarget = CreateTarget(currentDate.AddHours(2));
+        var loadpoint = CreateLoadPoint();
+        loadpoint.ChargingPower = chargingPower;
+        var schedules = new List<DtoChargingSchedule>();
+
+        // Switch costs of 1 add ~0.09/kWh to a one hour slot: the current slot is only cheaper without them
+        var prices = new List<Price>
+        {
+            CreatePrice(currentDate, currentDate.AddHours(1), 0.12m, true),
+            CreatePrice(currentDate.AddHours(1), currentDate.AddHours(2), 0.10m, true),
+        };
+
+        Mock.Mock<ITscOnlyChargingCostService>()
+            .Setup(x => x.GetPricesInTimeSpan(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>()))
+            .ReturnsAsync(prices);
+
+        Mock.Mock<IConfigurationWrapper>()
+            .Setup(x => x.ChargingSwitchCosts()).Returns(1.0m);
+
+        // Act
+        var result = await service.AppendOptimalGridSchedules(currentDate, nextTarget, loadpoint, schedules, MaxPower, MaxPower, Voltage, Phases, new());
+
+        // Assert
+        var schedule = Assert.Single(result);
+        Assert.Equal(currentDate.AddHours(expectedStartOffsetHours), schedule.ValidFrom);
+    }
+
     // Helper methods
     private DtoLoadPointOverview CreateLoadPoint(int carId = 1)
     {

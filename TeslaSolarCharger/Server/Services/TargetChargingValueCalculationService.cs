@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -149,7 +150,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             }
 
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
-            if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + homebatteryDischargeThreshold)))
+            if (loadPoint.LoadPoint.IsDrawingPower() || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + homebatteryDischargeThreshold)))
             {
                 _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDischargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
                 powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
