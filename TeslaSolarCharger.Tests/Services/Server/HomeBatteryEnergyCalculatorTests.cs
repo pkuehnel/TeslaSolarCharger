@@ -185,70 +185,50 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         Assert.Equal(5, result.CappedSocPercent);
     }
 
+    //Without dynamic min SoC nothing uses the prediction, so only the next sun event is refreshed.
     [Fact]
-    public async Task RefreshHomeBatteryMinSoc_StoresHoldAndChargeTargetsInSettings_FetchesPredictionOnlyOnce()
+    public async Task RefreshHomeBatteryMinSoc_DynamicMinSocDisabled_OnlyUpdatesNextSunEvent()
     {
-        // Arrange
         var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
         Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
         Mock.Mock<ISettings>().SetupAllProperties();
-
-        var nextSunset = new DateTimeOffset(2023, 2, 2, 17, 0, 0, TimeSpan.Zero);
-        var nextSunrise = new DateTimeOffset(2023, 2, 3, 7, 0, 0, TimeSpan.Zero);
-        Mock.Mock<ISunCalculator>()
-            .Setup(s => s.NextSunset(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
-            .Returns(nextSunset);
-        Mock.Mock<ISunCalculator>()
-            .Setup(s => s.NextSunrise(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
-            .Returns(nextSunrise);
-
+        SetupSunEvents();
         var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10000);
         configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10000);
-        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
-        configurationWrapperMock.Setup(c => c.HomeBatteryMinDynamicMinSoc()).Returns(5);
-        configurationWrapperMock.Setup(c => c.HomeBatteryMaxDynamicMinSoc()).Returns(95);
-        configurationWrapperMock.Setup(c => c.HoldHomeBatteryChargeSocBufferInPercent()).Returns(50);
-        configurationWrapperMock.Setup(c => c.ChargeHomeBatterySocBufferInPercent()).Returns(100);
-        // DynamicHomeBatteryMinSoc and ForceFullHomeBatteryBySunset stay at their mock default (false)
+        // DynamicHomeBatteryMinSoc stays at its mock default (false)
 
-        // Deficit before sunrise, first positive surplus one hour after sunrise
-        var breachSlice = new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero);
-        var expectedSelfSufficiencyTime = new DateTimeOffset(2023, 2, 3, 8, 0, 0, TimeSpan.Zero);
-        var slices = new Dictionary<DateTimeOffset, int>
-        {
-            { breachSlice, -1000 },
-            { expectedSelfSufficiencyTime, 2000 },
-        };
-        Mock.Mock<IEnergyDataService>()
-            .Setup(e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(slices);
-
-        // Act
         await calculator.RefreshHomeBatteryMinSoc(CancellationToken.None);
 
-        // Assert
+        Assert.NotEqual(TeslaSolarCharger.Shared.Dtos.Settings.NextSunEvent.Unknown, Mock.Mock<ISettings>().Object.NextSunEvent);
         Mock.Mock<IEnergyDataService>().Verify(
             e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        var settings = Mock.Mock<ISettings>().Object;
-        // Floor 500 Wh, -1000 -> -500 => 1000 Wh missing at the breach slice
-        var holdTarget = settings.HomeBatteryHoldTarget;
-        Assert.NotNull(holdTarget);
-        Assert.Equal(20, holdTarget.CappedSocPercent); // (500 + 1000 * 1.5) / 10000
-        Assert.Equal(expectedSelfSufficiencyTime, holdTarget.SelfSufficiencyTime);
-        Assert.Equal(CurrentFakeDate, holdTarget.CalculatedAt);
-
-        var chargeTarget = settings.HomeBatteryChargeTarget;
-        Assert.NotNull(chargeTarget);
-        Assert.Equal(25, chargeTarget.CappedSocPercent); // (500 + 1000 * 2) / 10000
-        Assert.Equal(expectedSelfSufficiencyTime, chargeTarget.SelfSufficiencyTime);
-        Assert.Equal(CurrentFakeDate, chargeTarget.CalculatedAt);
+            Times.Never);
+        configurationWrapperMock.Verify(c => c.UpdateBaseConfigurationAsync(It.IsAny<DtoBaseConfiguration>()), Times.Never);
+        Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(It.IsAny<StateUpdateDto>()), Times.Never);
     }
 
-    //Test plan case 1: with dynamic min SoC enabled the min SoC branch shares the single prediction fetch with the
-    //hold and charge targets, updates the base configuration and fires exactly one state notification.
+    [Fact]
+    public async Task RefreshHomeBatteryMinSoc_DynamicMinSocEnabledWithoutUsableEnergy_DoesNotChangeMinSoc()
+    {
+        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
+        Mock.Mock<ISettings>().SetupAllProperties();
+        SetupSunEvents();
+        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
+        configurationWrapperMock.Setup(c => c.DynamicHomeBatteryMinSoc()).Returns(true);
+        // Usable energy stays unknown (mock default null)
+
+        await calculator.RefreshHomeBatteryMinSoc(CancellationToken.None);
+
+        Mock.Mock<IEnergyDataService>().Verify(
+            e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        configurationWrapperMock.Verify(c => c.UpdateBaseConfigurationAsync(It.IsAny<DtoBaseConfiguration>()), Times.Never);
+    }
+
+    //Test plan case 1: with dynamic min SoC enabled the prediction is fetched once, the base configuration is updated
+    //and exactly one state notification is fired.
     [Fact]
     public async Task RefreshHomeBatteryMinSoc_DynamicMinSocEnabled_UpdatesMinSocAndStillFetchesPredictionOnlyOnce()
     {
@@ -268,7 +248,7 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         configurationWrapperMock.Setup(c => c.HomeBatteryMinSoc()).Returns(10);
         var baseConfiguration = new DtoBaseConfiguration();
         configurationWrapperMock.Setup(c => c.GetBaseConfigurationAsync()).ReturnsAsync(baseConfiguration);
-        //DynamicMinSocCalculationBufferInPercent and the hold/charge buffers stay at their mock default (0)
+        //DynamicMinSocCalculationBufferInPercent stays at its mock default (0)
 
         var breachSlice = new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero);
         var slices = new Dictionary<DateTimeOffset, int>
@@ -291,46 +271,6 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         Assert.Equal(15, baseConfiguration.HomeBatteryMinSoc);
         configurationWrapperMock.Verify(c => c.UpdateBaseConfigurationAsync(baseConfiguration), Times.Once);
         Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(It.IsAny<StateUpdateDto>()), Times.Once);
-        var settings = Mock.Mock<ISettings>().Object;
-        Assert.NotNull(settings.HomeBatteryHoldTarget);
-        Assert.NotNull(settings.HomeBatteryChargeTarget);
-    }
-
-    //Test plan case 4: hold and charge targets are stored in settings only. Unlike the previous implementation that
-    //persisted them to the base configuration, no configuration update and no state notification happens for them:
-    //schedule windows are replanned every charging cycle and the support page pulls the state on demand.
-    [Fact]
-    public async Task RefreshHomeBatteryMinSoc_OnlyHoldAndChargeTargetsChange_DoesNotUpdateConfigurationOrNotify()
-    {
-        // Arrange: dynamic min SoC stays disabled, so only the hold and charge targets are calculated
-        var calculator = Mock.Create<HomeBatteryEnergyCalculator>();
-        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
-        Mock.Mock<ISettings>().SetupAllProperties();
-        SetupSunEvents();
-
-        var configurationWrapperMock = Mock.Mock<IConfigurationWrapper>();
-        configurationWrapperMock.Setup(c => c.HomeBatteryChargingEnergy()).Returns(10000);
-        configurationWrapperMock.Setup(c => c.HomeBatteryDischargingEnergy()).Returns(10000);
-        configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10000);
-
-        var slices = new Dictionary<DateTimeOffset, int>
-        {
-            { new DateTimeOffset(2023, 2, 2, 9, 0, 0, TimeSpan.Zero), -1000 },
-            { new DateTimeOffset(2023, 2, 3, 8, 0, 0, TimeSpan.Zero), 2000 },
-        };
-        Mock.Mock<IEnergyDataService>()
-            .Setup(e => e.GetPredictedSurplusPerSlice(It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(slices);
-
-        // Act
-        await calculator.RefreshHomeBatteryMinSoc(CancellationToken.None);
-
-        // Assert
-        var settings = Mock.Mock<ISettings>().Object;
-        Assert.NotNull(settings.HomeBatteryHoldTarget);
-        Assert.NotNull(settings.HomeBatteryChargeTarget);
-        configurationWrapperMock.Verify(c => c.UpdateBaseConfigurationAsync(It.IsAny<DtoBaseConfiguration>()), Times.Never);
-        Mock.Mock<IAppStateNotifier>().Verify(n => n.NotifyStateUpdateAsync(It.IsAny<StateUpdateDto>()), Times.Never);
     }
 
     //Test plan case 2: when the required SoC exceeds the configured maximum dynamic SoC, only the SoC is clamped while
@@ -549,8 +489,9 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         configurationWrapperMock.Setup(c => c.HomeBatteryChargingPower()).Returns(10_000);
         configurationWrapperMock.Setup(c => c.HomeBatteryMinDynamicMinSoc()).Returns(5);
         configurationWrapperMock.Setup(c => c.HomeBatteryMaxDynamicMinSoc()).Returns(95);
-        configurationWrapperMock.Setup(c => c.HoldHomeBatteryChargeSocBufferInPercent()).Returns(0);
-        configurationWrapperMock.Setup(c => c.ChargeHomeBatterySocBufferInPercent()).Returns(0);
+        configurationWrapperMock.Setup(c => c.DynamicHomeBatteryMinSoc()).Returns(true);
+        var baseConfiguration = new DtoBaseConfiguration();
+        configurationWrapperMock.Setup(c => c.GetBaseConfigurationAsync()).ReturnsAsync(baseConfiguration);
         var slices = new Dictionary<DateTimeOffset, int>
         {
             { new DateTimeOffset(2023, 2, 2, 20, 0, 0, TimeSpan.Zero), -1_000 },
@@ -563,8 +504,6 @@ public class HomeBatteryEnergyCalculatorTests : TestBase
         await calculator.RefreshHomeBatteryMinSoc(CancellationToken.None);
 
         // Floor 5 % of 5000Wh = 250Wh, plus the 1000Wh night => 25 % (it would be 15 % of the 10000Wh charging energy)
-        var holdTarget = Mock.Mock<ISettings>().Object.HomeBatteryHoldTarget;
-        Assert.NotNull(holdTarget);
-        Assert.Equal(25, holdTarget.CappedSocPercent);
+        Assert.Equal(25, baseConfiguration.HomeBatteryMinSoc);
     }
 }

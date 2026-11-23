@@ -26,8 +26,12 @@ public class ConfigurationWrapper : TestBase
     /// The cache is process wide, so it is cleared again afterwards and no other test sees this configuration.
     /// </summary>
     private static void WithStoredBaseConfiguration(DtoBaseConfiguration configuration, Action assertions)
+        => WithStoredBaseConfiguration(JsonConvert.SerializeObject(configuration), assertions);
+
+    /// <inheritdoc cref="WithStoredBaseConfiguration(DtoBaseConfiguration, Action)"/>
+    private static void WithStoredBaseConfiguration(string configurationJson, Action assertions)
     {
-        MemoryCache.Default.Set(BaseConfigurationCacheName, JsonConvert.SerializeObject(configuration), new CacheItemPolicy());
+        MemoryCache.Default.Set(BaseConfigurationCacheName, configurationJson, new CacheItemPolicy());
         try
         {
             assertions();
@@ -36,20 +40,6 @@ public class ConfigurationWrapper : TestBase
         {
             MemoryCache.Default.Remove(BaseConfigurationCacheName);
         }
-    }
-
-    [Theory]
-    [InlineData(null, ConfigurationDefaults.HoldHomeBatteryChargeSocBuffer)]
-    [InlineData(0, 0)]
-    [InlineData(7, 7)]
-    [InlineData(-10, -10)]
-    public void HoldHomeBatteryChargeSocBuffer_UsesTheDefaultOnlyWhenNobodySetIt(int? stored, int expected)
-    {
-        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
-        var configuration = new DtoBaseConfiguration { HoldHomeBatteryChargeSocBuffer = stored, };
-
-        WithStoredBaseConfiguration(configuration,
-            () => Assert.Equal(expected, configurationWrapper.HoldHomeBatteryChargeSocBufferInPercent()));
     }
 
     [Theory]
@@ -64,6 +54,19 @@ public class ConfigurationWrapper : TestBase
 
         WithStoredBaseConfiguration(configuration,
             () => Assert.Equal(expected, configurationWrapper.ChargeHomeBatterySocBufferInPercent()));
+    }
+
+    /// <summary>
+    /// Settings that were removed stay in existing configuration files until the next save, so they must not break loading.
+    /// </summary>
+    [Fact]
+    public void BaseConfiguration_WithRemovedSetting_StillLoads()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        const string configurationJson = "{\"HoldHomeBatteryChargeSocBuffer\":5,\"ChargeHomeBatterySocBuffer\":-10}";
+
+        WithStoredBaseConfiguration(configurationJson,
+            () => Assert.Equal(-10, configurationWrapper.ChargeHomeBatterySocBufferInPercent()));
     }
 
     /// <summary>
