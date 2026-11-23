@@ -188,7 +188,7 @@ public class SetChargingPowerOfOccpConnectorForCarManagedLoadpointTests : TestBa
                 LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 10)
             },
             true,
-            null!,
+            new OcppChargingStationConnector("test4b") { Id = 1, MaxCurrent = 16, ConnectedPhasesCount = 3 },
             currentDate,
             null,
             null,
@@ -382,6 +382,127 @@ public class SetChargingPowerOfOccpConnectorForCarManagedLoadpointTests : TestBa
             null,
             true,
             true,
+            false
+        };
+
+        // Scenario 13: Current sufficient, but the connector still has the phases it charged on before the car was
+        // identified. Once it stopped charging and the cooldown expired, it is started on the connected phases.
+        yield return new object[]
+        {
+            "Current sufficient, not charging on connected phases, cooldown expired",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 9 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = 10 }
+            },
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = CreateValue(currentDate.AddSeconds(-120), false, currentDate.AddSeconds(-120)),
+                LastSetPhases = new DtoTimeStampedValue<int?>(currentDate, 1),
+            },
+            true,
+            new OcppChargingStationConnector("test9") { Id = 9, MaxCurrent = 16, ConnectedPhasesCount = 3, AutoSwitchBetween1And3PhasesEnabled = true, PhaseSwitchCoolDownTimeSeconds = cooldownTime },
+            currentDate,
+            true, // StartCharging success
+            null,
+            true,
+            true,
+            false
+        };
+
+        // Scenario 14: Same, but the cooldown is still active: wait.
+        yield return new object[]
+        {
+            "Current sufficient, not charging on connected phases, cooldown active",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 10 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = 10 }
+            },
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = CreateValue(currentDate.AddSeconds(-30), false, currentDate.AddSeconds(-30)),
+                LastSetPhases = new DtoTimeStampedValue<int?>(currentDate, 1),
+            },
+            true,
+            new OcppChargingStationConnector("test10") { Id = 10, MaxCurrent = 16, ConnectedPhasesCount = 3, AutoSwitchBetween1And3PhasesEnabled = true, PhaseSwitchCoolDownTimeSeconds = cooldownTime },
+            currentDate,
+            null,
+            null,
+            false,
+            false,
+            false
+        };
+
+        // Scenario 15: A charging connector keeps its phases, they never change while charging.
+        yield return new object[]
+        {
+            "Current sufficient, charging on other phases, left alone",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 11 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = 10 }
+            },
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = CreateValue(currentDate.AddSeconds(-120), true, currentDate.AddSeconds(-120)),
+                LastSetPhases = new DtoTimeStampedValue<int?>(currentDate, 1),
+            },
+            true,
+            new OcppChargingStationConnector("test11") { Id = 11, MaxCurrent = 16, ConnectedPhasesCount = 3, AutoSwitchBetween1And3PhasesEnabled = true, PhaseSwitchCoolDownTimeSeconds = cooldownTime },
+            currentDate,
+            null,
+            null,
+            true,
+            false,
+            false
+        };
+
+        // Scenario 16: Already on the connected phases: nothing to do.
+        yield return new object[]
+        {
+            "Current sufficient, not charging, already on connected phases",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 12 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = 10 }
+            },
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = CreateValue(currentDate.AddSeconds(-120), false, currentDate.AddSeconds(-120)),
+                LastSetPhases = new DtoTimeStampedValue<int?>(currentDate, 3),
+            },
+            true,
+            new OcppChargingStationConnector("test12") { Id = 12, MaxCurrent = 16, ConnectedPhasesCount = 3, AutoSwitchBetween1And3PhasesEnabled = true, PhaseSwitchCoolDownTimeSeconds = cooldownTime },
+            currentDate,
+            null,
+            null,
+            true,
+            false,
+            false
+        };
+
+        // Scenario 17: Connectors without automatic phase switching never get a number of phases, so their missing
+        // last set phases are no reason to start them.
+        yield return new object[]
+        {
+            "Current sufficient, not charging, no phase switching",
+            new DtoTargetChargingValues(new DtoLoadPointOverview { ManageChargingPowerByCar = true, ChargingConnectorId = 13 })
+            {
+                TargetValues = new TargetValues { TargetCurrent = 10 }
+            },
+            new DtoOcppConnectorState
+            {
+                LastSetCurrent = new DtoTimeStampedValue<decimal?>(currentDate, 16),
+                IsCharging = CreateValue(currentDate.AddSeconds(-120), false, currentDate.AddSeconds(-120)),
+            },
+            true,
+            new OcppChargingStationConnector("test13") { Id = 13, MaxCurrent = 16, ConnectedPhasesCount = 3, AutoSwitchBetween1And3PhasesEnabled = false },
+            currentDate,
+            null,
+            null,
+            true,
+            false,
             false
         };
     }

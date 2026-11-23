@@ -311,6 +311,44 @@ public class GetTargetValueTests : TestBase
                 shouldStart ? Times.Never() : Times.Once());
     }
 
+    [Theory]
+    [InlineData(true, 3)]
+    // Connectors without automatic phase switching might reject a number of phases
+    [InlineData(false, null)]
+    // Load points without a connector have nothing to send phases to
+    [InlineData(null, null)]
+    public void GetTargetValue_MaxPower_SendsPhasesOnlyToConnectorsWithPhaseSwitching(bool? phaseSwitchingEnabled, int? expectedPhases)
+    {
+        var sut = Mock.Create<TeslaSolarCharger.Server.Services.TargetChargingValueCalculationService>();
+        var constraintValues = new ConstraintValues
+        {
+            MaxCurrent = 16,
+            MinCurrent = 6,
+            ChargeMode = ChargeModeV2.MaxPower,
+            Soc = 50,
+            MaxSoc = 80,
+            IsCharging = false,
+            MinPhases = 1,
+            MaxPhases = 3,
+            PhaseSwitchingEnabled = phaseSwitchingEnabled,
+        };
+        var loadPoint = new DtoLoadPointOverview
+        {
+            IsPluggedIn = true,
+            IsHome = true,
+            ChargingConnectorId = phaseSwitchingEnabled == null ? null : 1,
+            EstimatedVoltageWhileCharging = 230,
+        };
+        SetupOcppConnectorState(1, new DtoOcppConnectorState());
+
+        var result = sut.GetTargetValue(constraintValues, loadPoint, 1000, false, CurrentFakeDate);
+
+        Assert.NotNull(result);
+        Assert.True(result.StartCharging);
+        Assert.Equal(16, result.TargetCurrent);
+        Assert.Equal(expectedPhases, result.TargetPhases);
+    }
+
     [Fact]
     public void GetTargetValue_UseCarToManageChargingSpeed_ReturnsValidResult()
     {
