@@ -37,8 +37,6 @@ public class Settings : ISettings
 
     public bool IsHomeBatteryDischargingActive { get; set; } = true;
 
-    public DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
-    public DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
     public ConcurrentBag<DtoHomeBatteryScheduleWindow> HomeBatteryScheduleWindows { get; set; } = new();
 
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();

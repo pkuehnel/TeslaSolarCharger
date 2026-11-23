@@ -112,20 +112,16 @@ public class HomeBatteryModeServiceTests : TestBase
     }
 
     [Theory]
-    //Soc at or below the guard -> window applies
-    [InlineData(30, 40, HomeBatteryMode.Hold)]
-    [InlineData(40, 40, HomeBatteryMode.Hold)]
-    //Soc above the guard -> energy is not needed, window is skipped
-    [InlineData(41, 40, null)]
-    //Unknown soc -> guarded window is skipped to be safe
-    [InlineData(null, 40, null)]
-    public void AutomaticMode_HoldWindowSocGuard(int? homeBatterySoc, int guardSoc, HomeBatteryMode? expectedMode)
+    //An active hold window applies at any SoC, the planner only creates it while the battery is above its min SoC
+    [InlineData(5)]
+    [InlineData(100)]
+    [InlineData(null)]
+    public void AutomaticMode_ActiveHoldWindow_AppliesAtAnySoc(int? homeBatterySoc)
     {
         var window = CreateWindow(HomeBatteryMode.Hold, CurrentFakeDate.AddMinutes(-5), CurrentFakeDate.AddMinutes(5));
-        window.OnlyWhileSocAtOrBelowPercent = guardSoc;
         var result = HomeBatteryModeService.CalculateAutomaticMode(new List<DtoHomeBatteryScheduleWindow> { window, },
             CurrentFakeDate, homeBatterySoc, false);
-        Assert.Equal(expectedMode, result);
+        Assert.Equal(HomeBatteryMode.Hold, result);
     }
 
     [Theory]

@@ -189,8 +189,7 @@ public class HomeBatteryModeService : IHomeBatteryModeService
 
     /// <summary>
     /// Determines the mode required by the planned schedule windows. Returns null when no window requires a mode.
-    /// Windows with a SoC guard are only applied while the battery SoC is at or below the guard, so energy the battery
-    /// does not need is not held back. Charge windows are demoted to hold once their target SoC is reached, so the
+    /// Charge windows are demoted to hold once their target SoC is reached, so the
     /// bought energy is preserved but no unneeded energy is bought. While the home battery is actively discharged into
     /// cars, no window is applied as that would contradict the discharging.
     /// </summary>
@@ -203,8 +202,6 @@ public class HomeBatteryModeService : IHomeBatteryModeService
         }
         var activeWindows = scheduleWindows
             .Where(w => w.ValidFrom <= now && w.ValidTo > now)
-            .Where(w => w.OnlyWhileSocAtOrBelowPercent == default
-                        || (homeBatterySoc != default && homeBatterySoc <= w.OnlyWhileSocAtOrBelowPercent))
             .ToList();
         var chargeWindow = activeWindows.FirstOrDefault(w => w.Mode == HomeBatteryMode.Charge);
         if (chargeWindow != default)

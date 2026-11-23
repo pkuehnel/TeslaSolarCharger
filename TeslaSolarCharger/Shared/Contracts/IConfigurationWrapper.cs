@@ -183,7 +183,6 @@ public interface IConfigurationWrapper
     bool DischargeHomeBatteryToMinSocDuringDay();
     decimal ChargingSwitchCosts();
 
-    int HoldHomeBatteryChargeSocBufferInPercent();
     int ChargeHomeBatterySocBufferInPercent();
     bool GridPriceBasedHomeBatteryControl();
     decimal HomeBatteryUsageCostsPerKwh();

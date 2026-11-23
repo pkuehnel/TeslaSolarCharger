@@ -110,9 +110,6 @@ public class BaseConfigurationBase
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
     [Postfix("%")]
     [AllowNegativeValues]
-    public int? HoldHomeBatteryChargeSocBuffer { get; set; }
-    [Postfix("%")]
-    [AllowNegativeValues]
     public int? ChargeHomeBatterySocBuffer { get; set; }
     public bool GridPriceBasedHomeBatteryControl { get; set; }
     public decimal HomeBatteryUsageCostsPerKwh { get; set; } = 0.05M;

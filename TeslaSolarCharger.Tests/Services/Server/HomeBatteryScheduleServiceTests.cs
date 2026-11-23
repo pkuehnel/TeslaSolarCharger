@@ -69,7 +69,6 @@ public class HomeBatteryScheduleServiceTests : TestBase
         Assert.Equal(EveningDate, window.ValidFrom);
         Assert.Equal(EveningDate.AddHours(8), window.ValidTo);
         Assert.Equal(4000, window.PlannedEnergyWh);
-        Assert.Null(window.OnlyWhileSocAtOrBelowPercent);
     }
 
     //Spot prices: the cheap slice can only cover demand after it. The expensive first hour stays on the grid.

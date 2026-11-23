@@ -36,12 +36,6 @@ public static class ConfigurationDefaults
     public const int BlePresenceMaxAgeSeconds = 180;
 
     /// <summary>
-    /// Percentage points added to the dynamically calculated hold target (ISettings.HomeBatteryHoldTarget).
-    /// Note: since the grid price based planner (HomeBatteryScheduleService) this target is no longer used for decisions.
-    /// </summary>
-    public const int HoldHomeBatteryChargeSocBuffer = 0;
-
-    /// <summary>
     /// Percentage points of the home battery's usable energy added to the predicted house consumption until solar self
     /// sufficiency. HomeBatteryScheduleService charges at most this much energy from the grid for the house; negative
     /// values charge less than predicted. Grid charging for planned car charging is not limited by it.

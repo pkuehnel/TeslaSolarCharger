@@ -178,7 +178,6 @@ public class GenericInputKeyboardTests : Bunit.TestContext
     [Theory]
     [InlineData(typeof(BaseConfigurationBase), nameof(BaseConfigurationBase.PowerBuffer))]
     [InlineData(typeof(BaseConfigurationBase), nameof(BaseConfigurationBase.DynamicMinSocCalculationBuffer))]
-    [InlineData(typeof(BaseConfigurationBase), nameof(BaseConfigurationBase.HoldHomeBatteryChargeSocBuffer))]
     [InlineData(typeof(BaseConfigurationBase), nameof(BaseConfigurationBase.ChargeHomeBatterySocBuffer))]
     [InlineData(typeof(FixedPrice), nameof(FixedPrice.Value))]
     [InlineData(typeof(DtoChargePrice), nameof(DtoChargePrice.SpotPriceSurcharge))]
