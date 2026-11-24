@@ -10,12 +10,14 @@ public class EnergyMeterService
     private readonly ILogger<EnergyMeterService> _logger;
     private readonly IConfiguration _configuration;
     private readonly SharedValues _sharedValues;
+    private readonly TimeProvider _timeProvider;
 
-    public EnergyMeterService(ILogger<EnergyMeterService> logger, IConfiguration configuration, SharedValues sharedValues)
+    public EnergyMeterService(ILogger<EnergyMeterService> logger, IConfiguration configuration, SharedValues sharedValues, TimeProvider timeProvider)
     {
         _logger = logger;
         _configuration = configuration;
         _sharedValues = sharedValues;
+        _timeProvider = timeProvider;
     }
 
     public void StartLogging()
@@ -82,7 +84,7 @@ public class EnergyMeterService
             energyMeterValue.TotalEnergyToGridWh = totalEnergyToGrid;
             energyMeterValue.TotalEnergyFromGridWh = totalEnergyFromGrid;
 
-            energyMeterValue.LastValuesFrom = DateTime.UtcNow;
+            energyMeterValue.LastValuesFrom = _timeProvider.GetUtcNow().UtcDateTime;
 
             _logger.LogTrace("current overage: {currentOverage} W", currentOverage);
             _logger.LogTrace("current supply: {currentSupply} W", currentSupply);
