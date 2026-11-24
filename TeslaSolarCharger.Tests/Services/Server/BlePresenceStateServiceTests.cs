@@ -92,6 +92,82 @@ public class BlePresenceStateServiceTests
         Assert.Single(service.GetObservations(OtherCarId).Observations);
     }
 
+    private static readonly DateTime FailureStart = new(2026, 11, 24, 8, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public void FirstFailedReadCounts()
+    {
+        var service = NewService();
+
+        Assert.True(service.RegisterFailedRead(CarId, FailureStart.AddSeconds(-1), FailureStart));
+    }
+
+    [Fact]
+    public void FailedReadCountsWhenTheCarWasHeardAfterThePreviousFailedRead()
+    {
+        var service = NewService();
+        service.RegisterFailedRead(CarId, FailureStart.AddSeconds(-1), FailureStart);
+
+        Assert.True(service.RegisterFailedRead(CarId, FailureStart.AddSeconds(5), FailureStart.AddSeconds(13)));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    //A sighting at the very moment of the previous failure is not after it.
+    [InlineData(0)]
+    public void FailedReadDoesNotCountWhenTheCarWasNotHeardAfterThePreviousFailedRead(int lastSeenSecondsAfterFailure)
+    {
+        var service = NewService();
+        service.RegisterFailedRead(CarId, FailureStart.AddSeconds(-1), FailureStart);
+
+        Assert.False(service.RegisterFailedRead(CarId, FailureStart.AddSeconds(lastSeenSecondsAfterFailure), FailureStart.AddSeconds(13)));
+    }
+
+    [Fact]
+    public void EveryFailedReadIsComparedWithTheOneBeforeIt()
+    {
+        var service = NewService();
+        var lastSeen = FailureStart.AddSeconds(-1);
+        service.RegisterFailedRead(CarId, lastSeen, FailureStart);
+        //Not heard again: the second failure is not counted, but it is the reference for the third.
+        Assert.False(service.RegisterFailedRead(CarId, lastSeen, FailureStart.AddSeconds(13)));
+
+        Assert.False(service.RegisterFailedRead(CarId, FailureStart.AddSeconds(10), FailureStart.AddSeconds(26)));
+        Assert.True(service.RegisterFailedRead(CarId, FailureStart.AddSeconds(30), FailureStart.AddSeconds(39)));
+    }
+
+    [Fact]
+    public void FailedReadWithoutKnownLastSightingAlwaysCounts()
+    {
+        var service = NewService();
+        service.RegisterFailedRead(CarId, FailureStart.AddSeconds(-1), FailureStart);
+
+        Assert.True(service.RegisterFailedRead(CarId, null, FailureStart.AddSeconds(13)));
+    }
+
+    [Fact]
+    public void FailedReadsAreTrackedPerCar()
+    {
+        var service = NewService();
+        service.RegisterFailedRead(CarId, FailureStart.AddSeconds(-1), FailureStart);
+
+        Assert.True(service.RegisterFailedRead(OtherCarId, FailureStart.AddSeconds(-1), FailureStart.AddSeconds(1)));
+    }
+
+    [Fact]
+    public void RetainOnlyForgetsFailedReadsOfCarsNoLongerBlePolled()
+    {
+        var service = NewService();
+        var lastSeen = FailureStart.AddSeconds(-1);
+        service.RegisterFailedRead(CarId, lastSeen, FailureStart);
+        service.RegisterFailedRead(OtherCarId, lastSeen, FailureStart);
+
+        service.RetainOnly(new[] { OtherCarId });
+
+        Assert.True(service.RegisterFailedRead(CarId, lastSeen, FailureStart.AddSeconds(13)));
+        Assert.False(service.RegisterFailedRead(OtherCarId, lastSeen, FailureStart.AddSeconds(13)));
+    }
+
     [Fact]
     public async Task ConcurrentAppendsAndReadsDoNotThrow()
     {

@@ -9,7 +9,19 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 public interface IBlePresenceStateService
 {
     /// <summary>
-    /// Drops the observations of every car not contained in <paramref name="carIds"/>. Called with the currently
+    /// Records a failed read of a present car and returns whether it counts as a data collection error: only when the
+    /// car was heard (advertisement or answered command) after its previous failed read, or when there was none.
+    ///
+    /// A car that just drove away stays present until its last sighting passes the max age, and every read in that
+    /// time fails. It is never heard again, so only the first of those failures counts and the error never reaches its
+    /// threshold. A car at home with a bad link keeps being heard, so all of its failures count.
+    /// </summary>
+    /// <param name="lastSeenAt">When the car was last heard according to the presence answer the read was based on,
+    /// null when unknown - the failure then always counts.</param>
+    bool RegisterFailedRead(int carId, DateTime? lastSeenAt, DateTime failedAt);
+
+    /// <summary>
+    /// Drops the observations and failed reads of every car not contained in <paramref name="carIds"/>. Called with the currently
     /// BLE polled cars each refresh cycle so a car that left BLE data collection does not keep its history forever.
     /// </summary>
     void RetainOnly(IReadOnlyCollection<int> carIds);
