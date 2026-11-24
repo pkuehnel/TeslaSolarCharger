@@ -390,8 +390,6 @@ public class LoadPointManagementService : ILoadPointManagementService
                 c.PluggedIn,
                 c.IsHomeGeofence,
             }).ToList();
-        bool IsPluggedInAtHome(int carId) => plugInRelevantCarData
-            .Any(c => c.Id == carId && c.IsHomeGeofence.Value == true && c.PluggedIn.Value == true);
         _logger.LogTrace("Logging states of carIds.");
         foreach (var plugInRelevantCarDatum in plugInRelevantCarData)
         {
@@ -482,7 +480,8 @@ public class LoadPointManagementService : ILoadPointManagementService
             var matchingCars = plugInRelevantCarData
                 .Where(car => car.PluggedIn.LastChanged >= matchWindowStart
                               && car.PluggedIn.LastChanged <= matchWindowEnd
-                              && IsPluggedInAtHome(car.Id)
+                              && car.IsHomeGeofence.Value == true
+                              && car.PluggedIn.Value == true
                               && chargerDatabaseInformation.AllowedCars.Any(ac => ac.CarId == car.Id
                                   && !PilotCurrentProbeService.CanObservePilotCurrent(ac.CarType, ac.UseFleetTelemetry, ac.UseBle, _configurationWrapper)))
                 .ToList();
@@ -505,15 +504,6 @@ public class LoadPointManagementService : ILoadPointManagementService
                 {
                     _logger.LogTrace("Guest cars are allowed for charging connector {connectorId}, therefore no manual car can be estimated as connected", connectorId);
                     matches.Add(new(null, connectorId));
-                }
-                else if (chargerDatabaseInformation.AllowedCars.Count == 1
-                         && chargerDatabaseInformation.AllowedCars.Single() is var onlyAllowedCar
-                         && onlyAllowedCar.CarType == CarType.Tesla
-                         && IsPluggedInAtHome(onlyAllowedCar.CarId))
-                {
-                    //No other car may be plugged in, so a pilot current probe that might have to wake the car is not needed.
-                    _logger.LogTrace("Only Tesla {carId} is allowed on connector {connectorId} and it is plugged in at home, use it", onlyAllowedCar.CarId, connectorId);
-                    matches.Add(new(onlyAllowedCar.CarId, connectorId));
                 }
                 else
                 {
