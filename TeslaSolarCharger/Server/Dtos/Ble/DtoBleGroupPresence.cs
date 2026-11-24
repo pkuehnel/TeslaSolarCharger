@@ -20,4 +20,10 @@ public class DtoBleGroupPresence
     public DtoBlePresenceResult? Presence { get; init; }
 
     public Exception? PresenceException { get; init; }
+
+    /// <summary>
+    /// When the presence answer arrived. Its "ms ago" values are relative to this moment, not to when a car of the
+    /// group is processed, which can be several reads later.
+    /// </summary>
+    public DateTime ReceivedAt { get; init; }
 }

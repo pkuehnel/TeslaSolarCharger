@@ -6,7 +6,8 @@ namespace TeslaSolarCharger.Server.Services;
 
 /// <summary>
 /// In memory diagnostics of the BLE presence: when each radio last heard anything and the recent presence
-/// observations of each car. Presence itself is decided in <see cref="BleVehicleDataService.IsPresent"/>.
+/// observations of each car, plus each car's last failed read so a car that drove away does not raise read errors.
+/// Presence itself is decided in <see cref="BleVehicleDataService.IsPresent"/>.
 /// </summary>
 public class BlePresenceStateService : IBlePresenceStateService
 {
@@ -17,6 +18,7 @@ public class BlePresenceStateService : IBlePresenceStateService
 
     private readonly ConcurrentDictionary<string, DateTimeOffset> _lastRadioEvidence = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<int, BeaconObservationHistory> _observations = new();
+    private readonly ConcurrentDictionary<int, DateTime> _lastFailedReads = new();
 
     public void RegisterObservation(int carId, DtoBleBeaconObservation observation)
     {
@@ -41,6 +43,22 @@ public class BlePresenceStateService : IBlePresenceStateService
                 _observations.TryRemove(trackedCarId, out _);
             }
         }
+        foreach (var trackedCarId in _lastFailedReads.Keys)
+        {
+            if (!carIds.Contains(trackedCarId))
+            {
+                _lastFailedReads.TryRemove(trackedCarId, out _);
+            }
+        }
+    }
+
+    public bool RegisterFailedRead(int carId, DateTime? lastSeenAt, DateTime failedAt)
+    {
+        var heardSincePreviousFailure = !_lastFailedReads.TryGetValue(carId, out var previousFailure)
+                                        || lastSeenAt == default
+                                        || lastSeenAt > previousFailure;
+        _lastFailedReads[carId] = failedAt;
+        return heardSincePreviousFailure;
     }
 
     public TimeSpan RegisterRadioEvidence(string containerKey, bool heardAnything, DateTimeOffset timestamp)
