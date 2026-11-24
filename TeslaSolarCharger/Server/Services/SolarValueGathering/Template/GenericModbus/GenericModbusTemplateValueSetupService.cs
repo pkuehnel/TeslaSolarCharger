@@ -117,13 +117,10 @@ public class GenericModbusTemplateValueSetupService : IRefreshableValueSetupServ
                                     };
                                     var rawValue = await modbusValueExecutionService
                                         .GetValue(byteArray, neutralConfiguration).ConfigureAwait(false);
-                                    if (rawValue == register.NotAvailableValue)
-                                    {
-                                        throw new InvalidDataException(
-                                            $"Register {register.Address} returned its not available sentinel value");
-                                    }
-                                    value = (rawValue + register.Offset) * register.CorrectionFactor
-                                            * (register.Operator == ValueOperator.Minus ? -1 : 1);
+                                    value = rawValue == register.NotAvailableValue
+                                        ? NotAvailableValues.ValueForNotAvailable(register.UsedFor, register.Address)
+                                        : (rawValue + register.Offset) * register.CorrectionFactor
+                                          * (register.Operator == ValueOperator.Minus ? -1 : 1);
                                 }
                                 else
                                 {

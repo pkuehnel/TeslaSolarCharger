@@ -20,6 +20,7 @@ public interface IIssueKeys
     string UnsignedCommand { get; }
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }
+    string SolarDeviceWithoutValues { get; }
     string BleVersionCompatibility { get; }
     string NoBackendApiToken { get; }
     string FleetApiTokenExpired { get; }

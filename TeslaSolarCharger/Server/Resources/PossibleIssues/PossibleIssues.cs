@@ -162,6 +162,14 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HasPlaceHolderIssueKey = false,
             }
         },
+        { issueKeys.SolarDeviceWithoutValues, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = true,
+            }
+        },
         { issueKeys.BleVersionCompatibility, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
