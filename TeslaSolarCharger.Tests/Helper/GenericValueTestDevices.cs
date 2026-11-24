@@ -19,14 +19,16 @@ public static class GenericValueTestDevices
 {
     /// <summary>
     /// A device that read <paramref name="readings"/> at <paramref name="readAt"/>, or that currently fails to deliver
-    /// when <paramref name="hasError"/> is set.
+    /// when <paramref name="hasError"/> is set, failing since <paramref name="errorSince"/>.
     /// </summary>
     public static IGenericValue<decimal> Device(ConfigurationType configurationType, DateTimeOffset readAt, bool hasError = false,
-        int sourceId = 1, params (ValueUsage Usage, decimal Value)[] readings)
+        int sourceId = 1, DateTimeOffset? errorSince = null, params (ValueUsage Usage, decimal Value)[] readings)
     {
         var device = new Mock<IGenericValue<decimal>>();
         device.Setup(v => v.SourceValueKey).Returns(new SourceValueKey(sourceId, configurationType));
         device.Setup(v => v.HasError).Returns(hasError);
+        device.Setup(v => v.HasErrorSince).Returns(hasError ? errorSince ?? readAt : null);
+        device.Setup(v => v.ErrorMessage).Returns(hasError ? "Connection refused" : null);
         device.Setup(v => v.HistoricValues).Returns(readings.ToDictionary(
             r => new ValueKey(r.Usage, null, sourceId),
             r => new DtoHistoricValue<decimal>(readAt, r.Value, 1)));

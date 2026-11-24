@@ -181,6 +181,56 @@ public class PvValuePublishingTests : TestBase
     }
 
     [Fact]
+    public async Task AFailingDeviceThatOnlyDeliversProductionDoesNotKeepTheAge()
+    {
+        //e.g. a Fronius inverter without battery and meter that switches off at night next to a hybrid inverter
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _devices =
+        [
+            GenericValueTestDevices.Device(ConfigurationType.TemplateValue, CurrentFakeDate, sourceId: 1,
+                readings: [(ValueUsage.InverterPower, 0), (ValueUsage.GridPower, -500), (ValueUsage.HomeBatteryPower, -800),]),
+            GenericValueTestDevices.Device(ConfigurationType.TemplateValue, LastSuccessfulUpdate, true, 2,
+                readings: (ValueUsage.InverterPower, 0)),
+        ];
+        _deviceValues = [Source(ValueUsage.InverterPower, 0, sourceId: 1), Source(ValueUsage.GridPower, -500, sourceId: 1),];
+
+        await CreatePvValueService().UpdatePvValues();
+
+        Assert.Equal(CurrentFakeDate, _settings.LastPvValueUpdate);
+        Assert.Equal(-500, _settings.Overage);
+    }
+
+    [Theory]
+    [InlineData(ValueUsage.GridPower)]
+    [InlineData(ValueUsage.HomeBatteryPower)]
+    [InlineData(ValueUsage.HomeBatterySoc)]
+    public async Task AFailingDeviceThatAlsoDeliversOtherValuesKeepsTheAge(ValueUsage otherUsage)
+    {
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _devices =
+        [
+            GenericValueTestDevices.Device(ConfigurationType.TemplateValue, LastSuccessfulUpdate, true,
+                readings: [(ValueUsage.InverterPower, 0), (otherUsage, 0),]),
+        ];
+
+        await CreatePvValueService().UpdatePvValues();
+
+        Assert.Equal(LastSuccessfulUpdate, _settings.LastPvValueUpdate);
+    }
+
+    [Fact]
+    public async Task AFailingDeviceThatNeverDeliveredKeepsTheAge()
+    {
+        //Without any value it could be a grid meter, e.g. after a restart at night.
+        _settings.LastPvValueUpdate = LastSuccessfulUpdate;
+        _devices = [GenericValueTestDevices.Device(ConfigurationType.TemplateValue, LastSuccessfulUpdate, true),];
+
+        await CreatePvValueService().UpdatePvValues();
+
+        Assert.Equal(LastSuccessfulUpdate, _settings.LastPvValueUpdate);
+    }
+
+    [Fact]
     public async Task TheChargingLogicWorksWithTheTotalsOfEveryDevice()
     {
         _deviceValues =

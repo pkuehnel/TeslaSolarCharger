@@ -71,27 +71,7 @@ public class FroniusSolarApiSetupService : IRefreshableValueSetupService
                     var json = await httpClient
                         .GetStringAsync($"http://{host}/solar_api/v1/GetPowerFlowRealtimeData.fcgi", ct)
                         .ConfigureAwait(false);
-                    var root = JObject.Parse(json);
-                    var site = root["Body"]?["Data"]?["Site"];
-                    if (site == default)
-                    {
-                        throw new InvalidDataException("Response of Fronius Solar API does not contain Body.Data.Site");
-                    }
-                    var values = new Dictionary<ValueKey, decimal>
-                    {
-                        //P_PV: PV production
-                        { new ValueKey(ValueUsage.InverterPower, null, 1), GetDecimalOrZero(site["P_PV"]) },
-                        //P_Grid: positive = import
-                        { new ValueKey(ValueUsage.GridPower, null, 2), -GetDecimalOrZero(site["P_Grid"]) },
-                        //P_Akku: positive = discharging
-                        { new ValueKey(ValueUsage.HomeBatteryPower, null, 3), -GetDecimalOrZero(site["P_Akku"]) },
-                    };
-                    var soc = root["Body"]?["Data"]?["Inverters"]?["1"]?["SOC"];
-                    if (soc != default && soc.Type != JTokenType.Null)
-                    {
-                        values.Add(new ValueKey(ValueUsage.HomeBatterySoc, null, 4), soc.Value<decimal>());
-                    }
-                    return new(values);
+                    return new(GetValues(JObject.Parse(json)));
                 },
                 defaultInterval,
                 _constants.SolarHistoricValueCapacity,
@@ -102,11 +82,50 @@ public class FroniusSolarApiSetupService : IRefreshableValueSetupService
         return result;
     }
 
-    private static decimal GetDecimalOrZero(JToken? token)
+    /// <summary>
+    /// Values of a GetPowerFlowRealtimeData response. Grid, battery and state of charge are only reported when the
+    /// inverter has them (null without a smart meter or battery), so an inverter without them only delivers production.
+    /// </summary>
+    internal static Dictionary<ValueKey, decimal> GetValues(JObject root)
+    {
+        var site = root["Body"]?["Data"]?["Site"];
+        if (site == default)
+        {
+            throw new InvalidDataException("Response of Fronius Solar API does not contain Body.Data.Site");
+        }
+        var values = new Dictionary<ValueKey, decimal>
+        {
+            //P_PV: PV production, null while the inverter does not produce
+            { new ValueKey(ValueUsage.InverterPower, null, 1), GetDecimal(site["P_PV"]) ?? 0 },
+        };
+        //P_Grid: positive = import
+        AddIfAvailable(values, new ValueKey(ValueUsage.GridPower, null, 2), -GetDecimal(site["P_Grid"]));
+        var soc = GetDecimal(root["Body"]?["Data"]?["Inverters"]?["1"]?["SOC"]);
+        var batteryPower = GetDecimal(site["P_Akku"]);
+        //An idle battery may report no power while it still reports its state of charge.
+        if (soc != default)
+        {
+            batteryPower ??= 0;
+        }
+        //P_Akku: positive = discharging
+        AddIfAvailable(values, new ValueKey(ValueUsage.HomeBatteryPower, null, 3), -batteryPower);
+        AddIfAvailable(values, new ValueKey(ValueUsage.HomeBatterySoc, null, 4), soc);
+        return values;
+    }
+
+    private static void AddIfAvailable(Dictionary<ValueKey, decimal> values, ValueKey valueKey, decimal? value)
+    {
+        if (value != default)
+        {
+            values.Add(valueKey, value.Value);
+        }
+    }
+
+    private static decimal? GetDecimal(JToken? token)
     {
         if (token == default || token.Type == JTokenType.Null)
         {
-            return 0;
+            return default;
         }
         return token.Value<decimal>();
     }

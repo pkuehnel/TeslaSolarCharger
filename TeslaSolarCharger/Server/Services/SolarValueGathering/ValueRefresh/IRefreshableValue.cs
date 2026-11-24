@@ -89,6 +89,12 @@ public sealed class DelegateRefreshableValue<T> : GenericValueBase<T>, IRefresha
         {
             UpdateValue(result.Key, now, result.Value);
         }
+        //A successful read is the device's whole current state: a value it no longer delivers must not stay in the
+        //totals with its last reading.
+        foreach (var valueKey in HistoricValues.Keys.Where(k => !results.ContainsKey(k)).ToList())
+        {
+            RemoveValue(valueKey);
+        }
         return now;
     }
 

@@ -15,6 +15,7 @@ using TeslaSolarCharger.Server.Services.SolarValueGathering.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Fake.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Modbus.Contracts;
 using TeslaSolarCharger.Server.Services.SolarValueGathering.Mqtt.Contracts;
+using TeslaSolarCharger.Server.Services.SolarValueGathering.ValueRefresh.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -723,9 +724,12 @@ public class PvValueService(
         }
 
         //A device with an error is left out of the totals, so they are only up to date while every device delivers.
+        //A device that only delivers production is the exception: leaving it out can only lower the known production,
+        //e.g. an inverter that switches off at night or under snow.
         //Fake values replace every real device, so the errors of real devices do not matter then.
         var anyDeviceHasError = !useFakeSolarValues && genericValueService
-            .GetAllByPredicate(v => v.SourceValueKey.ConfigurationType != ConfigurationType.FakeSolarValue && v.HasError)
+            .GetAllByPredicate(v => v.SourceValueKey.ConfigurationType != ConfigurationType.FakeSolarValue && v.HasError
+                                    && !v.DeliversOnlyProduction())
             .Count > 0;
         if (anyDeviceHasError)
         {

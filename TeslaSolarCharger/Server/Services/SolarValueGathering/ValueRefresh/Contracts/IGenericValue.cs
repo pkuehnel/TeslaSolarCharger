@@ -71,6 +71,11 @@ public abstract class GenericValueBase<T> : IGenericValue<T>
                 ErrorStackTrace = null;
                 return;
             }
+            //Repeated failures keep the time of the first one, so it tells how long the device has been failing.
+            if (HasErrorSince != default)
+            {
+                return;
+            }
             using var scope = _serviceScopeFactory.CreateScope();
             var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
             HasErrorSince = dateTimeProvider.DateTimeOffSetUtcNow();
@@ -100,6 +105,21 @@ public abstract class GenericValueBase<T> : IGenericValue<T>
 
     public abstract ValueTask DisposeAsync();
     public abstract void Cancel();
+}
+
+public static class GenericValueExtensions
+{
+    /// <summary>
+    /// True when every value the device delivered is solar production. Such a device that can not be read only lowers
+    /// the known production, which never lets the charging logic use more power than there is: with a grid meter the
+    /// grid value already contains the real production, without one less surplus is assumed. A device that did not
+    /// deliver anything yet is unknown, as it could be a grid meter.
+    /// </summary>
+    public static bool DeliversOnlyProduction<T>(this IGenericValue<T> genericValue)
+    {
+        var historicValues = genericValue.HistoricValues;
+        return historicValues.Count > 0 && historicValues.Keys.All(k => k.ValueUsage == ValueUsage.InverterPower);
+    }
 }
 
 
