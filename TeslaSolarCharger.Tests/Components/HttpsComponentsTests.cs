@@ -300,6 +300,17 @@ public class HttpsComponentsTests : Bunit.TestContext
     }
 
     [Fact]
+    public void TheSectionOffersNoSecureAddressWithoutAKnownHttpsPort()
+    {
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = null, Reachability = HttpsReachability.Forwarded, });
+
+        var section = Render<HttpsConfigurationComponent>();
+
+        Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
+        Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), section.Markup);
+    }
+
+    [Fact]
     public void TheSectionOffersNoSecureAddressWhenAlreadyOnHttps()
     {
         AnswerHttpsInformation(Enabled);
