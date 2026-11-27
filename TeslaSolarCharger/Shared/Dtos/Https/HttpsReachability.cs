@@ -1,19 +1,23 @@
 namespace TeslaSolarCharger.Shared.Dtos.Https;
 
+/// <summary>
+/// How the browser reaches Solar4Car. Sent as a number, so the values must not change.
+/// </summary>
 public enum HttpsReachability
 {
     /// <summary>
-    /// TSC cannot tell, e.g. because it does not know which address the browser used. The HTTPS address is offered,
-    /// as that works in the documented setup.
+    /// Solar4Car cannot tell, e.g. because it does not know which address the browser used. The HTTPS address is
+    /// offered, as that works in the documented setup.
     /// </summary>
     Unknown = 0,
     /// <summary>
-    /// The browser talks to TSC directly, so the HTTPS port is reachable the same way.
+    /// The browser talks to Solar4Car directly, so the HTTPS port is reachable the same way.
     /// </summary>
     Reachable = 1,
     /// <summary>
-    /// Something forwards the HTTP port to TSC, typically a Docker port mapping, and the HTTPS port is not published
-    /// alongside it.
+    /// The browser uses an address that is not Solar4Car's own, typically because of a Docker port mapping or a
+    /// reverse proxy. Whether the HTTPS port is forwarded as well cannot be seen from inside, so the HTTPS address is
+    /// offered together with a hint on how to publish the port if it does not open.
     /// </summary>
-    PortNotPublished = 2,
+    Forwarded = 2,
 }

@@ -339,8 +339,8 @@ public class HttpsCertificateServiceTests : HttpsCertificateTestBase
     [InlineData("192.168.178.93", HttpsReachability.Reachable)]
     [InlineData("primary-pc", HttpsReachability.Reachable)]
     [InlineData("localhost", HttpsReachability.Reachable)]
-    //A Docker port mapping forwards the HTTP port, the container itself has another address
-    [InlineData("192.168.178.20", HttpsReachability.PortNotPublished)]
+    //A Docker port mapping or a reverse proxy forwards the request, the container itself has another address
+    [InlineData("192.168.178.20", HttpsReachability.Forwarded)]
     //Nothing to go by
     [InlineData(null, HttpsReachability.Unknown)]
     public void GetHttpsInformation_TellsWhetherTheHttpsPortIsReachable(string? requestHost, HttpsReachability expected)
@@ -356,7 +356,7 @@ public class HttpsCertificateServiceTests : HttpsCertificateTestBase
         var service = CreateService();
 
         Assert.Equal(HttpsReachability.Reachable, service.GetHttpsInformation(HttpsAddresses, "tsc.fritz.box").Reachability);
-        Assert.Equal(HttpsReachability.PortNotPublished, service.GetHttpsInformation(HttpsAddresses, "docker-host.fritz.box").Reachability);
+        Assert.Equal(HttpsReachability.Forwarded, service.GetHttpsInformation(HttpsAddresses, "docker-host.fritz.box").Reachability);
     }
 
     [Fact]
