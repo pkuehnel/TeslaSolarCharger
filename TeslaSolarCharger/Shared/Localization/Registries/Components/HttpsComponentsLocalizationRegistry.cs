@@ -59,7 +59,7 @@ public class HttpsComponentsLocalizationRegistry : TextLocalizationRegistry<Http
         //Must never claim that the port is not published: that cannot be seen from inside a Docker container
         Register(TranslationKeys.HttpsPortPublishingUnverifiedHint,
             new TextLocalizationTranslation(LanguageCodes.English, "HTTPS runs on port {0}. Solar4Car cannot verify whether your Docker container publishes this port. If the secure address does not open, add \"- {0}:{0}\" to the ports section of your docker-compose.yml, or use \"network_mode: host\" as in the current example file, and restart the container."),
-            new TextLocalizationTranslation(LanguageCodes.German, "HTTPS läuft auf Port {0}. Solar4Car kann nicht prüfen, ob Ihr Docker-Container diesen Port veröffentlicht. Falls sich die sichere Adresse nicht öffnet, ergänzen Sie „- {0}:{0}“ im ports-Abschnitt Ihrer docker-compose.yml oder verwenden Sie „network_mode: host“ wie in der aktuellen Beispieldatei, und starten Sie den Container neu."));
+            new TextLocalizationTranslation(LanguageCodes.German, "HTTPS läuft auf Port {0}. Solar4Car kann nicht prüfen, ob Ihr Docker-Container diesen Port veröffentlicht. Falls sich die sichere Adresse nicht öffnen lässt, ergänzen Sie „- {0}:{0}“ im ports-Abschnitt Ihrer docker-compose.yml oder verwenden Sie „network_mode: host“ wie in der aktuellen Beispieldatei, und starten Sie den Container neu."));
 
         Register(TranslationKeys.HttpsInstallInstructionsTitle,
             new TextLocalizationTranslation(LanguageCodes.English, "How to install the certificate"),

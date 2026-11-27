@@ -17,7 +17,8 @@ public enum HttpsReachability
     /// <summary>
     /// The browser uses an address that is not Solar4Car's own, typically because of a Docker port mapping or a
     /// reverse proxy. Whether the HTTPS port is forwarded as well cannot be seen from inside, so the HTTPS address is
-    /// offered together with a hint on how to publish the port if it does not open.
+    /// offered anyway and, while the page is open over HTTP, a hint explains how to publish the port if it does not
+    /// open.
     /// </summary>
     Forwarded = 2,
 }

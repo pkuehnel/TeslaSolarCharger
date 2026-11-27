@@ -251,6 +251,7 @@ public class HttpsComponentsTests : Bunit.TestContext
         Assert.Equal([Severity.Success,], section.FindComponents<MudAlert>().Select(a => a.Instance.Severity));
         Assert.Contains(EnabledStatus, section.Markup);
         Assert.DoesNotContain(PortPublishingHint, section.Markup);
+        Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
     }
 
     [Theory]
