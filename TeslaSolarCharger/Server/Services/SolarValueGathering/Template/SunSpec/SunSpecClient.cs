@@ -53,11 +53,8 @@ public class SunSpecClient : ISunSpecClient
         {
             throw new InvalidOperationException($"Unknown SunSpec point {pointReference}");
         }
-        var rawValue = await ReadRawAsync(modbusConfig, modbusValueExecutionService, modelLocation.DataAddress + point.Offset,
-            point.ToModbusValueType(), cancellationToken).ConfigureAwait(false);
-        var scaleFactor = await ReadScaleFactorAsync(modbusConfig, modbusValueExecutionService, modelLocation.DataAddress,
-            point.ScaleFactorOffset, cancellationToken).ConfigureAwait(false);
-        return ApplyScaleFactor(rawValue, scaleFactor);
+        return await ReadPointValueAsync(modbusConfig, modbusValueExecutionService, modelLocation.DataAddress + point.Offset,
+            point.ToModbusValueType(), modelLocation.DataAddress, point.ScaleFactorOffset, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task WriteValueAsync(DtoModbusConfiguration modbusConfig, string pointReference, decimal value,
@@ -117,9 +114,25 @@ public class SunSpecClient : ISunSpecClient
             "DCWH" => (SunSpecModels.Model160.DcwhOffsetInBlock(blockLength), ModbusValueType.UInt, SunSpecModels.Model160.DcwhScaleFactorOffset),
             _ => throw new InvalidOperationException($"Unsupported SunSpec model 160 point {reference.Point}"),
         };
-        var rawValue = await ReadRawAsync(modbusConfig, modbusValueExecutionService, blockDataAddress + pointOffset,
-            valueType, cancellationToken).ConfigureAwait(false);
-        var scaleFactor = await ReadScaleFactorAsync(modbusConfig, modbusValueExecutionService, modelLocation.DataAddress,
+        return await ReadPointValueAsync(modbusConfig, modbusValueExecutionService, blockDataAddress + pointOffset,
+            valueType, modelLocation.DataAddress, scaleFactorOffset, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The scaled value of a point, or null when the device marks it as not implemented or currently not available
+    /// (e.g. an inverter at night) with the not available encoding of its type.
+    /// </summary>
+    private static async Task<decimal?> ReadPointValueAsync(DtoModbusConfiguration modbusConfig,
+        IModbusValueExecutionService modbusValueExecutionService, int address, ModbusValueType valueType,
+        int modelDataAddress, int? scaleFactorOffset, CancellationToken cancellationToken)
+    {
+        var rawValue = await ReadRawAsync(modbusConfig, modbusValueExecutionService, address, valueType, cancellationToken)
+            .ConfigureAwait(false);
+        if (NotAvailableValues.IsNotAvailable(rawValue, valueType))
+        {
+            return default;
+        }
+        var scaleFactor = await ReadScaleFactorAsync(modbusConfig, modbusValueExecutionService, modelDataAddress,
             scaleFactorOffset, cancellationToken).ConfigureAwait(false);
         return ApplyScaleFactor(rawValue, scaleFactor);
     }

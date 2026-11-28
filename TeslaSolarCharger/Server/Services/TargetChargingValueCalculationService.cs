@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -130,7 +131,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage, constraintValues.MaxPhases);
             (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
         }
 
@@ -149,7 +150,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             }
 
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
-            if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + homebatteryDischargeThreshold)))
+            if (loadPoint.LoadPoint.IsDrawingPower() || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + homebatteryDischargeThreshold)))
             {
                 _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDischargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
                 powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
@@ -158,7 +159,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage, constraintValues.MaxPhases);
             (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
         }
     }
@@ -205,11 +206,13 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
 
-    internal int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
+    /// <param name="maxPhases">The phases a connector without automatic phase switching charges on, as target phases are
+    /// only set for connectors that switch phases.</param>
+    internal int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage, int? maxPhases)
     {
-        _logger.LogTrace("{method}({@loadPointTargetValues}, {estimatedCurrentUsage})", nameof(CalculateEstimatedPowerUsage), loadPointTargetValues, estimatedCurrentUsage);
+        _logger.LogTrace("{method}({@loadPointTargetValues}, {estimatedCurrentUsage}, {maxPhases})", nameof(CalculateEstimatedPowerUsage), loadPointTargetValues, estimatedCurrentUsage, maxPhases);
         var voltage = loadPointTargetValues.LoadPoint.EstimatedVoltageWhileCharging ?? _settings.AverageHomeGridVoltage ?? 230m;
-        var phases = loadPointTargetValues.LoadPoint.ActualPhases ?? loadPointTargetValues.TargetValues?.TargetPhases ?? 3;
+        var phases = loadPointTargetValues.LoadPoint.ActualPhases ?? loadPointTargetValues.TargetValues?.TargetPhases ?? maxPhases ?? 3;
         var estimatedPower = estimatedCurrentUsage * voltage * phases;
         _logger.LogTrace("Estimated power: {estimatedPower})", estimatedPower);
         return (int)estimatedPower;
@@ -493,7 +496,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 StartCharging = constraintValues.IsCharging != true,
                 TargetCurrent = constraintValues.MaxCurrent,
-                TargetPhases = constraintValues.MaxPhases,
+                //Connectors without automatic phase switching might reject a number of phases.
+                TargetPhases = constraintValues.PhaseSwitchingEnabled == true ? constraintValues.MaxPhases : null,
             };
         }
         return null;

@@ -51,6 +51,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         var pvValueUpdateAge = dateTimeProvider.DateTimeOffSetUtcNow() - settings.LastPvValueUpdate;
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", AreSolarValuesTooOld(pvValueUpdateAge)).ConfigureAwait(false);
+        await DetectSolarDevicesWithoutValues(activeErrors).ConfigureAwait(false);
 
         var backendTokenState = await tokenHelper.GetBackendTokenState(true);
         var backendTokenUpToDate = backendTokenState == TokenState.UpToDate;
@@ -167,6 +168,42 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                && genericValueService
                    .GetAllByPredicate(v => v.SourceValueKey.ConfigurationType != ConfigurationType.FakeSolarValue)
                    .Count > 0;
+    }
+
+    /// <summary>
+    /// Longer than any night, so an inverter that switches off at night is not reported, one that is broken (or
+    /// snowed in for days) is.
+    /// </summary>
+    internal static readonly TimeSpan SolarDeviceWithoutValuesDelay = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// Reports every device that failed to deliver values for longer than <see cref="SolarDeviceWithoutValuesDelay"/>.
+    /// This is the only report for a device that only delivers production, as its failure does not make the solar
+    /// values too old.
+    /// </summary>
+    internal async Task DetectSolarDevicesWithoutValues(List<LoggedError> activeErrors)
+    {
+        var failingBefore = dateTimeProvider.DateTimeOffSetUtcNow() - SolarDeviceWithoutValuesDelay;
+        var failingDevices = genericValueService
+            .GetAllByPredicate(v => v.SourceValueKey.ConfigurationType != ConfigurationType.FakeSolarValue
+                                    && v.HasErrorSince < failingBefore);
+        const string headline = "Solar device delivers no values";
+        var activeIssueKeys = new HashSet<string>();
+        foreach (var device in failingDevices)
+        {
+            var issueKey = issueKeys.SolarDeviceWithoutValues + device.SourceValueKey.ConfigurationType + device.SourceValueKey.SourceId;
+            activeIssueKeys.Add(issueKey);
+            await AddOrRemoveErrors(activeErrors, issueKey, headline,
+                $"The {device.SourceValueKey.ConfigurationType} device with ID {device.SourceValueKey.SourceId} did not deliver values since {device.HasErrorSince:u}. Error: <code>{device.ErrorMessage}</code>",
+                true).ConfigureAwait(false);
+        }
+        foreach (var resolvedError in activeErrors
+                     .Where(e => e.IssueKey.StartsWith(issueKeys.SolarDeviceWithoutValues) && !activeIssueKeys.Contains(e.IssueKey))
+                     .ToList())
+        {
+            await AddOrRemoveErrors(activeErrors, resolvedError.IssueKey, resolvedError.Headline, resolvedError.Message, false)
+                .ConfigureAwait(false);
+        }
     }
 
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)

@@ -156,6 +156,13 @@ public class SmaHybridInverterSetupService : IRefreshableValueSetupService
                                 var value = await modbusValueExecutionService
                                     .GetValue(byteArray, resultConfiguration)
                                     .ConfigureAwait(false);
+                                //The PV registers are read without correction, so the value is the raw register value.
+                                //SMA marks them as not available while the inverter does not produce, e.g. at night.
+                                if (resultConfiguration.UsedFor == ValueUsage.InverterPower
+                                    && NotAvailableValues.IsNotAvailable(value, resultConfiguration.ValueType))
+                                {
+                                    value = NotAvailableValues.ValueForNotAvailable(resultConfiguration.UsedFor, resultConfiguration.Address);
+                                }
 
                                 values.TryAdd(valueKey, 0m);
                                 values[valueKey] += value;

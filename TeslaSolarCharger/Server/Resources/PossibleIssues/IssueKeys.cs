@@ -23,6 +23,7 @@ public class IssueKeys : IIssueKeys
     public string UnsignedCommand => "UnsignedCommand";
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
     public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
+    public string SolarDeviceWithoutValues => "SolarDeviceWithoutValues_";
     public string BleVersionCompatibility => "BleVersionCompatibility";
     public string NoBackendApiToken => "NoBackendApiToken";
     public string BackendTokenNotRefreshable => "BackendTokenNotRefreshable";

@@ -41,6 +41,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IChargingScheduleService _chargingScheduleService;
     private readonly IConstants _constants;
     private readonly IHomeBatteryScheduleService _homeBatteryScheduleService;
+    private readonly IPilotCurrentProbeService _pilotCurrentProbeService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -59,7 +60,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         IChargingScheduleService chargingScheduleService,
         IConstants constants,
         IHomeBatteryScheduleService homeBatteryScheduleService,
-        ICarChargeRestartHysteresis carChargeRestartHysteresis)
+        ICarChargeRestartHysteresis carChargeRestartHysteresis,
+        IPilotCurrentProbeService pilotCurrentProbeService)
     {
         _carChargeRestartHysteresis = carChargeRestartHysteresis;
         _logger = logger;
@@ -79,6 +81,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _chargingScheduleService = chargingScheduleService;
         _constants = constants;
         _homeBatteryScheduleService = homeBatteryScheduleService;
+        _pilotCurrentProbeService = pilotCurrentProbeService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -96,6 +99,18 @@ public class ChargingServiceV2 : IChargingServiceV2
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
+        var currentToReserveForProbes = 0;
+        try
+        {
+            //Runs inside the charging cycle, which never runs twice at the same time, so nothing else sets charging
+            //values while a probe offers its current.
+            currentToReserveForProbes = await _pilotCurrentProbeService.ProbeUnassignedConnectors(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            //Finding the car on a connector must never prevent car charging control.
+            _logger.LogError(ex, "Error while probing unassigned charging connectors");
+        }
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var powerToControl = _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints);
@@ -105,19 +120,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         AddNotChargingReasons();
-        //reduce current for the remaining loadpoints as this loadpoint might start charging with max current
-        foreach (var loadpoint in loadPointsToManage)
-        {
-            if (loadpoint.ChargingConnectorId == default)
-            {
-                continue;
-            }
-            var stateAvailable = _settings.OcppConnectorStates.TryGetValue(loadpoint.ChargingConnectorId.Value, out _);
-            if (!stateAvailable)
-            {
-                continue;
-            }
-        }
 
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         _logger.LogTrace("Generated charging schedules: {@chargingSchedules}", chargingSchedules);
@@ -148,7 +150,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             .Select(l => new DtoTargetChargingValues(l))
             .ToList();
 
-        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, 0, cancellationToken);
+        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, currentToReserveForProbes, cancellationToken);
         foreach (var targetChargingValue in targetChargingValues)
         {
             if (targetChargingValue.TargetValues == default)
@@ -212,7 +214,13 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                 if (targetChargingValue.TargetValues.TargetCurrent != default)
                 {
-                    await _ocppChargePointActionService.SetChargingCurrent(connectorId, targetChargingValue.TargetValues.TargetCurrent.Value, targetChargingValue.TargetValues.TargetPhases, cancellationToken)
+                    //The connector is charging, so it keeps its phases: they only change on a charge start after the phase
+                    //switch cooldown. Target phases are only set for connectors with automatic phase switching.
+                    var targetPhases = targetChargingValue.TargetValues.TargetPhases;
+                    var phasesToSet = _settings.OcppConnectorStates.TryGetValue(connectorId, out var ocppState)
+                        ? ocppState.PhasesToKeepWhileCharging(targetPhases != default, targetPhases)
+                        : targetPhases;
+                    await _ocppChargePointActionService.SetChargingCurrent(connectorId, targetChargingValue.TargetValues.TargetCurrent.Value, phasesToSet, cancellationToken)
                         .ConfigureAwait(false);
                     continue;
                 }
@@ -239,7 +247,8 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     /// <summary>
     /// Makes sure a wallbox never limits a car that manages its own charging power: the connector is opened to its
-    /// maximum whenever the car wants more than the connector was last set to.
+    /// maximum whenever the car wants more than the connector was last set to, or when it does not charge on the
+    /// phases a car managed load point uses.
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <param name="targetChargingValue"></param>
@@ -263,17 +272,43 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _logger.LogDebug("OCPP connector {connectorId} has no target current, leaving it as it is.", targetChargingValue.LoadPoint.ChargingConnectorId);
                 return true;
             }
+            var connectorId = targetChargingValue.LoadPoint.ChargingConnectorId.Value;
             //A connector that was never set has to be opened up as well, so the missing value counts as too low.
-            if (ocppState.LastSetCurrent.Value is not { } lastSetCurrent || lastSetCurrent < targetCurrent)
+            if (ocppState.LastSetCurrent.Value is not { } lastSetCurrent || lastSetCurrent < targetCurrent
+                || await HasToSwitchPhasesOnNextChargeStart(connectorId, ocppState, cancellationToken).ConfigureAwait(false))
             {
-                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetCurrent);
-                if (!await SetChargingConnectorToMaxPowerAndMaxPhases(targetChargingValue.LoadPoint.ChargingConnectorId.Value, currentDate, cancellationToken, ocppState).ConfigureAwait(false))
+                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent} or phases {phases} need to be switched. Set new current.", connectorId, ocppState.LastSetCurrent.Value, targetCurrent, ocppState.LastSetPhases.Value);
+                if (!await SetChargingConnectorToMaxPowerAndMaxPhases(connectorId, currentDate, cancellationToken, ocppState).ConfigureAwait(false))
                 {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// A charging connector keeps its phases, e.g. the phases it was charging a car on before the car was identified.
+    /// Once it stopped charging, it is switched to the phases a car managed load point uses on the next charge start,
+    /// which waits for the phase switch cooldown.
+    /// </summary>
+    internal async Task<bool> HasToSwitchPhasesOnNextChargeStart(int chargingConnectorId, DtoOcppConnectorState ocppState,
+        CancellationToken cancellationToken)
+    {
+        if (ocppState.IsCharging.Value)
+        {
+            return false;
+        }
+        var connectorConfig = await _context.OcppChargingStationConnectors
+            .Where(c => c.Id == chargingConnectorId)
+            .Select(c => new
+            {
+                c.ConnectedPhasesCount,
+                c.AutoSwitchBetween1And3PhasesEnabled,
+            })
+            .FirstAsync(cancellationToken).ConfigureAwait(false);
+        return connectorConfig.AutoSwitchBetween1And3PhasesEnabled
+               && ocppState.LastSetPhases.Value != connectorConfig.ConnectedPhasesCount;
     }
 
     internal async Task<bool> SetChargingConnectorToMaxPowerAndMaxPhases(int chargingConnectorId,
@@ -315,7 +350,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             _logger.LogDebug("OCPP connector {connectorId} is charging. Set charging current to {targetCurrent}.", chargingConnectorId, connectorConfig.MaxCurrent);
             // Max current can not be null as otherwise target values would be null.
             var result = await _ocppChargePointActionService.SetChargingCurrent(chargingConnectorId,
-                (decimal)connectorConfig.MaxCurrent!, null, cancellationToken).ConfigureAwait(false);
+                (decimal)connectorConfig.MaxCurrent!,
+                ocppState.PhasesToKeepWhileCharging(connectorConfig.AutoSwitchBetween1And3PhasesEnabled, connectorConfig.ConnectedPhasesCount),
+                cancellationToken).ConfigureAwait(false);
             if (result.HasError)
             {
                 _logger.LogError("Could not start update charging current for ocpp connector {ocppConnectorId}", chargingConnectorId);
@@ -375,6 +412,12 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
                     new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonCarNotPluggedIn));
+            }
+
+            if (dtoCar.IsWaitingForChargerPower)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null,
+                    new NotChargingWithExpectedPowerReasonTemplate(TranslationKeys.NotChargingReasonChargerNotSupplyingPower));
             }
         }
 

@@ -36,15 +36,9 @@ public static class ConfigurationDefaults
     public const int BlePresenceMaxAgeSeconds = 180;
 
     /// <summary>
-    /// Percentage points added to the dynamically calculated state of charge above which the home battery is held
-    /// rather than discharged. Zero holds at exactly the calculated level.
-    /// </summary>
-    public const int HoldHomeBatteryChargeSocBuffer = 0;
-
-    /// <summary>
-    /// Percentage points added to the dynamically calculated state of charge above which the home battery is charged
-    /// from the grid. Negative on purpose: charging from the grid is only worth it well below the level that merely
-    /// needs holding.
+    /// Percentage points of the home battery's usable energy added to the predicted house consumption until solar self
+    /// sufficiency. HomeBatteryScheduleService charges at most this much energy from the grid for the house; negative
+    /// values charge less than predicted. Grid charging for planned car charging is not limited by it.
     /// </summary>
     public const int ChargeHomeBatterySocBuffer = -25;
 }

@@ -74,10 +74,10 @@ public class PairingServiceTests : IDisposable
         _bleWorkerService.Object);
 
     private int PrivateKeyGenerations() => _commandLineExecutionService.Invocations
-        .Count(i => (string)i.Arguments[0] == "openssl" && (string)i.Arguments[1] == PrivateKeyCommand);
+        .Count(i => (string?)i.Arguments[0] == "openssl" && (string?)i.Arguments[1] == PrivateKeyCommand);
 
     private int PublicKeyDerivations() => _commandLineExecutionService.Invocations
-        .Count(i => (string)i.Arguments[0] == "openssl" && ((string)i.Arguments[1]).StartsWith("ec -in "));
+        .Count(i => (string?)i.Arguments[0] == "openssl" && ((string)i.Arguments[1]!).StartsWith("ec -in "));
 
     [Fact]
     public async Task EnsureKeyPair_WithoutAnyKey_CreatesAMatchingKeyPair()

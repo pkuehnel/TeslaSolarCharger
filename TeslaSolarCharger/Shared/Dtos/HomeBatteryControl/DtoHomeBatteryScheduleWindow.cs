@@ -11,12 +11,6 @@ public class DtoHomeBatteryScheduleWindow : ValidFromToBase
     public HomeBatteryScheduleWindowReason Reason { get; set; }
 
     /// <summary>
-    /// When set, the window is only applied while the current battery SoC is at or below this value, so energy the
-    /// battery does not need until solar self sufficiency is not held back.
-    /// </summary>
-    public int? OnlyWhileSocAtOrBelowPercent { get; set; }
-
-    /// <summary>
     /// For charge windows: once this SoC is reached, charging is demoted to hold for the rest of the window so the
     /// bought energy is preserved but no unneeded energy is bought.
     /// </summary>

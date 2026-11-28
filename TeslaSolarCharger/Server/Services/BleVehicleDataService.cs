@@ -96,7 +96,7 @@ public class BleVehicleDataService(
             //between polls - and with it its background scan - while one-off commands never change the warm window.
             var presence = await bleService.GetPresence(host, adapter, vins, BleConstants.BleKeepWarmSeconds,
                 (int)maxAge.TotalSeconds).ConfigureAwait(false);
-            return new DtoBleGroupPresence { Host = host, Adapter = adapter, Cars = cars, Presence = presence, };
+            return new DtoBleGroupPresence { Host = host, Adapter = adapter, Cars = cars, Presence = presence, ReceivedAt = dateTimeProvider.UtcNow(), };
         }
         catch (Exception ex)
         {
@@ -220,7 +220,7 @@ public class BleVehicleDataService(
             var isPresent = IsPresent(presence, vehicle, maxAge);
             LogVehicleEvidence(car, vehicle);
             RecordPresenceObservation(car, adapter, presence, vehicle, isPresent == true);
-            await RefreshCarFromPresence(car, isPresent).ConfigureAwait(false);
+            await RefreshCarFromPresence(car, isPresent, LastSeenAt(vehicle, group.ReceivedAt)).ConfigureAwait(false);
         }
     }
 
@@ -289,6 +289,15 @@ public class BleVehicleDataService(
     }
 
     /// <summary>
+    /// When the car was last heard, or null when the container never heard it. The container answers "ms ago" relative
+    /// to its answer, so it is anchored at the time the answer arrived.
+    /// </summary>
+    internal static DateTime? LastSeenAt(DtoBlePresenceVehicle? vehicle, DateTime presenceReceivedAt) =>
+        vehicle?.LastSeenMsAgo is { } lastSeenMsAgo
+            ? presenceReceivedAt - TimeSpan.FromMilliseconds(lastSeenMsAgo)
+            : null;
+
+    /// <summary>
     /// Keeps what was known about a car at this poll for later inspection. Only presence drives behaviour, but the
     /// rest is what tells an unreliable link apart from an absent car, so it is recorded rather than dropped here.
     /// </summary>
@@ -314,7 +323,7 @@ public class BleVehicleDataService(
     /// A car that is not present is not talked to at all: that is the whole point of asking first. The old design
     /// paid a scan window, and a command only design would pay a full connect timeout, for a car that is simply gone.
     /// </summary>
-    private async Task RefreshCarFromPresence(DtoCar car, bool? isPresent)
+    private async Task RefreshCarFromPresence(DtoCar car, bool? isPresent, DateTime? lastSeenAt)
     {
         if (!bleReadCoordinator.TryBeginRead(car.Id))
         {
@@ -326,7 +335,7 @@ public class BleVehicleDataService(
             {
                 if (isPresent == true)
                 {
-                    await RefreshPresentCarData(car).ConfigureAwait(false);
+                    await RefreshPresentCarData(car, lastSeenAt).ConfigureAwait(false);
                 }
                 else
                 {
@@ -393,6 +402,7 @@ public class BleVehicleDataService(
             logger.LogError(ex, "Presence request for single car {vin} failed", car.Vin);
             return;
         }
+        var presenceReceivedAt = dateTimeProvider.UtcNow();
         if (!string.IsNullOrEmpty(presence.ErrorMessage))
         {
             //Carries no presence information: leave the state to the scheduled refresh.
@@ -402,7 +412,7 @@ public class BleVehicleDataService(
         var vehicle = presence.Vehicles
             .FirstOrDefault(v => string.Equals(v.Vin, car.Vin, StringComparison.OrdinalIgnoreCase));
         LogVehicleEvidence(car, vehicle);
-        await RefreshCarFromPresence(car, IsPresent(presence, vehicle, maxAge)).ConfigureAwait(false);
+        await RefreshCarFromPresence(car, IsPresent(presence, vehicle, maxAge), LastSeenAt(vehicle, presenceReceivedAt)).ConfigureAwait(false);
     }
 
     private async Task HandleScanUnavailable(List<DtoCar> cars, string? adapter, string message, bool isAdapterMissing)
@@ -506,7 +516,7 @@ public class BleVehicleDataService(
     /// failed read directly after a beacon hit is a transient failure of a provably present car and must never count
     /// towards the away confirmation.
     /// </summary>
-    private async Task RefreshPresentCarData(DtoCar car)
+    private async Task RefreshPresentCarData(DtoCar car, DateTime? lastSeenAt)
     {
         logger.LogTrace("{method}({vin})", nameof(RefreshPresentCarData), car.Vin);
         var vin = car.Vin!;
@@ -536,6 +546,14 @@ public class BleVehicleDataService(
         timestamp = dateTimeProvider.UtcNow();
         if (!bodyControllerStateResult.Success)
         {
+            if (!blePresenceStateService.RegisterFailedRead(car.Id, lastSeenAt, timestamp))
+            {
+                //A car that drove away stays present until its last sighting passes the max age, and every read in
+                //that time fails. Not heard since the previous failure, it is most likely gone: no error for that.
+                logger.LogTrace("Could not get body controller state for car {vin}: {outcome} {resultMessage}. Not counted as an error: the car was not heard since its previous failed read (last seen {lastSeenAt})",
+                    vin, bodyControllerStateResult.Outcome, bodyControllerStateResult.ResultMessage, lastSeenAt);
+                return;
+            }
             logger.LogError("Could not get body controller state for car {vin}: {outcome} {resultMessage}", vin,
                 bodyControllerStateResult.Outcome, bodyControllerStateResult.ResultMessage);
             await errorHandlingService.HandleError(nameof(BleVehicleDataService), nameof(RefreshPresentCarData),

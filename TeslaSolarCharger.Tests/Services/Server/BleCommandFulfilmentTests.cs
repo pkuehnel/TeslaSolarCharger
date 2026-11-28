@@ -47,6 +47,43 @@ public class BleCommandFulfilmentTests : TestBase
         Assert.True(CreateService().IsBleCommandFulfilled(result,ChargeStartUrl));
     }
 
+    [Theory]
+    [InlineData("requested", true)]
+    [InlineData("no_power", true)]
+    [InlineData(" requested ", true)]
+    [InlineData("car could not execute command: no_power", true)]
+    [InlineData("charge_requested_by_schedule", false)]
+    [InlineData("requested_current_too_low", false)]
+    [InlineData("xno_power", false)]
+    [InlineData("no_power_available", false)]
+    [InlineData("Requested", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void RefusingChargeStartForMissingPowerNeedsTheExactReason(string? carErrorMessage, bool expectedFulfilled)
+    {
+        var result = new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.CarRefused,
+            CarErrorMessage = carErrorMessage,
+        };
+        Assert.Equal(expectedFulfilled, CreateService().IsBleCommandFulfilled(result, ChargeStartUrl));
+    }
+
+    [Theory]
+    [InlineData("requested")]
+    [InlineData("no_power")]
+    public void MissingPowerReasonOnOtherCommandIsNotFulfilled(string carErrorMessage)
+    {
+        var result = new DtoBleCommandResult
+        {
+            Success = false,
+            Outcome = BleCommandOutcome.CarRefused,
+            CarErrorMessage = carErrorMessage,
+        };
+        Assert.False(CreateService().IsBleCommandFulfilled(result, ChargeStopUrl));
+    }
+
     [Fact]
     public void RefusingChargeStopBecauseNotChargingCountsAsFulfilled()
     {

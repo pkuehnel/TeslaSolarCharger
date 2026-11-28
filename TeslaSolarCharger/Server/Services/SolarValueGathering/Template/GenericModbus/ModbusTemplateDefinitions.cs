@@ -12,10 +12,10 @@ namespace TeslaSolarCharger.Server.Services.SolarValueGathering.Template.Generic
 /// </summary>
 public static class ModbusTemplateDefinitions
 {
-    private const decimal Int16Nan = -32768;
-    private const decimal Uint16Nan = 65535;
-    private const decimal Int32Nan = -2147483648;
-    private const decimal Uint32Nan = 4294967295;
+    private const decimal Int16Nan = NotAvailableValues.Int16;
+    private const decimal Uint16Nan = NotAvailableValues.UInt16;
+    private const decimal Int32Nan = NotAvailableValues.Int32;
+    private const decimal Uint32Nan = NotAvailableValues.UInt32;
 
     public static IReadOnlyDictionary<TemplateValueGatherType, ModbusTemplateDefinition> Definitions { get; } = new Dictionary<TemplateValueGatherType, ModbusTemplateDefinition>()
     {

@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject IHttpClientHelper HttpClientHelper
+@inject NavigationManager NavigationManager
 @inject ITextLocalizationService TextLocalizer
 
 <h3>@T(TranslationKeys.HttpsSectionTitle)</h3>
@@ -20,10 +21,10 @@
 }
 else
 {
-    @if (_httpsInformation is { IsEnabled: true, Reachability: HttpsReachability.PortNotPublished, })
+    @if (HttpsUrlHelper.ShowsPortPublishingHint(_httpsInformation, new Uri(NavigationManager.Uri)))
     {
-        <MudAlert Severity="Severity.Warning" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
-            @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), _httpsInformation.Port)
+        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-2">
+            @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortPublishingUnverifiedHint), _httpsInformation.Port)
         </MudAlert>
     }
     else if (_httpsInformation.IsEnabled)

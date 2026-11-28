@@ -66,7 +66,16 @@ public class BleVehicleDataServiceTests : TestBase
     public BleVehicleDataServiceTests(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
+        //The auto mocked clock would answer DateTime.MinValue, and a last sighting "300 ms ago" can not be before that.
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.UtcNow()).Returns(() => _now);
+        //Failed read counting is covered by its own tests below and in BlePresenceStateServiceTests; everywhere else
+        //every failed read counts, as the auto mocked service would otherwise swallow them all by returning false.
+        Mock.Mock<IBlePresenceStateService>()
+            .Setup(p => p.RegisterFailedRead(It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<DateTime>()))
+            .Returns(true);
     }
+
+    private DateTime _now = new(2026, 11, 24, 8, 0, 0, DateTimeKind.Utc);
 
     [Fact]
     public void CanDeserializeChargeState()
@@ -494,6 +503,121 @@ public class BleVehicleDataServiceTests : TestBase
         //The radio problem must surface as an error instead of being silently resolved as "car left".
         Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<string>(), Mock.Create<IIssueKeys>().BleDataCollectionError, TestVin, It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task FailedReadIsRegisteredWithTheLastSightingAndTheFailureTime()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupPresence(present: true);
+        SetupFailingBodyControllerRead();
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        //SetupPresence answers "last seen 300 ms ago"; the clock does not move during the test.
+        Mock.Mock<IBlePresenceStateService>().Verify(p => p.RegisterFailedRead(dtoCar.Id,
+            _now - TimeSpan.FromMilliseconds(300), _now), Times.Once);
+    }
+
+    [Fact]
+    public async Task FailedReadOfACarNotHeardSinceItsPreviousFailedReadRaisesNoError()
+    {
+        var dtoCar = SetupBleDataCollectionCar();
+        SetupPresence(present: true);
+        SetupFailingBodyControllerRead();
+        Mock.Mock<IBlePresenceStateService>()
+            .Setup(p => p.RegisterFailedRead(It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<DateTime>()))
+            .Returns(false);
+
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+        await service.RefreshBleCarData();
+
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), Mock.Create<IIssueKeys>().BleDataCollectionError, It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        //Not a success either: an error that is already open stays open.
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleErrorResolved(
+            Mock.Create<IIssueKeys>().BleDataCollectionError, It.IsAny<string?>()), Times.Never);
+        //Presence is still decided by the sighting alone.
+        Assert.True(dtoCar.IsHomeGeofence.Value);
+    }
+
+    /// <summary>
+    /// The reported problem: after the car drove away it stayed present until its last sighting passed the max age,
+    /// and each poll in that time failed to connect, so the error reached its threshold and went out via Telegram.
+    /// </summary>
+    [Fact]
+    public async Task CarThatDroveAwayRaisesOnlyOneFailedReadAcrossAllItsFailingPolls()
+    {
+        UseRealFailedReadCounting();
+        SetupBleDataCollectionCar();
+        SetupFailingBodyControllerRead();
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+
+        //Last heard right before the first poll and never again, polled every 13 s until the 180 s max age.
+        var lastSeenMsAgo = 300L;
+        for (var poll = 0; poll < 13; poll++)
+        {
+            SetupPresence(present: false, lastSeenMsAgo: lastSeenMsAgo);
+            await service.RefreshBleCarData();
+            _now = _now.AddSeconds(13);
+            lastSeenMsAgo += 13_000;
+        }
+
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), Mock.Create<IIssueKeys>().BleDataCollectionError, TestVin, It.IsAny<string?>()), Times.Once);
+    }
+
+    /// <summary>
+    /// The counterpart that must keep working: a car at home that keeps advertising but can not be connected to.
+    /// </summary>
+    [Fact]
+    public async Task CarThatKeepsBeingHeardRaisesEveryFailedRead()
+    {
+        UseRealFailedReadCounting();
+        SetupBleDataCollectionCar();
+        SetupFailingBodyControllerRead();
+        var service = Mock.Create<TeslaSolarCharger.Server.Services.BleVehicleDataService>();
+
+        for (var poll = 0; poll < 3; poll++)
+        {
+            SetupPresence(present: true);
+            await service.RefreshBleCarData();
+            _now = _now.AddSeconds(13);
+        }
+
+        Mock.Mock<IErrorHandlingService>().Verify(e => e.HandleError(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), Mock.Create<IIssueKeys>().BleDataCollectionError, TestVin, It.IsAny<string?>()), Times.Exactly(3));
+    }
+
+    private void SetupFailingBodyControllerRead() =>
+        Mock.Mock<IBleService>().Setup(b => b.GetBodyControllerState(TestVin))
+            .ReturnsAsync(new DtoBleCommandResult
+            {
+                Success = false,
+                Outcome = BleCommandOutcome.LinkFailed,
+                ResultMessage = "failed to connect: timed out",
+            });
+
+    /// <summary>Lets the real failed read counting decide, so a whole sequence of polls can be checked end to end.</summary>
+    private void UseRealFailedReadCounting()
+    {
+        var realService = new TeslaSolarCharger.Server.Services.BlePresenceStateService();
+        Mock.Mock<IBlePresenceStateService>()
+            .Setup(p => p.RegisterFailedRead(It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<DateTime>()))
+            .Returns((int carId, DateTime? lastSeenAt, DateTime failedAt) => realService.RegisterFailedRead(carId, lastSeenAt, failedAt));
+    }
+
+    [Fact]
+    public void LastSeenAtIsAnchoredAtThePresenceAnswer()
+    {
+        var receivedAt = new DateTime(2026, 11, 24, 8, 0, 0, DateTimeKind.Utc);
+
+        Assert.Equal(receivedAt.AddSeconds(-13), TeslaSolarCharger.Server.Services.BleVehicleDataService.LastSeenAt(
+            new DtoBlePresenceVehicle { Vin = TestVin, LastSeenMsAgo = 13_000, }, receivedAt));
+        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.LastSeenAt(
+            new DtoBlePresenceVehicle { Vin = TestVin, LastSeenMsAgo = null, }, receivedAt));
+        Assert.Null(TeslaSolarCharger.Server.Services.BleVehicleDataService.LastSeenAt(null, receivedAt));
     }
 
     [Fact]

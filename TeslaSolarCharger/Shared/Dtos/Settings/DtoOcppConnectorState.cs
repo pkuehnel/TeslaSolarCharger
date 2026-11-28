@@ -15,4 +15,16 @@ public class DtoOcppConnectorState
     public DtoTimeStampedValue<bool?> ShouldStopCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<bool?> CanHandlePowerOnThreePhase { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<bool?> CanHandlePowerOnOnePhase { get; set; } = new(DateTimeOffset.MinValue, null);
+
+    /// <summary>
+    /// The phases to send to a charging connector so it does not switch phases while charging: phases may only change
+    /// on a charge start after the phase switch cooldown. Connectors without automatic phase switching never get a
+    /// number of phases as they might reject the message.
+    /// </summary>
+    /// <param name="autoSwitchBetween1And3PhasesEnabled">Whether the connector supports switching phases.</param>
+    /// <param name="phasesIfUnknown">Used if TSC does not know the last set phases, e.g. after a restart.</param>
+    public int? PhasesToKeepWhileCharging(bool autoSwitchBetween1And3PhasesEnabled, int? phasesIfUnknown)
+    {
+        return autoSwitchBetween1And3PhasesEnabled ? LastSetPhases.Value ?? phasesIfUnknown : null;
+    }
 }

@@ -36,9 +36,12 @@ public class SetChargingConnectorToMaxPowerAndMaxPhasesTests : TestBase
     [InlineData(false, 1, 3, true, 60, 70, true, false, false, ExpectedMethodCall.StartCharging)] // StartCharging fails
     [InlineData(true, 1, 3, true, 60, 10, false, false, true, ExpectedMethodCall.SetChargingCurrent)] // Charging, set current
     [InlineData(true, 1, 3, true, 60, 10, false, true, false, ExpectedMethodCall.SetChargingCurrent)] // SetCurrent fails
+    [InlineData(true, 1, 3, false, 60, 10, false, false, true, ExpectedMethodCall.SetChargingCurrent)] // Charging, AutoSwitch disabled, no phases
+    [InlineData(true, null, 3, true, 60, 10, false, false, true, ExpectedMethodCall.SetChargingCurrent)] // Charging, last set phases unknown, connected phases
+    [InlineData(true, 3, 3, true, 60, 10, false, false, true, ExpectedMethodCall.SetChargingCurrent)] // Charging on configured phases
     public async Task SetChargingConnectorToMaxPowerAndMaxPhases_Scenarios(
         bool isCharging,
-        int lastSetPhases,
+        int? lastSetPhases,
         int connectedPhasesCount,
         bool autoSwitchEnabled,
         int cooldownSeconds,
@@ -111,7 +114,9 @@ public class SetChargingConnectorToMaxPowerAndMaxPhasesTests : TestBase
         }
         else if (expectedCall == ExpectedMethodCall.SetChargingCurrent)
         {
-            actionServiceMock.Verify(x => x.SetChargingCurrent(connectorId, (decimal)maxCurrent, null, It.IsAny<CancellationToken>()), Times.Once);
+            //A charging connector keeps its phases, connectors without phase switching never get a number of phases.
+            var expectedPhases = autoSwitchEnabled ? lastSetPhases ?? connectedPhasesCount : (int?)null;
+            actionServiceMock.Verify(x => x.SetChargingCurrent(connectorId, (decimal)maxCurrent, expectedPhases, It.IsAny<CancellationToken>()), Times.Once);
             actionServiceMock.Verify(x => x.StartCharging(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Never);
         }
         else

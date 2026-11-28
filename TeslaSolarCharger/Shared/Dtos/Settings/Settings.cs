@@ -37,8 +37,6 @@ public class Settings : ISettings
 
     public bool IsHomeBatteryDischargingActive { get; set; } = true;
 
-    public DtoHomeBatterySocTarget? HomeBatteryHoldTarget { get; set; }
-    public DtoHomeBatterySocTarget? HomeBatteryChargeTarget { get; set; }
     public ConcurrentBag<DtoHomeBatteryScheduleWindow> HomeBatteryScheduleWindows { get; set; } = new();
 
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
@@ -53,7 +51,9 @@ public class Settings : ISettings
     public ConcurrentDictionary<(int? carId, int? connectorId), List<NotChargingWithExpectedPowerReasonTemplate>> LoadPointSpecificNotChargingWithExpectedPowerReasons
     { get; set; } = new();
 
-    public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; } = new();
+    public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ConfirmedLoadPointCarCombinations { get; set; } = new();
+
+    public ConcurrentDictionary<int, DateTimeOffset> LastPilotCurrentProbes { get; set; } = new();
 
     public ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; } = new();
     public ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; } = new();
