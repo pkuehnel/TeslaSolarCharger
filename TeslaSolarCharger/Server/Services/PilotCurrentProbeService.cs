@@ -53,15 +53,16 @@ public class PilotCurrentProbeService(
         return useFleetTelemetry || (useBle && configurationWrapper.GetVehicleDataViaBle());
     }
 
-    public async Task<int> ProbeUnassignedConnectors(CancellationToken cancellationToken)
+    public async Task<int> ProbeUnconfirmedConnectors(CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}()", nameof(ProbeUnassignedConnectors));
+        logger.LogTrace("{method}()", nameof(ProbeUnconfirmedConnectors));
         var combinations = await loadPointManagementService.GetCombinationsToManage().ConfigureAwait(false);
-        var unassignedConnectorIds = combinations
-            .Where(c => c.ChargingConnectorId != default && c.CarId == default)
-            .Select(c => c.ChargingConnectorId!.Value)
-            .ToHashSet();
-        if (unassignedConnectorIds.Count < 1)
+        //Besides connectors without a car, connectors with a car matched by plug in time or as the only other allowed
+        //car are probed: that car is a guess, e.g. a Tesla is never matched by plug in time.
+        var carIdPerConnector = combinations
+            .Where(c => c.ChargingConnectorId != default)
+            .ToDictionary(c => c.ChargingConnectorId!.Value, c => c.CarId);
+        if (carIdPerConnector.Count < 1)
         {
             return 0;
         }
@@ -77,7 +78,7 @@ public class PilotCurrentProbeService(
             .Select(c => c.Id)
             .ToHashSet();
         var connectors = await context.OcppChargingStationConnectors
-            .Where(c => unassignedConnectorIds.Contains(c.Id))
+            .Where(c => carIdPerConnector.Keys.Contains(c.Id))
             .Select(c => new
             {
                 c.Id,
@@ -91,16 +92,18 @@ public class PilotCurrentProbeService(
         var maxCombinedCurrent = configurationWrapper.MaxCombinedCurrent();
         var chargingLoadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var currentToReserve = 0;
-        foreach (var connector in connectors)
+        //A connector without a car is the more likely place of an unassigned Tesla: probing it first spares a guessed
+        //car the interruption once the Tesla is found.
+        foreach (var connector in connectors.OrderBy(c => carIdPerConnector[c.Id] != default))
         {
             if (!settings.OcppConnectorStates.TryGetValue(connector.Id, out var connectorState)
                 || !connectorState.IsPluggedIn.Value)
             {
                 continue;
             }
-            if (IsSetToGuestCarByUser(connector.Id, connectorState))
+            if (IsConfirmed(connector.Id, carIdPerConnector[connector.Id], connectorState))
             {
-                logger.LogTrace("Connector {connectorId} was set to a guest car by the user, do not probe it", connector.Id);
+                logger.LogTrace("The car (or guest car) on connector {connectorId} was confirmed by the user or a probe, do not probe it", connector.Id);
                 continue;
             }
             var candidates = settings.Cars
@@ -146,10 +149,14 @@ public class PilotCurrentProbeService(
         return currentToReserve;
     }
 
-    private bool IsSetToGuestCarByUser(int connectorId, DtoOcppConnectorState connectorState)
+    /// <summary>
+    /// Whether the user or a probe confirmed the car on the connector since it was plugged in. A car id of null is a
+    /// guest car the user chose.
+    /// </summary>
+    private bool IsConfirmed(int connectorId, int? carId, DtoOcppConnectorState connectorState)
     {
         return settings.ConfirmedLoadPointCarCombinations.TryGetValue(connectorId, out var combination)
-               && combination.carId == default
+               && combination.carId == carId
                && combination.combinationTimeStamp >= connectorState.IsPluggedIn.LastChanged;
     }
 

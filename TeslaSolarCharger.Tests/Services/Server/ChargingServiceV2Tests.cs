@@ -149,8 +149,8 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
         Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
         Mock.Mock<IPilotCurrentProbeService>()
-            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
-            .Callback(() => calls.Add(nameof(IPilotCurrentProbeService.ProbeUnassignedConnectors)))
+            .Setup(s => s.ProbeUnconfirmedConnectors(It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add(nameof(IPilotCurrentProbeService.ProbeUnconfirmedConnectors)))
             .ReturnsAsync(0);
         Mock.Mock<ILoadPointManagementService>()
             .Setup(s => s.GetLoadPointsToManage())
@@ -169,7 +169,7 @@ public class ChargingServiceV2Tests : TestBase
 
         Assert.Equal(new List<string>
         {
-            nameof(IPilotCurrentProbeService.ProbeUnassignedConnectors),
+            nameof(IPilotCurrentProbeService.ProbeUnconfirmedConnectors),
             nameof(ILoadPointManagementService.GetLoadPointsToManage),
         }, calls);
     }
@@ -184,7 +184,7 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
         Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
         Mock.Mock<IPilotCurrentProbeService>()
-            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
+            .Setup(s => s.ProbeUnconfirmedConnectors(It.IsAny<CancellationToken>()))
             .ReturnsAsync(6);
         Mock.Mock<ILoadPointManagementService>()
             .Setup(s => s.GetLoadPointsToManage())
@@ -210,7 +210,7 @@ public class ChargingServiceV2Tests : TestBase
         Mock.Mock<ISettings>().Setup(s => s.CarsToManage).Returns(new List<DtoCar>());
         Mock.Mock<ISettings>().Setup(s => s.OcppConnectorStates).Returns(new ConcurrentDictionary<int, DtoOcppConnectorState>());
         Mock.Mock<IPilotCurrentProbeService>()
-            .Setup(s => s.ProbeUnassignedConnectors(It.IsAny<CancellationToken>()))
+            .Setup(s => s.ProbeUnconfirmedConnectors(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Probe failed"));
         Mock.Mock<ILoadPointManagementService>()
             .Setup(s => s.GetLoadPointsToManage())

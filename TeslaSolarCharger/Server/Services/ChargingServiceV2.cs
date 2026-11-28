@@ -104,12 +104,12 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             //Runs inside the charging cycle, which never runs twice at the same time, so nothing else sets charging
             //values while a probe offers its current.
-            currentToReserveForProbes = await _pilotCurrentProbeService.ProbeUnassignedConnectors(cancellationToken).ConfigureAwait(false);
+            currentToReserveForProbes = await _pilotCurrentProbeService.ProbeUnconfirmedConnectors(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             //Finding the car on a connector must never prevent car charging control.
-            _logger.LogError(ex, "Error while probing unassigned charging connectors");
+            _logger.LogError(ex, "Error while probing charging connectors with an unconfirmed car");
         }
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
