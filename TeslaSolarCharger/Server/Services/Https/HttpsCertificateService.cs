@@ -92,8 +92,8 @@ public partial class HttpsCertificateService(
 
     /// <summary>
     /// Whether the browser talks to TSC directly, so that the HTTPS port is reachable the same way, or through
-    /// something that forwards only the HTTP port, typically a Docker port mapping. Must be called inside the lock,
-    /// as it reads the local names.
+    /// something that forwards ports, typically a Docker port mapping. In the latter case it cannot be seen from here
+    /// whether the HTTPS port is forwarded as well. Must be called inside the lock, as it reads the local names.
     /// </summary>
     private HttpsReachability GetReachability(string? normalizedRequestHost)
     {
@@ -113,7 +113,7 @@ public partial class HttpsCertificateService(
         }
         return resolvedAddresses.Any(address => localNames.Contains(address, StringComparer.Ordinal))
             ? HttpsReachability.Reachable
-            : HttpsReachability.PortNotPublished;
+            : HttpsReachability.Forwarded;
     }
 
     /// <summary>

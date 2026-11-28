@@ -34,7 +34,8 @@
     public string? Class { get; set; }
 
     /// <summary>
-    /// Only while the page is open without HTTPS, HTTPS is available and the browser can reach its port.
+    /// Only while the page is open without HTTPS and HTTPS is available. Also offered when the browser comes through a
+    /// port forwarding, as it cannot be seen from inside whether the HTTPS port is published.
     /// </summary>
     private Uri? SecureUri
     {
@@ -43,12 +44,11 @@
             var currentUri = new Uri(NavigationManager.Uri);
             if (HttpsUrlHelper.IsSecure(currentUri)
                 || !HttpsInformation.IsEnabled
-                || HttpsInformation.Port == default
-                || HttpsInformation.Reachability == HttpsReachability.PortNotPublished)
+                || HttpsInformation.Port is not { } httpsPort)
             {
                 return default;
             }
-            return HttpsUrlHelper.ToHttpsUri(currentUri, HttpsInformation.Port.Value);
+            return HttpsUrlHelper.ToHttpsUri(currentUri, httpsPort);
         }
     }
 

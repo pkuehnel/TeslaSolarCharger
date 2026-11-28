@@ -18,19 +18,15 @@
     <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Class="mb-3"
               ShowCloseIcon="true" CloseIconClicked="Dismiss">
         <MudText Typo="Typo.h6">@T(TranslationKeys.HttpsHintTitle)</MudText>
-        @if (_httpsInformation.Reachability == HttpsReachability.PortNotPublished)
+        <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
+        @if (HttpsUrlHelper.ShowsPortPublishingHint(_httpsInformation, new Uri(NavigationManager.Uri)))
         {
-            @*Offering the certificate would lead nowhere before the port is published*@
-            <MudText Typo="Typo.body2">
-                @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), _httpsInformation.Port)
+            <MudText Typo="Typo.body2" Class="mt-2">
+                @string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortPublishingUnverifiedHint), _httpsInformation.Port)
             </MudText>
         }
-        else
-        {
-            <MudText Typo="Typo.body2">@T(TranslationKeys.HttpsHintText)</MudText>
-            <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
-            <HttpsInstallInstructionsComponent Class="mt-2" />
-        }
+        <HttpsAccessActionsComponent HttpsInformation="_httpsInformation" Class="mt-2" />
+        <HttpsInstallInstructionsComponent Class="mt-2" />
     </MudAlert>
 }
 

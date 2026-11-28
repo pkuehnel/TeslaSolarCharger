@@ -44,6 +44,19 @@ public class HttpsComponentsTests : Bunit.TestContext
         RootCertificateValidUntil = new(2036, 9, 20, 12, 0, 0, System.TimeSpan.Zero),
     };
 
+    private static readonly DtoHttpsInformation Forwarded = WithReachability(HttpsReachability.Forwarded);
+
+    private static DtoHttpsInformation WithReachability(HttpsReachability reachability) => new()
+    {
+        IsEnabled = Enabled.IsEnabled,
+        Reachability = reachability,
+        Port = Enabled.Port,
+        CoveredNames = Enabled.CoveredNames,
+        RootCertificateName = Enabled.RootCertificateName,
+        RootCertificateSha256Fingerprint = Enabled.RootCertificateSha256Fingerprint,
+        RootCertificateValidUntil = Enabled.RootCertificateValidUntil,
+    };
+
     public HttpsComponentsTests()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -72,6 +85,10 @@ public class HttpsComponentsTests : Bunit.TestContext
     private string T(string key) =>
         Services.GetRequiredService<ITextLocalizationService>()
             .Get<HttpsComponentsLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))!;
+
+    private string PortPublishingHint => string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortPublishingUnverifiedHint), 7443);
+
+    private string EnabledStatus => string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsEnabledStatus), 7443);
 
     [Fact]
     public void TheHintOffersTheCertificateAndTheSecureAddressOverHttp()
@@ -180,29 +197,77 @@ public class HttpsComponentsTests : Bunit.TestContext
     }
 
     [Fact]
-    public void TheHintExplainsHowToPublishTheHttpsPortInsteadOfOfferingADeadLink()
+    public void TheHintOffersTheSecureAddressAndExplainsHowToPublishThePortBehindAPortMapping()
     {
-        //A Docker port mapping that forwards only the HTTP port
-        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7443, Reachability = HttpsReachability.PortNotPublished, });
+        //A Docker bridge network: whether the HTTPS port is published cannot be seen from inside the container
+        AnswerHttpsInformation(Forwarded);
 
         var hint = Render<HttpsHintComponent>();
 
-        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7443), hint.Markup);
-        Assert.DoesNotContain(T(TranslationKeys.HttpsDownloadCertificateButton), hint.Markup);
-        Assert.Empty(hint.FindComponents<MudButton>());
+        Assert.Contains(T(TranslationKeys.HttpsHintText), hint.Markup);
+        Assert.Contains(PortPublishingHint, hint.Markup);
+        Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), hint.Markup);
+        Assert.Contains(T(TranslationKeys.HttpsInstallInstructionsTitle), hint.Markup);
+        Assert.Equal("https://localhost:7443/", hint.FindComponents<MudButton>().Single(b => b.Instance.Href != default).Instance.Href);
+    }
+
+    [Theory]
+    [InlineData(HttpsReachability.Reachable)]
+    [InlineData(HttpsReachability.Unknown)]
+    public void TheHintDoesNotMentionPublishingThePortWhenTheBrowserTalksToSolar4CarDirectly(HttpsReachability reachability)
+    {
+        AnswerHttpsInformation(WithReachability(reachability));
+
+        var hint = Render<HttpsHintComponent>();
+
+        Assert.DoesNotContain(PortPublishingHint, hint.Markup);
+        Assert.Contains(hint.FindComponents<MudButton>(), b => b.Instance.Href != default);
     }
 
     [Fact]
-    public void TheSectionExplainsHowToPublishTheHttpsPort()
+    public void TheSectionShowsANeutralStatusAndTheSecureAddressBehindAPortMapping()
     {
-        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = 7443, Reachability = HttpsReachability.PortNotPublished, });
+        //E.g. a Docker bridge network that publishes 7190 and 7443: it must not be reported as unpublished
+        AnswerHttpsInformation(Forwarded);
 
         var section = Render<HttpsConfigurationComponent>();
 
-        Assert.Contains(string.Format(CultureInfo.CurrentCulture, T(TranslationKeys.HttpsPortNotPublishedHint), 7443), section.Markup);
-        //The certificate stays available, it is needed once the port is published
+        Assert.Equal([Severity.Info,], section.FindComponents<MudAlert>().Select(a => a.Instance.Severity));
+        Assert.Contains(PortPublishingHint, section.Markup);
+        Assert.DoesNotContain(EnabledStatus, section.Markup);
         Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), section.Markup);
+        Assert.Equal("https://localhost:7443/", section.FindComponents<MudButton>().Single(b => b.Instance.Href != default).Instance.Href);
+    }
+
+    [Fact]
+    public void TheSectionShowsHttpsAsAvailableBehindAPortMappingWhenOpenOverHttps()
+    {
+        //The page itself came through the HTTPS port, e.g. a Docker bridge network that publishes only 7443
+        AnswerHttpsInformation(Forwarded);
+        OpenPageSecurely();
+
+        var section = Render<HttpsConfigurationComponent>();
+
+        Assert.Equal([Severity.Success,], section.FindComponents<MudAlert>().Select(a => a.Instance.Severity));
+        Assert.Contains(EnabledStatus, section.Markup);
+        Assert.DoesNotContain(PortPublishingHint, section.Markup);
         Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
+    }
+
+    [Theory]
+    [InlineData(HttpsReachability.Reachable)]
+    [InlineData(HttpsReachability.Unknown)]
+    public void TheSectionShowsHttpsAsAvailableWhenTheBrowserTalksToSolar4CarDirectly(HttpsReachability reachability)
+    {
+        //E.g. network_mode: host or no Docker at all
+        AnswerHttpsInformation(WithReachability(reachability));
+
+        var section = Render<HttpsConfigurationComponent>();
+
+        Assert.Equal([Severity.Success,], section.FindComponents<MudAlert>().Select(a => a.Instance.Severity));
+        Assert.Contains(EnabledStatus, section.Markup);
+        Assert.DoesNotContain(PortPublishingHint, section.Markup);
+        Assert.Contains(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
     }
 
     [Fact]
@@ -222,12 +287,25 @@ public class HttpsComponentsTests : Bunit.TestContext
     [Fact]
     public void TheSectionWarnsWhenHttpsIsNotAvailable()
     {
-        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = false, });
+        //The reachability is reported even without HTTPS, e.g. HttpsPort=0 in a Docker bridge network
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = false, Reachability = HttpsReachability.Forwarded, });
 
         var section = Render<HttpsConfigurationComponent>();
 
         Assert.Contains(T(TranslationKeys.HttpsDisabledStatus), section.Markup);
+        Assert.DoesNotContain(PortPublishingHint, section.Markup);
         //Without HTTPS there is no secure address to open, but the certificate can still be installed
+        Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
+        Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), section.Markup);
+    }
+
+    [Fact]
+    public void TheSectionOffersNoSecureAddressWithoutAKnownHttpsPort()
+    {
+        AnswerHttpsInformation(new DtoHttpsInformation { IsEnabled = true, Port = null, Reachability = HttpsReachability.Forwarded, });
+
+        var section = Render<HttpsConfigurationComponent>();
+
         Assert.DoesNotContain(section.FindComponents<MudButton>(), b => b.Instance.Href != default);
         Assert.Contains(T(TranslationKeys.HttpsDownloadCertificateButton), section.Markup);
     }

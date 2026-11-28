@@ -8,7 +8,8 @@ public class DtoHttpsInformation
     public bool IsEnabled { get; set; }
     public int? Port { get; set; }
     /// <summary>
-    /// Whether the browser can reach the HTTPS port at the address it is using right now.
+    /// Whether the browser talks to Solar4Car directly at the address it is using right now, or through something that
+    /// forwards ports, so that the HTTPS port might not be reachable.
     /// </summary>
     public HttpsReachability Reachability { get; set; }
     /// <summary>
