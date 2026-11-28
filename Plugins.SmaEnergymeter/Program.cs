@@ -12,6 +12,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<SharedValues>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddTransient<EnergyMeterService>()
     .AddTransient<CurrentPowerService>()
     ;

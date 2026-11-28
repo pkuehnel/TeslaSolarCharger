@@ -15,15 +15,26 @@ namespace Plugins.SmaEnergymeter.Controllers
         }
 
         [HttpGet]
-        public int GetPower(uint? serialNumber = null)
+        public ActionResult<int> GetPower(uint? serialNumber = null)
         {
-            return _currentPowerService.GetCurrentPower(serialNumber);
+            var power = _currentPowerService.GetCurrentPower(serialNumber);
+            return power.HasValue ? power.Value : NoCurrentValues();
         }
 
         [HttpGet]
-        public DtoEnergyMeterValue GetAllValues(uint? serialNumber = null)
+        public ActionResult<DtoEnergyMeterValue> GetAllValues(uint? serialNumber = null)
         {
-            return _currentPowerService.GetAllValues(serialNumber);
+            var values = _currentPowerService.GetAllValues(serialNumber);
+            return values != default ? values : NoCurrentValues();
+        }
+
+        /// <summary>
+        /// Old values must not look valid: a consumer would otherwise keep using a frozen grid power.
+        /// </summary>
+        private ObjectResult NoCurrentValues()
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                $"No energy meter values received within the last {CurrentPowerService.MaxValueAge.TotalSeconds} seconds.");
         }
     }
 }
