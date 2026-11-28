@@ -1,9 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -16,6 +23,7 @@ public class LoadPointManagementServiceGetCarConnectorMatchesTests : TestBase
 {
     private const int ConnectorId = 2;
     private const int CarId = 10;
+    private const int ManualCarId = 11;
 
     private readonly Settings _settings = new();
     private readonly DateTimeOffset _plugInTime;
@@ -94,6 +102,58 @@ public class LoadPointManagementServiceGetCarConnectorMatchesTests : TestBase
         Assert.Contains(matches, m => m.CarId == CarId && m.ChargingConnectorId == null);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ChargingConnector_IsAssignedToPluggedInTesla_WhenOnlyAllowedCarsAreThatTeslaAndOneOtherCar(bool useFleetTelemetry, bool useBle)
+    {
+        //Without guest cars and with one other allowed car, a plugged in Tesla must still get the connector (as in v2.49.0).
+        await Seed(CarType.Tesla, useFleetTelemetry, useBle, false);
+        await AddAllowedCar(ManualCarId, CarType.Manual);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(int.MaxValue);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.DateTimeOffSetUtcNow()).Returns(CurrentFakeDate);
+        var tesla = _settings.Cars.Single(c => c.Id == CarId);
+        tesla.ChargerPilotCurrent.Update(_plugInTime, 5);
+        LetTeslaReportOfferedCurrent(tesla);
+        var loadPointManagementService = Mock.Create<LoadPointManagementService>();
+        var carIds = new[] { CarId, ManualCarId, };
+
+        //One charging cycle: matching, then probing the connectors whose car matching could only guess or not find.
+        var matches = await loadPointManagementService.GetCarConnectorMatches(carIds, new[] { ConnectorId }, false);
+        Mock.Mock<ILoadPointManagementService>().Setup(l => l.GetCombinationsToManage()).ReturnsAsync(matches);
+        Mock.Mock<ILoadPointManagementService>().Setup(l => l.GetLoadPointsWithChargingDetails())
+            .ReturnsAsync(new List<DtoLoadPointWithCurrentChargingValues>());
+        var probeService = Mock.Create<PilotCurrentProbeService>();
+        probeService.PollInterval = TimeSpan.Zero;
+        await probeService.ProbeUnconfirmedConnectors(CancellationToken.None);
+        matches = await loadPointManagementService.GetCarConnectorMatches(carIds, new[] { ConnectorId }, false);
+
+        Assert.Equal(CarId, matches.Single(m => m.ChargingConnectorId == ConnectorId).CarId);
+        Assert.Contains(matches, m => m.CarId == ManualCarId && m.ChargingConnectorId == null);
+    }
+
+    private async Task AddAllowedCar(int carId, CarType carType)
+    {
+        Context.Cars.Add(new Car { Id = carId, Vin = $"VIN{carId}", CarType = carType, ShouldBeManaged = true, });
+        Context.ChargingStationConnectorAllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = carId, OcppChargingStationConnectorId = ConnectorId, });
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        _settings.Cars.Add(new DtoCar { Id = carId, Vin = $"VIN{carId}", });
+    }
+
+    /// <summary>
+    /// Makes the Tesla report whatever current the connector is told to offer, like a car plugged into it.
+    /// </summary>
+    private void LetTeslaReportOfferedCurrent(DtoCar tesla)
+    {
+        var actionService = Mock.Mock<IOcppChargePointActionService>();
+        actionService.Setup(a => a.StartCharging(ConnectorId, It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .Callback((int _, decimal current, int? _, CancellationToken _) => tesla.ChargerPilotCurrent.Update(CurrentFakeDate, (int)current))
+            .ReturnsAsync(new Result<RemoteStartTransactionResponse?>(new RemoteStartTransactionResponse(), null, null));
+        actionService.Setup(a => a.StopCharging(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Result<RemoteStopTransactionResponse?>(new RemoteStopTransactionResponse(), null, null));
+    }
+
     private async Task Seed(CarType carType, bool useFleetTelemetry, bool useBle, bool allowGuestCars = true)
     {
         Context.Cars.Add(new Car
@@ -111,6 +171,9 @@ public class LoadPointManagementServiceGetCarConnectorMatchesTests : TestBase
             ConnectorId = 1,
             ShouldBeManaged = true,
             AllowGuestCars = allowGuestCars,
+            MinCurrent = 6,
+            MaxCurrent = 16,
+            ConnectedPhasesCount = 3,
         };
         connector.AllowedCars.Add(new ChargingStationConnectorAllowedCar { CarId = CarId, OcppChargingStationConnectorId = ConnectorId, });
         Context.OcppChargingStationConnectors.Add(connector);

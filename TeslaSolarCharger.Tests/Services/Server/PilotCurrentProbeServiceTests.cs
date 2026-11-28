@@ -26,6 +26,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     private const int SecondConnectorId = 2;
     private const int CarA = 10;
     private const int CarB = 11;
+    private const int ManualCar = 12;
 
     private readonly Settings _settings = new();
     private readonly DateTimeOffset _plugInTime;
@@ -112,7 +113,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_AssignsTheOnlyReactingCar()
+    public async Task ProbeUnconfirmedConnectors_AssignsTheOnlyReactingCar()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -120,7 +121,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         ReactOnProbe(ConnectorId, carA);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         //The probe current, then the connector's max current for the car that was stopped via the Tesla API or BLE.
         Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
@@ -131,7 +132,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_OpensConnectorToMax_OnlyAfterTheMatchedCarStoppedCharging()
+    public async Task ProbeUnconfirmedConnectors_OpensConnectorToMax_OnlyAfterTheMatchedCarStoppedCharging()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -148,13 +149,13 @@ public class PilotCurrentProbeServiceTests : TestBase
             .Callback(() => isChargingWhenOpened.Add(carA.IsCharging.Value))
             .ReturnsAsync(new Result<RemoteStartTransactionResponse?>(new RemoteStartTransactionResponse(), null, null));
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(new List<bool?> { false }, isChargingWhenOpened);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_StopsConnector_WhenMatchedCarDoesNotStopCharging()
+    public async Task ProbeUnconfirmedConnectors_StopsConnector_WhenMatchedCarDoesNotStopCharging()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -163,7 +164,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         ReactOnProbe(ConnectorId, carA);
         carA.IsCharging.Update(_plugInTime, true);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(new List<int> { 6 }, _startedCurrents);
         Mock.Mock<IOcppChargePointActionService>().Verify(a => a.StopCharging(ConnectorId, It.IsAny<CancellationToken>()), Times.Once);
@@ -172,7 +173,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_AssignsCarOnConnector_WhenAnotherCarPluggedIntoOtherWallboxAtTheSameTime()
+    public async Task ProbeUnconfirmedConnectors_AssignsCarOnConnector_WhenAnotherCarPluggedIntoOtherWallboxAtTheSameTime()
     {
         await SeedConnector(ConnectorId, CarA, CarB);
         var carA = await SeedCar(CarA);
@@ -182,7 +183,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         ReactOnProbe(ConnectorId, carA);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         //6 A is what the other wallbox already offers car B, so a car showing it would prove nothing.
         Assert.Equal(new List<int> { 7, 16 }, _startedCurrents);
@@ -191,7 +192,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_AssignsEachCarToItsConnector_WhenTwoCarsArePluggedIntoTwoConnectors()
+    public async Task ProbeUnconfirmedConnectors_AssignsEachCarToItsConnector_WhenTwoCarsArePluggedIntoTwoConnectors()
     {
         await SeedConnector(ConnectorId, CarA, CarB);
         await SeedConnector(SecondConnectorId, CarA, CarB);
@@ -203,14 +204,14 @@ public class PilotCurrentProbeServiceTests : TestBase
         ReactOnProbe(ConnectorId, carB);
         ReactOnProbe(SecondConnectorId, carA);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(CarB, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
         Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[SecondConnectorId].carId);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbeAgain_WhenAlreadyAssignedCarIsTheOnlyCandidateLeft()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbeAgain_WhenAlreadyAssignedCarIsTheOnlyCandidateLeft()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedConnector(SecondConnectorId, CarA);
@@ -220,21 +221,21 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(SecondConnectorId);
         ReactOnProbe(ConnectorId, carA);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
         Assert.False(_settings.ConfirmedLoadPointCarCombinations.ContainsKey(SecondConnectorId));
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_AssignsNothing_WhenNoCarReacts()
+    public async Task ProbeUnconfirmedConnectors_AssignsNothing_WhenNoCarReacts()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
         SetUnassigned(ConnectorId);
         AddPluggedInConnectorState(ConnectorId);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
         Assert.Empty(_settings.ConfirmedLoadPointCarCombinations);
@@ -242,7 +243,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_RefreshesBleDataOfEveryCandidateEveryFifthPoll()
+    public async Task ProbeUnconfirmedConnectors_RefreshesBleDataOfEveryCandidateEveryFifthPoll()
     {
         await SeedConnector(ConnectorId, CarA, CarB);
         await SeedCar(CarA);
@@ -250,14 +251,14 @@ public class PilotCurrentProbeServiceTests : TestBase
         SetUnassigned(ConnectorId);
         AddPluggedInConnectorState(ConnectorId);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Mock.Mock<IBleVehicleDataService>().Verify(b => b.RefreshSingleCarData(CarA), Times.Exactly(6));
         Mock.Mock<IBleVehicleDataService>().Verify(b => b.RefreshSingleCarData(CarB), Times.Exactly(6));
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_AssignsNothing_WhenTwoCarsReportTheProbeCurrent()
+    public async Task ProbeUnconfirmedConnectors_AssignsNothing_WhenTwoCarsReportTheProbeCurrent()
     {
         await SeedConnector(ConnectorId, CarA, CarB);
         var carA = await SeedCar(CarA);
@@ -266,13 +267,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         ReactOnProbe(ConnectorId, carA, carB);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_settings.ConfirmedLoadPointCarCombinations);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbeTwice_ForTheSamePlugIn()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbeTwice_ForTheSamePlugIn()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -280,14 +281,14 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         var service = CreateService();
 
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_ProbesAgain_WhenACandidateWasPluggedInAfterTheLastProbe()
+    public async Task ProbeUnconfirmedConnectors_ProbesAgain_WhenACandidateWasPluggedInAfterTheLastProbe()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -297,13 +298,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         carA.PluggedIn.Update(CurrentFakeDate.AddSeconds(-30), false);
         carA.PluggedIn.Update(CurrentFakeDate.AddSeconds(-20), true);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_ProbesAgain_WhenTheConnectorWasPluggedInAfterTheLastProbe()
+    public async Task ProbeUnconfirmedConnectors_ProbesAgain_WhenTheConnectorWasPluggedInAfterTheLastProbe()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -311,7 +312,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         _settings.LastPilotCurrentProbes[ConnectorId] = _plugInTime.AddSeconds(-1);
         AddPluggedInConnectorState(ConnectorId);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
     }
@@ -321,7 +322,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     [InlineData(300, true)]
     [InlineData(301, false)]
     [InlineData(0, false)]
-    public async Task ProbeUnassignedConnectors_ProbesAgain_OnlyWhenACandidateCameOnlineWithinFiveMinutesAfterTheLastProbe(
+    public async Task ProbeUnconfirmedConnectors_ProbesAgain_OnlyWhenACandidateCameOnlineWithinFiveMinutesAfterTheLastProbe(
         int secondsAfterProbe, bool expectedProbe)
     {
         await SeedConnector(ConnectorId, CarA);
@@ -334,13 +335,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         carA.IsOnline.Update(lastProbe.AddSeconds(secondsAfterProbe), true);
         _now = lastProbe.AddSeconds(secondsAfterProbe + 1);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(expectedProbe, _startedCurrents.Count == 1);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbeAgain_WhenCandidateWasAlreadyOnlineDuringTheLastProbe()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbeAgain_WhenCandidateWasAlreadyOnlineDuringTheLastProbe()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -349,13 +350,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         carA.IsOnline.Update(_plugInTime, true);
         _settings.LastPilotCurrentProbes[ConnectorId] = _plugInTime.AddSeconds(10);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbeAgain_WhenCandidateFellAsleepAgainAfterWakingUp()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbeAgain_WhenCandidateFellAsleepAgainAfterWakingUp()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -367,13 +368,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         carA.IsOnline.Update(lastProbe.AddSeconds(47), true);
         carA.IsOnline.Update(lastProbe.AddSeconds(100), false);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_IdentifiesSleepingCar_WithASecondProbeOnceTheFirstProbeWokeItUp()
+    public async Task ProbeUnconfirmedConnectors_IdentifiesSleepingCar_WithASecondProbeOnceTheFirstProbeWokeItUp()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -383,20 +384,20 @@ public class PilotCurrentProbeServiceTests : TestBase
         var service = CreateService();
 
         //Asleep: the car can not report the probe current.
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
         Assert.Empty(_settings.ConfirmedLoadPointCarCombinations);
 
         carA.IsOnline.Update(_now.AddSeconds(47), true);
         _now = _now.AddSeconds(60);
         ReactOnProbe(ConnectorId, carA);
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(new List<int> { 6, 6, 16 }, _startedCurrents);
         Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbeAThirdTime_WhenTheCarDoesNotReactAfterWakingUp()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbeAThirdTime_WhenTheCarDoesNotReactAfterWakingUp()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -405,19 +406,19 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         var service = CreateService();
 
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
         carA.IsOnline.Update(_now.AddSeconds(47), true);
         _now = _now.AddSeconds(60);
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
         _now = _now.AddSeconds(60);
-        await service.ProbeUnassignedConnectors(CancellationToken.None);
+        await service.ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(2, _startedCurrents.Count);
         Assert.Empty(_settings.ConfirmedLoadPointCarCombinations);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbe_WhenUserSetConnectorToGuestCar()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbe_WhenUserSetConnectorToGuestCar()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -425,13 +426,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         _settings.ConfirmedLoadPointCarCombinations[ConnectorId] = (null, _plugInTime.AddMinutes(1));
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_Probes_WhenGuestCarChoiceWasForAnEarlierPlugIn()
+    public async Task ProbeUnconfirmedConnectors_Probes_WhenGuestCarChoiceWasForAnEarlierPlugIn()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -439,47 +440,140 @@ public class PilotCurrentProbeServiceTests : TestBase
         AddPluggedInConnectorState(ConnectorId);
         _settings.ConfirmedLoadPointCarCombinations[ConnectorId] = (null, _plugInTime.AddMinutes(-1));
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbe_WhenConnectorAlreadyHasACar()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbe_WhenConnectorAlreadyHasAConfirmedCar()
     {
         await SeedConnector(ConnectorId, CarA, CarB);
         await SeedCar(CarA);
         await SeedCar(CarB);
-        Mock.Mock<ILoadPointManagementService>().Setup(l => l.GetCombinationsToManage())
-            .ReturnsAsync(new HashSet<DtoLoadpointCombination> { new(CarA, ConnectorId), new(CarB, null), });
+        SetCombinations((CarA, ConnectorId), (CarB, null));
         AddPluggedInConnectorState(ConnectorId);
+        _settings.ConfirmedLoadPointCarCombinations[ConnectorId] = (CarA, _plugInTime.AddMinutes(1));
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbe_WhenConnectorIsNotPluggedIn()
+    public async Task ProbeUnconfirmedConnectors_ReplacesGuessedOtherCar_WithTheTeslaThatReacts()
+    {
+        //The only other allowed car is matched to a plugged in connector without any proof that it is plugged in.
+        await SeedConnector(ConnectorId, CarA, ManualCar);
+        var carA = await SeedCar(CarA);
+        await SeedCar(ManualCar, carType: CarType.Manual);
+        SetCombinations((ManualCar, ConnectorId), (CarA, null));
+        AddPluggedInConnectorState(ConnectorId);
+        ReactOnProbe(ConnectorId, carA);
+
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
+        Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
+    }
+
+    [Fact]
+    public async Task ProbeUnconfirmedConnectors_KeepsGuessedOtherCar_WhenNoTeslaReacts()
+    {
+        //E.g. the Tesla is plugged into another wallbox while the other car uses this connector.
+        await SeedConnector(ConnectorId, CarA, ManualCar);
+        await SeedCar(CarA);
+        await SeedCar(ManualCar, carType: CarType.Manual);
+        SetCombinations((ManualCar, ConnectorId), (CarA, null));
+        AddPluggedInConnectorState(ConnectorId);
+
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<int> { 6 }, _startedCurrents);
+        Mock.Mock<IOcppChargePointActionService>().Verify(a => a.StopCharging(ConnectorId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.False(_settings.ConfirmedLoadPointCarCombinations.ContainsKey(ConnectorId));
+    }
+
+    [Fact]
+    public async Task ProbeUnconfirmedConnectors_RestoresCurrentOfChargingGuessedCar_WhenTheTeslaReacts()
+    {
+        await SeedConnector(ConnectorId, CarA, ManualCar);
+        var carA = await SeedCar(CarA);
+        await SeedCar(ManualCar, carType: CarType.Manual);
+        SetCombinations((ManualCar, ConnectorId), (CarA, null));
+        var state = AddPluggedInConnectorState(ConnectorId);
+        state.IsCharging.Update(_plugInTime, true);
+        state.LastSetCurrent.Update(_plugInTime, 10);
+        ReactOnProbe(ConnectorId, carA);
+
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<int> { 6 }, _startedCurrents);
+        Mock.Mock<IOcppChargePointActionService>().Verify(a => a.SetChargingCurrent(ConnectorId, 10, It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Once);
+        Mock.Mock<IOcppChargePointActionService>().Verify(a => a.StopCharging(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        Mock.Mock<ITeslaService>().Verify(t => t.StopCharging(It.IsAny<int>()), Times.Never);
+        Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[ConnectorId].carId);
+    }
+
+    [Fact]
+    public async Task ProbeUnconfirmedConnectors_ProbesConnectorWithoutCarFirst_SoAGuessedCarIsNotInterruptedOnceTheTeslaIsFound()
+    {
+        //The connector with the guessed car comes first in the database.
+        await SeedConnector(ConnectorId, CarA, ManualCar);
+        await SeedConnector(SecondConnectorId, CarA);
+        var carA = await SeedCar(CarA);
+        await SeedCar(ManualCar, carType: CarType.Manual);
+        SetCombinations((ManualCar, ConnectorId), (null, SecondConnectorId), (CarA, null));
+        AddPluggedInConnectorState(ConnectorId);
+        AddPluggedInConnectorState(SecondConnectorId);
+        ReactOnProbe(SecondConnectorId, carA);
+
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
+
+        Assert.Equal(new List<int> { 6, 16 }, _startedCurrents);
+        Assert.Equal(CarA, _settings.ConfirmedLoadPointCarCombinations[SecondConnectorId].carId);
+        Assert.False(_settings.LastPilotCurrentProbes.ContainsKey(ConnectorId));
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(-1, true)]
+    public async Task ProbeUnconfirmedConnectors_ProbesGuessedOtherCar_OnlyIfTheUserDidNotChooseItSinceThePlugIn(int userChoiceMinutesAfterPlugIn, bool expectedProbe)
+    {
+        await SeedConnector(ConnectorId, CarA, ManualCar);
+        await SeedCar(CarA);
+        await SeedCar(ManualCar, carType: CarType.Manual);
+        SetCombinations((ManualCar, ConnectorId), (CarA, null));
+        AddPluggedInConnectorState(ConnectorId);
+        _settings.ConfirmedLoadPointCarCombinations[ConnectorId] = (ManualCar, _plugInTime.AddMinutes(userChoiceMinutesAfterPlugIn));
+
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
+
+        Assert.Equal(expectedProbe, _startedCurrents.Count > 0);
+    }
+
+    [Fact]
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbe_WhenConnectorIsNotPluggedIn()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
         SetUnassigned(ConnectorId);
         _settings.OcppConnectorStates[ConnectorId] = new DtoOcppConnectorState();
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbe_WhenConnectorHasNoState()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbe_WhenConnectorHasNoState()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
         SetUnassigned(ConnectorId);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
     }
@@ -490,7 +584,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     [InlineData(true, true, false, true, false)]
     [InlineData(true, true, true, false, false)]
     [InlineData(true, true, true, true, true)]
-    public async Task ProbeUnassignedConnectors_OnlyProbesForObservableAllowedTeslasAtHomeAndPluggedIn(bool isHome, bool isPluggedIn,
+    public async Task ProbeUnconfirmedConnectors_OnlyProbesForObservableAllowedTeslasAtHomeAndPluggedIn(bool isHome, bool isPluggedIn,
         bool isAllowed, bool isObservable, bool expectedProbe)
     {
         await SeedConnector(ConnectorId, isAllowed ? new[] { CarA } : Array.Empty<int>());
@@ -500,13 +594,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         SetUnassigned(ConnectorId);
         AddPluggedInConnectorState(ConnectorId);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(expectedProbe, _startedCurrents.Count == 1);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_RestoresLastSetCurrent_WhenConnectorWasCharging()
+    public async Task ProbeUnconfirmedConnectors_RestoresLastSetCurrent_WhenConnectorWasCharging()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -517,7 +611,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         carA.ChargerPilotCurrent.Update(_plugInTime, 10);
         ReactOnProbe(ConnectorId, carA);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         var actionService = Mock.Mock<IOcppChargePointActionService>();
         actionService.Verify(a => a.SetChargingCurrent(ConnectorId, 10m, null, It.IsAny<CancellationToken>()), Times.Once);
@@ -540,7 +634,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     // Connectors without automatic phase switching never get a number of phases as they might reject the message
     [InlineData(false, true, 1, true, null)]
     [InlineData(false, true, 3, false, null)]
-    public async Task ProbeUnassignedConnectors_DoesNotChangeThePhasesOfTheConnector(bool autoSwitchEnabled, bool isCharging,
+    public async Task ProbeUnconfirmedConnectors_DoesNotChangeThePhasesOfTheConnector(bool autoSwitchEnabled, bool isCharging,
         int? lastSetPhases, bool carReacts, int? expectedPhases)
     {
         await SeedConnector(ConnectorId, new[] { CarA }, 16, autoSwitchEnabled);
@@ -556,7 +650,7 @@ public class PilotCurrentProbeServiceTests : TestBase
             ReactOnProbe(ConnectorId, carA);
         }
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         var actionService = Mock.Mock<IOcppChargePointActionService>();
         //The probe, and for a matched car that was not charging the hand over with the max current.
@@ -569,7 +663,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotWaitOrRestore_WhenProbeCurrentCouldNotBeOffered()
+    public async Task ProbeUnconfirmedConnectors_DoesNotWaitOrRestore_WhenProbeCurrentCouldNotBeOffered()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -579,7 +673,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         actionService.Setup(a => a.StartCharging(ConnectorId, It.IsAny<decimal>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Result<RemoteStartTransactionResponse?>(null, "Not connected", null));
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         actionService.Verify(a => a.StopCharging(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         Mock.Mock<IBleVehicleDataService>().Verify(b => b.RefreshSingleCarData(It.IsAny<int>()), Times.Never);
@@ -588,7 +682,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotProbe_WhenEveryOfferableCurrentIsAlreadyReported()
+    public async Task ProbeUnconfirmedConnectors_DoesNotProbe_WhenEveryOfferableCurrentIsAlreadyReported()
     {
         await SeedConnector(ConnectorId, new[] { CarA }, maxCurrent: 6);
         var carA = await SeedCar(CarA);
@@ -596,7 +690,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         SetUnassigned(ConnectorId);
         AddPluggedInConnectorState(ConnectorId);
 
-        await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
         Assert.True(_settings.LastPilotCurrentProbes.ContainsKey(ConnectorId));
@@ -605,7 +699,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     [Theory]
     [InlineData(10, true)]
     [InlineData(11, false)]
-    public async Task ProbeUnassignedConnectors_OnlyProbes_WhenProbeCurrentFitsIntoMaxCombinedCurrent(int currentUsedByOtherCar, bool expectedProbe)
+    public async Task ProbeUnconfirmedConnectors_OnlyProbes_WhenProbeCurrentFitsIntoMaxCombinedCurrent(int currentUsedByOtherCar, bool expectedProbe)
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -614,7 +708,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
         SetChargingCurrents((CarB, null, currentUsedByOtherCar));
 
-        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        var currentToReserve = await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(expectedProbe, _startedCurrents.Count == 1);
         Assert.Equal(expectedProbe ? 0 : 6, currentToReserve);
@@ -622,7 +716,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_ProbesPostponedConnector_OnceOtherLoadPointsReducedTheirCurrent()
+    public async Task ProbeUnconfirmedConnectors_ProbesPostponedConnector_OnceOtherLoadPointsReducedTheirCurrent()
     {
         await SeedConnector(ConnectorId, CarA);
         var carA = await SeedCar(CarA);
@@ -633,10 +727,10 @@ public class PilotCurrentProbeServiceTests : TestBase
         SetChargingCurrents((CarB, null, 16m));
         var service = CreateService();
 
-        var firstReservation = await service.ProbeUnassignedConnectors(CancellationToken.None);
+        var firstReservation = await service.ProbeUnconfirmedConnectors(CancellationToken.None);
         SetChargingCurrents((CarB, null, 10m));
-        var secondReservation = await service.ProbeUnassignedConnectors(CancellationToken.None);
-        var thirdReservation = await service.ProbeUnassignedConnectors(CancellationToken.None);
+        var secondReservation = await service.ProbeUnconfirmedConnectors(CancellationToken.None);
+        var thirdReservation = await service.ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(6, firstReservation);
         Assert.Equal(0, secondReservation);
@@ -646,7 +740,7 @@ public class PilotCurrentProbeServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_DoesNotCountCurrentOfTheProbedConnector()
+    public async Task ProbeUnconfirmedConnectors_DoesNotCountCurrentOfTheProbedConnector()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -656,14 +750,14 @@ public class PilotCurrentProbeServiceTests : TestBase
         //A guest car charging on the probed connector: the probe replaces its current instead of adding to it.
         SetChargingCurrents((null, ConnectorId, 16m));
 
-        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        var currentToReserve = await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Single(_startedCurrents);
         Assert.Equal(0, currentToReserve);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_ReservesTheLargestPostponedProbeCurrent()
+    public async Task ProbeUnconfirmedConnectors_ReservesTheLargestPostponedProbeCurrent()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedConnector(SecondConnectorId, CarB);
@@ -676,14 +770,14 @@ public class PilotCurrentProbeServiceTests : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
         SetChargingCurrents((99, null, 16m));
 
-        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        var currentToReserve = await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Empty(_startedCurrents);
         Assert.Equal(7, currentToReserve);
     }
 
     [Fact]
-    public async Task ProbeUnassignedConnectors_ReservesNothing_WhenNoConnectorNeedsAProbe()
+    public async Task ProbeUnconfirmedConnectors_ReservesNothing_WhenNoConnectorNeedsAProbe()
     {
         await SeedConnector(ConnectorId, CarA);
         await SeedCar(CarA);
@@ -693,7 +787,7 @@ public class PilotCurrentProbeServiceTests : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.MaxCombinedCurrent()).Returns(16);
         SetChargingCurrents((CarB, null, 16m));
 
-        var currentToReserve = await CreateService().ProbeUnassignedConnectors(CancellationToken.None);
+        var currentToReserve = await CreateService().ProbeUnconfirmedConnectors(CancellationToken.None);
 
         Assert.Equal(0, currentToReserve);
     }
@@ -736,13 +830,13 @@ public class PilotCurrentProbeServiceTests : TestBase
         DetachAllEntities();
     }
 
-    private async Task<DtoCar> SeedCar(int carId, bool useFleetTelemetry = true, bool useBle = false)
+    private async Task<DtoCar> SeedCar(int carId, bool useFleetTelemetry = true, bool useBle = false, CarType carType = CarType.Tesla)
     {
         Context.Cars.Add(new Car
         {
             Id = carId,
             Vin = $"VIN{carId}",
-            CarType = CarType.Tesla,
+            CarType = carType,
             ShouldBeManaged = true,
             UseFleetTelemetry = useFleetTelemetry,
             UseBle = useBle,
@@ -759,12 +853,15 @@ public class PilotCurrentProbeServiceTests : TestBase
 
     private void SetUnassigned(params int[] connectorIds)
     {
-        var combinations = connectorIds.Select(id => new DtoLoadpointCombination(null, id)).ToHashSet();
-        foreach (var car in _settings.Cars)
-        {
-            combinations.Add(new DtoLoadpointCombination(car.Id, null));
-        }
-        Mock.Mock<ILoadPointManagementService>().Setup(l => l.GetCombinationsToManage()).ReturnsAsync(combinations);
+        SetCombinations(connectorIds.Select(id => ((int?)null, (int?)id))
+            .Concat(_settings.Cars.Select(c => ((int?)c.Id, (int?)null)))
+            .ToArray());
+    }
+
+    private void SetCombinations(params (int? carId, int? connectorId)[] combinations)
+    {
+        Mock.Mock<ILoadPointManagementService>().Setup(l => l.GetCombinationsToManage())
+            .ReturnsAsync(combinations.Select(c => new DtoLoadpointCombination(c.carId, c.connectorId)).ToHashSet());
     }
 
     private DtoOcppConnectorState AddPluggedInConnectorState(int connectorId)
